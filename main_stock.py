@@ -30,6 +30,7 @@ def button_getStockHistory():
         m_history = get_stock_history.get_stock_history(stock_number,str_date)
         #
         ooofofofof= get_stock_history.get_stock_financial_statement(stock_number,date)
+        print(ooofofofof)
         #
         check_price_isCheck(m_history,get_stock_info.Get_stock_info(stock_number))
         check_SMA_isCheck(m_history,get_stock_info.Get_stock_info(stock_number))
@@ -53,8 +54,8 @@ def check_SMA_isCheck(m_history,stockInfo):
 
 def button_moveToInput_click():
     Index = myshow.treeView.currentIndex()
-    mIndex = Index.siblingAtColumn(0)
-    data = myshow.treeView.model().data(mIndex)
+    mModel = myshow.treeView.model()
+    data = mModel.item(Index.row(),0).text()
     text = str(data)
     myshow.input_stockNumber.setPlainText(text)
 def button_addStock_click():
