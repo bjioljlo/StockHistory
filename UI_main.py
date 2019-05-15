@@ -12,7 +12,7 @@ from PyQt5 import QtCore, QtGui, QtWidgets
 class Ui_MainWindow(object):
     def setupUi(self, MainWindow):
         MainWindow.setObjectName("MainWindow")
-        MainWindow.resize(588, 567)
+        MainWindow.resize(550, 600)
         self.centralwidget = QtWidgets.QWidget(MainWindow)
         self.centralwidget.setObjectName("centralwidget")
         self.treeView = QtWidgets.QTreeView(self.centralwidget)
@@ -93,9 +93,12 @@ class Ui_MainWindow(object):
         self.check_volume = QtWidgets.QCheckBox(self.centralwidget)
         self.check_volume.setGeometry(QtCore.QRect(420, 90, 87, 20))
         self.check_volume.setObjectName("check_volume")
+        self.button_openPickWindow = QtWidgets.QPushButton(self.centralwidget)
+        self.button_openPickWindow.setGeometry(QtCore.QRect(130, 310, 113, 32))
+        self.button_openPickWindow.setObjectName("button_openPickWindow")
         MainWindow.setCentralWidget(self.centralwidget)
         self.menubar = QtWidgets.QMenuBar(MainWindow)
-        self.menubar.setGeometry(QtCore.QRect(0, 0, 588, 22))
+        self.menubar.setGeometry(QtCore.QRect(0, 0, 550, 22))
         self.menubar.setObjectName("menubar")
         MainWindow.setMenuBar(self.menubar)
         self.statusbar = QtWidgets.QStatusBar(MainWindow)
@@ -121,5 +124,6 @@ class Ui_MainWindow(object):
         self.check_stock.setText(_translate("MainWindow", "顯示股價"))
         self.check_KD.setText(_translate("MainWindow", "顯示KD值"))
         self.check_volume.setText(_translate("MainWindow", "顯示總量"))
+        self.button_openPickWindow.setText(_translate("MainWindow", "開啟選股視窗"))
 
 
