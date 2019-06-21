@@ -6,7 +6,7 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>520</width>
+    <width>600</width>
     <height>668</height>
    </rect>
   </property>
@@ -14,92 +14,21 @@
    <string>財報挑選</string>
   </property>
   <widget class="QWidget" name="centralwidget">
-   <widget class="QLabel" name="label">
-    <property name="geometry">
-     <rect>
-      <x>20</x>
-      <y>10</y>
-      <width>91</width>
-      <height>21</height>
-     </rect>
-    </property>
-    <property name="text">
-     <string>毛利率(%)大於</string>
-    </property>
-   </widget>
-   <widget class="QTextEdit" name="input_GPM">
-    <property name="geometry">
-     <rect>
-      <x>140</x>
-      <y>10</y>
-      <width>81</width>
-      <height>21</height>
-     </rect>
-    </property>
-    <property name="verticalScrollBarPolicy">
-     <enum>Qt::ScrollBarAlwaysOff</enum>
-    </property>
-    <property name="horizontalScrollBarPolicy">
-     <enum>Qt::ScrollBarAlwaysOff</enum>
-    </property>
-   </widget>
-   <widget class="QLabel" name="label_2">
-    <property name="geometry">
-     <rect>
-      <x>10</x>
-      <y>40</y>
-      <width>121</width>
-      <height>21</height>
-     </rect>
-    </property>
-    <property name="text">
-     <string>營業利益率(%)大於</string>
-    </property>
-   </widget>
-   <widget class="QTextEdit" name="input_OPR">
-    <property name="geometry">
-     <rect>
-      <x>140</x>
-      <y>40</y>
-      <width>81</width>
-      <height>21</height>
-     </rect>
-    </property>
-    <property name="verticalScrollBarPolicy">
-     <enum>Qt::ScrollBarAlwaysOff</enum>
-    </property>
-    <property name="horizontalScrollBarPolicy">
-     <enum>Qt::ScrollBarAlwaysOff</enum>
-    </property>
-   </widget>
-   <widget class="QPushButton" name="button_pick">
-    <property name="geometry">
-     <rect>
-      <x>460</x>
-      <y>560</y>
-      <width>113</width>
-      <height>32</height>
-     </rect>
-    </property>
-    <property name="text">
-     <string>開始篩選</string>
-    </property>
-   </widget>
    <widget class="QTreeView" name="treeView_pick">
     <property name="geometry">
      <rect>
-      <x>20</x>
-      <y>70</y>
-      <width>511</width>
-      <height>171</height>
+      <x>10</x>
+      <y>410</y>
+      <width>571</width>
+      <height>181</height>
      </rect>
     </property>
    </widget>
    <widget class="QPushButton" name="button_moveToInput">
     <property name="geometry">
      <rect>
-      <x>30</x>
-      <y>260</y>
+      <x>480</x>
+      <y>590</y>
       <width>113</width>
       <height>32</height>
      </rect>
@@ -108,13 +37,327 @@
      <string>帶入</string>
     </property>
    </widget>
+   <widget class="QScrollArea" name="scrollArea">
+    <property name="geometry">
+     <rect>
+      <x>10</x>
+      <y>10</y>
+      <width>251</width>
+      <height>251</height>
+     </rect>
+    </property>
+    <property name="widgetResizable">
+     <bool>true</bool>
+    </property>
+    <widget class="QWidget" name="scrollAreaWidgetContents">
+     <property name="geometry">
+      <rect>
+       <x>0</x>
+       <y>0</y>
+       <width>249</width>
+       <height>249</height>
+      </rect>
+     </property>
+     <widget class="QCheckBox" name="Ana_ProfitAndLoss">
+      <property name="geometry">
+       <rect>
+        <x>10</x>
+        <y>0</y>
+        <width>111</width>
+        <height>31</height>
+       </rect>
+      </property>
+      <property name="text">
+       <string>營益分析彙總表</string>
+      </property>
+     </widget>
+     <widget class="QTextEdit" name="input_OPR">
+      <property name="geometry">
+       <rect>
+        <x>160</x>
+        <y>60</y>
+        <width>81</width>
+        <height>21</height>
+       </rect>
+      </property>
+      <property name="verticalScrollBarPolicy">
+       <enum>Qt::ScrollBarAlwaysOff</enum>
+      </property>
+      <property name="horizontalScrollBarPolicy">
+       <enum>Qt::ScrollBarAlwaysOff</enum>
+      </property>
+     </widget>
+     <widget class="QLabel" name="label">
+      <property name="geometry">
+       <rect>
+        <x>30</x>
+        <y>30</y>
+        <width>91</width>
+        <height>21</height>
+       </rect>
+      </property>
+      <property name="text">
+       <string>毛利率(%)大於</string>
+      </property>
+     </widget>
+     <widget class="QLabel" name="label_2">
+      <property name="geometry">
+       <rect>
+        <x>30</x>
+        <y>60</y>
+        <width>121</width>
+        <height>21</height>
+       </rect>
+      </property>
+      <property name="text">
+       <string>營業利益率(%)大於</string>
+      </property>
+     </widget>
+     <widget class="QTextEdit" name="input_GPM">
+      <property name="geometry">
+       <rect>
+        <x>160</x>
+        <y>30</y>
+        <width>81</width>
+        <height>21</height>
+       </rect>
+      </property>
+      <property name="verticalScrollBarPolicy">
+       <enum>Qt::ScrollBarAlwaysOff</enum>
+      </property>
+      <property name="horizontalScrollBarPolicy">
+       <enum>Qt::ScrollBarAlwaysOff</enum>
+      </property>
+     </widget>
+     <widget class="QTextEdit" name="input_RPS">
+      <property name="geometry">
+       <rect>
+        <x>160</x>
+        <y>120</y>
+        <width>81</width>
+        <height>21</height>
+       </rect>
+      </property>
+      <property name="verticalScrollBarPolicy">
+       <enum>Qt::ScrollBarAlwaysOff</enum>
+      </property>
+      <property name="horizontalScrollBarPolicy">
+       <enum>Qt::ScrollBarAlwaysOff</enum>
+      </property>
+     </widget>
+     <widget class="QLabel" name="label_3">
+      <property name="geometry">
+       <rect>
+        <x>40</x>
+        <y>120</y>
+        <width>81</width>
+        <height>21</height>
+       </rect>
+      </property>
+      <property name="text">
+       <string>每股參考淨值</string>
+      </property>
+     </widget>
+     <widget class="QCheckBox" name="Ana_BalanceSheet">
+      <property name="geometry">
+       <rect>
+        <x>10</x>
+        <y>90</y>
+        <width>111</width>
+        <height>31</height>
+       </rect>
+      </property>
+      <property name="text">
+       <string>資產負債彙總表</string>
+      </property>
+     </widget>
+     <widget class="QTextEdit" name="input_EPS">
+      <property name="geometry">
+       <rect>
+        <x>160</x>
+        <y>180</y>
+        <width>81</width>
+        <height>21</height>
+       </rect>
+      </property>
+      <property name="verticalScrollBarPolicy">
+       <enum>Qt::ScrollBarAlwaysOff</enum>
+      </property>
+      <property name="horizontalScrollBarPolicy">
+       <enum>Qt::ScrollBarAlwaysOff</enum>
+      </property>
+     </widget>
+     <widget class="QCheckBox" name="Ana_CPAndLoss">
+      <property name="geometry">
+       <rect>
+        <x>10</x>
+        <y>150</y>
+        <width>111</width>
+        <height>31</height>
+       </rect>
+      </property>
+      <property name="text">
+       <string>綜合損益彙總表</string>
+      </property>
+     </widget>
+     <widget class="QLabel" name="label_4">
+      <property name="geometry">
+       <rect>
+        <x>40</x>
+        <y>180</y>
+        <width>101</width>
+        <height>21</height>
+       </rect>
+      </property>
+      <property name="text">
+       <string>基本每股盈餘(元)</string>
+      </property>
+     </widget>
+     <widget class="QPushButton" name="button_pick">
+      <property name="geometry">
+       <rect>
+        <x>140</x>
+        <y>210</y>
+        <width>113</width>
+        <height>32</height>
+       </rect>
+      </property>
+      <property name="text">
+       <string>開始篩選</string>
+      </property>
+     </widget>
+    </widget>
+   </widget>
+   <widget class="QScrollArea" name="scrollArea_2">
+    <property name="geometry">
+     <rect>
+      <x>10</x>
+      <y>260</y>
+      <width>211</width>
+      <height>141</height>
+     </rect>
+    </property>
+    <property name="widgetResizable">
+     <bool>true</bool>
+    </property>
+    <widget class="QWidget" name="scrollAreaWidgetContents_2">
+     <property name="geometry">
+      <rect>
+       <x>0</x>
+       <y>0</y>
+       <width>209</width>
+       <height>139</height>
+      </rect>
+     </property>
+     <widget class="QPushButton" name="button_pick_2">
+      <property name="geometry">
+       <rect>
+        <x>90</x>
+        <y>100</y>
+        <width>113</width>
+        <height>32</height>
+       </rect>
+      </property>
+      <property name="text">
+       <string>開始篩選</string>
+      </property>
+     </widget>
+     <widget class="QTextEdit" name="input_monthRP_smoothAVG">
+      <property name="geometry">
+       <rect>
+        <x>110</x>
+        <y>40</y>
+        <width>81</width>
+        <height>21</height>
+       </rect>
+      </property>
+      <property name="verticalScrollBarPolicy">
+       <enum>Qt::ScrollBarAlwaysOff</enum>
+      </property>
+      <property name="horizontalScrollBarPolicy">
+       <enum>Qt::ScrollBarAlwaysOff</enum>
+      </property>
+     </widget>
+     <widget class="QLabel" name="label_5">
+      <property name="geometry">
+       <rect>
+        <x>20</x>
+        <y>40</y>
+        <width>101</width>
+        <height>21</height>
+       </rect>
+      </property>
+      <property name="text">
+       <string>往前平滑月份</string>
+      </property>
+     </widget>
+     <widget class="QTextEdit" name="input_monthRP_UpMpnth">
+      <property name="geometry">
+       <rect>
+        <x>110</x>
+        <y>70</y>
+        <width>81</width>
+        <height>21</height>
+       </rect>
+      </property>
+      <property name="verticalScrollBarPolicy">
+       <enum>Qt::ScrollBarAlwaysOff</enum>
+      </property>
+      <property name="horizontalScrollBarPolicy">
+       <enum>Qt::ScrollBarAlwaysOff</enum>
+      </property>
+     </widget>
+     <widget class="QLabel" name="label_6">
+      <property name="geometry">
+       <rect>
+        <x>20</x>
+        <y>70</y>
+        <width>101</width>
+        <height>21</height>
+       </rect>
+      </property>
+      <property name="text">
+       <string>連續升高月份</string>
+      </property>
+     </widget>
+     <widget class="QLabel" name="label_7">
+      <property name="geometry">
+       <rect>
+        <x>60</x>
+        <y>0</y>
+        <width>101</width>
+        <height>31</height>
+       </rect>
+      </property>
+      <property name="text">
+       <string>逐步升高篩選</string>
+      </property>
+      <property name="alignment">
+       <set>Qt::AlignCenter</set>
+      </property>
+     </widget>
+    </widget>
+   </widget>
+   <widget class="QPushButton" name="button_openBackWindow">
+    <property name="geometry">
+     <rect>
+      <x>450</x>
+      <y>360</y>
+      <width>113</width>
+      <height>32</height>
+     </rect>
+    </property>
+    <property name="text">
+     <string>開啟回測視窗</string>
+    </property>
+   </widget>
   </widget>
   <widget class="QMenuBar" name="menubar">
    <property name="geometry">
     <rect>
      <x>0</x>
      <y>0</y>
-     <width>520</width>
+     <width>600</width>
      <height>22</height>
     </rect>
    </property>

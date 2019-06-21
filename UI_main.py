@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-# Form implementation generated from reading ui file '/Users/apple/Python/StockHistory/UI_main.ui'
+# Form implementation generated from reading ui file 'UI_main.ui'
 #
 # Created by: PyQt5 UI code generator 5.12.1
 #
@@ -55,7 +55,7 @@ class Ui_MainWindow(object):
         self.label_2.setGeometry(QtCore.QRect(230, 64, 60, 16))
         self.label_2.setObjectName("label_2")
         self.widget_SMA = QtWidgets.QWidget(self.centralwidget)
-        self.widget_SMA.setGeometry(QtCore.QRect(240, 120, 221, 101))
+        self.widget_SMA.setGeometry(QtCore.QRect(230, 120, 221, 101))
         self.widget_SMA.setObjectName("widget_SMA")
         self.check_SMA = QtWidgets.QCheckBox(self.widget_SMA)
         self.check_SMA.setGeometry(QtCore.QRect(10, 20, 51, 51))
@@ -96,6 +96,9 @@ class Ui_MainWindow(object):
         self.button_openPickWindow = QtWidgets.QPushButton(self.centralwidget)
         self.button_openPickWindow.setGeometry(QtCore.QRect(130, 310, 113, 32))
         self.button_openPickWindow.setObjectName("button_openPickWindow")
+        self.button_getMonthRP = QtWidgets.QPushButton(self.centralwidget)
+        self.button_getMonthRP.setGeometry(QtCore.QRect(250, 310, 113, 32))
+        self.button_getMonthRP.setObjectName("button_getMonthRP")
         MainWindow.setCentralWidget(self.centralwidget)
         self.menubar = QtWidgets.QMenuBar(MainWindow)
         self.menubar.setGeometry(QtCore.QRect(0, 0, 550, 22))
@@ -125,5 +128,6 @@ class Ui_MainWindow(object):
         self.check_KD.setText(_translate("MainWindow", "顯示KD值"))
         self.check_volume.setText(_translate("MainWindow", "顯示總量"))
         self.button_openPickWindow.setText(_translate("MainWindow", "開啟選股視窗"))
+        self.button_getMonthRP.setText(_translate("MainWindow", "歷史月營收紀錄"))
 
 

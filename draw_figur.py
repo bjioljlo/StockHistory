@@ -17,6 +17,10 @@ def draw_stock(table,stockInfo):#table = 表 stockInfo = 股票資訊結構
 def draw_SMA(table,day,stockInfo):#table = 表 day = 幾日均線 stockInfo = 股票資訊結構
     mclose = talib.SMA(np.array(table['Close']), day)#用np.array才可以將均線和蠟燭圖放一起
     ax.plot(mclose,label = stockInfo.number+' '+str(day)+ ' days-'+'SMA')
+def draw_BollingerBands(table,day,stockInfo):#table = 表 day = 幾日均線 stockInfo = 股票資訊結構
+    upper, middle, lower = talib.BBANDS(np.array(table['Close']))
+    ax.plot(upper,label = stockInfo.number+' '+str(day)+ ' days-'+'upper')
+    ax.plot(lower,label = stockInfo.number+' '+str(day)+ ' days-'+'lower')
 def draw_KD(table,stockInfo):#table = 表 stockInfo = 股票資訊結構
     table['k'],table['d'] = talib.STOCH(table['High'],table['Low'],table['Close'])
     table['k'].fillna(value=0,inplace = True)
@@ -31,6 +35,18 @@ def draw_Volume(table,stockInfo):#table = 表 stockInfo = 股票資訊結構
     mpf.volume_overlay(ax3,table['Open'],table['Close'],
                             table['Volume'],colorup='r',colordown='g',
                            width=0.5,alpha=0.8)
+def draw_monthRP(table,stockNum):
+    axx = plt.axes()
+    axx.plot(table['當月營收'],label = 'monthRP')
+    plt.xlabel("date")
+    plt.ylabel("UNIT-->NTD:1000,000")
+    plt.title(stockNum)
+    plt.show()
+
+def draw_backtest(data):
+    plt.plot(data)
+    plt.show()
+
 def draw_Show():
     ax.legend()
     ax2.legend()
