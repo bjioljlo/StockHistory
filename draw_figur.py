@@ -44,7 +44,17 @@ def draw_monthRP(table,stockNum):
     plt.show()
 
 def draw_backtest(data):
-    plt.plot(data)
+    ax4 = plt.axes()
+    ax4.plot(data,label = '回測結果',color ='b')
+    plt.xlabel("date")
+    plt.ylabel("%")
+    plt.show()
+
+def draw_backtest2(data):
+    ax5 = plt.axes()
+    ax5.plot(data,label = '回測結果',color ='r')
+    plt.xlabel("date")
+    plt.ylabel("number")
     plt.show()
 
 def draw_Show():

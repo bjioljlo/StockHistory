@@ -116,11 +116,11 @@ def button_monthRP_click():#某股票月營收曲線
     df.draw_monthRP(data_result,myshow.input_stockNumber.toPlainText())
 def button_monthRP_Up_click():#月營收逐步升高篩選
     date = tools.QtDate2DateTime(myshow.date_startDate.date())
-    result_data = get_monthRP_up(tools.changeDateMonth(date,-1),
+    result_data = get_stock_history.get_monthRP_up(tools.changeDateMonth(date,-1),
                                 int(mypick.input_monthRP_smoothAVG.toPlainText()),
                                 int(mypick.input_monthRP_UpMpnth.toPlainText()))
 
-    FS_data = get_financial_statement(tools.changeDateMonth(date,-1))
+    FS_data = get_financial_statement(tools.changeDateMonth(date,0))
     pick_data = pd.merge(result_data,FS_data,left_index=True,right_index=True)
     
     pick_data = pick_data.drop(columns=[0])
@@ -130,8 +130,11 @@ def button_backtest_click():#月營收回測開始紐
         date_start = tools.QtDate2DateTime(mybacktest.date_start.date())
         # date_start = tools.DateTime2String(date_start)
         date_end = tools.QtDate2DateTime(mybacktest.date_end.date())
-        number = myshow.input_stockNumber.toPlainText()
-        backtest_stock.backtest_monthRP_Up(20,4,5,date_start,date_end,100000)
+        money_start = int(mybacktest.input_startMoney.toPlainText())
+        change_days = int(mybacktest.input_changeDays.toPlainText())
+        smoothAVG = int(mybacktest.input_monthRP_smoothAVG.toPlainText())
+        upMonth = int(mybacktest.input_monthRP_UpMpnth.toPlainText())
+        backtest_stock.backtest_monthRP_Up(change_days,smoothAVG,upMonth,date_start,date_end,money_start)
 
 
 #取得月營收的資料
@@ -153,22 +156,22 @@ def get_monthRP(date_start,date_end,Number):#start = 後面時間 end = 前面�
     return data_result
 
 #取得月營收逐步升高的篩選資料
-def get_monthRP_up(time,avgNum,upNum):#time = 取得資料的時間 avgNum = 平滑曲線月份 upNum = 連續成長月份
-    data = {}
-    for i in range(avgNum+upNum):
-        temp_now = tools.changeDateMonth(time,-i)
-        data['%d-%d-01'%(temp_now.year, temp_now.month)] = get_stock_history.get_allstock_monthly_report(temp_now)
+# def get_monthRP_up(time,avgNum,upNum):#time = 取得資料的時間 avgNum = 平滑曲線月份 upNum = 連續成長月份
+#     data = {}
+#     for i in range(avgNum+upNum):
+#         temp_now = tools.changeDateMonth(time,-i)
+#         data['%d-%d-01'%(temp_now.year, temp_now.month)] = get_stock_history.get_allstock_monthly_report(temp_now)
 
-    result = pd.DataFrame({k:result['當月營收'] for k,result in data.items()}).transpose()
-    result.index = pd.to_datetime(result.index)
-    result = result.sort_index()
+#     result = pd.DataFrame({k:result['當月營收'] for k,result in data.items()}).transpose()
+#     result.index = pd.to_datetime(result.index)
+#     result = result.sort_index()
 
-    method2 = result.rolling(avgNum,min_periods=avgNum).mean()
-    method2 = (method2 > method2.shift()).iloc[-upNum:].sum()
-    final_result = method2[method2 >= upNum]
+#     method2 = result.rolling(avgNum,min_periods=avgNum).mean()
+#     method2 = (method2 > method2.shift()).iloc[-upNum:].sum()
+#     final_result = method2[method2 >= upNum]
 
-    final_result = pd.DataFrame(final_result)
-    return final_result
+#     final_result = pd.DataFrame(final_result)
+#     return final_result
 
 #取得各種財報數字篩選
 def get_financial_statement(date,GPM = '0' ,OPR ='0' ,EPS ='0',RPS ='0'):
@@ -236,6 +239,7 @@ def Init_mainWindow():#初始化mainwindow
     #設定日期
     date = QtCore.QDate(datetime.datetime.today().year,datetime.datetime.today().month,datetime.datetime.today().day) 
     myshow.date_startDate.setMaximumDate(date)
+    myshow.date_startDate.setMinimumDate(QtCore.QDate(2013,1,1))
     myshow.date_startDate.setDate(QtCore.QDate(2018,1,1))
 def Init_pickWindow():#初始化挑股票畫面
     mypick.button_pick.clicked.connect(button_pick_click)#設定button功能
@@ -253,9 +257,15 @@ def Init_backtestWindow():#初始化回測畫面
     mybacktest.button_backtest.clicked.connect(button_backtest_click)#設定button功能
     date = QtCore.QDate(datetime.datetime.today().year,datetime.datetime.today().month,datetime.datetime.today().day) 
     mybacktest.date_start.setMaximumDate(date)
-    mybacktest.date_start.setDate(QtCore.QDate(2010,1,1))
+    mybacktest.date_start.setMinimumDate(QtCore.QDate(2013,1,1))
+    mybacktest.date_start.setDate(QtCore.QDate(2013,1,1))
     mybacktest.date_end.setMaximumDate(date)
     mybacktest.date_end.setDate(date)
+    mybacktest.date_end.setMinimumDate(QtCore.QDate(2013,1,1))
+    mybacktest.input_startMoney.setPlainText('100000')
+    mybacktest.input_changeDays.setPlainText('25')
+    mybacktest.input_monthRP_smoothAVG.setPlainText('4')
+    mybacktest.input_monthRP_UpMpnth.setPlainText('5')
     
 
 

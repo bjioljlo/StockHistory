@@ -11,20 +11,48 @@ import tools
 
 fileName_monthRP = "monthRP"
 
+no_use_stock = [1603,5259]
+
+Holiday_trigger = False
+
 class FS_type(Enum):
     aa = '綜合損益彙總表'
     bb = '資產負債彙總表'
     cc = '營益分析彙總表'
 
 filePath = os.getcwd()#取得目錄路徑
+
+def check_no_use_stock(number):
+    for num in range(0,no_use_stock.__len__()):
+        if(int(number) == no_use_stock[num]):
+            print(str(number))
+            return True
+    return False
+    
+
 def get_stock_price(number,date):#取得某股票某天的ＡＤＪ價格
-    stock_data = get_stock_history(number,date)
+    global Holiday_trigger
+    if check_no_use_stock(number) == True:
+        print(str(number) + ' in no use')
+        return None
+    stock_data = get_stock_history(number,date,False,False)
     result = stock_data[stock_data.index == date]
     if result.empty == True:
-        print(date + ' is no data. Its holiday?')
-        return None
+        if Holiday_trigger == True:
+            return None
+        if datetime.datetime.strptime(date,"%Y-%m-%d").isoweekday() in [1,2,3,4,5]:
+            stock_data = get_stock_history(number,date,True,False)
+            result = stock_data[stock_data.index == date]
+            if result.empty == True:
+                print('星期' + str(datetime.datetime.strptime(date,"%Y-%m-%d").isoweekday()))
+                print(str(number) + '--' + date + ' is no data. Its holiday?')
+                Holiday_trigger = True
+                return None
+        else:
+            return None
     result = result['Adj Close']
     close = result[date]
+    Holiday_trigger = False
     return close
 def get_stock_monthly_report(number,start):#爬某月某個股票月營收
     if get_stock_info.ts.codes.__contains__(number) == False:
@@ -86,10 +114,12 @@ def get_stock_financial_statement(number,start):#爬某個股票的歷史財報
         financial_statement(start.year(),season,FS_type.cc)            
     stock = pd.read_csv(filePath + '/' + str(start.year())+"-"+str(season)+"-"+type.value+".csv",index_col='公司代號', parse_dates=['公司代號'])
     return stock.loc[int(number)]
-def get_stock_history(number,start):#爬某個股票的歷史紀錄
+def get_stock_history(number,start,reGetInfo = False,UpdateInfo = True):#爬某個股票的歷史紀錄
     start_time  = datetime.datetime.strptime(start,"%Y-%m-%d")
     data_time = datetime.datetime.strptime('2000-1-1',"%Y-%m-%d")
     now_time = datetime.datetime.today()
+    if UpdateInfo == False:
+        now_time = datetime.datetime.strptime('2019-6-24',"%Y-%m-%d")
 
     if get_stock_info.ts.codes.__contains__(number) == False:
         print("無此檔股票")
@@ -97,6 +127,7 @@ def get_stock_history(number,start):#爬某個股票的歷史紀錄
     if start_time < data_time:
         print('日期請大於西元2000年')
         return
+    
     if os.path.isfile(filePath + '/' + str(number) + '_' + '2000-1-1' +
                                                             '_' +
                                                             str(now_time.year) +
@@ -117,12 +148,31 @@ def get_stock_history(number,start):#爬某個股票的歷史紀錄
                                                             '-' + str(now_time.day),response)
         # 偽停頓
         time.sleep(5)
+    else:
+        if reGetInfo == True:
+            base_time = datetime.datetime.strptime('1970-1-1',"%Y-%m-%d")
+            data_time  = datetime.datetime.strptime('2000-1-1',"%Y-%m-%d")
+            period1 = (data_time - base_time).total_seconds()
+            period2 = (now_time - base_time).total_seconds()
+            period1 = int(period1)
+            period2 = int(period2)
+            site = "https://query1.finance.yahoo.com/v7/finance/download/" + str(number) +".TW?period1="+str(period1)+"&period2="+str(period2)+"&interval=1d&events=history&crumb=hP2rOschxO0"
+            response = requests.post(site)
+            save_stock_file(filePath + '/' + str(number) + '_' + '2000-1-1' +
+                                                                '_' +
+                                                                str(now_time.year) +
+                                                                '-' + str(now_time.month) + 
+                                                                '-' + str(now_time.day),response)
+            # 偽停頓
+            time.sleep(5)
+
 
     m_history = load_stock_file(filePath + '/' + str(number) + '_' + '2000-1-1' +
                                                             '_' +
                                                             str(now_time.year) +
                                                             '-' + str(now_time.month) + 
                                                             '-' + str(now_time.day))
+    time.sleep(0.1)# 偽停頓
     mask = m_history.index >= start
     result = m_history[mask]
     result = result.dropna(axis = 0,how = 'any')
@@ -131,6 +181,9 @@ def save_stock_file(fileName,stockData):#存下歷史資料
     with open(fileName + '.csv', 'w') as f:
         f.writelines(stockData.text)
 def load_stock_file(fileName):#讀取歷史資料
+    if os.path.getsize(fileName + '.csv') < 200:
+        df = pd.read_csv(fileName + '.csv')
+        return df
     df = pd.read_csv(fileName + '.csv', index_col='Date', parse_dates=['Date'])
     df = df.dropna(how='any',inplace=False)#將某些null欄位去除
     df.loc[df['Volume'] > 1000000000] = df.loc[df['Volume'] > 1000000000]/1000
@@ -161,11 +214,11 @@ def financial_statement(year, season, type):#爬取歷史財報並存檔
         myear -= 1911
     
     if type == FS_type.aa:
-        url = 'http://mops.twse.com.tw/mops/web/ajax_t163sb04'
+        url = 'https://mops.twse.com.tw/mops/web/ajax_t163sb04'
     elif type == FS_type.bb:
-        url = 'http://mops.twse.com.tw/mops/web/ajax_t163sb05'
+        url = 'https://mops.twse.com.tw/mops/web/ajax_t163sb05'
     elif type == FS_type.cc:
-        url = 'http://mops.twse.com.tw/mops/web/ajax_t163sb06'
+        url = 'https://mops.twse.com.tw/mops/web/ajax_t163sb06'
     else:
         print('type does not match')
 
@@ -250,14 +303,35 @@ def translate_dataFrame2(response,type,year):
                                 [26,44,45,53,57],
                                 [14,32,33,42,46],
                                 [5,8,9,17,21]])
-    if (year < 107):
+    if(year == 106):
         column_pos_array = np.array([[23,40,41,50,54],
                                 [5,8,9,17,21],
                                 [5,8,9,18,22],
                                 [23,41,42,50,54],
                                 [14,32,33,42,46],
-                                [5,8,9,17,21]
-                                ])
+                                [5,8,9,17,21]])                            
+    if(year < 106):
+        column_pos_array = np.array([[22,39,40,49,53],
+                                [5,8,9,17,21],
+                                [5,8,9,18,22],
+                                [23,41,42,50,54],
+                                [14,32,33,42,46],
+                                [5,8,9,17,21]])
+    if(year < 103):
+        column_pos_array = np.array([[22,39,40,49,52],
+                                [5,8,9,17,20],
+                                [5,8,9,18,21],
+                                [23,41,42,50,53],
+                                [14,32,33,42,45],
+                                [5,8,9,17,20]])
+    # if (year < 105):
+    #     column_pos_array = np.array([[23,40,41,50,54],
+    #                             [5,8,9,17,21],
+    #                             [5,8,9,18,22],
+    #                             [23,41,42,50,54],
+    #                             [14,32,33,42,46],
+    #                             [5,8,9,17,21]
+    #                             ])
     if (type == FS_type.aa):
         if(year < 108):
             column_pos_array = np.array([[14,21],
@@ -266,7 +340,21 @@ def translate_dataFrame2(response,type,year):
                                         [15,22],
                                         [16,23],
                                         [11,18]])
-        else:
+        if(year < 106):
+            column_pos_array = np.array([[14,21],
+                                        [15,22],
+                                        [21,28],
+                                        [15,22],
+                                        [16,23],
+                                        [11,18]])
+        if(year < 104):
+            column_pos_array = np.array([[15,22],
+                                        [15,22],
+                                        [21,28],
+                                        [15,22],
+                                        [16,23],
+                                        [11,18]])
+        if(year == 108):
             column_pos_array = np.array([[15,22],
                                         [15,22],
                                         [23,30],
