@@ -16,9 +16,9 @@ no_use_stock = [1603,5259]
 Holiday_trigger = False
 
 class FS_type(Enum):
-    aa = '綜合損益彙總表'
-    bb = '資產負債彙總表'
-    cc = '營益分析彙總表'
+    aa = 'Consolidated-profit-and-loss-summary'  #'綜合損益彙總表'
+    bb = 'Balance-sheet' #'資產負債彙總表'
+    cc = 'Profit-and-loss-analysis-summary'  #'營益分析彙總表'
 
 filePath = os.getcwd()#取得目錄路徑
 
@@ -68,9 +68,9 @@ def get_allstock_monthly_report(start):#爬某月所有股票月營收
         # 假如是西元，轉成民國
         if year > 1990:
             year -= 1911
-        url = 'http://mops.twse.com.tw/nas/t21/sii/t21sc03_'+str(year)+'_'+str(start.month)+'_0.html'
+        url = 'https://mops.twse.com.tw/nas/t21/sii/t21sc03_'+str(year)+'_'+str(start.month)+'_0.html'
         if year <= 98:
-            url = 'http://mops.twse.com.tw/nas/t21/sii/t21sc03_'+str(year)+'_'+str(start.month)+'.html'
+            url = 'https://mops.twse.com.tw/nas/t21/sii/t21sc03_'+str(year)+'_'+str(start.month)+'.html'
         
         # 偽瀏覽器
         headers = {'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_10_1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/39.0.2171.95 Safari/537.36'}
@@ -206,6 +206,20 @@ def get_monthRP_up(time,avgNum,upNum):#time = 取得資料的時間 avgNum = 平
 
     final_result = pd.DataFrame(final_result)
     return final_result
+
+#取得本益比篩選
+def get_PER_range(time,PER_start,PER_end):
+    PER_data = {}
+    EPS_data = get_allstock_financial_statement(datetime.datetime.strptime(time,"%Y-%m-%d"),FS_type.aa)
+    for i in range(0,len(EPS_data)):
+        print(str(EPS_data.iloc[i].name))
+        Temp_stock_price = None
+        Temp_stock_price = get_stock_price(str(EPS_data.iloc[i].name),time)
+        if Temp_stock_price == None:
+            continue
+        Temp_PER = (Temp_stock_price/EPS_data.iloc[i]['基本每股盈餘（元）'])
+        print(Temp_PER)
+
 
 
 def financial_statement(year, season, type):#爬取歷史財報並存檔

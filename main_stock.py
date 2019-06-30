@@ -108,6 +108,7 @@ def button_moveToInputFromPick_click():
 def button_monthRP_click():#某股票月營收曲線
     if (myshow.input_stockNumber.toPlainText() == ''):
         print('請輸入股票號碼')
+        get_stock_history.get_PER_range('2018-01-02',10,20)
         return
     data_result = None
     data_result = get_monthRP(datetime.datetime.today(),
