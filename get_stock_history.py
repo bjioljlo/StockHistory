@@ -20,6 +20,10 @@ class FS_type(Enum):
     bb = 'Balance-sheet' #'資產負債彙總表'
     cc = 'Profit-and-loss-analysis-summary'  #'營益分析彙總表'
 
+class stock_data_kind(Enum):
+    AdjClose = 'Adj Close'
+    Volume = 'Volume'
+
 filePath = os.getcwd()#取得目錄路徑
 
 def check_no_use_stock(number):
@@ -28,14 +32,15 @@ def check_no_use_stock(number):
             print(str(number))
             return True
     return False
-    
 
-def get_stock_price(number,date):#取得某股票某天的ＡＤＪ價格
+def get_stock_price(number,date,kind):#取得某股票某天的ＡＤＪ價格
     global Holiday_trigger
     if check_no_use_stock(number) == True:
-        print(str(number) + ' in no use')
+        print('get_stock_price: ' + str(number) + ' in no use')
         return None
     stock_data = get_stock_history(number,date,False,False)
+    if stock_data.empty == True:
+        return None
     result = stock_data[stock_data.index == date]
     if result.empty == True:
         if Holiday_trigger == True:
@@ -44,13 +49,13 @@ def get_stock_price(number,date):#取得某股票某天的ＡＤＪ價格
             stock_data = get_stock_history(number,date,True,False)
             result = stock_data[stock_data.index == date]
             if result.empty == True:
-                print('星期' + str(datetime.datetime.strptime(date,"%Y-%m-%d").isoweekday()))
-                print(str(number) + '--' + date + ' is no data. Its holiday?')
+                print('get_stock_price: ' +'星期' + str(datetime.datetime.strptime(date,"%Y-%m-%d").isoweekday()))
+                print('get_stock_price: ' +str(number) + '--' + date + ' is no data. Its holiday?')
                 Holiday_trigger = True
                 return None
         else:
             return None
-    result = result['Adj Close']
+    result = result[kind.value]
     close = result[date]
     Holiday_trigger = False
     return close
@@ -115,15 +120,18 @@ def get_stock_financial_statement(number,start):#爬某個股票的歷史財報
     stock = pd.read_csv(filePath + '/' + str(start.year())+"-"+str(season)+"-"+type.value+".csv",index_col='公司代號', parse_dates=['公司代號'])
     return stock.loc[int(number)]
 def get_stock_history(number,start,reGetInfo = False,UpdateInfo = True):#爬某個股票的歷史紀錄
-    start_time  = datetime.datetime.strptime(start,"%Y-%m-%d")
+    start_time = start
+    if type(start_time) == str:
+        start_time  = datetime.datetime.strptime(start,"%Y-%m-%d")
     data_time = datetime.datetime.strptime('2000-1-1',"%Y-%m-%d")
     now_time = datetime.datetime.today()
+    result = pd.DataFrame()
     if UpdateInfo == False:
         now_time = datetime.datetime.strptime('2019-6-24',"%Y-%m-%d")
 
     if get_stock_info.ts.codes.__contains__(number) == False:
         print("無此檔股票")
-        return
+        return result
     if start_time < data_time:
         print('日期請大於西元2000年')
         return
@@ -191,6 +199,7 @@ def load_stock_file(fileName):#讀取歷史資料
 
 #取得月營收逐步升高的篩選資料
 def get_monthRP_up(time,avgNum,upNum):#time = 取得資料的時間 avgNum = 平滑曲線月份 upNum = 連續成長月份
+    print('get_monthRP_up: start' )
     data = {}
     for i in range(avgNum+upNum):
         temp_now = tools.changeDateMonth(time,-i)
@@ -205,22 +214,76 @@ def get_monthRP_up(time,avgNum,upNum):#time = 取得資料的時間 avgNum = 平
     final_result = method2[method2 >= upNum]
 
     final_result = pd.DataFrame(final_result)
+    print('get_monthRP_up: end' )
     return final_result
 
 #取得本益比篩選
-def get_PER_range(time,PER_start,PER_end):
-    PER_data = {}
-    EPS_data = get_allstock_financial_statement(datetime.datetime.strptime(time,"%Y-%m-%d"),FS_type.aa)
+def get_PER_range(time,PER_start,PER_end):#time = 取得資料的時間 PER_start = PER最小值 PER_end PER最大值
+    print('get_PER_range: start')
+    PER_data = pd.DataFrame(columns = ['公司代號','PER'])
+    EPS_date = datetime.datetime.strptime(time,"%Y-%m-%d")
+    Use_EPS_date = datetime.datetime(EPS_date.year - 1,12,1)
+    EPS_data = get_allstock_financial_statement(Use_EPS_date,FS_type.aa)
     for i in range(0,len(EPS_data)):
-        print(str(EPS_data.iloc[i].name))
         Temp_stock_price = None
-        Temp_stock_price = get_stock_price(str(EPS_data.iloc[i].name),time)
+        Temp_stock_price = get_stock_price(str(EPS_data.iloc[i].name),time,stock_data_kind.AdjClose)
+        Temp_stock_EPS = EPS_data.iloc[i]['基本每股盈餘（元）']
         if Temp_stock_price == None:
             continue
-        Temp_PER = (Temp_stock_price/EPS_data.iloc[i]['基本每股盈餘（元）'])
-        print(Temp_PER)
+        Temp_PER = round((Temp_stock_price/Temp_stock_EPS),0)
+        if Temp_PER < 0:
+            continue
+        print('get_PER_range:' + str(EPS_data.iloc[i].name) + '--' + str(Temp_stock_price) + '/' +  str(Temp_stock_EPS) + '= ' + str(Temp_PER))
+        if (Temp_PER > PER_start) and (Temp_PER < PER_end):
+            Temp_number = int(EPS_data.iloc[i].name)
+            PER_data.loc[(len(PER_data)+1)] = {'公司代號':Temp_number,'PER':Temp_PER}
+    PER_data['公司代號'] = PER_data['公司代號'].astype('int')
+    PER_data.set_index('公司代號',inplace=True)
 
+    print('get_PER_range: end')
+    return PER_data
 
+#取得平均日成交金額篩選
+def get_AVG_value(time,volume,days,data = pd.DataFrame):#time = 取得資料的時間 volume = 平均成交金額 days = 平均天數
+    print('get_AVG_value: start')
+    Volume_Time = time
+    if type(Volume_Time) == str:
+        Volume_Time = datetime.datetime.strptime(time,"%Y-%m-%d")
+    All_monthRP = data
+    if All_monthRP.empty == True:
+        All_monthRP = get_allstock_monthly_report(Volume_Time)
+    Volume_data = pd.DataFrame(columns = ['公司代號','Volume'])
+    for i in range(0,len(All_monthRP)):
+        Temp_AvgVolume = 0
+        AvgDays = days
+        NoDataDays = 10
+        Temp_Volume_Time = Volume_Time
+        while AvgDays > 0:
+            if NoDataDays == 0:
+                break
+            Temp_Volume = get_stock_price(str(All_monthRP.iloc[i].name),
+                                            tools.DateTime2String(Temp_Volume_Time),
+                                            stock_data_kind.Volume)
+            if Temp_Volume == None:
+                if Temp_Volume_Time == Volume_Time:
+                    break
+                NoDataDays = NoDataDays - 1
+                Temp_Volume_Time = Temp_Volume_Time + datetime.timedelta(days=-1)
+                continue
+            Temp_AvgVolume = Temp_AvgVolume + Temp_Volume
+            AvgDays = AvgDays - 1
+            NoDataDays = 10
+            Temp_Volume_Time = Temp_Volume_Time + datetime.timedelta(days=-1)
+        Temp_AvgVolume = Temp_AvgVolume / days
+        if Temp_AvgVolume >= volume:
+            Temp_number = int(All_monthRP.iloc[i].name)
+            Volume_data.loc[(len(Volume_data)+1)] = {'公司代號':Temp_number,'Volume':Temp_AvgVolume}
+        print('get_AVG_value: ' + str(All_monthRP.iloc[i].name) + '/' + str(Temp_AvgVolume))
+    Volume_data['公司代號'] = Volume_data['公司代號'].astype('int')
+    Volume_data.set_index('公司代號',inplace=True)
+    print('get_AVG_value: end')
+    return Volume_data
+    
 
 def financial_statement(year, season, type):#爬取歷史財報並存檔
     myear = year

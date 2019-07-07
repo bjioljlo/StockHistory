@@ -6,13 +6,15 @@ import tools
 import draw_figur
 
 
-def backtest_monthRP_Up(change,UpMon,AvgMon,Start_date,End_date,start_money):
+def backtest_monthRP_Up(change,UpMon,AvgMon,Start_date,End_date,start_money,PER_start,PER_end,
+                        VolumeAVG,VolumeAVG_days):
     Temp_date = Start_date#模擬到的日期
     Temp_change = 0#換股剩餘天數
     Temp_result = None#選出的股票
     Temp_stock_avg_price = 0#選出股價的平均
     Temp_result_draw = pd.DataFrame(columns = ['date','price'])#最後輸出的結果
     Temp_result_picNumber = pd.DataFrame(columns = ['date','number'])#最後輸出選擇數量的結果
+    Temp_result_pickStock = pd.DataFrame(columns = ['date','stock'])#最後輸出選擇股票的結果
     Temp_stock_Count = 0#選出之後有效股票數量
     Temp_money = start_money#當下現金
     Temp_stock_avg_money = 0 #手持股票張數
@@ -30,7 +32,8 @@ def backtest_monthRP_Up(change,UpMon,AvgMon,Start_date,End_date,start_money):
             if Temp_stock_avg_money != 0:#檢查手持股票張數是否為0
                 for value in range(0,len(Temp_result)):#平均股價
                     Nnumber = str(Temp_result.iloc[value].name)
-                    Temp_stock_price = get_stock_history.get_stock_price(Nnumber,tools.DateTime2String(Temp_date))
+                    Temp_stock_price = get_stock_history.get_stock_price(Nnumber,tools.DateTime2String(Temp_date),
+                                                                        get_stock_history.stock_data_kind.AdjClose)
                     if Temp_stock_price != None:
                         Temp_stock_avg_price = Temp_stock_avg_price + Temp_stock_price
                         Temp_stock_Count = Temp_stock_Count + 1
@@ -44,12 +47,18 @@ def backtest_monthRP_Up(change,UpMon,AvgMon,Start_date,End_date,start_money):
                 
                 Temp_money = Temp_stock_avg_money * Temp_stock_avg_price#出清股票
                 Temp_stock_avg_price = 0
-            Temp_result = get_stock_history.get_monthRP_up(Temp_date,AvgMon,UpMon)
             
+            Temp_result1 = get_stock_history.get_monthRP_up(Temp_date,AvgMon,UpMon)
+            Temp_result2 = get_stock_history.get_PER_range(tools.DateTime2String(Temp_date),PER_start,PER_end)
+            Temp_result =  pd.merge(Temp_result1,Temp_result2,left_on='公司代號',right_on='公司代號')
+            Temp_result = get_stock_history.get_AVG_value(Temp_date,VolumeAVG,VolumeAVG_days,Temp_result)
+            
+            #Temp_result =  pd.merge(Temp_result,Temp_result3,left_on='公司代號',right_on='公司代號')
 
         for value in range(0,len(Temp_result)):#平均股價
             Nnumber = str(Temp_result.iloc[value].name)
-            Temp_stock_price = get_stock_history.get_stock_price(Nnumber,tools.DateTime2String(Temp_date))
+            Temp_stock_price = get_stock_history.get_stock_price(Nnumber,tools.DateTime2String(Temp_date),
+                                                                get_stock_history.stock_data_kind.AdjClose)
             if Temp_stock_price != None:
                 Temp_stock_avg_price = Temp_stock_avg_price + Temp_stock_price
                 Temp_stock_Count = Temp_stock_Count + 1
@@ -67,6 +76,7 @@ def backtest_monthRP_Up(change,UpMon,AvgMon,Start_date,End_date,start_money):
 
         Temp_result_draw.loc[(len(Temp_result_draw)+1)] = {'date':Temp_date,'price':(Temp_stock_avg_money * Temp_stock_avg_price)/start_money}
         Temp_result_picNumber.loc[(len(Temp_result_picNumber)+1)] = {'date':Temp_date,'number':len(Temp_result)}
+        Temp_result_pickStock.loc[(len(Temp_result_pickStock)+1)] = {'date':Temp_date,'stock':Temp_result}
 
         print('date:' + tools.DateTime2String(Temp_date))
         print('換股剩餘天數:' + str(Temp_change))
@@ -81,10 +91,15 @@ def backtest_monthRP_Up(change,UpMon,AvgMon,Start_date,End_date,start_money):
 
     Temp_result_draw.set_index('date',inplace=True)
     Temp_result_picNumber.set_index('date',inplace=True)
-    print(Temp_result_picNumber)
+    Temp_result_pickStock.set_index('date',inplace=True)
+    Temp_alldata = pd.merge(Temp_result_draw,Temp_result_picNumber,left_on='date',right_on='date')
+    print(Temp_alldata)
     draw_figur.draw_backtest(Temp_result_draw)
+    Temp_alldata = pd.merge(Temp_alldata,Temp_result_pickStock,left_on='date',right_on='date')
     Temp_result_draw.to_csv('backtestdata.csv')
     Temp_result_picNumber.to_csv('backtestdatanumber.csv')
+    Temp_result_pickStock.to_csv('backtestdatastock.csv')
+    Temp_alldata.to_csv('backtestAll.csv')
 
      
             

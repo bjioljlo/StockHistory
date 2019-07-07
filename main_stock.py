@@ -108,7 +108,7 @@ def button_moveToInputFromPick_click():
 def button_monthRP_click():#某股票月營收曲線
     if (myshow.input_stockNumber.toPlainText() == ''):
         print('請輸入股票號碼')
-        get_stock_history.get_PER_range('2018-01-02',10,20)
+        get_stock_history.get_PER_range('2019-03-04',10,15)
         return
     data_result = None
     data_result = get_monthRP(datetime.datetime.today(),
@@ -135,7 +135,12 @@ def button_backtest_click():#月營收回測開始紐
         change_days = int(mybacktest.input_changeDays.toPlainText())
         smoothAVG = int(mybacktest.input_monthRP_smoothAVG.toPlainText())
         upMonth = int(mybacktest.input_monthRP_UpMpnth.toPlainText())
-        backtest_stock.backtest_monthRP_Up(change_days,smoothAVG,upMonth,date_start,date_end,money_start)
+        PER_start = int(mybacktest.input_PER_start.toPlainText())
+        PER_end = int(mybacktest.input_PER_end.toPlainText())
+        volumeAVG = int(mybacktest.input_volume_money.toPlainText())
+        volumeDays = int(mybacktest.input_volumeAVG_days.toPlainText())
+        backtest_stock.backtest_monthRP_Up(change_days,smoothAVG,upMonth,date_start,date_end,money_start,PER_start,PER_end,
+                                                volumeAVG,volumeDays)
 
 
 #取得月營收的資料
@@ -267,6 +272,10 @@ def Init_backtestWindow():#初始化回測畫面
     mybacktest.input_changeDays.setPlainText('25')
     mybacktest.input_monthRP_smoothAVG.setPlainText('4')
     mybacktest.input_monthRP_UpMpnth.setPlainText('5')
+    mybacktest.input_PER_start.setPlainText('10')
+    mybacktest.input_PER_end.setPlainText('15')
+    mybacktest.input_volume_money.setPlainText('1000000')
+    mybacktest.input_volumeAVG_days.setPlainText('20')
     
 
 
