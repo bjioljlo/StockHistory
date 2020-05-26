@@ -10,10 +10,13 @@ from enum import Enum
 import tools
 
 fileName_monthRP = "monthRP"
+fileName_stockInfo = "stockInfo"
 
 no_use_stock = [1603,5259]
 
 Holiday_trigger = False
+
+load_memery = {}
 
 class FS_type(Enum):
     aa = 'Consolidated-profit-and-loss-summary'  #'綜合損益彙總表'
@@ -27,6 +30,11 @@ class stock_data_kind(Enum):
 filePath = os.getcwd()#取得目錄路徑
 
 def check_no_use_stock(number):
+    try:
+        temp = int(number)
+    except:
+        print("check_no_use_stock error:" + number)
+        return False
     for num in range(0,no_use_stock.__len__()):
         if(int(number) == no_use_stock[num]):
             print(str(number))
@@ -46,7 +54,8 @@ def get_stock_price(number,date,kind):#取得某股票某天的ＡＤＪ價格
         if Holiday_trigger == True:
             return None
         if datetime.datetime.strptime(date,"%Y-%m-%d").isoweekday() in [1,2,3,4,5]:
-            stock_data = get_stock_history(number,date,True,False)
+            #stock_data = get_stock_history(number,date,True,False) #會重新爬取資料
+            stock_data = get_stock_history(number,date,False,False) #只會重新抓硬碟資料
             result = stock_data[stock_data.index == date]
             if result.empty == True:
                 print('get_stock_price: ' +'星期' + str(datetime.datetime.strptime(date,"%Y-%m-%d").isoweekday()))
@@ -63,13 +72,18 @@ def get_stock_monthly_report(number,start):#爬某月某個股票月營收
     if get_stock_info.ts.codes.__contains__(number) == False:
         print("無此檔股票")
         return
-    if os.path.isfile(filePath + '/' + fileName_monthRP + '/' + str(start.year)+'-'+str(start.month)+'monthly_report.csv') == False:
-        get_allstock_monthly_report(start)
-    df = pd.read_csv(filePath + '/' + fileName_monthRP + '/' + str(start.year)+'-'+str(start.month)+'monthly_report.csv',index_col='公司代號', parse_dates=['公司代號'])
-    return df.loc[[int(number)]]
+    #if os.path.isfile(filePath + '/' + fileName_monthRP + '/' + str(start.year)+'-'+str(start.month)+'monthly_report.csv') == False:
+    #    get_allstock_monthly_report(start)
+    #df = pd.read_csv(filePath + '/' + fileName_monthRP + '/' + str(start.year)+'-'+str(start.month)+'monthly_report.csv',index_col='公司代號', parse_dates=['公司代號'])
+    df = get_allstock_monthly_report(start)
+    return df.loc[[str(number)]]
 def get_allstock_monthly_report(start):#爬某月所有股票月營收
     year = start.year
-    if os.path.isfile(filePath + '/' + fileName_monthRP + '/' + str(start.year)+'-'+str(start.month)+'monthly_report.csv') == False:
+    fileName = filePath + '/' + fileName_monthRP + '/' + str(start.year)+'-'+str(start.month)+'monthly_report.csv'
+    if fileName in load_memery:
+        return load_memery[fileName]
+    
+    if os.path.isfile(fileName) == False:
         # 假如是西元，轉成民國
         if year > 1990:
             year -= 1911
@@ -98,28 +112,35 @@ def get_allstock_monthly_report(start):#爬某月所有股票月營收
         df = df[~df['當月營收'].isnull()]
         df = df[df['公司代號'] != '合計']
         
-        df.to_csv(filePath + '/' +fileName_monthRP + '/' + str(start.year)+'-'+str(start.month)+'monthly_report.csv',index = False)
+        df.to_csv(fileName,index = False)
         # 偽停頓
         time.sleep(5)
-    df = pd.read_csv(filePath + '/' + fileName_monthRP + '/' + str(start.year)+'-'+str(start.month)+'monthly_report.csv',index_col='公司代號', parse_dates=['公司代號'])
+    df = pd.read_csv(fileName,index_col='公司代號', parse_dates=['公司代號'])
+    load_memery[fileName] = df
     return df      
 def get_allstock_financial_statement(start,type):#爬某季所有股票歷史財報
     season = int(((start.month - 1)/3)+1)
-    if os.path.isfile(filePath + '/' + str(start.year)+"-"+str(season)+"-"+type.value+".csv") == False:
+    fileName = filePath + '/' + str(start.year)+"-season"+str(season)+"-"+type.value+".csv"
+    if fileName in load_memery:
+        return load_memery[fileName]
+    if os.path.isfile(fileName) == False:
         financial_statement(start.year,season,type)
-    stock = pd.read_csv(filePath + '/' + str(start.year)+"-"+str(season)+"-"+type.value+".csv",index_col='公司代號', parse_dates=['公司代號'])
+    stock = pd.read_csv(fileName,index_col='公司代號', parse_dates=['公司代號'])
+    load_memery[fileName] = stock
     return stock
 def get_stock_financial_statement(number,start):#爬某個股票的歷史財報
-    season = int(((start.month() - 1)/3)+1)
+    #season = int(((start.month() - 1)/3)+1)
     type = FS_type.cc
     if get_stock_info.ts.codes.__contains__(number) == False:
         print("無此檔股票")
         return
-    if os.path.isfile(filePath + '/' + str(start.year())+"-"+str(season)+"-"+type.value+".csv") == False:
-        financial_statement(start.year(),season,FS_type.cc)            
-    stock = pd.read_csv(filePath + '/' + str(start.year())+"-"+str(season)+"-"+type.value+".csv",index_col='公司代號', parse_dates=['公司代號'])
+    #if os.path.isfile(filePath + '/' + str(start.year())+"-season"+str(season)+"-"+type.value+".csv") == False:
+    #    financial_statement(start.year(),season,FS_type.cc)            
+    #stock = pd.read_csv(filePath + '/' + str(start.year())+"-season"+str(season)+"-"+type.value+".csv",index_col='公司代號', parse_dates=['公司代號'])
+    stock = get_allstock_financial_statement(start,type)
     return stock.loc[int(number)]
 def get_stock_history(number,start,reGetInfo = False,UpdateInfo = True):#爬某個股票的歷史紀錄
+    print("取得" + str(number) + "的資料從" + str(start) +"到今天")
     start_time = start
     if type(start_time) == str:
         start_time  = datetime.datetime.strptime(start,"%Y-%m-%d")
@@ -127,7 +148,8 @@ def get_stock_history(number,start,reGetInfo = False,UpdateInfo = True):#爬某�
     now_time = datetime.datetime.today()
     result = pd.DataFrame()
     if UpdateInfo == False:
-        now_time = datetime.datetime.strptime('2019-6-24',"%Y-%m-%d")
+        now_time = datetime.datetime.strptime(get_stock_info.Update_date[0:10],"%Y-%m-%d")
+        #now_time = datetime.datetime.strptime('2020-1-2',"%Y-%m-%d")
 
     if get_stock_info.ts.codes.__contains__(number) == False:
         print("無此檔股票")
@@ -135,8 +157,8 @@ def get_stock_history(number,start,reGetInfo = False,UpdateInfo = True):#爬某�
     if start_time < data_time:
         print('日期請大於西元2000年')
         return
-    
-    if os.path.isfile(filePath + '/' + str(number) + '_' + '2000-1-1' +
+
+    if os.path.isfile(filePath +'/' + fileName_stockInfo  + '/' + str(number) + '_' + '2000-1-1' +
                                                             '_' +
                                                             str(now_time.year) +
                                                             '-' + str(now_time.month) + 
@@ -148,8 +170,8 @@ def get_stock_history(number,start,reGetInfo = False,UpdateInfo = True):#爬某�
         period1 = int(period1)
         period2 = int(period2)
         site = "https://query1.finance.yahoo.com/v7/finance/download/" + str(number) +".TW?period1="+str(period1)+"&period2="+str(period2)+"&interval=1d&events=history&crumb=hP2rOschxO0"
-        response = requests.post(site)
-        save_stock_file(filePath + '/' + str(number) + '_' + '2000-1-1' +
+        response = requests.get(site)#post(site)
+        save_stock_file(filePath +'/' + fileName_stockInfo  + '/' + str(number) + '_' + '2000-1-1' +
                                                             '_' +
                                                             str(now_time.year) +
                                                             '-' + str(now_time.month) + 
@@ -165,8 +187,8 @@ def get_stock_history(number,start,reGetInfo = False,UpdateInfo = True):#爬某�
             period1 = int(period1)
             period2 = int(period2)
             site = "https://query1.finance.yahoo.com/v7/finance/download/" + str(number) +".TW?period1="+str(period1)+"&period2="+str(period2)+"&interval=1d&events=history&crumb=hP2rOschxO0"
-            response = requests.post(site)
-            save_stock_file(filePath + '/' + str(number) + '_' + '2000-1-1' +
+            response = requests.get(site)#post(site)
+            save_stock_file(filePath +'/' + fileName_stockInfo  + '/' + str(number) + '_' + '2000-1-1' +
                                                                 '_' +
                                                                 str(now_time.year) +
                                                                 '-' + str(now_time.month) + 
@@ -175,12 +197,12 @@ def get_stock_history(number,start,reGetInfo = False,UpdateInfo = True):#爬某�
             time.sleep(5)
 
 
-    m_history = load_stock_file(filePath + '/' + str(number) + '_' + '2000-1-1' +
+    m_history = load_stock_file(filePath +'/' + fileName_stockInfo  + '/' + str(number) + '_' + '2000-1-1' +
                                                             '_' +
                                                             str(now_time.year) +
                                                             '-' + str(now_time.month) + 
                                                             '-' + str(now_time.day))
-    time.sleep(0.1)# 偽停頓
+    
     mask = m_history.index >= start
     result = m_history[mask]
     result = result.dropna(axis = 0,how = 'any')
@@ -189,17 +211,20 @@ def save_stock_file(fileName,stockData):#存下歷史資料
     with open(fileName + '.csv', 'w') as f:
         f.writelines(stockData.text)
 def load_stock_file(fileName):#讀取歷史資料
+    if fileName in load_memery:
+        return load_memery[fileName]
     if os.path.getsize(fileName + '.csv') < 200:
         df = pd.read_csv(fileName + '.csv')
-        return df
-    df = pd.read_csv(fileName + '.csv', index_col='Date', parse_dates=['Date'])
-    df = df.dropna(how='any',inplace=False)#將某些null欄位去除
-    df.loc[df['Volume'] > 1000000000] = df.loc[df['Volume'] > 1000000000]/1000
+    else:
+        df = pd.read_csv(fileName + '.csv', index_col='Date', parse_dates=['Date'])
+        df = df.dropna(how='any',inplace=False)#將某些null欄位去除
+        df.loc[df['Volume'] > 1000000000] = df.loc[df['Volume'] > 1000000000]/1000
+    load_memery[fileName] = df
     return df
 
 #取得月營收逐步升高的篩選資料
 def get_monthRP_up(time,avgNum,upNum):#time = 取得資料的時間 avgNum = 平滑曲線月份 upNum = 連續成長月份
-    print('get_monthRP_up: start' )
+    print('get_monthRP_up: start:'+ str(time) )
     data = {}
     for i in range(avgNum+upNum):
         temp_now = tools.changeDateMonth(time,-i)
@@ -212,8 +237,14 @@ def get_monthRP_up(time,avgNum,upNum):#time = 取得資料的時間 avgNum = 平
     method2 = result.rolling(avgNum,min_periods=avgNum).mean()
     method2 = (method2 > method2.shift()).iloc[-upNum:].sum()
     final_result = method2[method2 >= upNum]
-
     final_result = pd.DataFrame(final_result)
+    try:
+        final_result = final_result.drop('全部國內上市公司合計',axis = 0)
+    except:
+        final_result = final_result
+
+    final_result = final_result.rename(index=int)
+    final_result.index.name = '公司代號'
     print('get_monthRP_up: end' )
     return final_result
 
@@ -317,7 +348,7 @@ def financial_statement(year, season, type):#爬取歷史財報並存檔
     else:
         df = translate_dataFrame2(response.text,type,myear)
         
-    df.to_csv(str(year)+"-"+str(season)+"-"+type.value+".csv",index=False)
+    df.to_csv(str(year)+"-season"+str(season)+"-"+type.value+".csv",index=False)
     # 偽停頓
     time.sleep(5)
 def remove_td(column):
@@ -438,7 +469,13 @@ def translate_dataFrame2(response,type,year):
                                         [15,22],
                                         [16,23],
                                         [11,18]])
-    
+        elif(year > 108):
+            column_pos_array = np.array([[15,22],
+                                        [15,22],
+                                        [23,30],
+                                        [15,22],
+                                        [16,23],
+                                        [11,18]])
     data = []
     index = []
     column = []

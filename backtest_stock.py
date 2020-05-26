@@ -5,6 +5,19 @@ import get_stock_history
 import tools
 import draw_figur
 
+bool_check_monthRP_pick = False
+bool_check_PER_pick = False
+bool_check_volume_pick = False
+
+def set_check(monthRP_pick,PER_pick,volume_pick):
+    global bool_check_monthRP_pick
+    bool_check_monthRP_pick = monthRP_pick
+    global bool_check_PER_pick
+    bool_check_PER_pick = PER_pick
+    global bool_check_volume_pick
+    bool_check_volume_pick = volume_pick
+    return
+
 
 def backtest_monthRP_Up(change,UpMon,AvgMon,Start_date,End_date,start_money,PER_start,PER_end,
                         VolumeAVG,VolumeAVG_days):
@@ -48,12 +61,15 @@ def backtest_monthRP_Up(change,UpMon,AvgMon,Start_date,End_date,start_money,PER_
                 Temp_money = Temp_stock_avg_money * Temp_stock_avg_price#出清股票
                 Temp_stock_avg_price = 0
             
-            Temp_result1 = get_stock_history.get_monthRP_up(Temp_date,AvgMon,UpMon)
-            Temp_result2 = get_stock_history.get_PER_range(tools.DateTime2String(Temp_date),PER_start,PER_end)
-            Temp_result =  pd.merge(Temp_result1,Temp_result2,left_on='公司代號',right_on='公司代號')
-            Temp_result = get_stock_history.get_AVG_value(Temp_date,VolumeAVG,VolumeAVG_days,Temp_result)
-            
-            #Temp_result =  pd.merge(Temp_result,Temp_result3,left_on='公司代號',right_on='公司代號')
+            Temp_result = pd.DataFrame()
+            if bool_check_monthRP_pick:
+                Temp_result = get_stock_history.get_monthRP_up(Temp_date,AvgMon,UpMon)
+                
+            if bool_check_PER_pick:
+                Temp_result = pd.merge(Temp_result,get_stock_history.get_PER_range(tools.DateTime2String(Temp_date),PER_start,PER_end),left_on='公司代號',right_on='公司代號')
+               
+            if bool_check_volume_pick:
+                Temp_result = get_stock_history.get_AVG_value(Temp_date,VolumeAVG,VolumeAVG_days,Temp_result)
 
         for value in range(0,len(Temp_result)):#平均股價
             Nnumber = str(Temp_result.iloc[value].name)
@@ -78,6 +94,7 @@ def backtest_monthRP_Up(change,UpMon,AvgMon,Start_date,End_date,start_money,PER_
         Temp_result_picNumber.loc[(len(Temp_result_picNumber)+1)] = {'date':Temp_date,'number':len(Temp_result)}
         Temp_result_pickStock.loc[(len(Temp_result_pickStock)+1)] = {'date':Temp_date,'stock':Temp_result}
 
+        print('---------------------------')
         print('date:' + tools.DateTime2String(Temp_date))
         print('換股剩餘天數:' + str(Temp_change))
         print('目前資產:' + str(Temp_stock_avg_money * Temp_stock_avg_price))

@@ -3,10 +3,12 @@ import numpy as np
 import matplotlib.pyplot as plt
 import mpl_finance as mpf
 
-fig = plt.figure(figsize=(24,20))
-ax = fig.add_axes([0,0.3,1,0.4])
-ax2 = fig.add_axes([0,0.2,1,0.1])
+fig = plt.figure(figsize=(24,12))
+ax = fig.add_axes([0,0.4,1,0.5])
+ax2 = fig.add_axes([0,0.2,1,0.2])
 ax3 = fig.add_axes([0,0,1,0.2])
+
+plt.ion()
 
 def draw_stock(table,stockInfo):#table = 表 stockInfo = 股票資訊結構
     ax.set_xticks(range(0,len(table.index),30))
@@ -16,7 +18,7 @@ def draw_stock(table,stockInfo):#table = 表 stockInfo = 股票資訊結構
                             width=0.6,colorup='r',colordown='g',alpha=0.75)
 def draw_SMA(table,day,stockInfo):#table = 表 day = 幾日均線 stockInfo = 股票資訊結構
     mclose = talib.SMA(np.array(table['Close']), day)#用np.array才可以將均線和蠟燭圖放一起
-    ax.plot(mclose,label = stockInfo.number+' '+str(day)+ ' days-'+'SMA')
+    ax.plot(mclose,label = str(stockInfo.number)+' '+str(day)+ ' days-'+'SMA')
 def draw_BollingerBands(table,day,stockInfo):#table = 表 day = 幾日均線 stockInfo = 股票資訊結構
     upper, middle, lower = talib.BBANDS(np.array(table['Close']))
     ax.plot(upper,label = stockInfo.number+' '+str(day)+ ' days-'+'upper')
@@ -30,11 +32,11 @@ def draw_KD(table,stockInfo):#table = 表 stockInfo = 股票資訊結構
     ax2.plot(table['k'],label= 'K')
     ax2.plot(table['d'],label = 'D')
 def draw_Volume(table,stockInfo):#table = 表 stockInfo = 股票資訊結構
-    ax3.set_xticks(range(0,len(table.index),30))
-    ax3.set_xticklabels(table.index[::30])
     mpf.volume_overlay(ax3,table['Open'],table['Close'],
                             table['Volume'],colorup='r',colordown='g',
                            width=0.5,alpha=0.8)
+    ax3.set_xticks(range(0,len(table.index),30))
+    ax3.set_xticklabels(table.index[::30])
 def draw_monthRP(table,stockNum):
     axx = plt.axes()
     axx.plot(table['當月營收'],label = 'monthRP')
@@ -62,3 +64,4 @@ def draw_Show():
     ax2.legend()
     plt.show()
     
+

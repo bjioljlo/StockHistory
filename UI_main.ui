@@ -158,7 +158,7 @@
     <property name="geometry">
      <rect>
       <x>230</x>
-      <y>120</y>
+      <y>160</y>
       <width>221</width>
       <height>101</height>
      </rect>
@@ -267,8 +267,8 @@
    <widget class="QCheckBox" name="check_stock">
     <property name="geometry">
      <rect>
-      <x>240</x>
-      <y>90</y>
+      <x>230</x>
+      <y>120</y>
       <width>87</width>
       <height>20</height>
      </rect>
@@ -280,8 +280,8 @@
    <widget class="QCheckBox" name="check_KD">
     <property name="geometry">
      <rect>
-      <x>330</x>
-      <y>90</y>
+      <x>320</x>
+      <y>120</y>
       <width>87</width>
       <height>20</height>
      </rect>
@@ -293,8 +293,8 @@
    <widget class="QCheckBox" name="check_volume">
     <property name="geometry">
      <rect>
-      <x>420</x>
-      <y>90</y>
+      <x>410</x>
+      <y>120</y>
       <width>87</width>
       <height>20</height>
      </rect>
@@ -327,6 +327,36 @@
     </property>
     <property name="text">
      <string>歷史月營收紀錄</string>
+    </property>
+   </widget>
+   <widget class="QDateEdit" name="date_endDate">
+    <property name="geometry">
+     <rect>
+      <x>290</x>
+      <y>90</y>
+      <width>131</width>
+      <height>24</height>
+     </rect>
+    </property>
+    <property name="minimumDate">
+     <date>
+      <year>1970</year>
+      <month>1</month>
+      <day>1</day>
+     </date>
+    </property>
+   </widget>
+   <widget class="QLabel" name="label_3">
+    <property name="geometry">
+     <rect>
+      <x>230</x>
+      <y>90</y>
+      <width>60</width>
+      <height>16</height>
+     </rect>
+    </property>
+    <property name="text">
+     <string>結束日期:</string>
     </property>
    </widget>
   </widget>

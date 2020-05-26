@@ -2,10 +2,13 @@ import pandas as pd
 import os #讀取路徑套件
 import twstock as ts #抓取台灣股票資料套件
 import numpy as np #
+import datetime
 
 filePath = os.getcwd()#取得目錄路徑
 stock_list = {}#要追蹤股票的ＬＩＳＴ
+Update_date = ''#更新日期
 Save_name = 'stock_info_list.npy'
+Update_date_name = 'Update_date.npy'
 
 class data_stock_info():#股票資訊結構
     def __init__(self,number,name,type,start,market,group,):
@@ -34,6 +37,8 @@ def Delet_stock_info(number):#刪除追蹤股票
     Save_stock_info()
 def Save_stock_info():#存檔追蹤股票
     np.save(Save_name,stock_list)
+def Save_Update_date():#存檔更新日期
+    np.save(Update_date_name,Update_date)
 def Load_stock_info():#讀取追蹤股票
     if os.path.isfile(filePath + '/' + Save_name):
         m_stock_list = np.load(Save_name).item()
@@ -41,6 +46,12 @@ def Load_stock_info():#讀取追蹤股票
         m_stock_list = {}
         Save_stock_info()
     return m_stock_list
+def Load_Update_date():#讀取更新日期
+    if os.path.isfile(filePath + '/' + Update_date_name):
+        m_Update_date = np.load(Update_date_name).item()
+    else:
+        m_Update_date = str(datetime.datetime.today())
+    return m_Update_date 
 def Show_all_stock_info():#顯示所有追蹤股票
     if len(stock_list) == 0:
         print('No stock List in there!')
@@ -54,4 +65,6 @@ def Get_stock_info(number):#取得某隻追蹤股票資訊
         return "no this stock infomation"
 
 stock_list = Load_stock_info()
+Update_date = Load_Update_date()
 Show_all_stock_info()
+print("上次存檔的時間:"+ Update_date)
