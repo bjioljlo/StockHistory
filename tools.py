@@ -2,6 +2,7 @@ import datetime
 
 def changeDateMonth(date,change_month):
     temp_month = date.month + change_month
+    print("changeDateMonth:" + str(temp_month))
     if(temp_month >= 13):
         year = temp_month//12
         month = temp_month%12
@@ -37,7 +38,7 @@ def check_monthDate(month,day):#確認日期正確性
     if(day > 28):
         if(month == 2):
             result_day = 28
-        elif(month == [4,6,9,11]):
+        elif(month in [4,6,9,11] and day == 31):
             result_day = 30
         else:
             result_day = day

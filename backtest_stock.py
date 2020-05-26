@@ -19,7 +19,7 @@ def set_check(monthRP_pick,PER_pick,volume_pick):
     return
 
 
-def backtest_monthRP_Up(change,UpMon,AvgMon,Start_date,End_date,start_money,PER_start,PER_end,
+def backtest_monthRP_Up(change,AvgMon,UpMon,Start_date,End_date,start_money,PER_start,PER_end,
                         VolumeAVG,VolumeAVG_days):
     Temp_date = Start_date#模擬到的日期
     Temp_change = 0#換股剩餘天數
@@ -62,14 +62,19 @@ def backtest_monthRP_Up(change,UpMon,AvgMon,Start_date,End_date,start_money,PER_
                 Temp_stock_avg_price = 0
             
             Temp_result = pd.DataFrame()
-            if bool_check_monthRP_pick:
+            
+            if bool_check_monthRP_pick:#月營收升高篩選
                 Temp_result = get_stock_history.get_monthRP_up(Temp_date,AvgMon,UpMon)
-                
-            if bool_check_PER_pick:
-                Temp_result = pd.merge(Temp_result,get_stock_history.get_PER_range(tools.DateTime2String(Temp_date),PER_start,PER_end),left_on='公司代號',right_on='公司代號')
-               
-            if bool_check_volume_pick:
-                Temp_result = get_stock_history.get_AVG_value(Temp_date,VolumeAVG,VolumeAVG_days,Temp_result)
+                if Temp_result.empty == True:#沒篩出來直接換下個月
+                    Temp_date = Temp_date + datetime.timedelta(weeks=4)#加一月
+                    Temp_date = datetime.datetime(Temp_date.year,Temp_date.month,1)
+                    continue
+
+            if bool_check_PER_pick:#PER篩選
+                Temp_result = pd.merge(Temp_result,get_stock_history.get_PER_range(tools.DateTime2String(Temp_date),PER_start,PER_end),on='公司代號',how='inner')
+
+            if bool_check_volume_pick:#交易量篩選
+                Temp_result = get_stock_history.get_AVG_value(Temp_date,VolumeAVG,VolumeAVG_days,Temp_result)            
 
         for value in range(0,len(Temp_result)):#平均股價
             Nnumber = str(Temp_result.iloc[value].name)

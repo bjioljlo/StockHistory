@@ -213,12 +213,13 @@ def save_stock_file(fileName,stockData):#存下歷史資料
 def load_stock_file(fileName):#讀取歷史資料
     if fileName in load_memery:
         return load_memery[fileName]
-    if os.path.getsize(fileName + '.csv') < 200:
-        df = pd.read_csv(fileName + '.csv')
-    else:
-        df = pd.read_csv(fileName + '.csv', index_col='Date', parse_dates=['Date'])
-        df = df.dropna(how='any',inplace=False)#將某些null欄位去除
-        df.loc[df['Volume'] > 1000000000] = df.loc[df['Volume'] > 1000000000]/1000
+#    if os.path.getsize(fileName + '.csv') < 200:
+ #       df = pd.read_csv(fileName + '.csv')
+  #  else:
+    df = pd.read_csv(fileName + '.csv', index_col='Date', parse_dates=['Date'])
+    df = df.dropna(how='any',inplace=False)#將某些null欄位去除
+    df['Volume'] = df['Volume'].astype('int')
+    #df.loc[df['Volume'] > 1000000000] = df.loc[df['Volume'] > 1000000000]/1000
     load_memery[fileName] = df
     return df
 
@@ -311,6 +312,7 @@ def get_AVG_value(time,volume,days,data = pd.DataFrame):#time = 取得資料的�
             Volume_data.loc[(len(Volume_data)+1)] = {'公司代號':Temp_number,'Volume':Temp_AvgVolume}
         print('get_AVG_value: ' + str(All_monthRP.iloc[i].name) + '/' + str(Temp_AvgVolume))
     Volume_data['公司代號'] = Volume_data['公司代號'].astype('int')
+    Volume_data['Volume'] = Volume_data['Volume'].astype('int')
     Volume_data.set_index('公司代號',inplace=True)
     print('get_AVG_value: end')
     return Volume_data
