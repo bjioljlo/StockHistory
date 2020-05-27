@@ -16,8 +16,6 @@ def set_check(monthRP_pick,PER_pick,volume_pick):
     bool_check_PER_pick = PER_pick
     global bool_check_volume_pick
     bool_check_volume_pick = volume_pick
-    return
-
 
 def backtest_monthRP_Up(change,AvgMon,UpMon,Start_date,End_date,start_money,PER_start,PER_end,
                         VolumeAVG,VolumeAVG_days):
@@ -61,20 +59,36 @@ def backtest_monthRP_Up(change,AvgMon,UpMon,Start_date,End_date,start_money,PER_
                 Temp_money = Temp_stock_avg_money * Temp_stock_avg_price#出清股票
                 Temp_stock_avg_price = 0
             
+            #取得要的表然後集合起來------------------
             Temp_result = pd.DataFrame()
+            Temp_result0 = {}
             
-            if bool_check_monthRP_pick:#月營收升高篩選
-                Temp_result = get_stock_history.get_monthRP_up(Temp_date,AvgMon,UpMon)
-                if Temp_result.empty == True:#沒篩出來直接換下個月
+            if bool_check_monthRP_pick:#月營收升高篩選(月為單位)
+                Temp_result0['month'] = get_stock_history.get_monthRP_up(Temp_date,AvgMon,UpMon)
+                if Temp_result0['month'].empty == True:#沒篩出來直接換下個月
                     Temp_date = Temp_date + datetime.timedelta(weeks=4)#加一月
                     Temp_date = datetime.datetime(Temp_date.year,Temp_date.month,1)
                     continue
-
             if bool_check_PER_pick:#PER篩選
-                Temp_result = pd.merge(Temp_result,get_stock_history.get_PER_range(tools.DateTime2String(Temp_date),PER_start,PER_end),on='公司代號',how='inner')
-
+                Temp_result0['PER'] = get_stock_history.get_PER_range(tools.DateTime2String(Temp_date),PER_start,PER_end)
+                if Temp_result0['PER'].empty == True:#沒篩出來直接換明天 
+                    Temp_date = Temp_date + datetime.timedelta(days=1)#加一天
+                    Temp_date = datetime.datetime(Temp_date.year,Temp_date.month,Temp_date.day)
+                    continue
             if bool_check_volume_pick:#交易量篩選
-                Temp_result = get_stock_history.get_AVG_value(Temp_date,VolumeAVG,VolumeAVG_days,Temp_result)            
+                Temp_result0['volume'] = get_stock_history.get_AVG_value(Temp_date,VolumeAVG,VolumeAVG_days,Temp_result)            
+                if Temp_result0['volume'].empty == True:#沒篩出來直接換明天   
+                    Temp_date = Temp_date + datetime.timedelta(days=1)#加一天
+                    Temp_date = datetime.datetime(Temp_date.year,Temp_date.month,Temp_date.day)
+                    continue
+            for key,value in Temp_result0.items():
+                if Temp_result.empty == True:
+                    Temp_result = value
+                else:
+                    Temp_result = pd.merge(Temp_result,value,on='公司代號',how='inner')
+                if Temp_result.empty == True:
+                    break
+
 
         for value in range(0,len(Temp_result)):#平均股價
             Nnumber = str(Temp_result.iloc[value].name)

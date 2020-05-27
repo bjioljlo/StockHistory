@@ -213,19 +213,20 @@ def save_stock_file(fileName,stockData):#存下歷史資料
 def load_stock_file(fileName):#讀取歷史資料
     if fileName in load_memery:
         return load_memery[fileName]
-#    if os.path.getsize(fileName + '.csv') < 200:
- #       df = pd.read_csv(fileName + '.csv')
-  #  else:
     df = pd.read_csv(fileName + '.csv', index_col='Date', parse_dates=['Date'])
     df = df.dropna(how='any',inplace=False)#將某些null欄位去除
     df['Volume'] = df['Volume'].astype('int')
-    #df.loc[df['Volume'] > 1000000000] = df.loc[df['Volume'] > 1000000000]/1000
     load_memery[fileName] = df
     return df
 
 #取得月營收逐步升高的篩選資料
 def get_monthRP_up(time,avgNum,upNum):#time = 取得資料的時間 avgNum = 平滑曲線月份 upNum = 連續成長月份
     print('get_monthRP_up: start:'+ str(time) )
+    fileName = str(time.year) +str(time.month) + str(avgNum) + str(upNum)
+    if fileName in load_memery:
+        print('get_monthRP_up: end' )
+        return load_memery[fileName]
+    
     data = {}
     for i in range(avgNum+upNum):
         temp_now = tools.changeDateMonth(time,-i)
@@ -246,6 +247,7 @@ def get_monthRP_up(time,avgNum,upNum):#time = 取得資料的時間 avgNum = 平
 
     final_result = final_result.rename(index=int)
     final_result.index.name = '公司代號'
+    load_memery[str(time.year) +str(time.month) + str(avgNum) + str(upNum)] = final_result
     print('get_monthRP_up: end' )
     return final_result
 
