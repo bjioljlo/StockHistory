@@ -12,7 +12,7 @@ import tools
 fileName_monthRP = "monthRP"
 fileName_stockInfo = "stockInfo"
 
-no_use_stock = [1603,5259]
+no_use_stock = [1603,5259,1262,2475,3519,3579,9157]
 
 Holiday_trigger = False
 

@@ -62,6 +62,9 @@ def button_getStockHistory():
     elif myshow.input_stockNumber.toPlainText() == "Update":
         for key,value in get_stock_info.ts.codes.items():
             if value.market == "上市" and len(value.code) == 4:
+                if get_stock_history.check_no_use_stock(value.code) == True:
+                    print('get_stock_price: ' + str(value.code) + ' in no use')
+                    continue
                 m_history = get_stock_history.get_stock_history(value.code,str_date)
         #存更新日期
         get_stock_info.Update_date = str(datetime.datetime.today())[0:10]
