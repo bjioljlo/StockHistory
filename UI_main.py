@@ -106,6 +106,9 @@ class Ui_MainWindow(object):
         self.label_3 = QtWidgets.QLabel(self.centralwidget)
         self.label_3.setGeometry(QtCore.QRect(230, 90, 60, 16))
         self.label_3.setObjectName("label_3")
+        self.check_UseNewInfo = QtWidgets.QCheckBox(self.centralwidget)
+        self.check_UseNewInfo.setGeometry(QtCore.QRect(440, 90, 87, 20))
+        self.check_UseNewInfo.setObjectName("check_UseNewInfo")
         MainWindow.setCentralWidget(self.centralwidget)
         self.menubar = QtWidgets.QMenuBar(MainWindow)
         self.menubar.setGeometry(QtCore.QRect(0, 0, 550, 22))
@@ -137,5 +140,6 @@ class Ui_MainWindow(object):
         self.button_openPickWindow.setText(_translate("MainWindow", "開啟選股視窗"))
         self.button_getMonthRP.setText(_translate("MainWindow", "歷史月營收紀錄"))
         self.label_3.setText(_translate("MainWindow", "結束日期:"))
+        self.check_UseNewInfo.setText(_translate("MainWindow", "使用最新資訊"))
 
 

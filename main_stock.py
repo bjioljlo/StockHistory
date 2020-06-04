@@ -53,6 +53,9 @@ def check_SMA_isCheck(m_history,stockInfo):
                 df.draw_SMA(m_history,int(i.toPlainText()),stockInfo)
 
 def button_getStockHistory():
+    #存更新日期
+    #get_stock_info.Update_date = str(datetime.datetime(2020,5,21))[0:10]
+    #get_stock_info.Save_Update_date()
     date = myshow.date_startDate.date()
     str_date = str(date.year())+'-'+ str(date.month())+'-'+str(date.day())
     if myshow.input_stockNumber.toPlainText() == "":
@@ -66,13 +69,17 @@ def button_getStockHistory():
                     print('get_stock_price: ' + str(value.code) + ' in no use')
                     continue
                 m_history = get_stock_history.get_stock_history(value.code,str_date)
+                print("get " + str(value.code) + " info susess!")
         #存更新日期
         get_stock_info.Update_date = str(datetime.datetime.today())[0:10]
         get_stock_info.Save_Update_date()
         return  
     else:
         stock_number = myshow.input_stockNumber.toPlainText()
-        m_history = get_stock_history.get_stock_history(stock_number,str_date,False,False)
+        if myshow.check_UseNewInfo.isChecked():
+            m_history = get_stock_history.get_stock_history(stock_number,str_date,False)
+        else:
+            m_history = get_stock_history.get_stock_history(stock_number,str_date,False,False)
         check_price_isCheck(m_history,get_stock_info.Get_stock_info(stock_number))
         check_SMA_isCheck(m_history,get_stock_info.Get_stock_info(stock_number))
         check_KD_isCheck(m_history,get_stock_info.Get_stock_info(stock_number))
@@ -149,7 +156,8 @@ def button_backtest_click():#月營收回測開始紐
         else:
             backtest_stock.set_check(mybacktest.check_monthRP_pick.isChecked(),
                 mybacktest.check_PER_pick.isChecked(),
-                mybacktest.check_volume_pick.isChecked())
+                mybacktest.check_volume_pick.isChecked(),
+                mybacktest.check_pickOneStock.isChecked())
         date_start = tools.QtDate2DateTime(mybacktest.date_start.date())
         # date_start = tools.DateTime2String(date_start)
         date_end = tools.QtDate2DateTime(mybacktest.date_end.date())

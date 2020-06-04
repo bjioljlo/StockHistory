@@ -245,7 +245,7 @@
      <widget class="QLabel" name="label_7">
       <property name="geometry">
        <rect>
-        <x>60</x>
+        <x>30</x>
         <y>10</y>
         <width>101</width>
         <height>21</height>
@@ -263,7 +263,7 @@
        <rect>
         <x>10</x>
         <y>10</y>
-        <width>61</width>
+        <width>101</width>
         <height>20</height>
        </rect>
       </property>
@@ -355,7 +355,7 @@
      <widget class="QLabel" name="label_10">
       <property name="geometry">
        <rect>
-        <x>60</x>
+        <x>30</x>
         <y>10</y>
         <width>101</width>
         <height>21</height>
@@ -373,7 +373,7 @@
        <rect>
         <x>10</x>
         <y>10</y>
-        <width>61</width>
+        <width>111</width>
         <height>20</height>
        </rect>
       </property>
@@ -465,7 +465,7 @@
      <widget class="QLabel" name="label_13">
       <property name="geometry">
        <rect>
-        <x>60</x>
+        <x>30</x>
         <y>10</y>
         <width>101</width>
         <height>21</height>
@@ -483,7 +483,7 @@
        <rect>
         <x>10</x>
         <y>10</y>
-        <width>61</width>
+        <width>111</width>
         <height>20</height>
        </rect>
       </property>
@@ -492,6 +492,35 @@
       </property>
      </widget>
     </widget>
+   </widget>
+   <widget class="QCheckBox" name="check_pickOneStock">
+    <property name="geometry">
+     <rect>
+      <x>30</x>
+      <y>130</y>
+      <width>101</width>
+      <height>20</height>
+     </rect>
+    </property>
+    <property name="text">
+     <string/>
+    </property>
+   </widget>
+   <widget class="QLabel" name="label_14">
+    <property name="geometry">
+     <rect>
+      <x>50</x>
+      <y>130</y>
+      <width>101</width>
+      <height>21</height>
+     </rect>
+    </property>
+    <property name="text">
+     <string>是否只挑一支股票</string>
+    </property>
+    <property name="alignment">
+     <set>Qt::AlignCenter</set>
+    </property>
    </widget>
   </widget>
   <widget class="QMenuBar" name="menubar">

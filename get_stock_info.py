@@ -49,8 +49,10 @@ def Load_stock_info():#讀取追蹤股票
 def Load_Update_date():#讀取更新日期
     if os.path.isfile(filePath + '/' + Update_date_name):
         m_Update_date = np.load(Update_date_name).item()
+        print("上次存檔時間:" + str(m_Update_date))
     else:
         m_Update_date = str(datetime.datetime.today())
+        print('沒存檔時間:'+ str(m_Update_date))
     return m_Update_date 
 def Show_all_stock_info():#顯示所有追蹤股票
     if len(stock_list) == 0:
@@ -67,4 +69,3 @@ def Get_stock_info(number):#取得某隻追蹤股票資訊
 stock_list = Load_stock_info()
 Update_date = Load_Update_date()
 Show_all_stock_info()
-print("上次存檔的時間:"+ Update_date)

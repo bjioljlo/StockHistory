@@ -359,6 +359,19 @@
      <string>結束日期:</string>
     </property>
    </widget>
+   <widget class="QCheckBox" name="check_UseNewInfo">
+    <property name="geometry">
+     <rect>
+      <x>440</x>
+      <y>90</y>
+      <width>87</width>
+      <height>20</height>
+     </rect>
+    </property>
+    <property name="text">
+     <string>使用最新資訊</string>
+    </property>
+   </widget>
   </widget>
   <widget class="QMenuBar" name="menubar">
    <property name="geometry">
