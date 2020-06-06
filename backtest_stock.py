@@ -78,9 +78,11 @@ def backtest_monthRP_Up(change,AvgMon,UpMon,Start_date,End_date,start_money,PER_
             #取得要的表然後集合起來------------------start
             Temp_result = pd.DataFrame()
             Temp_result0 = {}
+
+            Temp_GetInfoDate = tools.changeDateMonth(Temp_date,-1)
             
             if bool_check_monthRP_pick:#月營收升高篩選(月為單位)
-                Temp_result0['month'] = get_stock_history.get_monthRP_up(Temp_date,AvgMon,UpMon)
+                Temp_result0['month'] = get_stock_history.get_monthRP_up(Temp_GetInfoDate,AvgMon,UpMon)
                 if Temp_result0['month'].empty == True:#沒篩出來直接換下個月
                     Temp_date = Temp_date + datetime.timedelta(weeks=4)#加一月
                     Temp_date = datetime.datetime(Temp_date.year,Temp_date.month,1)

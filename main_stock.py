@@ -322,7 +322,7 @@ def Init_backtestWindow():#初始化回測畫面
 
     mybacktest.date_end.setMaximumDate(date)
     mybacktest.date_end.setMinimumDate(QtCore.QDate(2013,1,1))
-    date = date.addMonths(-1)
+    date = date.addMonths(0)
     mybacktest.date_end.setDate(date)
 
     mybacktest.date_start.setMaximumDate(date)
