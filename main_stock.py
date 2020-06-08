@@ -136,6 +136,14 @@ def button_monthRP_click():#某股票月營收曲線
 def button_monthRP_Up_click():#月營收逐步升高篩選
     date = tools.QtDate2DateTime(myshow.date_endDate.date())
     
+    if date.isoweekday() == 6:
+        date = date + datetime.timedelta(days=-1)#加一天
+    elif date.isoweekday() == 7:
+        date = date + datetime.timedelta(days=-2)#加2天
+    else:
+        pass
+        
+
     FS_data = pd.DataFrame()
     result_data = pd.DataFrame()
 
@@ -145,6 +153,8 @@ def button_monthRP_Up_click():#月營收逐步升高篩選
                         int(mypick.input_monthRP_UpMpnth.toPlainText()))
             
     pick_data = pd.merge(result_data,FS_data,left_index=True,right_index=True,how='left')
+    pick_data = pick_data.dropna(axis=0,how='any')
+    pick_data = get_volume(int(mypick.input_volum.toPlainText()),tools.changeDateMonth(date,0),pick_data)
     pick_data = pick_data.dropna(axis=0,how='any')
     
     mypick.treeView_pick.setModel(creat_treeView_model(mypick.treeView_pick,pick_titalList))#設定treeView功能
@@ -231,6 +241,7 @@ def get_financial_statement(date,GPM = '0' ,OPR ='0' ,EPS ='0',RPS ='0'):
     resultAllFS3 = []
     this = pd.DataFrame()
     FS_type = get_stock_history.FS_type.cc
+    volume_date = date
     for i in range(3):
         try:
             this = get_stock_history.get_allstock_financial_statement(date,FS_type)
@@ -256,7 +267,44 @@ def get_financial_statement(date,GPM = '0' ,OPR ='0' ,EPS ='0',RPS ='0'):
 
     resultAllFS_temp = pd.merge(resultAllFS1,resultAllFS2,left_index=True,right_index=True) 
     resultAllFS = pd.merge(resultAllFS3,resultAllFS_temp,left_index=True,right_index=True)
+
+    if volume_date.isoweekday() == 6:
+        volume_date = volume_date + datetime.timedelta(days=-1)#加一天
+    elif volume_date.isoweekday() == 7:
+        volume_date = volume_date + datetime.timedelta(days=-2)#加2天
+    else:
+        pass
+    resultAllFS = get_volume(int(mypick.input_volum.toPlainText()),tools.changeDateMonth(volume_date,0),resultAllFS)
     return resultAllFS
+
+def get_volume(volumeNum,date,data = pd.DataFrame(),getMax = False):
+    Temp_index = 0
+    Temp_volume2 = 0
+    if data.empty == False:
+        for index,row in data.iterrows():
+            Temp_volume = get_stock_history.get_stock_price(str(index),tools.DateTime2String(date),get_stock_history.stock_data_kind.Volume)
+            while (Temp_volume == None):
+                if get_stock_history.check_no_use_stock(index):
+                    break
+                date = date + datetime.timedelta(days=-1)#加一天
+                Temp_volume = get_stock_history.get_stock_price(str(index),tools.DateTime2String(date),get_stock_history.stock_data_kind.Volume)
+            if Temp_volume != None and Temp_volume >= volumeNum:
+                if(mypick.check_volum_Max.isChecked()):
+                    if Temp_volume > Temp_volume2:
+                        if(Temp_index != 0):
+                            data = data.drop(index = Temp_index)
+                        Temp_index = index
+                        Temp_volume2 = Temp_volume
+                    else:
+                        data = data.drop(index = index)
+                else:
+                    pass
+                
+            else:
+                data = data.drop(index = index)
+    else:
+        print("get_volume:輸入的data是空的")
+    return data
 
 def set_treeView2(model,inputdataFram):
     i = 0
@@ -316,6 +364,7 @@ def Init_pickWindow():#初始化挑股票畫面
     mypick.input_RPS.setPlainText("0")
     mypick.input_monthRP_smoothAVG.setPlainText("0")
     mypick.input_monthRP_UpMpnth.setPlainText("0")
+    mypick.input_volum.setPlainText("0")
 def Init_backtestWindow():#初始化回測畫面
     mybacktest.button_backtest.clicked.connect(button_backtest_click)#設定button功能
     date = QtCore.QDate(datetime.datetime.today().year,datetime.datetime.today().month,datetime.datetime.today().day) 
