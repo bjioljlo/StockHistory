@@ -9,8 +9,9 @@ bool_check_monthRP_pick = False
 bool_check_PER_pick = False
 bool_check_volume_pick = False
 bool_check_pickOneStock = False
+bool_check_price_pick = False
 
-def set_check(monthRP_pick,PER_pick,volume_pick,One_pick):
+def set_check(monthRP_pick,PER_pick,volume_pick,One_pick,price_pick):
     global bool_check_monthRP_pick
     bool_check_monthRP_pick = monthRP_pick
     global bool_check_PER_pick
@@ -19,6 +20,8 @@ def set_check(monthRP_pick,PER_pick,volume_pick,One_pick):
     bool_check_volume_pick = volume_pick
     global bool_check_pickOneStock
     bool_check_pickOneStock = One_pick
+    global bool_check_price_pick
+    bool_check_price_pick = price_pick
 
 #平均股價
 def avg_stock_price(date,vData = pd.DataFrame()):
@@ -40,7 +43,7 @@ def avg_stock_price(date,vData = pd.DataFrame()):
     return Result_avg_price,Count
 
 def backtest_monthRP_Up(change,AvgMon,UpMon,Start_date,End_date,start_money,PER_start,PER_end,
-                        VolumeAVG,VolumeAVG_days):
+                        VolumeAVG,VolumeAVG_days,price_high,price_low):
     Temp_date = Start_date#模擬到的日期
     Temp_change = 0#換股剩餘天數
     Temp_result = None#選出的股票
@@ -107,6 +110,17 @@ def backtest_monthRP_Up(change,AvgMon,UpMon,Start_date,End_date,start_money,PER_
                 if Temp_result.empty == True:
                     break
             #取得要的表然後集合起來------------------end
+
+            if bool_check_price_pick:#挑股價範圍
+                for index,row in Temp_result.iterrows():
+                    Temp_price = get_stock_history.get_stock_price(str(index),tools.DateTime2String(Temp_date),
+                                                        get_stock_history.stock_data_kind.AdjClose)
+                    if Temp_price != None and Temp_price >= price_low and Temp_price <= price_high:
+                        print("")
+                    else:
+                        Temp_result = Temp_result.drop(index = index)
+            
+
             if bool_check_pickOneStock:#只挑選交易量最大的一支股票來買
                 Temp_result.sort_values("Volume",ascending=False,inplace=True)
                 Temp_result = Temp_result.iloc[0:1]
