@@ -121,9 +121,13 @@ def backtest_monthRP_Up(change,AvgMon,UpMon,Start_date,End_date,start_money,PER_
                         Temp_result = Temp_result.drop(index = index)
             
 
-            if bool_check_pickOneStock:#只挑選交易量最大的一支股票來買
-                Temp_result.sort_values("Volume",ascending=False,inplace=True)
-                Temp_result = Temp_result.iloc[0:1]
+            if bool_check_pickOneStock:#只挑選最大的一支股票來買
+                if bool_check_volume_pick:#量最大
+                    Temp_result.sort_values("Volume",ascending=False,inplace=True)
+                    Temp_result = Temp_result.iloc[0:1]
+                elif bool_check_PER_pick:#PER最低
+                    Temp_result.sort_values("PER",ascending=True,inplace=True)
+                    Temp_result = Temp_result.iloc[0:1]
         #檢查換股天數,賣出股票,換股天數到了-------end
 
         Temp_stock_avg_price,Temp_stock_Count = avg_stock_price(Temp_date,Temp_result)#平均股價每天跑

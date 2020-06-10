@@ -406,6 +406,8 @@ def Init_backtestWindow():#初始化回測畫面
     mybacktest.input_PER_end.setPlainText('0')
     mybacktest.input_volume_money.setPlainText('0')
     mybacktest.input_volumeAVG_days.setPlainText('0')
+    mybacktest.input_price_high.setPlainText('0')
+    mybacktest.input_price_low.setPlainText("0")
     
 
 

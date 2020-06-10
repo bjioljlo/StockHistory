@@ -322,8 +322,8 @@ def get_AVG_value(time,volume,days,data = pd.DataFrame):#time = 取得資料的�
     print('get_AVG_value: end')
     return Volume_data
     
-
-def financial_statement(year, season, type):#爬取歷史財報並存檔
+#爬取歷史財報並存檔
+def financial_statement(year, season, type):#year = 年 season = 季 type = 財報種類
     myear = year
     if year>= 1000:
         myear -= 1911
