@@ -438,7 +438,7 @@
       <x>260</x>
       <y>10</y>
       <width>211</width>
-      <height>141</height>
+      <height>91</height>
      </rect>
     </property>
     <property name="widgetResizable">
@@ -450,14 +450,14 @@
        <x>0</x>
        <y>0</y>
        <width>209</width>
-       <height>139</height>
+       <height>89</height>
       </rect>
      </property>
      <widget class="QTextEdit" name="input_price_high">
       <property name="geometry">
        <rect>
         <x>90</x>
-        <y>60</y>
+        <y>30</y>
         <width>111</width>
         <height>21</height>
        </rect>
@@ -473,7 +473,7 @@
       <property name="geometry">
        <rect>
         <x>10</x>
-        <y>60</y>
+        <y>30</y>
         <width>101</width>
         <height>21</height>
        </rect>
@@ -502,7 +502,7 @@
       <property name="geometry">
        <rect>
         <x>10</x>
-        <y>90</y>
+        <y>60</y>
         <width>101</width>
         <height>21</height>
        </rect>
@@ -515,7 +515,104 @@
       <property name="geometry">
        <rect>
         <x>90</x>
-        <y>90</y>
+        <y>60</y>
+        <width>111</width>
+        <height>21</height>
+       </rect>
+      </property>
+      <property name="verticalScrollBarPolicy">
+       <enum>Qt::ScrollBarAlwaysOff</enum>
+      </property>
+      <property name="horizontalScrollBarPolicy">
+       <enum>Qt::ScrollBarAlwaysOff</enum>
+      </property>
+     </widget>
+    </widget>
+   </widget>
+   <widget class="QScrollArea" name="scrollArea_5">
+    <property name="geometry">
+     <rect>
+      <x>260</x>
+      <y>100</y>
+      <width>211</width>
+      <height>91</height>
+     </rect>
+    </property>
+    <property name="widgetResizable">
+     <bool>true</bool>
+    </property>
+    <widget class="QWidget" name="scrollAreaWidgetContents_5">
+     <property name="geometry">
+      <rect>
+       <x>0</x>
+       <y>0</y>
+       <width>209</width>
+       <height>89</height>
+      </rect>
+     </property>
+     <widget class="QTextEdit" name="input_PBR_high">
+      <property name="geometry">
+       <rect>
+        <x>90</x>
+        <y>30</y>
+        <width>111</width>
+        <height>21</height>
+       </rect>
+      </property>
+      <property name="verticalScrollBarPolicy">
+       <enum>Qt::ScrollBarAlwaysOff</enum>
+      </property>
+      <property name="horizontalScrollBarPolicy">
+       <enum>Qt::ScrollBarAlwaysOff</enum>
+      </property>
+     </widget>
+     <widget class="QLabel" name="label_13">
+      <property name="geometry">
+       <rect>
+        <x>10</x>
+        <y>30</y>
+        <width>101</width>
+        <height>21</height>
+       </rect>
+      </property>
+      <property name="text">
+       <string>PBR(高)</string>
+      </property>
+     </widget>
+     <widget class="QLabel" name="label_14">
+      <property name="geometry">
+       <rect>
+        <x>60</x>
+        <y>0</y>
+        <width>101</width>
+        <height>31</height>
+       </rect>
+      </property>
+      <property name="text">
+       <string>股價淨值比篩選</string>
+      </property>
+      <property name="alignment">
+       <set>Qt::AlignCenter</set>
+      </property>
+     </widget>
+     <widget class="QLabel" name="label_15">
+      <property name="geometry">
+       <rect>
+        <x>10</x>
+        <y>60</y>
+        <width>101</width>
+        <height>21</height>
+       </rect>
+      </property>
+      <property name="text">
+       <string>PBR(低)</string>
+      </property>
+     </widget>
+     <widget class="QTextEdit" name="input_PBR_low">
+      <property name="geometry">
+       <rect>
+        <x>90</x>
+        <y>60</y>
         <width>111</width>
         <height>21</height>
        </rect>

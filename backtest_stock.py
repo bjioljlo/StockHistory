@@ -121,7 +121,7 @@ def backtest_monthRP_Up(change,AvgMon,UpMon,Start_date,End_date,start_money,PER_
                         Temp_result = Temp_result.drop(index = index)
             
 
-            if bool_check_pickOneStock:#只挑選最大的一支股票來買
+            if bool_check_pickOneStock:#只挑選一支股票來買
                 if bool_check_volume_pick:#量最大
                     Temp_result.sort_values("Volume",ascending=False,inplace=True)
                     Temp_result = Temp_result.iloc[0:1]
@@ -173,7 +173,7 @@ def backtest_monthRP_Up(change,AvgMon,UpMon,Start_date,End_date,start_money,PER_
     Temp_result_picNumber.set_index('date',inplace=True)
     Temp_result_pickStock.set_index('date',inplace=True)
     Temp_alldata = pd.merge(Temp_result_draw,Temp_result_picNumber,left_on='date',right_on='date')
-    #print(Temp_alldata)
+    
     draw_figur.draw_backtest(Temp_result_draw)
     Temp_alldata = pd.merge(Temp_alldata,Temp_result_pickStock,left_on='date',right_on='date')
     Temp_alldata = pd.merge(Temp_alldata,Temp_result_All,left_on='date',right_on='date')

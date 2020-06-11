@@ -15,16 +15,17 @@ fileName_stockInfo = "stockInfo"
 no_use_stock = [1603,5259,1262,2475,3519,
                 3579,9157,3083,4576,6706,
                 4439,4571,4572,4581,5283,
-                6491,6592,6672,6715,6698]
+                6491,6592,6672,6715,6698,
+                2025]
 
 Holiday_trigger = False
 
 load_memery = {}
 
 class FS_type(Enum):
-    aa = 'Consolidated-profit-and-loss-summary'  #'綜合損益彙總表'
-    bb = 'Balance-sheet' #'資產負債彙總表'
-    cc = 'Profit-and-loss-analysis-summary'  #'營益分析彙總表'
+    CPL = 'Consolidated-profit-and-loss-summary'  #'綜合損益彙總表'
+    BS = 'Balance-sheet' #'資產負債彙總表'
+    PLA = 'Profit-and-loss-analysis-summary'  #'營益分析彙總表'
 
 class stock_data_kind(Enum):
     AdjClose = 'Adj Close'
@@ -133,7 +134,7 @@ def get_allstock_financial_statement(start,type):#爬某季所有股票歷史財
     return stock
 def get_stock_financial_statement(number,start):#爬某個股票的歷史財報
     #season = int(((start.month() - 1)/3)+1)
-    type = FS_type.cc
+    type = FS_type.PLA
     if get_stock_info.ts.codes.__contains__(number) == False:
         print("無此檔股票")
         return
@@ -260,7 +261,7 @@ def get_PER_range(time,PER_start,PER_end):#time = 取得資料的時間 PER_star
     PER_data = pd.DataFrame(columns = ['公司代號','PER'])
     EPS_date = datetime.datetime.strptime(time,"%Y-%m-%d")
     Use_EPS_date = datetime.datetime(EPS_date.year - 1,12,1)
-    EPS_data = get_allstock_financial_statement(Use_EPS_date,FS_type.aa)
+    EPS_data = get_allstock_financial_statement(Use_EPS_date,FS_type.CPL)
     for i in range(0,len(EPS_data)):
         Temp_stock_price = None
         Temp_stock_price = get_stock_price(str(EPS_data.iloc[i].name),time,stock_data_kind.AdjClose)
@@ -322,17 +323,57 @@ def get_AVG_value(time,volume,days,data = pd.DataFrame):#time = 取得資料的�
     print('get_AVG_value: end')
     return Volume_data
     
+#取得股價淨值比篩選  #股價/每股淨值 = PBR 
+def get_PBR_rang(time,PBR_start,PBR_end):#time = 取得資料的時間 PBR_start = PBR最小值 PBR_end PBR最大值
+    print('get_PBR_rang: start')
+    if PBR_start == PBR_end == 0:
+        return pd.DataFrame()
+    if PBR_end < 0 or PBR_start < 0:
+        print("PBR range number wrong!")
+        return pd.DataFrame()
+    PBR_data = pd.DataFrame(columns = ['公司代號','PBR'])
+    PBR_date = time
+    if type(time) == str:
+        PBR_date = datetime.datetime.strptime(time,"%Y-%m-%d")
+    Use_PBR_date = datetime.datetime(PBR_date.year - 1,12,1)
+    Book_data = get_allstock_financial_statement(Use_PBR_date,FS_type.BS)
+    for i in range(0,len(Book_data)):
+        Temp_price = None
+        Temp_price = get_stock_price(str(Book_data.iloc[i].name),PBR_date,stock_data_kind.AdjClose)
+        Temp_Book = Book_data.iloc[i]['每股參考淨值']
+        if Temp_price == None:
+            continue
+        Temp_PBR = (Temp_price/Temp_Book)
+        if Temp_PBR < 0:
+            continue
+        print('get_PBR_range:' + str(Book_data.iloc[i].name) + '--' + str(Temp_price) + '/' +  str(Temp_Book) + '= ' + str(Temp_PBR))
+        if (Temp_PBR > PBR_start) and (Temp_PBR < PBR_end):
+            Temp_number = int(Book_data.iloc[i].name)
+            PBR_data.loc[(len(PBR_data)+1)] = {'公司代號':Temp_number,'PBR':Temp_PBR}
+    PBR_data['公司代號'] = PBR_data['公司代號'].astype('int')
+    PBR_data.set_index('公司代號',inplace=True)
+
+    print('get_PBR_rang: end')
+    return PBR_data
+    
+
+def get_ROE_rang(time,ROE_start,ROE_end):#time = 取得資料的時間 ROE_start = ROE最小值 ROE_end ROE最大值
+    print('get_ROE_rang: start')
+    #股東權益＝資產 － 負債 （資產負債表中）
+    #稅後淨利 = (本期綜合損益)
+    #ROE = 稅後淨利/股東權益
+
 #爬取歷史財報並存檔
 def financial_statement(year, season, type):#year = 年 season = 季 type = 財報種類
     myear = year
     if year>= 1000:
         myear -= 1911
     
-    if type == FS_type.aa:
+    if type == FS_type.CPL:
         url = 'https://mops.twse.com.tw/mops/web/ajax_t163sb04'
-    elif type == FS_type.bb:
+    elif type == FS_type.BS:
         url = 'https://mops.twse.com.tw/mops/web/ajax_t163sb05'
-    elif type == FS_type.cc:
+    elif type == FS_type.PLA:
         url = 'https://mops.twse.com.tw/mops/web/ajax_t163sb06'
     else:
         print('type does not match')
@@ -350,7 +391,7 @@ def financial_statement(year, season, type):#year = 年 season = 季 type = 財�
     response = requests.post(url,form_data)
     response.encoding = 'utf8'
 
-    if type == FS_type.cc:
+    if type == FS_type.PLA:
         df = translate_dataFrame(response.text)
     else:
         df = translate_dataFrame2(response.text,type,myear)
@@ -447,7 +488,7 @@ def translate_dataFrame2(response,type,year):
     #                             [14,32,33,42,46],
     #                             [5,8,9,17,21]
     #                             ])
-    if (type == FS_type.aa):
+    if (type == FS_type.CPL):
         if(year < 108):
             column_pos_array = np.array([[14,21],
                                         [15,22],
@@ -500,14 +541,14 @@ def translate_dataFrame2(response,type,year):
                 name = remove_td(td_array[2])
                 revenue = remove_td(td_array[column_pos_array[k][0]])
                 profitRatio = remove_td(td_array[column_pos_array[k][1]])
-                if (type == FS_type.bb):
+                if (type == FS_type.BS):
                     profitMargin = remove_td(td_array[column_pos_array[k][2]])
                     preTaxIncomeMargin = remove_td(td_array[column_pos_array[k][3]])
                     afterTaxIncomeMargin = remove_td(td_array[column_pos_array[k][4]])
                 if(i > 1):
                     if name == '公司名稱':
                         continue
-                    if (type == FS_type.aa):
+                    if (type == FS_type.CPL):
                         data.append([name,code,revenue,profitRatio])
                     else:
                         data.append([name,code,revenue,profitRatio,profitMargin,preTaxIncomeMargin,afterTaxIncomeMargin])
@@ -517,7 +558,7 @@ def translate_dataFrame2(response,type,year):
                     column.append('公司代號')
                     column.append(revenue)
                     column.append(profitRatio)
-                    if (type == FS_type.bb):
+                    if (type == FS_type.BS):
                         column.append(profitMargin)
                         column.append(preTaxIncomeMargin)
                         column.append(afterTaxIncomeMargin)

@@ -18,7 +18,7 @@ import backtest_stock
 main_titalList = ["股票號碼","股票名稱"]
 pick_titalList = ["股票號碼","股票名稱","每股參考淨值","基本每股盈餘（元）",
                 "毛利率(%)","營業利益率(%)","資產總額","負債總額","股本",
-                "權益總額","本期綜合損益總額（稅後）"]
+                "權益總額","本期綜合損益總額（稅後）","PBR"]
 
 #主畫面
 class MyWindow(QtWidgets.QMainWindow,Ui_MainWindow):
@@ -157,15 +157,24 @@ def button_monthRP_Up_click():#月營收逐步升高篩選
 
     FS_data = pd.DataFrame()
     result_data = pd.DataFrame()
+    BOOK_data = pd.DataFrame()
 
     FS_data = get_financial_statement(date)
     result_data = get_stock_history.get_monthRP_up(tools.changeDateMonth(date,0),
                         int(mypick.input_monthRP_smoothAVG.toPlainText()),
                         int(mypick.input_monthRP_UpMpnth.toPlainText()))
-            
-    pick_data = pd.merge(result_data,FS_data,left_index=True,right_index=True,how='left')
-    pick_data = pick_data.dropna(axis=0,how='any')
+    BOOK_data = get_stock_history.get_PBR_rang(tools.changeDateMonth(date,0),
+                                                float(mypick.input_PBR_low.toPlainText()),
+                                                float(mypick.input_PBR_high.toPlainText()))
+    pick_data = FS_data
+    if result_data.empty == False:            
+        pick_data = pd.merge(pick_data,result_data,left_index=True,right_index=True,how='left')
+        pick_data = pick_data.dropna(axis=0,how='any')
     
+    if BOOK_data.empty != True:
+        pick_data = pd.merge(pick_data,BOOK_data,left_index=True,right_index=True,how='left')
+        pick_data = pick_data.dropna(axis=0,how='any')
+        
     pick_data = get_price_range(int(mypick.input_price_high.toPlainText()),int(mypick.input_price_low.toPlainText()),tools.changeDateMonth(date,0),pick_data)
     pick_data = pick_data.dropna(axis=0,how='any')
 
@@ -235,12 +244,12 @@ def get_monthRP(date_end,date_start,Number):#end = 後面時間 start = 前面�
 
 #取得各種財報數字篩選
 def get_financial_statement(date,GPM = '0' ,OPR ='0' ,EPS ='0',RPS ='0'):
-    FS_type = get_stock_history.FS_type.cc
+    FS_type = get_stock_history.FS_type.PLA
     resultAllFS1 = []
     resultAllFS2 = []
     resultAllFS3 = []
     this = pd.DataFrame()
-    FS_type = get_stock_history.FS_type.cc
+    FS_type = get_stock_history.FS_type.PLA
     volume_date = date
     for i in range(3):
         try:
@@ -255,12 +264,12 @@ def get_financial_statement(date,GPM = '0' ,OPR ='0' ,EPS ='0',RPS ='0'):
     this2 = this["營業利益率(%)"] > float(OPR)
     resultAllFS1 = this[this1 & this2]
             
-    FS_type = get_stock_history.FS_type.bb
+    FS_type = get_stock_history.FS_type.BS
     this = get_stock_history.get_allstock_financial_statement(date,FS_type)
     this1 = this["每股參考淨值"] > float(RPS)
     resultAllFS2 = this[this1]
 
-    FS_type = get_stock_history.FS_type.aa
+    FS_type = get_stock_history.FS_type.CPL
     this = get_stock_history.get_allstock_financial_statement(date,FS_type)
     this1 = this["基本每股盈餘（元）"] > float(EPS)
     resultAllFS3 = this[this1]
@@ -328,8 +337,8 @@ def set_treeView2(model,inputdataFram):
     for index,row in inputdataFram.iterrows():
         array_Num = [row['每股參考淨值'],row["基本每股盈餘（元）"],
                 row["毛利率(%)"],row["營業利益率(%)"],row["資產總額"],row["負債總額"],row["股本"],
-                row["權益總額"],row["本期綜合損益總額（稅後）"]]
-        add_stock_List(model,index,row['公司名稱'],i,array_Num)
+                row["權益總額"],row["本期綜合損益總額（稅後）"],row["PBR"]]
+        add_stock_List(model,index,row[' 公司名稱'],i,array_Num)
         i = i + 1
 def set_treeView(model,inputList):
     i = 0
@@ -384,6 +393,8 @@ def Init_pickWindow():#初始化挑股票畫面
     mypick.input_volum.setPlainText("0")
     mypick.input_price_high.setPlainText("0")
     mypick.input_price_low.setPlainText("0")
+    mypick.input_PBR_high.setPlainText("0")
+    mypick.input_PBR_low.setPlainText("0")
 def Init_backtestWindow():#初始化回測畫面
     mybacktest.button_backtest.clicked.connect(button_backtest_click)#設定button功能
     date = QtCore.QDate(datetime.datetime.today().year,datetime.datetime.today().month,datetime.datetime.today().day) 
