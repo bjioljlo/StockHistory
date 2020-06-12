@@ -18,7 +18,7 @@ import backtest_stock
 main_titalList = ["股票號碼","股票名稱"]
 pick_titalList = ["股票號碼","股票名稱","每股參考淨值","基本每股盈餘（元）",
                 "毛利率(%)","營業利益率(%)","資產總額","負債總額","股本",
-                "權益總額","本期綜合損益總額（稅後）","PBR"]
+                "權益總額","本期綜合損益總額（稅後）","PBR","PER","ROE"]
 
 #主畫面
 class MyWindow(QtWidgets.QMainWindow,Ui_MainWindow):
@@ -158,29 +158,45 @@ def button_monthRP_Up_click():#月營收逐步升高篩選
     FS_data = pd.DataFrame()
     result_data = pd.DataFrame()
     BOOK_data = pd.DataFrame()
+    PER_data = pd.DataFrame()
 
     FS_data = get_financial_statement(date)
     result_data = get_stock_history.get_monthRP_up(tools.changeDateMonth(date,0),
-                        int(mypick.input_monthRP_smoothAVG.toPlainText()),
-                        int(mypick.input_monthRP_UpMpnth.toPlainText()))
+                                                int(mypick.input_monthRP_smoothAVG.toPlainText()),
+                                                int(mypick.input_monthRP_UpMpnth.toPlainText()))
     BOOK_data = get_stock_history.get_PBR_rang(tools.changeDateMonth(date,0),
                                                 float(mypick.input_PBR_low.toPlainText()),
                                                 float(mypick.input_PBR_high.toPlainText()))
+    PER_data = get_stock_history.get_PER_range(tools.changeDateMonth(date,0),
+                                                float(mypick.input_PER_low.toPlainText()),
+                                                float(mypick.input_PER_high.toPlainText()))
+    ROE_data = get_stock_history.get_ROE_rang(tools.changeDateMonth(date,0),
+                                                float(mypick.input_ROE_low.toPlainText()),
+                                                float(mypick.input_ROE_high.toPlainText()))
     pick_data = FS_data
     if result_data.empty == False:            
         pick_data = pd.merge(pick_data,result_data,left_index=True,right_index=True,how='left')
         pick_data = pick_data.dropna(axis=0,how='any')
     
-    if BOOK_data.empty != True:
+    if BOOK_data.empty == False:
         pick_data = pd.merge(pick_data,BOOK_data,left_index=True,right_index=True,how='left')
         pick_data = pick_data.dropna(axis=0,how='any')
-        
+    
+    if PER_data.empty == False:
+        pick_data = pd.merge(pick_data,PER_data,left_index=True,right_index=True,how='left')
+        pick_data = pick_data.dropna(axis=0,how='any')
+    
+    if ROE_data.empty == False:
+        pick_data = pd.merge(pick_data,ROE_data,left_index=True,right_index=True,how='left')
+        pick_data = pick_data.dropna(axis=0,how='any')
+
     pick_data = get_price_range(int(mypick.input_price_high.toPlainText()),int(mypick.input_price_low.toPlainText()),tools.changeDateMonth(date,0),pick_data)
     pick_data = pick_data.dropna(axis=0,how='any')
 
     pick_data = get_volume(int(mypick.input_volum.toPlainText()),tools.changeDateMonth(date,0),pick_data)
     pick_data = pick_data.dropna(axis=0,how='any')
 
+    print("總挑選數量:" + str(len(pick_data)))
     mypick.treeView_pick.setModel(creat_treeView_model(mypick.treeView_pick,pick_titalList))#設定treeView功能
     set_treeView2(mypick.treeView_pick.model(),pick_data)
 def button_backtest_click():#月營收回測開始紐
@@ -337,8 +353,8 @@ def set_treeView2(model,inputdataFram):
     for index,row in inputdataFram.iterrows():
         array_Num = [row['每股參考淨值'],row["基本每股盈餘（元）"],
                 row["毛利率(%)"],row["營業利益率(%)"],row["資產總額"],row["負債總額"],row["股本"],
-                row["權益總額"],row["本期綜合損益總額（稅後）"],row["PBR"]]
-        add_stock_List(model,index,row[' 公司名稱'],i,array_Num)
+                row["權益總額"],row["本期綜合損益總額（稅後）"]]#,row["PBR"],row["PER"],row["ROE"]]
+        add_stock_List(model,index,row['公司名稱'],i,array_Num)
         i = i + 1
 def set_treeView(model,inputList):
     i = 0
@@ -395,6 +411,10 @@ def Init_pickWindow():#初始化挑股票畫面
     mypick.input_price_low.setPlainText("0")
     mypick.input_PBR_high.setPlainText("0")
     mypick.input_PBR_low.setPlainText("0")
+    mypick.input_PER_high.setPlainText("0")
+    mypick.input_PER_low.setPlainText("0")
+    mypick.input_ROE_high.setPlainText("0")
+    mypick.input_ROE_low.setPlainText("0")
 def Init_backtestWindow():#初始化回測畫面
     mybacktest.button_backtest.clicked.connect(button_backtest_click)#設定button功能
     date = QtCore.QDate(datetime.datetime.today().year,datetime.datetime.today().month,datetime.datetime.today().day) 

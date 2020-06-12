@@ -16,7 +16,7 @@ no_use_stock = [1603,5259,1262,2475,3519,
                 3579,9157,3083,4576,6706,
                 4439,4571,4572,4581,5283,
                 6491,6592,6672,6715,6698,
-                2025]
+                2025,5546,6598]
 
 Holiday_trigger = False
 
@@ -258,9 +258,20 @@ def get_monthRP_up(time,avgNum,upNum):#time = 取得資料的時間 avgNum = 平
 #取得本益比篩選
 def get_PER_range(time,PER_start,PER_end):#time = 取得資料的時間 PER_start = PER最小值 PER_end PER最大值
     print('get_PER_range: start')
+    if PER_start == PER_end == 0:
+        return pd.DataFrame()
+    if PER_end < 0 or PER_start < 0:
+        print("PBR range number wrong!")
+        return pd.DataFrame()
     PER_data = pd.DataFrame(columns = ['公司代號','PER'])
-    EPS_date = datetime.datetime.strptime(time,"%Y-%m-%d")
-    Use_EPS_date = datetime.datetime(EPS_date.year - 1,12,1)
+
+    EPS_date = time
+    if type(time) == str:
+        EPS_date = datetime.datetime.strptime(time,"%Y-%m-%d")
+    if EPS_date.month in [1,2,3]:
+        Use_EPS_date = datetime.datetime(EPS_date.year - 1,12,1)
+    else:
+        Use_EPS_date = datetime.datetime(EPS_date.year,EPS_date.month - 3 ,EPS_date.day)
     EPS_data = get_allstock_financial_statement(Use_EPS_date,FS_type.CPL)
     for i in range(0,len(EPS_data)):
         Temp_stock_price = None
@@ -335,7 +346,10 @@ def get_PBR_rang(time,PBR_start,PBR_end):#time = 取得資料的時間 PBR_start
     PBR_date = time
     if type(time) == str:
         PBR_date = datetime.datetime.strptime(time,"%Y-%m-%d")
-    Use_PBR_date = datetime.datetime(PBR_date.year - 1,12,1)
+    if PBR_date.month in [1,2,3]:
+        Use_PBR_date = datetime.datetime(PBR_date.year - 1,12,1)
+    else:
+        Use_PBR_date = datetime.datetime(PBR_date.year,PBR_date.month - 3 ,PBR_date.day)
     Book_data = get_allstock_financial_statement(Use_PBR_date,FS_type.BS)
     for i in range(0,len(Book_data)):
         Temp_price = None
@@ -356,12 +370,44 @@ def get_PBR_rang(time,PBR_start,PBR_end):#time = 取得資料的時間 PBR_start
     print('get_PBR_rang: end')
     return PBR_data
     
-
+#取得股東權益報酬率 #ROE(股東權益報酬率) = 稅後淨利/股東權益
 def get_ROE_rang(time,ROE_start,ROE_end):#time = 取得資料的時間 ROE_start = ROE最小值 ROE_end ROE最大值
     print('get_ROE_rang: start')
     #股東權益＝資產 － 負債 （資產負債表中）
     #稅後淨利 = (本期綜合損益)
-    #ROE = 稅後淨利/股東權益
+    if ROE_start == ROE_end == 0:
+        return pd.DataFrame()
+    if ROE_end < 0 or ROE_start < 0:
+        print("ROE range number wrong!")
+        return pd.DataFrame()
+    ROE_data = pd.DataFrame(columns = ['公司代號','ROE'])
+    ROE_date = time
+    if type(time) == str:
+        ROE_date = datetime.datetime.strptime(time,"%Y-%m-%d")
+    if ROE_date.month in [1,2,3]:
+        Use_ROE_date = datetime.datetime(ROE_date.year - 1,12,1)
+    else:
+        Use_ROE_date = datetime.datetime(ROE_date.year,ROE_date.month - 3 ,ROE_date.day)
+    BOOK_data = get_allstock_financial_statement(Use_ROE_date,FS_type.BS)
+    CPL_data = get_allstock_financial_statement(Use_ROE_date,FS_type.CPL)
+    for i in range(0,len(BOOK_data)):
+        Temp_Book = int(BOOK_data.iloc[i]["權益總額"])
+        if check_no_use_stock(BOOK_data.iloc[i].name):
+            continue
+        Temp_CPL = CPL_data.ix[BOOK_data.iloc[i].name]["本期綜合損益總額（稅後）"]
+        Temp_ROE = (Temp_CPL/Temp_Book)
+        if Temp_ROE < 0:
+            continue
+        print('get_ROE_range:' + str(BOOK_data.iloc[i].name) + '--' + str(Temp_CPL) + '/' +  str(Temp_Book) + '= ' + str(Temp_ROE))
+        if (Temp_ROE > ROE_start) and (Temp_ROE < ROE_end):
+            Temp_number = int(BOOK_data.iloc[i].name)
+            ROE_data.loc[(len(ROE_data)+1)] = {'公司代號':Temp_number,'ROE':Temp_ROE}
+    ROE_data['公司代號'] = ROE_data['公司代號'].astype('int')
+    ROE_data.set_index('公司代號',inplace=True)
+
+    print('get_ROE_rang: end')
+    return ROE_data
+
 
 #爬取歷史財報並存檔
 def financial_statement(year, season, type):#year = 年 season = 季 type = 財報種類
@@ -449,8 +495,8 @@ def translate_dataFrame2(response,type,year):
     column_pos_array = np.array([[24,42,43,52,56],
                                 [5,8,9,18,22],
                                 [5,8,9,18,22],
-                                [25,43,44,52,56],
-                                [14,32,33,42,46],
+                                [25,44,45,53,57],
+                                [16,34,35,44,48],
                                 [5,8,9,17,21]])
     if(year == 107):
         column_pos_array = np.array([[25,42,43,52,56],
