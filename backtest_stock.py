@@ -207,7 +207,7 @@ def backtest_monthRP_Up(change,AvgMon,UpMon,Start_date,End_date,start_money,PER_
 def backtest_PERandPBR(reset,Start_date,End_date,start_money,PER_start,PER_end,PBR_start,PBR_end,pick_amount):
     Temp_reset = 0#休息日剩餘天數
     Temp_result_draw = pd.DataFrame(columns = ['date','price'])#最後輸出的結果
-    Temp_result_All = pd.DataFrame(columns=['date','資產比例','買了幾張','平均股價','股票資產','剩餘現金'])
+    Temp_result_All = pd.DataFrame(columns=['date','資產比例','買了幾張','挑出股票數量','股票資產','剩餘現金'])
     Temp_result_picNumber = pd.DataFrame(columns = ['date','number'])#最後輸出選擇數量的結果
     Temp_result_pickStock = pd.DataFrame(columns = ['date','stock'])#最後輸出選擇股票的結果
 
@@ -266,7 +266,7 @@ def backtest_PERandPBR(reset,Start_date,End_date,start_money,PER_start,PER_end,P
         Temp_result_All.loc[(len(Temp_result_All)+1)] = {'date':userInfo.now_day,
                                                 '資產比例':userInfo.get_user_all_asset()/userInfo.start_money,
                                                 '買了幾張':len(userInfo.handle_stock),
-                                                '平均股價':str(0),
+                                                '挑出股票數量':str(len(Temp_result)),
                                                 '股票資產':userInfo.get_user_stock_asset(),
                                                 '剩餘現金':userInfo.now_money}
 
@@ -275,7 +275,7 @@ def backtest_PERandPBR(reset,Start_date,End_date,start_money,PER_start,PER_end,P
         print('換股剩餘天數:' + str(Temp_reset))
         print('目前資產:' + str(userInfo.get_user_all_asset()))
         print('股票張數:' + str(len(userInfo.handle_stock)))
-        print('挑出張數:' + str(len(Temp_result)))
+        print('挑出股票數量:' + str(len(Temp_result)))
         print('手中現金:' + str(userInfo.now_money))
         print('---------------------------')
 
