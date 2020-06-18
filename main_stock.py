@@ -212,14 +212,13 @@ def button_backtest_click():#月營收回測開始紐
                 mybacktest.check_PBR_pick.isChecked(),
                 mybacktest.check_ROE_pick.isChecked())
         date_start = tools.QtDate2DateTime(mybacktest.date_start.date())
-        # date_start = tools.DateTime2String(date_start)
         date_end = tools.QtDate2DateTime(mybacktest.date_end.date())
         money_start = int(mybacktest.input_startMoney.toPlainText())
         change_days = int(mybacktest.input_changeDays.toPlainText())
         smoothAVG = int(mybacktest.input_monthRP_smoothAVG.toPlainText())
         upMonth = int(mybacktest.input_monthRP_UpMpnth.toPlainText())
-        PER_start = int(mybacktest.input_PER_start.toPlainText())
-        PER_end = int(mybacktest.input_PER_end.toPlainText())
+        PER_start = float(mybacktest.input_PER_start.toPlainText())
+        PER_end = float(mybacktest.input_PER_end.toPlainText())
         volumeAVG = int(mybacktest.input_volume_money.toPlainText())
         volumeDays = int(mybacktest.input_volumeAVG_days.toPlainText())
         price_high = int(mybacktest.input_price_high.toPlainText())
@@ -232,24 +231,22 @@ def button_backtest_click():#月營收回測開始紐
                                                 volumeAVG,volumeDays,price_high,price_low,PBR_start,PBR_end,ROE_start,ROE_end)
 def button_backtest_click2():
     backtest_stock.set_check(mybacktest.check_monthRP_pick.isChecked(),
-                mybacktest.check_PER_pick.isChecked(),
-                mybacktest.check_volume_pick.isChecked(),
-                mybacktest.check_pickOneStock.isChecked(),
-                mybacktest.check_price_pick.isChecked(),
-                mybacktest.check_PBR_pick.isChecked(),
-                mybacktest.check_ROE_pick.isChecked())
-
-
+                                mybacktest.check_PER_pick.isChecked(),
+                                mybacktest.check_volume_pick.isChecked(),
+                                mybacktest.check_pickOneStock.isChecked(),
+                                mybacktest.check_price_pick.isChecked(),
+                                mybacktest.check_PBR_pick.isChecked(),
+                                mybacktest.check_ROE_pick.isChecked())
     date_start = tools.QtDate2DateTime(mybacktest.date_start.date())
-    # date_start = tools.DateTime2String(date_start)
     date_end = tools.QtDate2DateTime(mybacktest.date_end.date())
     money_start = int(mybacktest.input_startMoney.toPlainText())
     change_days = int(mybacktest.input_changeDays.toPlainText())
-    PER_start = int(mybacktest.input_PER_start.toPlainText())
-    PER_end = int(mybacktest.input_PER_end.toPlainText())
+    PER_start = float(mybacktest.input_PER_start.toPlainText())
+    PER_end = float(mybacktest.input_PER_end.toPlainText())
     PBR_end = float(mybacktest.input_PBR_end.toPlainText())
     PBR_start = float(mybacktest.input_PBR_start.toPlainText())
-    backtest_stock.backtest_PERandPBR(change_days,date_start,date_end,money_start,PER_start,PER_end,PBR_start,PBR_end)
+    Pick_amount = int(mybacktest.input_StockAmount.toPlainText())
+    backtest_stock.backtest_PERandPBR(change_days,date_start,date_end,money_start,PER_start,PER_end,PBR_start,PBR_end,Pick_amount)
 
 #取得月營收的資料
 def get_monthRP(date_end,date_start,Number):#end = 後面時間 start = 前面時間 Number = 股票號碼
@@ -483,6 +480,7 @@ def Init_backtestWindow():#初始化回測畫面
     mybacktest.input_PBR_end.setPlainText('0')
     mybacktest.input_ROE_start.setPlainText('0')
     mybacktest.input_ROE_end.setPlainText('0')
+    mybacktest.input_StockAmount.setPlainText('0')
     
 
 

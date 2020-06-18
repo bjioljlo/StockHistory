@@ -121,7 +121,7 @@
    <widget class="QLabel" name="label_4">
     <property name="geometry">
      <rect>
-      <x>90</x>
+      <x>0</x>
       <y>80</y>
       <width>101</width>
       <height>16</height>
@@ -138,7 +138,7 @@
     <property name="geometry">
      <rect>
       <x>100</x>
-      <y>100</y>
+      <y>80</y>
       <width>81</width>
       <height>21</height>
      </rect>
@@ -496,8 +496,8 @@
    <widget class="QCheckBox" name="check_pickOneStock">
     <property name="geometry">
      <rect>
-      <x>30</x>
-      <y>130</y>
+      <x>40</x>
+      <y>150</y>
       <width>101</width>
       <height>20</height>
      </rect>
@@ -509,8 +509,8 @@
    <widget class="QLabel" name="label_14">
     <property name="geometry">
      <rect>
-      <x>50</x>
-      <y>130</y>
+      <x>60</x>
+      <y>150</y>
       <width>101</width>
       <height>21</height>
      </rect>
@@ -863,6 +863,51 @@
     </property>
     <property name="text">
      <string>開始回測PER&amp;PBR</string>
+    </property>
+   </widget>
+   <widget class="QLabel" name="label_24">
+    <property name="geometry">
+     <rect>
+      <x>0</x>
+      <y>110</y>
+      <width>101</width>
+      <height>16</height>
+     </rect>
+    </property>
+    <property name="text">
+     <string>篩選股票數</string>
+    </property>
+    <property name="alignment">
+     <set>Qt::AlignCenter</set>
+    </property>
+   </widget>
+   <widget class="QTextEdit" name="input_StockAmount">
+    <property name="geometry">
+     <rect>
+      <x>100</x>
+      <y>110</y>
+      <width>81</width>
+      <height>21</height>
+     </rect>
+    </property>
+    <property name="font">
+     <font>
+      <pointsize>10</pointsize>
+      <weight>75</weight>
+      <bold>true</bold>
+     </font>
+    </property>
+    <property name="verticalScrollBarPolicy">
+     <enum>Qt::ScrollBarAlwaysOff</enum>
+    </property>
+    <property name="horizontalScrollBarPolicy">
+     <enum>Qt::ScrollBarAlwaysOff</enum>
+    </property>
+    <property name="documentTitle">
+     <string/>
+    </property>
+    <property name="placeholderText">
+     <string/>
     </property>
    </widget>
   </widget>

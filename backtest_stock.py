@@ -204,36 +204,39 @@ def backtest_monthRP_Up(change,AvgMon,UpMon,Start_date,End_date,start_money,PER_
     Temp_alldata.to_csv('backtestAll.csv')
 
      
-def backtest_PERandPBR(reset,Start_date,End_date,start_money,PER_start,PER_end,PBR_start,PBR_end):
+def backtest_PERandPBR(reset,Start_date,End_date,start_money,PER_start,PER_end,PBR_start,PBR_end,pick_amount):
     Temp_reset = 0#休息日剩餘天數
     Temp_result_draw = pd.DataFrame(columns = ['date','price'])#最後輸出的結果
     Temp_result_All = pd.DataFrame(columns=['date','資產比例','買了幾張','平均股價','股票資產','剩餘現金'])
     Temp_result_picNumber = pd.DataFrame(columns = ['date','number'])#最後輸出選擇數量的結果
     Temp_result_pickStock = pd.DataFrame(columns = ['date','stock'])#最後輸出選擇股票的結果
 
-
     userInfo = get_user_info.data_user_info(start_money,Start_date,End_date)
 
     while userInfo.now_day <= userInfo.end_day:
-        if userInfo.now_day.isoweekday() in [6,7]:#週末直接跳過
+        #週末直接跳過
+        if userInfo.now_day.isoweekday() in [6,7]:
             print('星期' + str(userInfo.now_day.isoweekday()))
             if userInfo.add_one_day() == False:#加一天
                 break
             continue
 
+        #先看看台積有沒有資料，如果沒有表示這天是非週末假日跳過 
         if get_stock_history.get_stock_price(2330,userInfo.now_day,get_stock_history.stock_data_kind.AdjClose) == None:
             print("今天沒開市跳過")
             if userInfo.add_one_day() == False:#加一天
                 break
             continue
 
-        if Temp_reset > 0 and len(userInfo.handle_stock) == 0:#休息日直接跳過
+        #休息日直接跳過
+        if Temp_reset > 0 and len(userInfo.handle_stock) == 0:
             print('reset time:day ' + str(Temp_reset))
             if userInfo.add_one_day() == False:#加一天
                 break
             Temp_reset = Temp_reset - 1
             continue
 
+        #開始篩選
         Temp_result0 = {}
         Temp_result = pd.DataFrame()
         if bool_check_PER_pick:#PER pick
@@ -243,24 +246,22 @@ def backtest_PERandPBR(reset,Start_date,End_date,start_money,PER_start,PER_end,P
         Temp_result = tools.MixDataFrames(Temp_result0)
 
         #出場訊號篩選--------------------------------------
-        if len(Temp_result) < 20 and len(userInfo.handle_stock) > 0:
+        if len(Temp_result) < pick_amount and len(userInfo.handle_stock) > 0:
             userInfo.sell_all_stock()
             Temp_reset = reset
         
         #入場訊號篩選--------------------------------------
-        if len(Temp_result) >= 20 and Temp_reset == 0 and len(userInfo.handle_stock) == 0:
-            userInfo.buy_all_stock(Temp_result)
+        if len(Temp_result) >= pick_amount and Temp_reset == 0 and len(userInfo.handle_stock) == 0:
+            Temp_buy = get_stock_history.get_AVG_value(userInfo.now_day,5000000,1,Temp_result)
+            Temp_buy = Temp_buy.sort_values(by='Volume', ascending=False)
+            userInfo.buy_all_stock(Temp_buy)
             Temp_reset = reset
-            
-        
-            
-
 
         #更新資訊--------------------------------------
         Temp_result_draw.loc[(len(Temp_result_draw)+1)] = {'date':userInfo.now_day,
                                                         'price':userInfo.get_user_all_asset()/userInfo.start_money}
         Temp_result_picNumber.loc[(len(Temp_result_picNumber)+1)] = {'date':userInfo.now_day,'number':len(userInfo.handle_stock)}
-        Temp_result_pickStock.loc[(len(Temp_result_pickStock)+1)] = {'date':userInfo.now_day,'stock':userInfo.handle_stock}
+        Temp_result_pickStock.loc[(len(Temp_result_pickStock)+1)] = {'date':userInfo.now_day,'stock':userInfo.get_handle_stock()}
 
         Temp_result_All.loc[(len(Temp_result_All)+1)] = {'date':userInfo.now_day,
                                                 '資產比例':userInfo.get_user_all_asset()/userInfo.start_money,
@@ -273,7 +274,6 @@ def backtest_PERandPBR(reset,Start_date,End_date,start_money,PER_start,PER_end,P
         print('date:' + tools.DateTime2String(userInfo.now_day))
         print('換股剩餘天數:' + str(Temp_reset))
         print('目前資產:' + str(userInfo.get_user_all_asset()))
-        print('平均股價:' + str(0))
         print('股票張數:' + str(len(userInfo.handle_stock)))
         print('挑出張數:' + str(len(Temp_result)))
         print('手中現金:' + str(userInfo.now_money))
