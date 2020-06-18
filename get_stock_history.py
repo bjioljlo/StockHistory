@@ -16,7 +16,8 @@ no_use_stock = [1603,5259,1262,2475,3519,
                 3579,9157,3083,4576,6706,
                 4439,4571,4572,4581,5283,
                 6491,6592,6672,6715,6698,
-                2025,5546,6598]
+                2025,5546,6598,4148,4552,
+                8488,1341,6671,8499,2243]
 
 Holiday_trigger = False
 
@@ -57,6 +58,8 @@ def get_stock_price(number,date,kind):#取得某股票某天的ＡＤＪ價格
     if result.empty == True:
         if Holiday_trigger == True:
             return None
+        if type(date) != str:
+            date = tools.DateTime2String(date)
         if datetime.datetime.strptime(date,"%Y-%m-%d").isoweekday() in [1,2,3,4,5]:
             #stock_data = get_stock_history(number,date,True,False) #會重新爬取資料
             stock_data = get_stock_history(number,date,False,False) #只會重新抓硬碟資料
@@ -148,6 +151,8 @@ def get_stock_history(number,start,reGetInfo = False,UpdateInfo = True):#爬某�
     start_time = start
     if type(start_time) == str:
         start_time  = datetime.datetime.strptime(start,"%Y-%m-%d")
+    if type(number) != str:
+        number = str(number)
     data_time = datetime.datetime.strptime('2000-1-1',"%Y-%m-%d")
     now_time = datetime.datetime.today()
     result = pd.DataFrame()
@@ -260,7 +265,7 @@ def get_PER_range(time,PER_start,PER_end):#time = 取得資料的時間 PER_star
     print('get_PER_range: start')
     if PER_start == PER_end == 0:
         return pd.DataFrame()
-    if PER_end < 0 or PER_start < 0:
+    if PER_end < 0 or PER_start < 0 or PER_end < PER_start:
         print("PBR range number wrong!")
         return pd.DataFrame()
     PER_data = pd.DataFrame(columns = ['公司代號','PER'])
@@ -271,7 +276,7 @@ def get_PER_range(time,PER_start,PER_end):#time = 取得資料的時間 PER_star
     if EPS_date.month in [1,2,3]:
         Use_EPS_date = datetime.datetime(EPS_date.year - 1,12,1)
     else:
-        Use_EPS_date = datetime.datetime(EPS_date.year,EPS_date.month - 3 ,EPS_date.day)
+        Use_EPS_date = datetime.datetime(EPS_date.year,tools.changeDateMonth(EPS_date,-3).month ,tools.check_monthDate(tools.changeDateMonth(EPS_date,-3).month,EPS_date.day))
     EPS_data = get_allstock_financial_statement(Use_EPS_date,FS_type.CPL)
     for i in range(0,len(EPS_data)):
         Temp_stock_price = None
@@ -339,7 +344,7 @@ def get_PBR_rang(time,PBR_start,PBR_end):#time = 取得資料的時間 PBR_start
     print('get_PBR_rang: start')
     if PBR_start == PBR_end == 0:
         return pd.DataFrame()
-    if PBR_end < 0 or PBR_start < 0:
+    if PBR_end < 0 or PBR_start < 0 or PBR_end < PBR_start:
         print("PBR range number wrong!")
         return pd.DataFrame()
     PBR_data = pd.DataFrame(columns = ['公司代號','PBR'])
@@ -349,7 +354,7 @@ def get_PBR_rang(time,PBR_start,PBR_end):#time = 取得資料的時間 PBR_start
     if PBR_date.month in [1,2,3]:
         Use_PBR_date = datetime.datetime(PBR_date.year - 1,12,1)
     else:
-        Use_PBR_date = datetime.datetime(PBR_date.year,PBR_date.month - 3 ,PBR_date.day)
+        Use_PBR_date = datetime.datetime(PBR_date.year,tools.changeDateMonth(PBR_date,-3).month,tools.check_monthDate(tools.changeDateMonth(PBR_date,-3).month,PBR_date.day))
     Book_data = get_allstock_financial_statement(Use_PBR_date,FS_type.BS)
     for i in range(0,len(Book_data)):
         Temp_price = None
@@ -395,7 +400,7 @@ def get_ROE_rang(time,ROE_start,ROE_end):#time = 取得資料的時間 ROE_start
         if check_no_use_stock(BOOK_data.iloc[i].name):
             continue
         Temp_CPL = CPL_data.ix[BOOK_data.iloc[i].name]["本期綜合損益總額（稅後）"]
-        Temp_ROE = (Temp_CPL/Temp_Book)
+        Temp_ROE = (Temp_CPL/Temp_Book) * 100
         if Temp_ROE < 0:
             continue
         print('get_ROE_range:' + str(BOOK_data.iloc[i].name) + '--' + str(Temp_CPL) + '/' +  str(Temp_Book) + '= ' + str(Temp_ROE))

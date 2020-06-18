@@ -1,4 +1,5 @@
 import datetime
+import pandas as pd
 
 def changeDateMonth(date,change_month):
     temp_month = date.month + change_month
@@ -53,3 +54,11 @@ def backWorkDays(date,days):#取得往後算days工作天後的日期
         if input_date.isoweekday() in [6,7]:
             continue
         input_days = input_days - 1
+def MixDataFrames(DataFrames = {}):#合併報表
+    result_data = pd.DataFrame()
+    for key,value in DataFrames.items():
+        if result_data.empty == True:
+            result_data = value
+        else:
+            result_data = pd.merge(result_data,value,on='公司代號',how='inner')
+    return result_data
