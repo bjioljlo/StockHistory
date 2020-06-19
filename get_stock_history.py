@@ -382,7 +382,7 @@ def get_ROE_rang(time,ROE_start,ROE_end):#time = 取得資料的時間 ROE_start
     #稅後淨利 = (本期綜合損益)
     if ROE_start == ROE_end == 0:
         return pd.DataFrame()
-    if ROE_end < 0 or ROE_start < 0:
+    if ROE_end < 0 or ROE_start < 0 or ROE_end < ROE_start:
         print("ROE range number wrong!")
         return pd.DataFrame()
     ROE_data = pd.DataFrame(columns = ['公司代號','ROE'])
@@ -392,7 +392,7 @@ def get_ROE_rang(time,ROE_start,ROE_end):#time = 取得資料的時間 ROE_start
     if ROE_date.month in [1,2,3]:
         Use_ROE_date = datetime.datetime(ROE_date.year - 1,12,1)
     else:
-        Use_ROE_date = datetime.datetime(ROE_date.year,ROE_date.month - 3 ,ROE_date.day)
+        Use_ROE_date = datetime.datetime(ROE_date.year,tools.changeDateMonth(ROE_date,-3).month ,tools.check_monthDate(tools.changeDateMonth(ROE_date,-3).month,ROE_date.day))
     BOOK_data = get_allstock_financial_statement(Use_ROE_date,FS_type.BS)
     CPL_data = get_allstock_financial_statement(Use_ROE_date,FS_type.CPL)
     for i in range(0,len(BOOK_data)):
