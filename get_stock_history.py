@@ -449,6 +449,8 @@ def get_price_range(time,high,low,data = pd.DataFrame()):
         if check_no_use_stock(index):
             continue
         Temp_price = get_stock_price(index,Use_price_time,stock_data_kind.AdjClose)
+        if Temp_price == None:
+            continue
         if (Temp_price > low) and (Temp_price < high):
             Temp_number = int(index)
             price_data =price_data.append({'公司代號':Temp_number,'price':Temp_price},ignore_index=True)
