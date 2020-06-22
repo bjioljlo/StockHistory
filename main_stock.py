@@ -120,7 +120,7 @@ def button_pick_click():
     else:
         pass
     
-    resultAllFS = get_price_range(int(mypick.input_price_high.toPlainText()),int(mypick.input_price_low.toPlainText()),tools.changeDateMonth(volume_date,0),resultAllFS)
+    resultAllFS = get_stock_history.get_price_range(volume_date,int(mypick.input_price_high.toPlainText()),int(mypick.input_price_low.toPlainText()),resultAllFS)
     resultAllFS = get_volume(int(mypick.input_volum.toPlainText()),tools.changeDateMonth(volume_date,0),resultAllFS)
 
 
@@ -164,13 +164,13 @@ def button_monthRP_Up_click():#月營收逐步升高篩選
     result_data = get_stock_history.get_monthRP_up(tools.changeDateMonth(date,0),
                                                 int(mypick.input_monthRP_smoothAVG.toPlainText()),
                                                 int(mypick.input_monthRP_UpMpnth.toPlainText()))
-    BOOK_data = get_stock_history.get_PBR_rang(tools.changeDateMonth(date,0),
+    BOOK_data = get_stock_history.get_PBR_range(tools.changeDateMonth(date,0),
                                                 float(mypick.input_PBR_low.toPlainText()),
                                                 float(mypick.input_PBR_high.toPlainText()))
     PER_data = get_stock_history.get_PER_range(tools.changeDateMonth(date,0),
                                                 float(mypick.input_PER_low.toPlainText()),
                                                 float(mypick.input_PER_high.toPlainText()))
-    ROE_data = get_stock_history.get_ROE_rang(tools.changeDateMonth(date,0),
+    ROE_data = get_stock_history.get_ROE_range(tools.changeDateMonth(date,0),
                                                 float(mypick.input_ROE_low.toPlainText()),
                                                 float(mypick.input_ROE_high.toPlainText()))
     pick_data = FS_data
@@ -190,7 +190,7 @@ def button_monthRP_Up_click():#月營收逐步升高篩選
         pick_data = pd.merge(pick_data,ROE_data,left_index=True,right_index=True,how='left')
         pick_data = pick_data.dropna(axis=0,how='any')
 
-    pick_data = get_price_range(int(mypick.input_price_high.toPlainText()),int(mypick.input_price_low.toPlainText()),tools.changeDateMonth(date,0),pick_data)
+    pick_data = get_stock_history.get_price_range(date,int(mypick.input_price_high.toPlainText()),int(mypick.input_price_low.toPlainText()),pick_data)
     pick_data = pick_data.dropna(axis=0,how='any')
 
     pick_data = get_volume(int(mypick.input_volum.toPlainText()),tools.changeDateMonth(date,0),pick_data)
@@ -227,9 +227,9 @@ def button_backtest_click():#月營收回測開始紐
         PBR_start = float(mybacktest.input_PBR_start.toPlainText())
         ROE_end = float(mybacktest.input_ROE_end.toPlainText())
         ROE_start = float(mybacktest.input_ROE_start.toPlainText())
-        backtest_stock.backtest_monthRP_Up2(change_days,smoothAVG,upMonth,date_start,date_end,money_start,PER_start,PER_end,
+        backtest_stock.backtest_monthRP_Up(change_days,smoothAVG,upMonth,date_start,date_end,money_start,PER_start,PER_end,
                                                 volumeAVG,volumeDays,price_high,price_low,PBR_start,PBR_end,ROE_start,ROE_end)
-def button_backtest_click2():
+def button_backtest_click2():#PER PBR 回測開始紐
     backtest_stock.set_check(mybacktest.check_monthRP_pick.isChecked(),
                                 mybacktest.check_PER_pick.isChecked(),
                                 mybacktest.check_volume_pick.isChecked(),
@@ -348,27 +348,27 @@ def get_volume(volumeNum,date,data = pd.DataFrame(),getMax = False):
     return data
 
 #取得股價篩選
-def get_price_range(high,low,date,data = pd.DataFrame()):
-    if high == 0 and low == 0:
-        return data
-    if high < low:
-        return data
-    if data.empty == False:
-        for index,row in data.iterrows():
-            Temp_price = get_stock_history.get_stock_price(str(index),tools.DateTime2String(date),
-                                                        get_stock_history.stock_data_kind.AdjClose)
-            while(Temp_price == None):
-                if get_stock_history.check_no_use_stock(index):
-                    break
-                date = date + datetime.timedelta(days=-1)#加一天
-                Temp_price = get_stock_history.get_stock_price(str(index),tools.DateTime2String(date),get_stock_history.stock_data_kind.Volume)
-            if Temp_price != None and Temp_price >= low and Temp_price <= high:
-                print("OK")
-            else:
-                data = data.drop(index = index)
-    else:
-        print("get_price_range:輸入的data是空的")
-    return data
+# def get_price_range(high,low,date,data = pd.DataFrame()):
+#     if high == 0 and low == 0:
+#         return data
+#     if high < low:
+#         return data
+#     if data.empty == False:
+#         for index,row in data.iterrows():
+#             Temp_price = get_stock_history.get_stock_price(str(index),tools.DateTime2String(date),
+#                                                         get_stock_history.stock_data_kind.AdjClose)
+#             while(Temp_price == None):
+#                 if get_stock_history.check_no_use_stock(index):
+#                     break
+#                 date = date + datetime.timedelta(days=-1)#加一天
+#                 Temp_price = get_stock_history.get_stock_price(str(index),tools.DateTime2String(date),get_stock_history.stock_data_kind.Volume)
+#             if Temp_price != None and Temp_price >= low and Temp_price <= high:
+#                 print("OK")
+#             else:
+#                 data = data.drop(index = index)
+#     else:
+#         print("get_price_range:輸入的data是空的")
+#     return data
 
 def set_treeView2(model,inputdataFram):
     i = 0

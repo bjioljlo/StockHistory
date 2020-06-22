@@ -17,7 +17,8 @@ no_use_stock = [1603,5259,1262,2475,3519,
                 4439,4571,4572,4581,5283,
                 6491,6592,6672,6715,6698,
                 2025,5546,6598,4148,4552,
-                8488,1341,6671,8499,2243]
+                8488,1341,6671,8499,2243,
+                1902]
 
 Holiday_trigger = False
 
@@ -45,6 +46,7 @@ def check_no_use_stock(number):
             print(str(number))
             return True
     return False
+
 
 def get_stock_price(number,date,kind):#取得某股票某天的ＡＤＪ價格
     global Holiday_trigger
@@ -85,6 +87,9 @@ def get_stock_monthly_report(number,start):#爬某月某個股票月營收
     df = get_allstock_monthly_report(start)
     return df.loc[[str(number)]]
 def get_allstock_monthly_report(start):#爬某月所有股票月營收
+    if start.day < 15:#還沒超過15號，拿前一個月
+        print("get_allstock_monthly_report:未到15號取上個月報表")
+        start = tools.changeDateMonth(start,-1)
     year = start.year
     fileName = filePath + '/' + fileName_monthRP + '/' + str(start.year)+'-'+str(start.month)+'monthly_report.csv'
     if fileName in load_memery:
@@ -261,16 +266,16 @@ def get_monthRP_up(time,avgNum,upNum):#time = 取得資料的時間 avgNum = 平
     return final_result
 
 #取得本益比篩選
-def get_PER_range(time,PER_start,PER_end):#time = 取得資料的時間 PER_start = PER最小值 PER_end PER最大值
+def get_PER_range(time,PER_start,PER_end,data = pd.DataFrame()):#time = 取得資料的時間 PER_start = PER最小值 PER_end PER最大值
     print('get_PER_range: start')
     if PER_start == PER_end == 0:
-        return pd.DataFrame()
+        return data
     if PER_end < 0 or PER_start < 0 or PER_end < PER_start:
         print("PBR range number wrong!")
-        return pd.DataFrame()
+        return data
     PER_data = pd.DataFrame(columns = ['公司代號','PER'])
-
     EPS_date = time
+    All_PER = data
     if type(time) == str:
         EPS_date = datetime.datetime.strptime(time,"%Y-%m-%d")
     if EPS_date.month in [1,2,3]:
@@ -278,19 +283,21 @@ def get_PER_range(time,PER_start,PER_end):#time = 取得資料的時間 PER_star
     else:
         Use_EPS_date = datetime.datetime(EPS_date.year,tools.changeDateMonth(EPS_date,-3).month ,tools.check_monthDate(tools.changeDateMonth(EPS_date,-3).month,EPS_date.day))
     EPS_data = get_allstock_financial_statement(Use_EPS_date,FS_type.CPL)
-    for i in range(0,len(EPS_data)):
+    if All_PER.empty == True:
+        All_PER = EPS_data
+    for index,row in All_PER.iterrows():
         Temp_stock_price = None
-        Temp_stock_price = get_stock_price(str(EPS_data.iloc[i].name),time,stock_data_kind.AdjClose)
-        Temp_stock_EPS = EPS_data.iloc[i]['基本每股盈餘（元）']
+        Temp_stock_price = get_stock_price(index,time,stock_data_kind.AdjClose)
+        Temp_stock_EPS = EPS_data.at[index,'基本每股盈餘（元）']
         if Temp_stock_price == None:
             continue
-        Temp_PER = round((Temp_stock_price/Temp_stock_EPS),0)
+        Temp_PER = round((Temp_stock_price/Temp_stock_EPS),4)
         if Temp_PER < 0:
             continue
-        print('get_PER_range:' + str(EPS_data.iloc[i].name) + '--' + str(Temp_stock_price) + '/' +  str(Temp_stock_EPS) + '= ' + str(Temp_PER))
+        print('get_PER_range:' + str(index) + '--' + str(Temp_stock_price) + '/' +  str(Temp_stock_EPS) + '= ' + str(Temp_PER))
         if (Temp_PER > PER_start) and (Temp_PER < PER_end):
-            Temp_number = int(EPS_data.iloc[i].name)
-            PER_data.loc[(len(PER_data)+1)] = {'公司代號':Temp_number,'PER':Temp_PER}
+            Temp_number = int(index)
+            PER_data = PER_data.append({'公司代號':Temp_number,'PER':Temp_PER},ignore_index=True)
     PER_data['公司代號'] = PER_data['公司代號'].astype('int')
     PER_data.set_index('公司代號',inplace=True)
 
@@ -298,7 +305,7 @@ def get_PER_range(time,PER_start,PER_end):#time = 取得資料的時間 PER_star
     return PER_data
 
 #取得平均日成交金額篩選
-def get_AVG_value(time,volume,days,data = pd.DataFrame):#time = 取得資料的時間 volume = 平均成交金額 days = 平均天數
+def get_AVG_value(time,volume,days,data = pd.DataFrame()):#time = 取得資料的時間 volume = 平均成交金額 days = 平均天數
     print('get_AVG_value: start')
     Volume_Time = time
     if type(Volume_Time) == str:
@@ -306,7 +313,7 @@ def get_AVG_value(time,volume,days,data = pd.DataFrame):#time = 取得資料的�
     All_monthRP = data
     if All_monthRP.empty == True:
         All_monthRP = get_allstock_monthly_report(Volume_Time)
-    Volume_data = pd.DataFrame(columns = ['公司代號','Volume'])
+    Volume_data = pd.DataFrame(columns = ['公司代號','volume'])
     for i in range(0,len(All_monthRP)):
         Temp_AvgVolume = 0
         AvgDays = days
@@ -331,24 +338,25 @@ def get_AVG_value(time,volume,days,data = pd.DataFrame):#time = 取得資料的�
         Temp_AvgVolume = Temp_AvgVolume / days
         if Temp_AvgVolume >= volume:
             Temp_number = int(All_monthRP.iloc[i].name)
-            Volume_data.loc[(len(Volume_data)+1)] = {'公司代號':Temp_number,'Volume':Temp_AvgVolume}
+            Volume_data.loc[(len(Volume_data)+1)] = {'公司代號':Temp_number,'volume':Temp_AvgVolume}
         print('get_AVG_value: ' + str(All_monthRP.iloc[i].name) + '/' + str(Temp_AvgVolume))
     Volume_data['公司代號'] = Volume_data['公司代號'].astype('int')
-    Volume_data['Volume'] = Volume_data['Volume'].astype('int')
+    Volume_data['volume'] = Volume_data['volume'].astype('int')
     Volume_data.set_index('公司代號',inplace=True)
     print('get_AVG_value: end')
     return Volume_data
     
 #取得股價淨值比篩選  #股價/每股淨值 = PBR 
-def get_PBR_rang(time,PBR_start,PBR_end):#time = 取得資料的時間 PBR_start = PBR最小值 PBR_end PBR最大值
+def get_PBR_range(time,PBR_start,PBR_end,data = pd.DataFrame()):#time = 取得資料的時間 PBR_start = PBR最小值 PBR_end PBR最大值
     print('get_PBR_rang: start')
     if PBR_start == PBR_end == 0:
-        return pd.DataFrame()
+        return data
     if PBR_end < 0 or PBR_start < 0 or PBR_end < PBR_start:
         print("PBR range number wrong!")
-        return pd.DataFrame()
+        return data
     PBR_data = pd.DataFrame(columns = ['公司代號','PBR'])
     PBR_date = time
+    All_PBR = data
     if type(time) == str:
         PBR_date = datetime.datetime.strptime(time,"%Y-%m-%d")
     if PBR_date.month in [1,2,3]:
@@ -356,19 +364,21 @@ def get_PBR_rang(time,PBR_start,PBR_end):#time = 取得資料的時間 PBR_start
     else:
         Use_PBR_date = datetime.datetime(PBR_date.year,tools.changeDateMonth(PBR_date,-3).month,tools.check_monthDate(tools.changeDateMonth(PBR_date,-3).month,PBR_date.day))
     Book_data = get_allstock_financial_statement(Use_PBR_date,FS_type.BS)
-    for i in range(0,len(Book_data)):
+    if All_PBR.empty == True:
+        All_PBR = Book_data
+    for index,row in All_PBR.iterrows():
         Temp_price = None
-        Temp_price = get_stock_price(str(Book_data.iloc[i].name),PBR_date,stock_data_kind.AdjClose)
-        Temp_Book = Book_data.iloc[i]['每股參考淨值']
+        Temp_price = get_stock_price(index,PBR_date,stock_data_kind.AdjClose)
+        Temp_Book = Book_data.at[index,'每股參考淨值']
         if Temp_price == None:
             continue
-        Temp_PBR = (Temp_price/Temp_Book)
+        Temp_PBR = round((Temp_price/Temp_Book),4)
         if Temp_PBR < 0:
             continue
-        print('get_PBR_range:' + str(Book_data.iloc[i].name) + '--' + str(Temp_price) + '/' +  str(Temp_Book) + '= ' + str(Temp_PBR))
+        print('get_PBR_range:' + str(index) + '--' + str(Temp_price) + '/' +  str(Temp_Book) + '= ' + str(Temp_PBR))
         if (Temp_PBR > PBR_start) and (Temp_PBR < PBR_end):
-            Temp_number = int(Book_data.iloc[i].name)
-            PBR_data.loc[(len(PBR_data)+1)] = {'公司代號':Temp_number,'PBR':Temp_PBR}
+            Temp_number = int(index)
+            PBR_data = PBR_data.append({'公司代號':Temp_number,'PBR':Temp_PBR},ignore_index=True)
     PBR_data['公司代號'] = PBR_data['公司代號'].astype('int')
     PBR_data.set_index('公司代號',inplace=True)
 
@@ -376,17 +386,18 @@ def get_PBR_rang(time,PBR_start,PBR_end):#time = 取得資料的時間 PBR_start
     return PBR_data
     
 #取得股東權益報酬率 #ROE(股東權益報酬率) = 稅後淨利/股東權益
-def get_ROE_rang(time,ROE_start,ROE_end):#time = 取得資料的時間 ROE_start = ROE最小值 ROE_end ROE最大值
+def get_ROE_range(time,ROE_start,ROE_end,data = pd.DataFrame()):#time = 取得資料的時間 ROE_start = ROE最小值 ROE_end ROE最大值
     print('get_ROE_rang: start')
     #股東權益＝資產 － 負債 （資產負債表中）
     #稅後淨利 = (本期綜合損益)
     if ROE_start == ROE_end == 0:
-        return pd.DataFrame()
+        return data
     if ROE_end < 0 or ROE_start < 0 or ROE_end < ROE_start:
         print("ROE range number wrong!")
-        return pd.DataFrame()
+        return data
     ROE_data = pd.DataFrame(columns = ['公司代號','ROE'])
     ROE_date = time
+    All_ROE = data
     if type(time) == str:
         ROE_date = datetime.datetime.strptime(time,"%Y-%m-%d")
     if ROE_date.month in [1,2,3]:
@@ -395,24 +406,58 @@ def get_ROE_rang(time,ROE_start,ROE_end):#time = 取得資料的時間 ROE_start
         Use_ROE_date = datetime.datetime(ROE_date.year,tools.changeDateMonth(ROE_date,-3).month ,tools.check_monthDate(tools.changeDateMonth(ROE_date,-3).month,ROE_date.day))
     BOOK_data = get_allstock_financial_statement(Use_ROE_date,FS_type.BS)
     CPL_data = get_allstock_financial_statement(Use_ROE_date,FS_type.CPL)
-    for i in range(0,len(BOOK_data)):
-        Temp_Book = int(BOOK_data.iloc[i]["權益總額"])
-        if check_no_use_stock(BOOK_data.iloc[i].name):
+    if All_ROE.empty == True:
+        All_ROE = BOOK_data
+    for index,row in All_ROE.iterrows():
+        if check_no_use_stock(index):
             continue
-        Temp_CPL = CPL_data.ix[BOOK_data.iloc[i].name]["本期綜合損益總額（稅後）"]
-        Temp_ROE = (Temp_CPL/Temp_Book) * 100
+        Temp_Book = int(BOOK_data.at[index,'權益總額'])
+        Temp_CPL = int(CPL_data.at[index,"本期綜合損益總額（稅後）"])
+        Temp_ROE = round((Temp_CPL/Temp_Book),4) * 100
         if Temp_ROE < 0:
             continue
-        print('get_ROE_range:' + str(BOOK_data.iloc[i].name) + '--' + str(Temp_CPL) + '/' +  str(Temp_Book) + '= ' + str(Temp_ROE))
+        print('get_ROE_range:' + str(index) + '--' + str(Temp_CPL) + '/' +  str(Temp_Book) + '= ' + str(Temp_ROE))
         if (Temp_ROE > ROE_start) and (Temp_ROE < ROE_end):
-            Temp_number = int(BOOK_data.iloc[i].name)
-            ROE_data.loc[(len(ROE_data)+1)] = {'公司代號':Temp_number,'ROE':Temp_ROE}
+            Temp_number = int(index)
+            ROE_data =ROE_data.append({'公司代號':Temp_number,'ROE':Temp_ROE},ignore_index=True)
     ROE_data['公司代號'] = ROE_data['公司代號'].astype('int')
     ROE_data.set_index('公司代號',inplace=True)
 
     print('get_ROE_rang: end')
     return ROE_data
 
+#取得股價篩選
+def get_price_range(time,high,low,data = pd.DataFrame()):
+    print('get_price_rang: start')
+    if high == low == 0:
+        return data
+    if high < low or high < 0 or low < 0:
+        print("price range number wrong!")
+        return data
+    price_data = pd.DataFrame(columns=['公司代號','price'])
+    price_time = time
+    All_price = data
+    if type(time) == str:
+        price_time = datetime.datetime.strptime(time,"%Y-%m-%d")
+    if price_time.month in [1,2,3]:
+        Use_price_time = datetime.datetime(price_time.year - 1,12,1)
+    else:
+        Use_price_time = datetime.datetime(price_time.year,tools.changeDateMonth(price_time,-3).month ,tools.check_monthDate(tools.changeDateMonth(price_time,-3).month,price_time.day))
+    if All_price.empty == True:
+        return pd.DataFrame()
+    for index,row in All_price.iterrows():
+        if check_no_use_stock(index):
+            continue
+        Temp_price = get_stock_price(index,Use_price_time,stock_data_kind.AdjClose)
+        if (Temp_price > low) and (Temp_price < high):
+            Temp_number = int(index)
+            price_data =price_data.append({'公司代號':Temp_number,'price':Temp_price},ignore_index=True)
+    price_data['公司代號'] = price_data['公司代號'].astype('int')
+    price_data.set_index('公司代號',inplace=True)
+
+    print('get_price_rang: end')
+    return price_data
+    
 
 #爬取歷史財報並存檔
 def financial_statement(year, season, type):#year = 年 season = 季 type = 財報種類

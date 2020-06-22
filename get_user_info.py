@@ -70,7 +70,10 @@ class data_user_info():#使用者資訊
                     data = data.drop(index=index)
     def buy_stock(self,number,amount):#買股票
         stock_price = get_stock_history.get_stock_price(number,self.now_day,get_stock_history.stock_data_kind.AdjClose)
-        if (stock_price * amount) > self.now_money:
+        if stock_price == None:
+            print(str(number) + ' no use stock')
+            return False
+        elif (stock_price * amount) > self.now_money:
             print('錢不夠：')
             return False
         else:
