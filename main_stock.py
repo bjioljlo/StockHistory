@@ -227,8 +227,9 @@ def button_backtest_click():#月營收回測開始紐
         PBR_start = float(mybacktest.input_PBR_start.toPlainText())
         ROE_end = float(mybacktest.input_ROE_end.toPlainText())
         ROE_start = float(mybacktest.input_ROE_start.toPlainText())
+        Pick_amount = int(mybacktest.input_StockAmount.toPlainText())
         backtest_stock.backtest_monthRP_Up(change_days,smoothAVG,upMonth,date_start,date_end,money_start,PER_start,PER_end,
-                                                volumeAVG,volumeDays,price_high,price_low,PBR_start,PBR_end,ROE_start,ROE_end)
+                                                volumeAVG,volumeDays,price_high,price_low,PBR_start,PBR_end,ROE_start,ROE_end,Pick_amount)
 def button_backtest_click2():#PER PBR 回測開始紐
     backtest_stock.set_check(mybacktest.check_monthRP_pick.isChecked(),
                                 mybacktest.check_PER_pick.isChecked(),

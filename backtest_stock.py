@@ -121,7 +121,7 @@ def backtest_PERandPBR(reset,Start_date,End_date,start_money,PER_start,PER_end,P
 
 def backtest_monthRP_Up(change,AvgMon,UpMon,Start_date,End_date,start_money,PER_start,PER_end,
                         VolumeAVG,VolumeAVG_days,price_high,price_low,PBR_start,PBR_end,
-                        ROE_start,ROE_end):
+                        ROE_start,ROE_end,pick_amount):
     Temp_change = 0#換股剩餘天數
     userInfo = get_user_info.data_user_info(start_money,Start_date,End_date)
     Temp_result_pick = pd.DataFrame(columns=['date','選股數量'])
@@ -159,7 +159,7 @@ def backtest_monthRP_Up(change,AvgMon,UpMon,Start_date,End_date,start_money,PER_
             Temp_result = tools.MixDataFrames(Temp_result0)
 
         #入場訊號篩選--------------------------------------
-        if Temp_change <= 0 and len(userInfo.handle_stock) <= 0:
+        if Temp_change <= 0 and len(userInfo.handle_stock) <= 0 and len(Temp_result) >= pick_amount:
             Temp_buy0 = {'result':Temp_result}
             if bool_check_volume_pick:
                 Temp_buy0['volume'] = get_stock_history.get_AVG_value(userInfo.now_day,VolumeAVG,VolumeAVG_days,Temp_result)
