@@ -47,7 +47,28 @@ def check_no_use_stock(number):
             return True
     return False
 
+def get_allstock_yiled(start):
+    fileName = filePath + '/' + fileName_stockInfo + '/' + 'Dividend_yield' + str(start.year) + '-' + str(start.month) + '-' + str(start.day)
 
+    if fileName in load_memery:
+        return load_memery[fileName]
+    if os.path.isfile(fileName + '.csv') == False:
+        url = 'https://www.twse.com.tw/exchangeReport/BWIBBU_d?response=csv&date=' + str(start.year)+str(start.month).zfill(2)+str(start.day).zfill(2)+ '&selectType=ALL'
+        #url = 'https://www.twse.com.tw/exchangeReport/BWIBBU?response=csv&date='+ str(start.year)+str(start.month).zfill(2)+str(start.day).zfill(2)+'&stockNo='+str(number)
+        response = requests.get(url)
+        save_stock_file(fileName,response)
+        # 偽停頓
+        time.sleep(5)
+
+    #m_yiled = pd.read_csv(fileName + '.csv', index_col='證券代號', parse_dates=['證券代號'])
+    m_yiled = pd.read_csv(fileName + '.csv')
+    mask = m_yiled.index >= start
+    result = m_yiled[mask]
+    result = result.dropna(axis = 0,how = 'any')
+    m_yiled = result
+    print(m_yiled)
+    load_memery[fileName] = m_yiled
+    return m_yiled
 def get_stock_price(number,date,kind):#取得某股票某天的ＡＤＪ價格
     global Holiday_trigger
     if check_no_use_stock(number) == True:
@@ -63,7 +84,6 @@ def get_stock_price(number,date,kind):#取得某股票某天的ＡＤＪ價格
         if type(date) != str:
             date = tools.DateTime2String(date)
         if datetime.datetime.strptime(date,"%Y-%m-%d").isoweekday() in [1,2,3,4,5]:
-            #stock_data = get_stock_history(number,date,True,False) #會重新爬取資料
             stock_data = get_stock_history(number,date,False,False) #只會重新抓硬碟資料
             result = stock_data[stock_data.index == date]
             if result.empty == True:
@@ -81,9 +101,6 @@ def get_stock_monthly_report(number,start):#爬某月某個股票月營收
     if get_stock_info.ts.codes.__contains__(number) == False:
         print("無此檔股票")
         return
-    #if os.path.isfile(filePath + '/' + fileName_monthRP + '/' + str(start.year)+'-'+str(start.month)+'monthly_report.csv') == False:
-    #    get_allstock_monthly_report(start)
-    #df = pd.read_csv(filePath + '/' + fileName_monthRP + '/' + str(start.year)+'-'+str(start.month)+'monthly_report.csv',index_col='公司代號', parse_dates=['公司代號'])
     df = get_allstock_monthly_report(start)
     return df.loc[[str(number)]]
 def get_allstock_monthly_report(start):#爬某月所有股票月營收
@@ -146,9 +163,6 @@ def get_stock_financial_statement(number,start):#爬某個股票的歷史財報
     if get_stock_info.ts.codes.__contains__(number) == False:
         print("無此檔股票")
         return
-    #if os.path.isfile(filePath + '/' + str(start.year())+"-season"+str(season)+"-"+type.value+".csv") == False:
-    #    financial_statement(start.year(),season,FS_type.cc)            
-    #stock = pd.read_csv(filePath + '/' + str(start.year())+"-season"+str(season)+"-"+type.value+".csv",index_col='公司代號', parse_dates=['公司代號'])
     stock = get_allstock_financial_statement(start,type)
     return stock.loc[int(number)]
 def get_stock_history(number,start,reGetInfo = False,UpdateInfo = True):#爬某個股票的歷史紀錄
@@ -427,7 +441,7 @@ def get_ROE_range(time,ROE_start,ROE_end,data = pd.DataFrame()):#time = 取得�
     return ROE_data
 
 #取得股價篩選
-def get_price_range(time,high,low,data = pd.DataFrame()):
+def get_price_range(time,high,low,data = pd.DataFrame()):#time = 取得資料的時間 high = 最高價 low = 最低價
     print('get_price_rang: start')
     if high == low == 0:
         return data

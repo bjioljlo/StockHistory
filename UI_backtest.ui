@@ -63,14 +63,14 @@
    <widget class="QPushButton" name="button_backtest">
     <property name="geometry">
      <rect>
-      <x>430</x>
+      <x>412</x>
       <y>490</y>
-      <width>113</width>
+      <width>131</width>
       <height>32</height>
      </rect>
     </property>
     <property name="text">
-     <string>開始回測</string>
+     <string>開始月營收回測</string>
     </property>
    </widget>
    <widget class="QLabel" name="label_3">
@@ -855,8 +855,8 @@
    <widget class="QPushButton" name="button_backtest_2">
     <property name="geometry">
      <rect>
-      <x>500</x>
-      <y>440</y>
+      <x>550</x>
+      <y>490</y>
       <width>151</width>
       <height>32</height>
      </rect>
@@ -908,6 +908,64 @@
     </property>
     <property name="placeholderText">
      <string/>
+    </property>
+   </widget>
+   <widget class="QPushButton" name="button_backtest_3">
+    <property name="geometry">
+     <rect>
+      <x>560</x>
+      <y>450</y>
+      <width>131</width>
+      <height>32</height>
+     </rect>
+    </property>
+    <property name="text">
+     <string>開始定期定額回測</string>
+    </property>
+   </widget>
+   <widget class="QTextEdit" name="input_stockNumber">
+    <property name="geometry">
+     <rect>
+      <x>500</x>
+      <y>40</y>
+      <width>141</width>
+      <height>21</height>
+     </rect>
+    </property>
+    <property name="font">
+     <font>
+      <pointsize>10</pointsize>
+      <weight>75</weight>
+      <bold>true</bold>
+     </font>
+    </property>
+    <property name="verticalScrollBarPolicy">
+     <enum>Qt::ScrollBarAlwaysOff</enum>
+    </property>
+    <property name="horizontalScrollBarPolicy">
+     <enum>Qt::ScrollBarAlwaysOff</enum>
+    </property>
+    <property name="documentTitle">
+     <string/>
+    </property>
+    <property name="placeholderText">
+     <string/>
+    </property>
+   </widget>
+   <widget class="QLabel" name="label_25">
+    <property name="geometry">
+     <rect>
+      <x>510</x>
+      <y>20</y>
+      <width>111</width>
+      <height>16</height>
+     </rect>
+    </property>
+    <property name="text">
+     <string>購買固定股票號碼</string>
+    </property>
+    <property name="alignment">
+     <set>Qt::AlignCenter</set>
     </property>
    </widget>
   </widget>

@@ -62,3 +62,7 @@ def MixDataFrames(DataFrames = {},index = '公司代號'):#合併報表
         else:
             result_data = pd.merge(result_data,value,on=index,how='inner')
     return result_data
+
+        
+
+    

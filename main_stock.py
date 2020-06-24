@@ -53,6 +53,8 @@ def check_SMA_isCheck(m_history,stockInfo):
                 df.draw_SMA(m_history,int(i.toPlainText()),stockInfo)
 
 def button_getStockHistory():
+    fjfj = get_stock_history.get_allstock_yiled(tools.QtDate2DateTime(myshow.date_startDate.date()))
+    return
     #存更新日期
     #get_stock_info.Update_date = str(datetime.datetime(2020,5,21))[0:10]
     #get_stock_info.Save_Update_date()
@@ -248,7 +250,12 @@ def button_backtest_click2():#PER PBR 回測開始紐
     PBR_start = float(mybacktest.input_PBR_start.toPlainText())
     Pick_amount = int(mybacktest.input_StockAmount.toPlainText())
     backtest_stock.backtest_PERandPBR(change_days,date_start,date_end,money_start,PER_start,PER_end,PBR_start,PBR_end,Pick_amount)
-
+def button_backtest_click3():#定期定額
+    money_start = int(mybacktest.input_startMoney.toPlainText())
+    date_start = tools.QtDate2DateTime(mybacktest.date_start.date())
+    date_end = tools.QtDate2DateTime(mybacktest.date_end.date())
+    buy_number = str(mybacktest.input_stockNumber.toPlainText())
+    backtest_stock.backtest_Regular_quota(5,money_start,buy_number,date_start,date_end)
 #取得月營收的資料
 def get_monthRP(date_end,date_start,Number):#end = 後面時間 start = 前面時間 Number = 股票號碼
     date_end_str = str(date_end.year()) + '-' + str(date_end.month()) + '-' + str(date_end.day())
@@ -348,29 +355,6 @@ def get_volume(volumeNum,date,data = pd.DataFrame(),getMax = False):
         print("get_volume:輸入的data是空的")
     return data
 
-#取得股價篩選
-# def get_price_range(high,low,date,data = pd.DataFrame()):
-#     if high == 0 and low == 0:
-#         return data
-#     if high < low:
-#         return data
-#     if data.empty == False:
-#         for index,row in data.iterrows():
-#             Temp_price = get_stock_history.get_stock_price(str(index),tools.DateTime2String(date),
-#                                                         get_stock_history.stock_data_kind.AdjClose)
-#             while(Temp_price == None):
-#                 if get_stock_history.check_no_use_stock(index):
-#                     break
-#                 date = date + datetime.timedelta(days=-1)#加一天
-#                 Temp_price = get_stock_history.get_stock_price(str(index),tools.DateTime2String(date),get_stock_history.stock_data_kind.Volume)
-#             if Temp_price != None and Temp_price >= low and Temp_price <= high:
-#                 print("OK")
-#             else:
-#                 data = data.drop(index = index)
-#     else:
-#         print("get_price_range:輸入的data是空的")
-#     return data
-
 def set_treeView2(model,inputdataFram):
     i = 0
     for index,row in inputdataFram.iterrows():
@@ -455,6 +439,7 @@ def Init_pickWindow():#初始化挑股票畫面
 def Init_backtestWindow():#初始化回測畫面
     mybacktest.button_backtest.clicked.connect(button_backtest_click)#設定button功能
     mybacktest.button_backtest_2.clicked.connect(button_backtest_click2)
+    mybacktest.button_backtest_3.clicked.connect(button_backtest_click3)
     date = QtCore.QDate(datetime.datetime.today().year,datetime.datetime.today().month,datetime.datetime.today().day) 
 
     mybacktest.date_end.setMaximumDate(date)
@@ -482,6 +467,8 @@ def Init_backtestWindow():#初始化回測畫面
     mybacktest.input_ROE_start.setPlainText('0')
     mybacktest.input_ROE_end.setPlainText('0')
     mybacktest.input_StockAmount.setPlainText('0')
+    mybacktest.input_stockNumber.setPlainText('2330')
+    
     
 
 
