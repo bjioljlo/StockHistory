@@ -18,7 +18,7 @@ import backtest_stock
 main_titalList = ["股票號碼","股票名稱"]
 pick_titalList = ["股票號碼","股票名稱","每股參考淨值","基本每股盈餘（元）",
                 "毛利率(%)","營業利益率(%)","資產總額","負債總額","股本",
-                "權益總額","本期綜合損益總額（稅後）","PBR","PER","ROE"]
+                "權益總額","本期綜合損益總額（稅後）","PBR","PER","ROE","殖利率"]
 
 #主畫面
 class MyWindow(QtWidgets.QMainWindow,Ui_MainWindow):
@@ -53,8 +53,6 @@ def check_SMA_isCheck(m_history,stockInfo):
                 df.draw_SMA(m_history,int(i.toPlainText()),stockInfo)
 
 def button_getStockHistory():
-    fjfj = get_stock_history.get_allstock_yiled(tools.QtDate2DateTime(myshow.date_startDate.date()))
-    return
     #存更新日期
     #get_stock_info.Update_date = str(datetime.datetime(2020,5,21))[0:10]
     #get_stock_info.Save_Update_date()
@@ -161,6 +159,7 @@ def button_monthRP_Up_click():#月營收逐步升高篩選
     result_data = pd.DataFrame()
     BOOK_data = pd.DataFrame()
     PER_data = pd.DataFrame()
+    yield_data = pd.DataFrame()
 
     FS_data = get_financial_statement(date)
     result_data = get_stock_history.get_monthRP_up(tools.changeDateMonth(date,0),
@@ -175,6 +174,9 @@ def button_monthRP_Up_click():#月營收逐步升高篩選
     ROE_data = get_stock_history.get_ROE_range(tools.changeDateMonth(date,0),
                                                 float(mypick.input_ROE_low.toPlainText()),
                                                 float(mypick.input_ROE_high.toPlainText()))
+    yield_data = get_stock_history.get_yield_range(tools.changeDateMonth(date,0),
+                                                float(mypick.input_yiled_high.toPlainText()),
+                                                float(mypick.input_yiled_low.toPlainText()))
     pick_data = FS_data
     if result_data.empty == False:            
         pick_data = pd.merge(pick_data,result_data,left_index=True,right_index=True,how='left')
@@ -190,6 +192,10 @@ def button_monthRP_Up_click():#月營收逐步升高篩選
     
     if ROE_data.empty == False:
         pick_data = pd.merge(pick_data,ROE_data,left_index=True,right_index=True,how='left')
+        pick_data = pick_data.dropna(axis=0,how='any')
+    
+    if yield_data.empty == False:
+        pick_data = pd.merge(pick_data,yield_data,left_index=True,right_index=True,how='left')
         pick_data = pick_data.dropna(axis=0,how='any')
 
     pick_data = get_stock_history.get_price_range(date,int(mypick.input_price_high.toPlainText()),int(mypick.input_price_low.toPlainText()),pick_data)
@@ -373,6 +379,10 @@ def set_treeView2(model,inputdataFram):
             array_Num.append(float(row["ROE"]))
         except:
             array_Num.append(float(0))
+        try:
+            array_Num.append(float(row["殖利率"]))
+        except:
+            array_Num.append(float(0))
             
         
         add_stock_List(model,index,row['公司名稱'],i,array_Num)
@@ -436,6 +446,8 @@ def Init_pickWindow():#初始化挑股票畫面
     mypick.input_PER_low.setPlainText("0")
     mypick.input_ROE_high.setPlainText("0")
     mypick.input_ROE_low.setPlainText("0")
+    mypick.input_yiled_high.setPlainText("0")
+    mypick.input_yiled_low.setPlainText("0")
 def Init_backtestWindow():#初始化回測畫面
     mybacktest.button_backtest.clicked.connect(button_backtest_click)#設定button功能
     mybacktest.button_backtest_2.clicked.connect(button_backtest_click2)
@@ -468,6 +480,8 @@ def Init_backtestWindow():#初始化回測畫面
     mybacktest.input_ROE_end.setPlainText('0')
     mybacktest.input_StockAmount.setPlainText('0')
     mybacktest.input_stockNumber.setPlainText('2330')
+    mybacktest.input_yield_start.setPlainText('0')
+    mybacktest.input_yield_end.setPlainText('0')
     
     
 

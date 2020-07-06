@@ -11,6 +11,7 @@ import tools
 
 fileName_monthRP = "monthRP"
 fileName_stockInfo = "stockInfo"
+fileName_yield = "yieldInfo"
 
 no_use_stock = [1603,5259,1262,2475,3519,
                 3579,9157,3083,4576,6706,
@@ -47,28 +48,9 @@ def check_no_use_stock(number):
             return True
     return False
 
-def get_allstock_yiled(start):
-    fileName = filePath + '/' + fileName_stockInfo + '/' + 'Dividend_yield' + str(start.year) + '-' + str(start.month) + '-' + str(start.day)
-
-    if fileName in load_memery:
-        return load_memery[fileName]
-    if os.path.isfile(fileName + '.csv') == False:
-        url = 'https://www.twse.com.tw/exchangeReport/BWIBBU_d?response=csv&date=' + str(start.year)+str(start.month).zfill(2)+str(start.day).zfill(2)+ '&selectType=ALL'
-        #url = 'https://www.twse.com.tw/exchangeReport/BWIBBU?response=csv&date='+ str(start.year)+str(start.month).zfill(2)+str(start.day).zfill(2)+'&stockNo='+str(number)
-        response = requests.get(url)
-        save_stock_file(fileName,response)
-        # 偽停頓
-        time.sleep(5)
-
-    #m_yiled = pd.read_csv(fileName + '.csv', index_col='證券代號', parse_dates=['證券代號'])
-    m_yiled = pd.read_csv(fileName + '.csv')
-    mask = m_yiled.index >= start
-    result = m_yiled[mask]
-    result = result.dropna(axis = 0,how = 'any')
-    m_yiled = result
-    print(m_yiled)
-    load_memery[fileName] = m_yiled
-    return m_yiled
+def get_stock_yield(number,date):#取得某股票某天的殖利率
+    data = get_allstock_yield(date)
+    return data.at[number,'殖利率(%)']
 def get_stock_price(number,date,kind):#取得某股票某天的ＡＤＪ價格
     global Holiday_trigger
     if check_no_use_stock(number) == True:
@@ -157,6 +139,21 @@ def get_allstock_financial_statement(start,type):#爬某季所有股票歷史財
     stock = pd.read_csv(fileName,index_col='公司代號', parse_dates=['公司代號'])
     load_memery[fileName] = stock
     return stock
+def get_allstock_yield(start):#爬某天所有股票殖利率
+    fileName = filePath + '/' + fileName_yield + '/' + str(start.year) + '-' + str(start.month) + '-' + str(start.day) + '_Dividend_yield' 
+
+    if fileName in load_memery:
+        return load_memery[fileName]
+    if os.path.isfile(fileName + '.csv') == False:
+        url = 'https://www.twse.com.tw/exchangeReport/BWIBBU_d?response=csv&date=' + str(start.year)+str(start.month).zfill(2)+str(start.day).zfill(2)+ '&selectType=ALL'
+        response = requests.get(url)
+        save_stock_file(fileName,response,1,2)
+        # 偽停頓
+        time.sleep(5)
+
+    m_yield = pd.read_csv(fileName + '.csv',index_col='證券代號',parse_dates=['證券代號'])
+    load_memery[fileName] = m_yield
+    return m_yield
 def get_stock_financial_statement(number,start):#爬某個股票的歷史財報
     #season = int(((start.month() - 1)/3)+1)
     type = FS_type.PLA
@@ -235,9 +232,16 @@ def get_stock_history(number,start,reGetInfo = False,UpdateInfo = True):#爬某�
     result = m_history[mask]
     result = result.dropna(axis = 0,how = 'any')
     return result
-def save_stock_file(fileName,stockData):#存下歷史資料
+def save_stock_file(fileName,stockData,start_index = 0,end_index = 0):#存下歷史資料
     with open(fileName + '.csv', 'w') as f:
-        f.writelines(stockData.text)
+        if start_index == end_index == 0:
+            f.writelines(stockData.text)
+        else:
+            stringText = stockData.text
+            stringText = stringText.replace(",\r\n","\r\n")
+            pos = stringText.index('\n')
+            pos2 = stringText.rindex('\r\n""\r\n')
+            f.writelines(stringText[pos + 1:pos2])
 def load_stock_file(fileName):#讀取歷史資料
     if fileName in load_memery:
         return load_memery[fileName]
@@ -474,6 +478,34 @@ def get_price_range(time,high,low,data = pd.DataFrame()):#time = 取得資料的
     print('get_price_rang: end')
     return price_data
     
+#取得殖利率篩選
+def get_yield_range(time,high,low,data = pd.DataFrame()):#time = 取得資料的時間 high = 殖利率最高值 low = 殖利率最低值
+    print('get_yield_range: start')
+    if high == low == 0:
+        return data
+    if high < 0 or low < 0 or low > high:
+        print("yield range number wrong!")
+        return data
+    yield_data_result = pd.DataFrame(columns=['公司代號','殖利率'])
+    yield_date = time
+    All_yield = data
+    if type(time) == str:
+        yield_date = datetime.datetime.strptime(time,"%Y-%m-%d")
+    yield_data = get_allstock_yield(yield_date)
+    if All_yield.empty == True:
+        All_yield = yield_data
+    for index,row in All_yield.iterrows():
+        Temp_yield = yield_data.at[index,'殖利率(%)']
+        if Temp_yield < 0 or Temp_yield == None:
+            continue
+        if (Temp_yield <= high) and (Temp_yield >= low):
+            Temp_number = int(index)
+            yield_data_result = yield_data_result.append({'公司代號':Temp_number,'殖利率':Temp_yield},ignore_index=True)
+    yield_data_result['公司代號'] = yield_data_result['公司代號'].astype('int')
+    yield_data_result.set_index('公司代號',inplace=True)    
+    
+    print('get_yield_range: end')
+    return yield_data_result
 
 #爬取歷史財報並存檔
 def financial_statement(year, season, type):#year = 年 season = 季 type = 財報種類
