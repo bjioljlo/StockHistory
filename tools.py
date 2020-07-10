@@ -3,7 +3,7 @@ import pandas as pd
 
 def changeDateMonth(date,change_month):
     temp_month = date.month + change_month
-    print("changeDateMonth:" + str(temp_month))
+    print("changeDateMonth:" + str(date.month) + " to " + str(temp_month))
     if(temp_month >= 13):
         year = temp_month//12
         month = temp_month%12

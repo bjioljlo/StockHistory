@@ -58,6 +58,9 @@ class data_user_info():#使用者資訊
         Temp_money = 0
         for key,value in self.handle_stock.items():
             Temp = get_stock_history.get_stock_price(key,self.now_day,get_stock_history.stock_data_kind.AdjClose)
+            if Temp == None:
+                print('no use stock')
+                return 0
             Temp_money = Temp_money + (Temp * value.amount)
         return Temp_money
     def sell_all_stock(self):#賣出所有股票

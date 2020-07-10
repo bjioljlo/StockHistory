@@ -130,12 +130,22 @@ def get_allstock_monthly_report(start):#爬某月所有股票月營收
     load_memery[fileName] = df
     return df      
 def get_allstock_financial_statement(start,type):#爬某季所有股票歷史財報
-    season = int(((start.month - 1)/3)+1)
-    fileName = filePath + '/' + str(start.year)+"-season"+str(season)+"-"+type.value+".csv"
-    if fileName in load_memery:
-        return load_memery[fileName]
-    if os.path.isfile(fileName) == False:
-        financial_statement(start.year,season,type)
+    for i in range(12):
+        try:
+            season = int(((start.month - 1)/3)+1)
+            fileName = filePath + '/' + str(start.year)+"-season"+str(season)+"-"+type.value+".csv"
+            if fileName in load_memery:
+                return load_memery[fileName]
+            if os.path.isfile(fileName) == False:
+                financial_statement(start.year,season,type)
+            print(str(date.month)+ "月財務報告ＯＫ")
+            break
+        except:
+            print(str(start.month)+ "月財務報告未出跳下一個月")
+            start = tools.changeDateMonth(start,-1)
+            continue
+    
+        
     stock = pd.read_csv(fileName,index_col='公司代號', parse_dates=['公司代號'])
     load_memery[fileName] = stock
     return stock
@@ -152,6 +162,8 @@ def get_allstock_yield(start):#爬某天所有股票殖利率
         time.sleep(5)
 
     m_yield = pd.read_csv(fileName + '.csv',index_col='證券代號',parse_dates=['證券代號'])
+    m_yield[["本益比"]] = m_yield[["本益比"]].astype(float)
+    m_yield[["股價淨值比"]] = m_yield[["股價淨值比"]].astype(float)
     load_memery[fileName] = m_yield
     return m_yield
 def get_stock_financial_statement(number,start):#爬某個股票的歷史財報
@@ -239,6 +251,9 @@ def save_stock_file(fileName,stockData,start_index = 0,end_index = 0):#存下歷
         else:
             stringText = stockData.text
             stringText = stringText.replace(",\r\n","\r\n")
+            stringText = stringText.replace("-","0")
+            for i in range(10):
+                stringText = stringText.replace(str(i) + ",",str(i))
             pos = stringText.index('\n')
             pos2 = stringText.rindex('\r\n""\r\n')
             f.writelines(stringText[pos + 1:pos2])
@@ -296,23 +311,14 @@ def get_PER_range(time,PER_start,PER_end,data = pd.DataFrame()):#time = 取得�
     All_PER = data
     if type(time) == str:
         EPS_date = datetime.datetime.strptime(time,"%Y-%m-%d")
-    if EPS_date.month in [1,2,3]:
-        Use_EPS_date = datetime.datetime(EPS_date.year - 1,12,1)
-    else:
-        Use_EPS_date = datetime.datetime(EPS_date.year,tools.changeDateMonth(EPS_date,-3).month ,tools.check_monthDate(tools.changeDateMonth(EPS_date,-3).month,EPS_date.day))
-    EPS_data = get_allstock_financial_statement(Use_EPS_date,FS_type.CPL)
+    EPS_data = get_allstock_yield(EPS_date)
     if All_PER.empty == True:
         All_PER = EPS_data
     for index,row in All_PER.iterrows():
-        Temp_stock_price = None
-        Temp_stock_price = get_stock_price(index,time,stock_data_kind.AdjClose)
-        Temp_stock_EPS = EPS_data.at[index,'基本每股盈餘（元）']
-        if Temp_stock_price == None:
-            continue
-        Temp_PER = round((Temp_stock_price/Temp_stock_EPS),4)
+        Temp_PER = EPS_data.at[index,'本益比']
         if Temp_PER < 0:
             continue
-        print('get_PER_range:' + str(index) + '--' + str(Temp_stock_price) + '/' +  str(Temp_stock_EPS) + '= ' + str(Temp_PER))
+        print('get_PER_range:' + str(index) + '= ' + str(Temp_PER))
         if (Temp_PER > PER_start) and (Temp_PER < PER_end):
             Temp_number = int(index)
             PER_data = PER_data.append({'公司代號':Temp_number,'PER':Temp_PER},ignore_index=True)
@@ -377,23 +383,14 @@ def get_PBR_range(time,PBR_start,PBR_end,data = pd.DataFrame()):#time = 取得�
     All_PBR = data
     if type(time) == str:
         PBR_date = datetime.datetime.strptime(time,"%Y-%m-%d")
-    if PBR_date.month in [1,2,3]:
-        Use_PBR_date = datetime.datetime(PBR_date.year - 1,12,1)
-    else:
-        Use_PBR_date = datetime.datetime(PBR_date.year,tools.changeDateMonth(PBR_date,-3).month,tools.check_monthDate(tools.changeDateMonth(PBR_date,-3).month,PBR_date.day))
-    Book_data = get_allstock_financial_statement(Use_PBR_date,FS_type.BS)
+    Book_data = get_allstock_yield(PBR_date)
     if All_PBR.empty == True:
         All_PBR = Book_data
     for index,row in All_PBR.iterrows():
-        Temp_price = None
-        Temp_price = get_stock_price(index,PBR_date,stock_data_kind.AdjClose)
-        Temp_Book = Book_data.at[index,'每股參考淨值']
-        if Temp_price == None:
-            continue
-        Temp_PBR = round((Temp_price/Temp_Book),4)
+        Temp_PBR = Book_data.at[index,'股價淨值比']
         if Temp_PBR < 0:
             continue
-        print('get_PBR_range:' + str(index) + '--' + str(Temp_price) + '/' +  str(Temp_Book) + '= ' + str(Temp_PBR))
+        print('get_PBR_range:' + str(index) + '= ' + str(Temp_PBR))
         if (Temp_PBR > PBR_start) and (Temp_PBR < PBR_end):
             Temp_number = int(index)
             PBR_data = PBR_data.append({'公司代號':Temp_number,'PBR':Temp_PBR},ignore_index=True)
@@ -462,7 +459,7 @@ def get_price_range(time,high,low,data = pd.DataFrame()):#time = 取得資料的
     else:
         Use_price_time = datetime.datetime(price_time.year,tools.changeDateMonth(price_time,-3).month ,tools.check_monthDate(tools.changeDateMonth(price_time,-3).month,price_time.day))
     if All_price.empty == True:
-        return pd.DataFrame()
+        return All_price
     for index,row in All_price.iterrows():
         if check_no_use_stock(index):
             continue
