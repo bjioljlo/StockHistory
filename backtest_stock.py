@@ -176,8 +176,8 @@ def backtest_monthRP_Up(mainParament):
                 Temp_buy0['volume'] = get_stock_history.get_AVG_value(userInfo.now_day,mainParament.volumeAVG,mainParament.volumeDays,Temp_result)
                 Temp_buy0['volume'] = Temp_buy0['volume'].sort_values(by='volume', ascending=False)
             Temp_buy = tools.MixDataFrames(Temp_buy0)
-            if Temp_buy0['price'].empty == False:
-                Temp_buy = Temp_buy.sort_values(by='price', ascending=False)
+            #if Temp_buy0['price'].empty == False:
+            #    Temp_buy = Temp_buy.sort_values(by='price', ascending=False)
             if Temp_buy0['volume'].empty == False:
                 Temp_buy = Temp_buy.sort_values(by='volume', ascending=False)
             userInfo.buy_all_stock(Temp_buy)

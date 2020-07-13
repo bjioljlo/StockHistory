@@ -48,6 +48,20 @@ def check_no_use_stock(number):
             return True
     return False
 
+def get_stock_MA(number,date,MA_day):#取得某股票某天的均線
+    Temp_MA = 0
+    Temp_date = date
+    Temp_MA_day = MA_day
+    while(Temp_MA_day <= 0):
+        Temp_date = Temp_date + datetime.timedelta(days=-1)
+        temp = get_stock_price(number,Temp_date,stock_data_kind.AdjClose)
+        if temp == None:
+            continue
+        Temp_MA = Temp_MA + get_stock_price(number,Temp_date,stock_data_kind.AdjClose)
+        Temp_MA_day = Temp_MA_day - 1
+    Temp_MA = round(Temp_MA/MA_day,4)
+    return Temp_MA
+
 def get_stock_yield(number,date):#取得某股票某天的殖利率
     data = get_allstock_yield(date)
     return data.at[number,'殖利率(%)']
