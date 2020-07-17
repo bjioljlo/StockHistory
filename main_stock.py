@@ -43,6 +43,7 @@ class BackTestParameter():
         self.Dividend_yield_high = float(mybacktest.input_yield_start.toPlainText())
         self.Dividend_yield_low = float(mybacktest.input_yield_end.toPlainText())
         self.buy_day = int(mybacktest.input_buyDay.toPlainText())
+        self.Record_high_day = int(mybacktest.input_RecordHigh.toPlainText())
 
 #主畫面
 class MyWindow(QtWidgets.QMainWindow,Ui_MainWindow):
@@ -224,9 +225,21 @@ def button_monthRP_Up_click():#月營收逐步升高篩選
         pick_data = pd.merge(pick_data,yield_data,left_index=True,right_index=True,how='left')
         pick_data = pick_data.dropna(axis=0,how='any')
 
-    price_data = get_stock_history.get_price_range(date,int(mypick.input_price_high.toPlainText()),int(mypick.input_price_low.toPlainText()),pick_data)
-    pick_data = tools.MixDataFrames({'pick':pick_data,'price':price_data})
-    pick_data = pick_data.dropna(axis=0,how='any')
+    price_data = get_stock_history.get_price_range(date,
+                                                int(mypick.input_price_high.toPlainText()),
+                                                int(mypick.input_price_low.toPlainText()),
+                                                pick_data)
+    if price_data.empty == False:
+        pick_data = tools.MixDataFrames({'pick':pick_data,'price':price_data})
+        pick_data = pick_data.dropna(axis=0,how='any')
+
+    record_data = get_stock_history.get_RecordHigh_range(date,
+                                                        int(mypick.input_flash_Day.toPlainText()),
+                                                        int(mypick.input_record_Day.toPlainText()),
+                                                        pick_data)
+    if record_data.empty == False:
+        pick_data = tools.MixDataFrames({'pick':pick_data,'recordHigh':record_data})
+        pick_data = pick_data.dropna(axis=0,how='any')
 
     pick_data = get_volume(int(mypick.input_volum.toPlainText()),tools.changeDateMonth(date,0),pick_data)
     pick_data = pick_data.dropna(axis=0,how='any')
@@ -258,6 +271,16 @@ def button_backtest_click2():#PER PBR 回測開始紐
     backtest_stock.backtest_PERandPBR(BackTestParameter())
 def button_backtest_click3():#定期定額
     backtest_stock.backtest_Regular_quota(BackTestParameter())
+def button_backtest_click4():#創新高
+    backtest_stock.set_check(mybacktest.check_monthRP_pick.isChecked(),
+                                mybacktest.check_PER_pick.isChecked(),
+                                mybacktest.check_volume_pick.isChecked(),
+                                mybacktest.check_pickOneStock.isChecked(),
+                                mybacktest.check_price_pick.isChecked(),
+                                mybacktest.check_PBR_pick.isChecked(),
+                                mybacktest.check_ROE_pick.isChecked())
+    backtest_stock.backtest_Record_high(BackTestParameter())
+
 #取得月營收的資料
 def get_monthRP(date_end,date_start,Number):#end = 後面時間 start = 前面時間 Number = 股票號碼
     date_end_str = str(date_end.year()) + '-' + str(date_end.month()) + '-' + str(date_end.day())
@@ -444,10 +467,13 @@ def Init_pickWindow():#初始化挑股票畫面
     mypick.input_ROE_low.setPlainText("0")
     mypick.input_yiled_high.setPlainText("0")
     mypick.input_yiled_low.setPlainText("0")
+    mypick.input_flash_Day.setPlainText("0")
+    mypick.input_record_Day.setPlainText("0")
 def Init_backtestWindow():#初始化回測畫面
     mybacktest.button_backtest.clicked.connect(button_backtest_click)#設定button功能
     mybacktest.button_backtest_2.clicked.connect(button_backtest_click2)
     mybacktest.button_backtest_3.clicked.connect(button_backtest_click3)
+    mybacktest.button_backtest_4.clicked.connect(button_backtest_click4)
     date = QtCore.QDate(datetime.datetime.today().year,datetime.datetime.today().month,datetime.datetime.today().day) 
 
     mybacktest.date_end.setMaximumDate(date)
@@ -479,6 +505,7 @@ def Init_backtestWindow():#初始化回測畫面
     mybacktest.input_yield_start.setPlainText('0')
     mybacktest.input_yield_end.setPlainText('0')
     mybacktest.input_buyDay.setPlainText('15')
+    mybacktest.input_RecordHigh.setPlainText('60')
     
     
 

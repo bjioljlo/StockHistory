@@ -257,3 +257,100 @@ def backtest_Regular_quota(mainParament):
     userInfo.Temp_result_draw.to_csv('backtestdata.csv')
     userInfo.Temp_trade_info.to_csv('backtesttrade.csv')
     Temp_alldata.to_csv('backtestAll.csv')
+#創新高
+def backtest_Record_high(mainParament):
+    Temp_reset = 0#休息日剩餘天數
+    userInfo = get_user_info.data_user_info(mainParament.money_start,mainParament.date_start,mainParament.date_end)
+    Temp_result_pick = pd.DataFrame(columns=['date','選股數量'])
+    while userInfo.now_day <= userInfo.end_day:
+        #週末直接跳過
+        if userInfo.now_day.isoweekday() in [6,7]:
+            print(str(userInfo.now_day) + 'is 星期' + str(userInfo.now_day.isoweekday()))
+            if userInfo.add_one_day() == False:#加一天
+                break
+            continue
+        #先看看台積有沒有資料，如果沒有表示這天是非週末假日跳過 
+        if get_stock_history.get_stock_price(2330,userInfo.now_day,get_stock_history.stock_data_kind.AdjClose) == None:
+            print(str(userInfo.now_day) + "這天沒開市")
+            if userInfo.add_one_day() == False:#加一天
+                break
+            continue
+        #休息日直接跳過
+        if Temp_reset > 0 and len(userInfo.handle_stock) == 0:
+            print(str(userInfo.now_day) + ' is reset time:第' + str(Temp_reset) + '天')
+            if userInfo.add_one_day() == False:#加一天
+                break
+            Temp_reset = Temp_reset - 1
+            continue
+        #出場訊號篩選--------------------------------------
+        if len(userInfo.handle_stock) > 0:
+            Temp_data = userInfo.handle_stock
+            for key,value in list(Temp_data.items()):
+                if get_stock_history.get_stock_price(key,userInfo.now_day,get_stock_history.stock_data_kind.AdjClose) < get_stock_history.get_stock_MA(key,userInfo.now_day,20):
+                    userInfo.sell_stock(key,value.amount)
+        #開始篩選--------------------------------------
+        Temp_result = pd.DataFrame()
+        Temp_result0 = {}
+        if Temp_reset <= 0:
+            if bool_check_ROE_pick == True:
+                Temp_result0['ROE'] = get_stock_history.get_ROE_range(userInfo.now_day,mainParament.ROE_start,mainParament.ROE_end)
+            if bool_check_ROE_pick == True:
+                Temp_result0['ROE_last_seson'] = get_stock_history.get_ROE_range(userInfo.now_day - datetime.timedelta(weeks = 4),1,10000)
+            Temp_result = tools.MixDataFrames(Temp_result0)
+            
+        #入場訊號篩選--------------------------------------
+        if Temp_reset <= 0 and len(Temp_result) > 0:
+            Temp_buy0 = {'result':Temp_result}
+            if bool_check_PBR_pick:
+                Temp_buy0['PBR'] = get_stock_history.get_PBR_range(userInfo.now_day,mainParament.PBR_start,mainParament.PBR_end)
+            if bool_check_price_pick:
+                Temp_buy0['price'] = get_stock_history.get_price_range(userInfo.now_day,mainParament.price_high,mainParament.price_low,Temp_result)
+            if bool_check_volume_pick:
+                Temp_buy0['volume'] = get_stock_history.get_AVG_value(userInfo.now_day,mainParament.volumeAVG,mainParament.volumeDays,Temp_result)
+            
+            Temp_buy0['point'] = pd.DataFrame(columns=['公司代號','point'])
+            for index,row in Temp_result.iterrows():
+                try:
+                    temp = Temp_buy0['PBR'].at[index,'PBR']
+                except:
+                    continue
+                if get_stock_history.check_no_use_stock(index):
+                    continue
+                Temp_point = (row['ROE_x'] / row['ROE_y']) / Temp_buy0['PBR'].at[index,'PBR']
+                Temp_buy0['point'] = Temp_buy0['point'].append({'公司代號':index,'point':Temp_point},ignore_index=True)
+            Temp_buy0['point'] = Temp_buy0['point'].astype({'公司代號':'int','point':'float'})
+            Temp_buy0['point'] = Temp_buy0['point'].set_index('公司代號')
+            Temp_buy = tools.MixDataFrames(Temp_buy0)
+
+            Temp_buy1 = {'result':Temp_buy}
+            Temp_buy1['high'] = get_stock_history.get_RecordHigh_range(userInfo.now_day,mainParament.change_days,mainParament.Record_high_day,Temp_buy)
+            Temp_buy = tools.MixDataFrames(Temp_buy1)
+
+            if Temp_buy.empty == False:
+                Temp_buy = Temp_buy.sort_values(by='point', ascending=False)
+                Temp_buy = Temp_buy.head(3)
+                userInfo.buy_all_stock(Temp_buy)
+        #更新資訊--------------------------------------
+        if Temp_reset <= 0:
+            Temp_reset = mainParament.change_days
+        userInfo.Record_userInfo()
+        userInfo.Recod_tradeInfo()
+        Temp_result_pick = Temp_result_pick.append({'date':userInfo.now_day,
+                                                '選股數量':len(Temp_result)},ignore_index = True)
+        #加一天----------------------------
+        if userInfo.add_one_day() == False:
+            break
+        else:
+            Temp_reset = Temp_reset - 1
+
+    #最後總結算----------------------------
+    Temp_result_pick.set_index('date',inplace=True)
+    Temp_alldata = tools.MixDataFrames({'draw':userInfo.Temp_result_draw,'pick':Temp_result_pick},'date')
+    draw_figur.draw_backtest(userInfo.Temp_result_draw)
+    Temp_alldata = tools.MixDataFrames({'all':Temp_alldata,'userinfo':userInfo.Temp_result_All},'date')
+    
+    userInfo.Temp_result_draw.to_csv('backtestdata.csv')
+    userInfo.Temp_trade_info.to_csv('backtesttrade.csv')
+    Temp_alldata.to_csv('backtestAll.csv')
+
+                

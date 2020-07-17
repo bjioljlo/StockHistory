@@ -19,7 +19,7 @@ no_use_stock = [1603,5259,1262,2475,3519,
                 6491,6592,6672,6715,6698,
                 2025,5546,6598,4148,4552,
                 8488,1341,6671,8499,2243,
-                1902]
+                1902,2233]
 
 Holiday_trigger = False
 
@@ -48,11 +48,30 @@ def check_no_use_stock(number):
             return True
     return False
 
+def get_stock_RecordHight(number,date,flashDay,recordDays):#取得number在flashDay天內天是否在recordDays內創新高
+    while (flashDay > 0):
+        if check_no_use_stock(number) == True:
+            print('get_stock_price: ' + str(number) + ' in no use')
+            return False
+        Now_day = date
+        Now_price = get_stock_price(number,Now_day,stock_data_kind.AdjClose)
+        while (recordDays > 0):
+            Temp_price = get_stock_price(number,Now_day,stock_data_kind.AdjClose)
+            if Temp_price == None:
+                Now_day = Now_day - datetime.timedelta(days = 1)
+                continue
+            if Temp_price > Now_price:
+                return False
+            Now_day = Now_day - datetime.timedelta(days = 1)
+            recordDays = recordDays - 1
+        date = date - datetime.timedelta(days = 1)
+        flashDay = flashDay - 1
+    return True
 def get_stock_MA(number,date,MA_day):#取得某股票某天的均線
     Temp_MA = 0
     Temp_date = date
     Temp_MA_day = MA_day
-    while(Temp_MA_day <= 0):
+    while(Temp_MA_day > 0):
         Temp_date = Temp_date + datetime.timedelta(days=-1)
         temp = get_stock_price(number,Temp_date,stock_data_kind.AdjClose)
         if temp == None:
@@ -61,7 +80,6 @@ def get_stock_MA(number,date,MA_day):#取得某股票某天的均線
         Temp_MA_day = Temp_MA_day - 1
     Temp_MA = round(Temp_MA/MA_day,4)
     return Temp_MA
-
 def get_stock_yield(number,date):#取得某股票某天的殖利率
     data = get_allstock_yield(date)
     return data.at[number,'殖利率(%)']
@@ -150,8 +168,9 @@ def get_allstock_financial_statement(start,type):#爬某季所有股票歷史財
             fileName = filePath + '/' + str(start.year)+"-season"+str(season)+"-"+type.value+".csv"
             if fileName in load_memery:
                 return load_memery[fileName]
-            if os.path.isfile(fileName) == False:
-                financial_statement(start.year,season,type)
+            if os.path.isfile(fileName) == True:
+                break
+            financial_statement(start.year,season,type)
             print(str(date.month)+ "月財務報告ＯＫ")
             break
         except:
@@ -315,12 +334,13 @@ def get_monthRP_up(time,avgNum,upNum):#time = 取得資料的時間 avgNum = 平
 #取得本益比篩選
 def get_PER_range(time,PER_start,PER_end,data = pd.DataFrame()):#time = 取得資料的時間 PER_start = PER最小值 PER_end PER最大值
     print('get_PER_range: start')
+    PER_data = pd.DataFrame(columns = ['公司代號','PER'])
     if PER_start == PER_end == 0:
-        return data
+        return PER_data
     if PER_end < 0 or PER_start < 0 or PER_end < PER_start:
         print("PBR range number wrong!")
-        return data
-    PER_data = pd.DataFrame(columns = ['公司代號','PER'])
+        return PER_data
+    
     EPS_date = time
     All_PER = data
     if type(time) == str:
@@ -387,12 +407,13 @@ def get_AVG_value(time,volume,days,data = pd.DataFrame()):#time = 取得資料�
 #取得股價淨值比篩選  #股價/每股淨值 = PBR 
 def get_PBR_range(time,PBR_start,PBR_end,data = pd.DataFrame()):#time = 取得資料的時間 PBR_start = PBR最小值 PBR_end PBR最大值
     print('get_PBR_rang: start')
+    PBR_data = pd.DataFrame(columns = ['公司代號','PBR'])
     if PBR_start == PBR_end == 0:
-        return data
+        return PBR_data
     if PBR_end < 0 or PBR_start < 0 or PBR_end < PBR_start:
         print("PBR range number wrong!")
-        return data
-    PBR_data = pd.DataFrame(columns = ['公司代號','PBR'])
+        return PBR_data
+    
     PBR_date = time
     All_PBR = data
     if type(time) == str:
@@ -401,6 +422,8 @@ def get_PBR_range(time,PBR_start,PBR_end,data = pd.DataFrame()):#time = 取得�
     if All_PBR.empty == True:
         All_PBR = Book_data
     for index,row in All_PBR.iterrows():
+        if check_no_use_stock(index):
+            continue
         Temp_PBR = Book_data.at[index,'股價淨值比']
         if Temp_PBR < 0:
             continue
@@ -417,14 +440,15 @@ def get_PBR_range(time,PBR_start,PBR_end,data = pd.DataFrame()):#time = 取得�
 #取得股東權益報酬率 #ROE(股東權益報酬率) = 稅後淨利/股東權益
 def get_ROE_range(time,ROE_start,ROE_end,data = pd.DataFrame()):#time = 取得資料的時間 ROE_start = ROE最小值 ROE_end ROE最大值
     print('get_ROE_rang: start')
+    ROE_data = pd.DataFrame(columns = ['公司代號','ROE'])
     #股東權益＝資產 － 負債 （資產負債表中）
     #稅後淨利 = (本期綜合損益)
     if ROE_start == ROE_end == 0:
-        return data
+        return ROE_data
     if ROE_end < 0 or ROE_start < 0 or ROE_end < ROE_start:
         print("ROE range number wrong!")
-        return data
-    ROE_data = pd.DataFrame(columns = ['公司代號','ROE'])
+        return ROE_data
+    
     ROE_date = time
     All_ROE = data
     if type(time) == str:
@@ -458,12 +482,12 @@ def get_ROE_range(time,ROE_start,ROE_end,data = pd.DataFrame()):#time = 取得�
 #取得股價篩選
 def get_price_range(time,high,low,data = pd.DataFrame()):#time = 取得資料的時間 high = 最高價 low = 最低價
     print('get_price_rang: start')
+    price_data = pd.DataFrame(columns=['公司代號','price'])
     if high == low == 0:
-        return data
+        return price_data
     if high < low or high < 0 or low < 0:
         print("price range number wrong!")
-        return data
-    price_data = pd.DataFrame(columns=['公司代號','price'])
+        return price_data
     price_time = time
     All_price = data
     if type(time) == str:
@@ -473,7 +497,7 @@ def get_price_range(time,high,low,data = pd.DataFrame()):#time = 取得資料的
     else:
         Use_price_time = datetime.datetime(price_time.year,tools.changeDateMonth(price_time,-3).month ,tools.check_monthDate(tools.changeDateMonth(price_time,-3).month,price_time.day))
     if All_price.empty == True:
-        return All_price
+        return price_data
     for index,row in All_price.iterrows():
         if check_no_use_stock(index):
             continue
@@ -492,12 +516,12 @@ def get_price_range(time,high,low,data = pd.DataFrame()):#time = 取得資料的
 #取得殖利率篩選
 def get_yield_range(time,high,low,data = pd.DataFrame()):#time = 取得資料的時間 high = 殖利率最高值 low = 殖利率最低值
     print('get_yield_range: start')
+    yield_data_result = pd.DataFrame(columns=['公司代號','殖利率'])
     if high == low == 0:
-        return data
+        return yield_data_result
     if high < 0 or low < 0 or low > high:
         print("yield range number wrong!")
-        return data
-    yield_data_result = pd.DataFrame(columns=['公司代號','殖利率'])
+        return yield_data_result
     yield_date = time
     All_yield = data
     if type(time) == str:
@@ -517,6 +541,31 @@ def get_yield_range(time,high,low,data = pd.DataFrame()):#time = 取得資料的
     
     print('get_yield_range: end')
     return yield_data_result
+
+#取得創新高篩選
+def get_RecordHigh_range(time,Day,RecordHighDay,data = pd.DataFrame()):#time = 取得資料的時間 Day = 往前找多少天的創新高 RecordHighDay = 找創新高的區間
+    print('get_RecordHigh: start')
+    RH_result = pd.DataFrame(columns=['公司代號','創新高']).astype('int')
+    if Day == RecordHighDay == 0:
+        return RH_result
+    if Day < 0 or RecordHighDay < 0:
+        print("yield range number wrong!")
+        return RH_result
+    
+    RH_date = time
+    All_data = data
+    if type(time) == str:
+        RH_date = datetime.datetime.strptime(time,"%Y-%m-%d")
+    if All_data.empty == True:
+        return RH_result
+    for index,row in All_data.iterrows():
+        if get_stock_RecordHight(index,RH_date,Day,RecordHighDay) == True:
+            Temp_number = int(index)
+            RH_result = RH_result.append({'公司代號':Temp_number,'創新高':1},ignore_index=True)          
+    RH_result.set_index('公司代號',inplace=True) 
+    RH_result = RH_result.astype('int')
+    print('RecordHigh: end')
+    return RH_result
 
 #爬取歷史財報並存檔
 def financial_statement(year, season, type):#year = 年 season = 季 type = 財報種類
