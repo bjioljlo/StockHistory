@@ -77,23 +77,29 @@
     <property name="geometry">
      <rect>
       <x>360</x>
-      <y>20</y>
+      <y>10</y>
       <width>101</width>
-      <height>16</height>
+      <height>31</height>
      </rect>
     </property>
     <property name="text">
-     <string>開始資金(萬元)</string>
+     <string>開始資金(萬元)/定期定額金額</string>
+    </property>
+    <property name="scaledContents">
+     <bool>false</bool>
     </property>
     <property name="alignment">
      <set>Qt::AlignCenter</set>
+    </property>
+    <property name="wordWrap">
+     <bool>true</bool>
     </property>
    </widget>
    <widget class="QTextEdit" name="input_startMoney">
     <property name="geometry">
      <rect>
       <x>340</x>
-      <y>40</y>
+      <y>50</y>
       <width>141</width>
       <height>21</height>
      </rect>

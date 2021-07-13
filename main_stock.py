@@ -64,6 +64,8 @@ class MyBacktestWindow(QtWidgets.QMainWindow,Ui_MainWindow3):
 def check_price_isCheck(m_history,stockInfo):
     if myshow.check_stock.isChecked():
         df.draw_stock(m_history,stockInfo)
+    else:
+        df.draw_stock(m_history,stockInfo)
 def check_Volume_isCheck(m_history,stockInfo):
     if myshow.check_volume.isChecked():
         df.draw_Volume(m_history,stockInfo)
@@ -76,11 +78,18 @@ def check_SMA_isCheck(m_history,stockInfo):
         for i in input_SMA_list:
             if i.toPlainText() != "":
                 df.draw_SMA(m_history,int(i.toPlainText()),stockInfo)
+def check_BollingerBands_isCheck(m_history,stockInfo):
+    if myshow.check_BollingerBands.isChecked() == True:
+        df.draw_BollingerBands(m_history,12,stockInfo)
+def check_RSI_isCheck(m_history,stockInfo):
+    if myshow.check_RSI.isChecked() == True:
+        df.draw_RSI(m_history,stockInfo)
 
 def button_getStockHistory():
     #存更新日期
     date = myshow.date_startDate.date()
     str_date = str(date.year())+'-'+ str(date.month())+'-'+str(date.day())
+    df.Clear_PICS()
     if myshow.input_stockNumber.toPlainText() == "":
         for key,value in get_stock_info.stock_list.items():
             m_history = get_stock_history.get_stock_history(key,str_date)
@@ -103,11 +112,13 @@ def button_getStockHistory():
             m_history = get_stock_history.get_stock_history(stock_number,str_date,False)
         else:
             m_history = get_stock_history.get_stock_history(stock_number,str_date,False,False)
-        check_price_isCheck(m_history,get_stock_info.Get_stock_info(stock_number))
         check_SMA_isCheck(m_history,get_stock_info.Get_stock_info(stock_number))
         check_KD_isCheck(m_history,get_stock_info.Get_stock_info(stock_number))
-        check_Volume_isCheck(m_history,get_stock_info.Get_stock_info(stock_number))    
-    df.draw_Show()
+        check_Volume_isCheck(m_history,get_stock_info.Get_stock_info(stock_number))   
+        check_BollingerBands_isCheck(m_history,get_stock_info.Get_stock_info(stock_number))
+        check_RSI_isCheck(m_history,get_stock_info.Get_stock_info(stock_number))
+        check_price_isCheck(m_history,get_stock_info.Get_stock_info(stock_number))#壹定要在最後面檢查 
+    #df.draw_Show()
 def button_openPickWindow_click():
         mypick.show()
 def button_openBackWindow_click():
@@ -143,7 +154,10 @@ def button_pick_click():
     else:
         pass
     
-    resultAllFS = get_stock_history.get_price_range(volume_date,int(mypick.input_price_high.toPlainText()),int(mypick.input_price_low.toPlainText()),resultAllFS)
+    price_data = get_stock_history.get_price_range(volume_date,int(mypick.input_price_high.toPlainText()),int(mypick.input_price_low.toPlainText()),resultAllFS)
+    if price_data.empty == False:
+        resultAllFS = tools.MixDataFrames({'pick':resultAllFS,'recordHigh':price_data})
+        resultAllFS = resultAllFS.dropna(axis=0,how='any')
     resultAllFS = get_volume(int(mypick.input_volum.toPlainText()),tools.changeDateMonth(volume_date,0),resultAllFS)
 
 
@@ -440,7 +454,7 @@ def Init_mainWindow():#初始化mainwindow
     today = QtCore.QDate(datetime.datetime.today().year,datetime.datetime.today().month,datetime.datetime.today().day)
     myshow.date_startDate.setMaximumDate(today)
     myshow.date_startDate.setMinimumDate(QtCore.QDate(2000,1,1))
-    myshow.date_startDate.setDate(QtCore.QDate((datetime.datetime.today().year -1),datetime.datetime.today().month,datetime.datetime.today().day))
+    myshow.date_startDate.setDate(QtCore.QDate((datetime.datetime.today().year),(datetime.datetime.today().month - 6),datetime.datetime.today().day))
     myshow.date_endDate.setMaximumDate(today)
     myshow.date_endDate.setMinimumDate(QtCore.QDate(2001,1,1))
     myshow.date_endDate.setDate(date)

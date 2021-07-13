@@ -41,7 +41,7 @@ def Save_Update_date():#存檔更新日期
     np.save(Update_date_name,Update_date)
 def Load_stock_info():#讀取追蹤股票
     if os.path.isfile(filePath + '/' + Save_name):
-        m_stock_list = np.load(Save_name).item()
+        m_stock_list = np.load(Save_name,None,True).item()
     else:
         m_stock_list = {}
         Save_stock_info()

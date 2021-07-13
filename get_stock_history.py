@@ -9,6 +9,7 @@ import time
 from enum import Enum
 import tools
 
+
 fileName_monthRP = "monthRP"
 fileName_stockInfo = "stockInfo"
 fileName_yield = "yieldInfo"
@@ -19,7 +20,8 @@ no_use_stock = [1603,5259,1262,2475,3519,
                 6491,6592,6672,6715,6698,
                 2025,5546,6598,4148,4552,
                 8488,1341,6671,8499,2243,
-                1902,2233]
+                1902,2233,2448,3698,4725,
+                5264,5305,8497]
 
 Holiday_trigger = False
 
@@ -134,10 +136,8 @@ def get_allstock_monthly_report(start):#爬某月所有股票月營收
         if year <= 98:
             url = 'https://mops.twse.com.tw/nas/t21/sii/t21sc03_'+str(year)+'_'+str(start.month)+'.html'
         
-        # 偽瀏覽器
-        headers = {'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_10_1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/39.0.2171.95 Safari/537.36'}
         # 下載該年月的網站，並用pandas轉換成 dataframe
-        r = requests.get(url, headers=headers)
+        r = requests.get(url, headers = tools.get_random_Header())
         r.encoding = 'big5-hkscs'
 
         dfs = pd.read_html(StringIO(r.text), encoding='big-5')
@@ -157,7 +157,7 @@ def get_allstock_monthly_report(start):#爬某月所有股票月營收
         
         df.to_csv(fileName,index = False)
         # 偽停頓
-        time.sleep(5)
+        time.sleep(1.5)
     df = pd.read_csv(fileName,index_col='公司代號', parse_dates=['公司代號'])
     load_memery[fileName] = df
     return df      
@@ -189,10 +189,10 @@ def get_allstock_yield(start):#爬某天所有股票殖利率
         return load_memery[fileName]
     if os.path.isfile(fileName + '.csv') == False:
         url = 'https://www.twse.com.tw/exchangeReport/BWIBBU_d?response=csv&date=' + str(start.year)+str(start.month).zfill(2)+str(start.day).zfill(2)+ '&selectType=ALL'
-        response = requests.get(url)
+        response = requests.get(url,tools.get_random_Header())
         save_stock_file(fileName,response,1,2)
         # 偽停頓
-        time.sleep(5)
+        time.sleep(1.5)
 
     m_yield = pd.read_csv(fileName + '.csv',index_col='證券代號',parse_dates=['證券代號'])
     m_yield[["本益比"]] = m_yield[["本益比"]].astype(float)
@@ -240,14 +240,20 @@ def get_stock_history(number,start,reGetInfo = False,UpdateInfo = True):#爬某�
         period1 = int(period1)
         period2 = int(period2)
         site = "https://query1.finance.yahoo.com/v7/finance/download/" + str(number) +".TW?period1="+str(period1)+"&period2="+str(period2)+"&interval=1d&events=history&crumb=hP2rOschxO0"
-        response = requests.get(site)#post(site)
+        response = requests.get(site,headers = tools.get_random_Header())#post(site)
         save_stock_file(filePath +'/' + fileName_stockInfo  + '/' + str(number) + '_' + '2000-1-1' +
                                                             '_' +
                                                             str(now_time.year) +
                                                             '-' + str(now_time.month) + 
                                                             '-' + str(now_time.day),response)
         # 偽停頓
-        time.sleep(5)
+        time.sleep(1.5)
+        deleteDate = datetime.datetime.strptime(get_stock_info.Update_date[0:10],"%Y-%m-%d")
+        delet_stock_file(filePath +'/' + fileName_stockInfo  + '/' + str(number) + '_' + '2000-1-1' +
+                                                            '_' +
+                                                            str(deleteDate.year) +
+                                                            '-' + str(deleteDate.month) + 
+                                                            '-' + str(deleteDate.day))
     else:
         if reGetInfo == True:
             base_time = datetime.datetime.strptime('1970-1-1',"%Y-%m-%d")
@@ -257,14 +263,14 @@ def get_stock_history(number,start,reGetInfo = False,UpdateInfo = True):#爬某�
             period1 = int(period1)
             period2 = int(period2)
             site = "https://query1.finance.yahoo.com/v7/finance/download/" + str(number) +".TW?period1="+str(period1)+"&period2="+str(period2)+"&interval=1d&events=history&crumb=hP2rOschxO0"
-            response = requests.get(site)#post(site)
+            response = requests.get(site,tools.get_random_Header())#post(site)
             save_stock_file(filePath +'/' + fileName_stockInfo  + '/' + str(number) + '_' + '2000-1-1' +
                                                                 '_' +
                                                                 str(now_time.year) +
                                                                 '-' + str(now_time.month) + 
                                                                 '-' + str(now_time.day),response)
             # 偽停頓
-            time.sleep(5)
+            time.sleep(1.5)
 
 
     m_history = load_stock_file(filePath +'/' + fileName_stockInfo  + '/' + str(number) + '_' + '2000-1-1' +
@@ -298,6 +304,9 @@ def load_stock_file(fileName):#讀取歷史資料
     df['Volume'] = df['Volume'].astype('int')
     load_memery[fileName] = df
     return df
+def delet_stock_file(fileName):#刪除歷史資料
+    if os.path.isfile(fileName) == True:
+        os.remove(fileName)
 
 #取得月營收逐步升高的篩選資料
 def get_monthRP_up(time,avgNum,upNum):#time = 取得資料的時間 avgNum = 平滑曲線月份 upNum = 連續成長月份
@@ -592,13 +601,13 @@ def financial_statement(year, season, type):#year = 年 season = 季 type = 財�
         'year': myear,
         'season': season,
     }
-    response = requests.post(url,form_data)
-    response.encoding = 'utf8'
+    response = requests.post(url,form_data,headers = tools.get_random_Header())
+    #response.encoding = 'utf8'
 
     if type == FS_type.PLA:
         df = translate_dataFrame(response.text)
     else:
-        df = translate_dataFrame2(response.text,type,myear)
+        df = translate_dataFrame2(response.text,type,myear,season)
         
     df.to_csv(str(year)+"-season"+str(season)+"-"+type.value+".csv",index=False)
     # 偽停頓
@@ -642,7 +651,7 @@ def translate_dataFrame(response):
                 column.append(preTaxIncomeMargin)
                 column.append(afterTaxIncomeMargin)
     return pd.DataFrame(data = data,columns=column)
-def translate_dataFrame2(response,type,year):
+def translate_dataFrame2(response,type,year,season = 1):
     table_array = response.split('<table')
     tr_array_array = [table_array[2].split('<tr'),
                 table_array[3].split('<tr'),
@@ -656,6 +665,35 @@ def translate_dataFrame2(response,type,year):
                                 [25,44,45,53,57],
                                 [16,34,35,44,48],
                                 [5,8,9,17,21]])
+    if(year == 110):
+        column_pos_array = np.array([[24,42,43,53,57],
+                                [5,8,9,19,23],
+                                [5,8,9,19,23],
+                                [25,44,45,53,57],
+                                [16,34,35,45,49],
+                                [5,8,9,18,22]])   
+    if(year == 109):
+        if (season == 1):
+            column_pos_array = np.array([[24,42,43,52,56],
+                                [5,8,9,18,22],
+                                [5,8,9,18,22],
+                                [25,44,45,53,57],
+                                [16,34,35,44,48],
+                                [5,8,9,17,21]])    
+        else:
+            column_pos_array = np.array([[24,42,43,53,57],
+                                [5,8,9,19,23],
+                                [5,8,9,19,23],
+                                [25,44,45,53,57],
+                                [16,34,35,45,49],
+                                [5,8,9,18,22]])   
+    if(year == 108):
+        column_pos_array = np.array([[24,42,43,52,56],
+                                [5,8,9,18,22],
+                                [5,8,9,18,22],
+                                [25,44,45,53,57],
+                                [16,34,35,44,48],
+                                [5,8,9,17,21]])                      
     if(year == 107):
         column_pos_array = np.array([[25,42,43,52,56],
                                 [5,8,9,18,22],
