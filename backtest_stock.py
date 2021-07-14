@@ -233,7 +233,7 @@ def backtest_Regular_quota(mainParament):
             Temp_price = get_stock_history.get_stock_price(mainParament.buy_number,userInfo.now_day,get_stock_history.stock_data_kind.AdjClose)
             userInfo.now_money = userInfo.now_money + mainParament.money_start
             userInfo.start_money = userInfo.start_money + mainParament.money_start
-            Temp_stockNumber = int(mainParament.money_start/Temp_price)
+            Temp_stockNumber = tools.Count_Stock_Amount(mainParament.money_start,Temp_price)
             userInfo.buy_stock(mainParament.buy_number,Temp_stockNumber)
             buy_month = userInfo.now_day
 

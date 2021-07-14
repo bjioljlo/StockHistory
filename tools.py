@@ -77,7 +77,12 @@ def get_random_Header():#取得隨機header
             'Mozilla/5.0 (X11; Ubuntu; Linux i686; rv:10.0) Gecko/20100101 Firefox/10.0 ']
     headers = {'User-Agent':headers_site[random.randrange(headers_site.__len__())]}
     return headers
-
-        
-
+def Total_with_Handling_fee_and_Tax(stock_price,amount,buyIn = True,persent = 0.1425,Use_fee_tax = True):#交易手續費和交易稅
+        if Use_fee_tax == False:
+            return (stock_price * amount)
+        if buyIn == False:#賣出
+            return (stock_price * amount) - ((stock_price * amount)*((persent + 0.3)/100))
+        return (stock_price * amount) + ((stock_price * amount)*((persent)/100))#買入
+def Count_Stock_Amount(money,price):#計算你可以買多少股      
+    return (int)(money/(price*(100.1425/100)))
     

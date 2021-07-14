@@ -1,8 +1,12 @@
 import datetime
+from numpy import true_divide
 import pandas as pd
 import get_stock_history
 import get_stock_info
+import tools
 import twstock as ts #抓取台灣股票資料套件
+
+ts.__update_codes()
 
 class data_user_stock():#手持股票資訊
     def __init__(self,stock_info,amount,price):
@@ -76,7 +80,7 @@ class data_user_info():#使用者資訊
         if stock_price == None:
             print(str(number) + ' no use stock')
             return False
-        elif (stock_price * amount) > self.now_money:
+        elif tools.Total_with_Handling_fee_and_Tax(stock_price,amount) > self.now_money:
             print('錢不夠：')
             return False
         else:
@@ -86,7 +90,7 @@ class data_user_info():#使用者資訊
                 self.handle_stock[number] = data_user_stock(m_info,amount,stock_price)
             else:
                 self.handle_stock[number].add_amount(amount,stock_price)
-            self.now_money = self.now_money - (stock_price * amount)
+            self.now_money = self.now_money - tools.Total_with_Handling_fee_and_Tax(stock_price,amount)
             return True
     def sell_stock(self,number,amount):#賣股票
         if self.handle_stock.__contains__(number) == False:
@@ -97,7 +101,7 @@ class data_user_info():#使用者資訊
             return False
         else:
             stock_price = get_stock_history.get_stock_price(number,self.now_day,get_stock_history.stock_data_kind.AdjClose)
-            self.now_money = self.now_money + (stock_price * amount)
+            self.now_money = self.now_money + tools.Total_with_Handling_fee_and_Tax(stock_price,amount,False)
             if self.handle_stock[number].minus_amount(amount) == False:
                 self.handle_stock.pop(number,None)
             return True
@@ -120,6 +124,8 @@ class data_user_info():#使用者資訊
                                                 '號碼':temp_numbers,
                                                 '數量':temp_amount,
                                                 '均價':temp_price},ignore_index=True)
+        
+        
 
     
     
