@@ -352,5 +352,3 @@ def backtest_Record_high(mainParament):
     userInfo.Temp_result_draw.to_csv('backtestdata.csv')
     userInfo.Temp_trade_info.to_csv('backtesttrade.csv')
     Temp_alldata.to_csv('backtestAll.csv')
-
-                

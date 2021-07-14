@@ -194,7 +194,11 @@ def get_allstock_yield(start):#爬某天所有股票殖利率
         # 偽停頓
         time.sleep(1.5)
 
-    m_yield = pd.read_csv(fileName + '.csv',index_col='證券代號',parse_dates=['證券代號'])
+    try:
+        m_yield = pd.read_csv(fileName + '.csv',index_col='證券代號',parse_dates=['證券代號'])
+    except:
+        m_yield = pd.read_csv(fileName + '.csv',index_col='證券代號',parse_dates=['證券代號'],encoding = 'ANSI')
+    
     m_yield[["本益比"]] = m_yield[["本益比"]].astype(float)
     m_yield[["股價淨值比"]] = m_yield[["股價淨值比"]].astype(float)
     load_memery[fileName] = m_yield
