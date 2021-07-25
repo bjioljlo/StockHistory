@@ -84,7 +84,10 @@ def check_BollingerBands_isCheck(m_history,stockInfo):
 def check_RSI_isCheck(m_history,stockInfo):
     if myshow.check_RSI.isChecked() == True:
         df.draw_RSI(m_history,stockInfo)
-
+def Check_ADL_isCheck():
+    if myshow.check_ADL.isChecked() == True:
+        Data_ADL = get_stock_history.get_ADL(tools.QtDate2DateTime(myshow.date_startDate.date()),tools.QtDate2DateTime(myshow.date_endDate.date()))
+        df.draw_ADL(Data_ADL)
 def button_getStockHistory():
     #存更新日期
     date = myshow.date_startDate.date()
@@ -113,10 +116,11 @@ def button_getStockHistory():
         else:
             m_history = get_stock_history.get_stock_history(stock_number,str_date,False,False)
         check_SMA_isCheck(m_history,get_stock_info.Get_stock_info(stock_number))
+        check_Volume_isCheck(m_history,get_stock_info.Get_stock_info(stock_number))  
         check_KD_isCheck(m_history,get_stock_info.Get_stock_info(stock_number))
-        check_Volume_isCheck(m_history,get_stock_info.Get_stock_info(stock_number))   
         check_BollingerBands_isCheck(m_history,get_stock_info.Get_stock_info(stock_number))
         check_RSI_isCheck(m_history,get_stock_info.Get_stock_info(stock_number))
+        Check_ADL_isCheck()
         check_price_isCheck(m_history,get_stock_info.Get_stock_info(stock_number))#壹定要在最後面檢查 
     #df.draw_Show()
 def button_openPickWindow_click():
@@ -169,6 +173,10 @@ def button_moveToInputFromPick_click():
         data = mModel.item(Index.row(),0).text()
         text = str(data)
         myshow.input_stockNumber.setPlainText(text)
+def button_getADindex_click():
+    Data_ADL = get_stock_history.get_ADL(tools.QtDate2DateTime(myshow.date_startDate.date()),tools.QtDate2DateTime(myshow.date_endDate.date()))
+    df.draw_ADL(Data_ADL)
+
 def button_monthRP_click():#某股票月營收曲線
     if (myshow.input_stockNumber.toPlainText() == ''):
         print('請輸入股票號碼')
@@ -448,6 +456,7 @@ def Init_mainWindow():#初始化mainwindow
     myshow.button_getStockHistory.clicked.connect(button_getStockHistory)#設定button功能
     myshow.button_openPickWindow.clicked.connect(button_openPickWindow_click)#設定button功能
     myshow.button_getMonthRP.clicked.connect(button_monthRP_click)#設定button功能
+    myshow.button_getADindex.clicked.connect(button_getADindex_click)#設定button功能
     #設定日期
     Date = datetime.datetime.strptime(get_stock_info.Update_date[0:10],"%Y-%m-%d")
     date = QtCore.QDate(Date.year,Date.month,Date.day)

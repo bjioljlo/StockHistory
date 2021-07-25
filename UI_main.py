@@ -116,6 +116,12 @@ class Ui_MainWindow(object):
         self.check_RSI = QtWidgets.QCheckBox(self.centralwidget)
         self.check_RSI.setGeometry(QtCore.QRect(320, 150, 87, 20))
         self.check_RSI.setObjectName("check_RSI")
+        self.button_getADindex = QtWidgets.QPushButton(self.centralwidget)
+        self.button_getADindex.setGeometry(QtCore.QRect(370, 310, 113, 32))
+        self.button_getADindex.setObjectName("button_getADindex")
+        self.check_ADL = QtWidgets.QCheckBox(self.centralwidget)
+        self.check_ADL.setGeometry(QtCore.QRect(410, 150, 87, 20))
+        self.check_ADL.setObjectName("check_ADL")
         MainWindow.setCentralWidget(self.centralwidget)
         self.menubar = QtWidgets.QMenuBar(MainWindow)
         self.menubar.setGeometry(QtCore.QRect(0, 0, 550, 22))
@@ -150,5 +156,7 @@ class Ui_MainWindow(object):
         self.check_UseNewInfo.setText(_translate("MainWindow", "使用最新資訊"))
         self.check_BollingerBands.setText(_translate("MainWindow", "顯示布林通道"))
         self.check_RSI.setText(_translate("MainWindow", "顯示RSI"))
+        self.button_getADindex.setText(_translate("MainWindow", "騰落指標"))
+        self.check_ADL.setText(_translate("MainWindow", "顯示ADL"))
 
 

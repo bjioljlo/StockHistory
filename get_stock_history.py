@@ -13,6 +13,8 @@ import tools
 fileName_monthRP = "monthRP"
 fileName_stockInfo = "stockInfo"
 fileName_yield = "yieldInfo"
+fileName_season = "seasonInfo"
+fileName_index = "indexInfo"
 
 no_use_stock = [1603,5259,1262,2475,3519,
                 3579,9157,3083,4576,6706,
@@ -165,7 +167,7 @@ def get_allstock_financial_statement(start,type):#爬某季所有股票歷史財
     for i in range(12):
         try:
             season = int(((start.month - 1)/3)+1)
-            fileName = filePath + '/' + str(start.year)+"-season"+str(season)+"-"+type.value+".csv"
+            fileName = filePath + '/' + fileName_season + '/' + str(start.year)+"-season"+str(season)+"-"+type.value+".csv"
             if fileName in load_memery:
                 return load_memery[fileName]
             if os.path.isfile(fileName) == True:
@@ -252,12 +254,14 @@ def get_stock_history(number,start,reGetInfo = False,UpdateInfo = True):#爬某�
                                                             '-' + str(now_time.day),response)
         # 偽停頓
         time.sleep(1.5)
+        #刪除原本資料
         deleteDate = datetime.datetime.strptime(get_stock_info.Update_date[0:10],"%Y-%m-%d")
-        delet_stock_file(filePath +'/' + fileName_stockInfo  + '/' + str(number) + '_' + '2000-1-1' +
+        if deleteDate != now_time:
+            delet_stock_file(filePath +'/' + fileName_stockInfo  + '/' + str(number) + '_' + '2000-1-1' +
                                                             '_' +
                                                             str(deleteDate.year) +
                                                             '-' + str(deleteDate.month) + 
-                                                            '-' + str(deleteDate.day))
+                                                            '-' + str(deleteDate.day)+ '.csv')
     else:
         if reGetInfo == True:
             base_time = datetime.datetime.strptime('1970-1-1',"%Y-%m-%d")
@@ -305,12 +309,98 @@ def load_stock_file(fileName):#讀取歷史資料
         return load_memery[fileName]
     df = pd.read_csv(fileName + '.csv', index_col='Date', parse_dates=['Date'])
     df = df.dropna(how='any',inplace=False)#將某些null欄位去除
-    df['Volume'] = df['Volume'].astype('int')
+    try:
+        df['Volume'] = df['Volume'].astype('int')
+    except:
+        print('no Volume')
+    
     load_memery[fileName] = df
     return df
 def delet_stock_file(fileName):#刪除歷史資料
     if os.path.isfile(fileName) == True:
         os.remove(fileName)
+def get_stock_AD_index(date):#取得上漲和下跌家數
+    print('get_stock_AD_index')
+    ADindex_result = pd.DataFrame(columns=['Date','上漲','下跌']).set_index('Date')
+    if type(date) == str:
+        date = datetime.datetime.strptime(date,"%Y-%m-%d")
+    time = date 
+    str_date = tools.DateTime2String(time)
+    time_yesterday = tools.backWorkDays(time,1)
+
+    while (get_stock_price(2330,time_yesterday,stock_data_kind.AdjClose) == None):
+        time_yesterday = tools.backWorkDays(time_yesterday,1)#加一天
+    
+    str_yesterday = tools.DateTime2String(time_yesterday)
+    fileName = filePath +'/' + fileName_index + '/' + 'AD_index'
+    if fileName in load_memery:
+        ADindex_result = load_memery[fileName]
+    if os.path.isfile(fileName + '.csv') == True:
+        ADindex_result = pd.read_csv(fileName + '.csv', index_col='Date', parse_dates=['Date'])
+        load_memery[fileName] = ADindex_result
+    up = 0
+    down = 0
+    if ADindex_result.empty == False and (ADindex_result.index == time).__contains__(True):
+        return ADindex_result[ADindex_result.index == time]
+    for key,value in get_stock_info.ts.codes.items():
+        if value.market == "上市" and len(value.code) == 4:
+            if check_no_use_stock(value.code) == True:
+                print('get_stock_price: ' + str(value.code) + ' in no use')
+                continue
+            m_history = get_stock_history(value.code,str_yesterday,False,False)['Close']
+            try:
+                if m_history[str_yesterday] > m_history[str_date]:
+                    down = down + 1
+                elif m_history[str_yesterday] < m_history[str_date]:
+                    up = up + 1
+            except:
+                print("get " + str(value.code) + " info fail!")
+                m_temp = get_stock_history(2330,str_yesterday,False,False)['Close']
+                if (m_temp.index == time).__contains__(True) != True:
+                    return pd.DataFrame()
+    ADindex_result_new = pd.DataFrame({'Date':[time],'上漲':[up],'下跌':[down]}).set_index('Date')
+    ADindex_result = ADindex_result.append(ADindex_result_new)
+    ADindex_result = ADindex_result.sort_index()
+    ADindex_result.to_csv(fileName + '.csv')
+    df = ADindex_result[ADindex_result.index == time]
+    load_memery[fileName] = df
+    return df
+def get_ADL_index(date,ADL_yesterday):#取得騰落數值
+    ADL_today = get_stock_AD_index(date)
+    if ADL_today.empty == True:
+        return None
+    ADL_today = ADL_today['上漲'] - ADL_today['下跌']
+    return ADL_yesterday + ADL_today[date]
+
+
+#取得騰落指標資料
+def get_ADL(start_time,end_time):
+    ADL_yesterday = 0
+    #第一天指標為0
+    data = pd.DataFrame(columns = ['Date','ADL']).set_index('Date')
+    now_time = start_time
+    while now_time <= end_time:
+        #週末直接跳過
+        if now_time.isoweekday() in [6,7]:
+            print(str(now_time) + 'is 星期' + str(now_time.isoweekday()))
+            now_time = tools.backWorkDays(now_time,-1)#加一天
+            continue
+        #先看看台積有沒有資料，如果沒有表示這天是非週末假日跳過 
+        if get_stock_price(2330,now_time,stock_data_kind.AdjClose) == None:
+            print(str(now_time) + "這天沒開市")
+            now_time = tools.backWorkDays(now_time,-1)#加一天
+            continue
+
+        ADL_value = get_ADL_index(now_time,ADL_yesterday)
+        if ADL_value == None:
+            now_time = tools.backWorkDays(now_time,-1)#加一天
+            continue
+
+        temp_data = pd.DataFrame({'Date':[now_time],'ADL':[ADL_value]}).set_index('Date')
+        data = data.append(temp_data)
+        ADL_yesterday = ADL_value
+        now_time = tools.backWorkDays(now_time,-1) 
+    return data
 
 #取得月營收逐步升高的篩選資料
 def get_monthRP_up(time,avgNum,upNum):#time = 取得資料的時間 avgNum = 平滑曲線月份 upNum = 連續成長月份

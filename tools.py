@@ -47,11 +47,15 @@ def check_monthDate(month,day):#確認日期正確性
     return result_day
 def backWorkDays(date,days):#取得往後算days工作天後的日期
     input_date = date
-    input_days = days
+    input_days = abs(days)
     if type(input_date) == str:
         input_date = datetime.datetime.strptime(date,"%Y-%m-%d")
     while input_days > 0:
-        input_date = input_date - datetime.timedelta(days=1)#減一天
+        if days < 0:
+            input_date = input_date + datetime.timedelta(days=1)#加一天
+        else:
+            input_date = input_date - datetime.timedelta(days=1)#減一天
+        
         if input_date.isoweekday() in [6,7]:
             continue
         input_days = input_days - 1

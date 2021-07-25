@@ -30,7 +30,7 @@ def set_check(monthRP_pick,PER_pick,volume_pick,One_pick,price_pick,PBR_pick,ROE
     global bool_check_ROE_pick
     bool_check_ROE_pick = ROE_pick
 
-#平均股價
+#平均股價 
 def avg_stock_price(date,vData = pd.DataFrame()):
     All_price = 0 #
     Count = 0
@@ -48,7 +48,7 @@ def avg_stock_price(date,vData = pd.DataFrame()):
         return 0,0
     Result_avg_price = All_price / Count
     return Result_avg_price,Count
-#14年14倍    
+#14年14倍 https://www.finlab.tw/%E6%AF%94%E7%AD%96%E7%95%A5%E7%8B%97%E9%82%84%E8%A6%81%E5%AE%89%E5%85%A8%E7%9A%84%E9%81%B8%E8%82%A1%E7%AD%96%E7%95%A5%EF%BC%81/
 def backtest_PERandPBR(mainParament):
     Temp_reset = 0#休息日剩餘天數
 
@@ -128,7 +128,7 @@ def backtest_PERandPBR(mainParament):
     userInfo.Temp_result_draw.to_csv('backtestdata.csv')
     userInfo.Temp_trade_info.to_csv('backtesttrade.csv')
     Temp_alldata.to_csv('backtestAll.csv')
-#月營收增高
+#月營收增高 https://www.finlab.tw/%e4%b8%89%e7%a8%ae%e6%9c%88%e7%87%9f%e6%94%b6%e9%80%b2%e9%9a%8e%e7%9c%8b%e6%b3%95/#ji_ji_xuan_gu_cheng_zhang_fa
 def backtest_monthRP_Up(mainParament):
     Temp_change = 0#換股剩餘天數
     userInfo = get_user_info.data_user_info(mainParament.money_start,mainParament.date_start,mainParament.date_end)
@@ -204,7 +204,7 @@ def backtest_monthRP_Up(mainParament):
     userInfo.Temp_result_draw.to_csv('backtestdata.csv')
     userInfo.Temp_trade_info.to_csv('backtesttrade.csv')
     Temp_alldata.to_csv('backtestAll.csv')
-#定期定額
+#定期定額 
 def backtest_Regular_quota(mainParament):
     userInfo = get_user_info.data_user_info(0,mainParament.date_start,mainParament.date_end)
     buy_month = mainParament.date_start
@@ -257,7 +257,7 @@ def backtest_Regular_quota(mainParament):
     userInfo.Temp_result_draw.to_csv('backtestdata.csv')
     userInfo.Temp_trade_info.to_csv('backtesttrade.csv')
     Temp_alldata.to_csv('backtestAll.csv')
-#創新高
+#創新高 https://www.finlab.tw/break-new-high-roe-stock/
 def backtest_Record_high(mainParament):
     Temp_reset = 0#休息日剩餘天數
     userInfo = get_user_info.data_user_info(mainParament.money_start,mainParament.date_start,mainParament.date_end)

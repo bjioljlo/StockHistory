@@ -7,6 +7,7 @@ import mplfinance as mpf
 show_volume = False
 
 PICS = []
+panelCount = 0
 
 def draw_stock(table,stockInfo):#table = 表 stockInfo = 股票資訊結構
     mc = mpf.make_marketcolors(up = 'r',down = 'g',edge = '',wick = 'inherit',volume = 'inherit')
@@ -24,14 +25,29 @@ def draw_KD(table,stockInfo):#table = 表 stockInfo = 股票資訊結構
     table['k'],table['d'] = talib.STOCH(table['High'],table['Low'],table['Close'])
     table['k'].fillna(value=0,inplace = True)
     table['d'].fillna(value=0,inplace = True)
-    PICS.append(mpf.make_addplot(table['k'],panel = 2,ylabel = "KD"))
-    PICS.append(mpf.make_addplot(table['d'],panel = 2))
+    global panelCount
+    panelCount = panelCount + 1
+    PICS.append(mpf.make_addplot(table['k'],panel = panelCount,ylabel = "KD"))
+    PICS.append(mpf.make_addplot(table['d'],panel = panelCount))
 def draw_Volume(table,stockInfo):#table = 表 stockInfo = 股票資訊結構
-    global show_volume
+    global show_volume,panelCount
     show_volume = True
+    panelCount = panelCount + 1
 def draw_RSI(table,stockInfo):#table = 表 stockInfo = 股票資訊結構
     mRSI = talib.RSI(np.array(table['Close']))
-    PICS.append(mpf.make_addplot(mRSI,panel = 3,ylabel = "RSI"))
+    global panelCount
+    panelCount = panelCount + 1
+    PICS.append(mpf.make_addplot(mRSI,panel = panelCount,ylabel = "RSI"))
+def draw_ADL(table):
+    global panelCount
+    panelCount = panelCount + 1
+    PICS.append(mpf.make_addplot(table,panel = panelCount,ylabel = "ADL"))
+    return
+    ax6 = plt.axes()
+    ax6.plot(table,label = 'ADL')
+    plt.xlabel('Date')
+    plt.title('ADL')
+    plt.show()
 def draw_monthRP(table,stockNum):
     axx = plt.axes()
     axx.plot(table['當月營收'],label = 'monthRP')
@@ -56,8 +72,9 @@ def draw_Show():
     plt.show()
 
 def Clear_PICS():
-    global PICS
+    global PICS,panelCount
     PICS = []
+    panelCount = 0
     
     
 
