@@ -3,6 +3,7 @@ from talib import abstract
 import numpy as np
 import matplotlib.pyplot as plt
 import mplfinance as mpf
+import tools
 
 show_volume = False
 
@@ -39,15 +40,22 @@ def draw_RSI(table,stockInfo):#table = 表 stockInfo = 股票資訊結構
     panelCount = panelCount + 1
     PICS.append(mpf.make_addplot(mRSI,panel = panelCount,ylabel = "RSI"))
 def draw_ADL(table):
+    PICS.append(mpf.make_addplot(table,panel = 0,ylabel = "ADL"))
+def draw_ADLs(table):
     global panelCount
     panelCount = panelCount + 1
-    PICS.append(mpf.make_addplot(table,panel = panelCount,ylabel = "ADL"))
-    return
-    ax6 = plt.axes()
-    ax6.plot(table,label = 'ADL')
-    plt.xlabel('Date')
-    plt.title('ADL')
-    plt.show()
+    table_fast = tools.smooth_Data(table,10)
+    table_slow = tools.smooth_Data(table,30)
+    PICS.append(mpf.make_addplot(table_fast,panel = panelCount))
+    PICS.append(mpf.make_addplot(table_slow,panel = panelCount))
+    PICS.append(mpf.make_addplot(table,panel = panelCount,ylabel = "ADLs"))
+def draw_MACD(table):
+    global panelCount
+    panelCount = panelCount + 1
+    macd, macdsignal, macdhist = talib.MACD(table['Close'])
+    PICS.append(mpf.make_addplot(macd,panel = panelCount,ylabel = 'MACD'))
+    PICS.append(mpf.make_addplot(macdsignal,panel = panelCount))
+    PICS.append(mpf.make_addplot(macdhist,type = 'bar',panel = panelCount))
 def draw_monthRP(table,stockNum):
     axx = plt.axes()
     axx.plot(table['當月營收'],label = 'monthRP')

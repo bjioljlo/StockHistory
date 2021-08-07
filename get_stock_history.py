@@ -371,7 +371,36 @@ def get_ADL_index(date,ADL_yesterday):#取得騰落數值
         return None
     ADL_today = ADL_today['上漲'] - ADL_today['下跌']
     return ADL_yesterday + ADL_today[date]
-
+def get_ADLs_index(date):#取得騰落百分比
+    ADLs_today = get_stock_AD_index(date)
+    if ADLs_today.empty == True:
+        return None
+    ADLs_today = (ADLs_today['上漲']/(ADLs_today['上漲']+ADLs_today['下跌'])) - 0.5
+    return float(ADLs_today)
+    
+#取得騰落進階指標資料
+def get_ADLs(start_time,end_time):
+    now_time = start_time
+    data = pd.DataFrame(columns = ['Date','ADLs']).set_index('Date')
+    while now_time <= end_time:
+        #週末直接跳過
+        if now_time.isoweekday() in [6,7]:
+            print(str(now_time) + 'is 星期' + str(now_time.isoweekday()))
+            now_time = tools.backWorkDays(now_time,-1)#加一天
+            continue
+        #先看看台積有沒有資料，如果沒有表示這天是非週末假日跳過 
+        if get_stock_price(2330,now_time,stock_data_kind.AdjClose) == None:
+            print(str(now_time) + "這天沒開市")
+            now_time = tools.backWorkDays(now_time,-1)#加一天
+            continue
+        ADLs_value = get_ADLs_index(now_time)
+        if ADLs_value == None:
+            now_time = tools.backWorkDays(now_time,-1)#加一天
+            continue
+        temp_data = pd.DataFrame({'Date':[now_time],'ADLs':[ADLs_value]}).set_index('Date')
+        data = data.append(temp_data)
+        now_time = tools.backWorkDays(now_time,-1)
+    return data
 
 #取得騰落指標資料
 def get_ADL(start_time,end_time):
@@ -399,7 +428,7 @@ def get_ADL(start_time,end_time):
         temp_data = pd.DataFrame({'Date':[now_time],'ADL':[ADL_value]}).set_index('Date')
         data = data.append(temp_data)
         ADL_yesterday = ADL_value
-        now_time = tools.backWorkDays(now_time,-1) 
+        now_time = tools.backWorkDays(now_time,-1)
     return data
 
 #取得月營收逐步升高的篩選資料
@@ -702,8 +731,8 @@ def financial_statement(year, season, type):#year = 年 season = 季 type = 財�
         df = translate_dataFrame(response.text)
     else:
         df = translate_dataFrame2(response.text,type,myear,season)
-        
-    df.to_csv(str(year)+"-season"+str(season)+"-"+type.value+".csv",index=False)
+
+    df.to_csv(filePath + "/" + fileName_season + "/" + str(year)+"-season"+str(season)+"-"+type.value+".csv",index=False)
     # 偽停頓
     time.sleep(5)
 def remove_td(column):

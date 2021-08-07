@@ -401,19 +401,6 @@
      <string>顯示RSI</string>
     </property>
    </widget>
-   <widget class="QPushButton" name="button_getADindex">
-    <property name="geometry">
-     <rect>
-      <x>370</x>
-      <y>310</y>
-      <width>113</width>
-      <height>32</height>
-     </rect>
-    </property>
-    <property name="text">
-     <string>騰落指標</string>
-    </property>
-   </widget>
    <widget class="QCheckBox" name="check_ADL">
     <property name="geometry">
      <rect>
@@ -425,6 +412,32 @@
     </property>
     <property name="text">
      <string>顯示ADL</string>
+    </property>
+   </widget>
+   <widget class="QCheckBox" name="check_ADLs">
+    <property name="geometry">
+     <rect>
+      <x>410</x>
+      <y>180</y>
+      <width>87</width>
+      <height>20</height>
+     </rect>
+    </property>
+    <property name="text">
+     <string>顯示ADLs</string>
+    </property>
+   </widget>
+   <widget class="QCheckBox" name="check_MACD">
+    <property name="geometry">
+     <rect>
+      <x>320</x>
+      <y>180</y>
+      <width>87</width>
+      <height>20</height>
+     </rect>
+    </property>
+    <property name="text">
+     <string>顯示MACD</string>
     </property>
    </widget>
   </widget>

@@ -1,10 +1,13 @@
 import pandas as pd
 import numpy as np
 import datetime
+
+import talib
 import get_stock_history
 import tools
 import draw_figur
 import get_user_info
+import get_stock_info
 
 bool_check_monthRP_pick = False
 bool_check_PER_pick = False
@@ -352,3 +355,110 @@ def backtest_Record_high(mainParament):
     userInfo.Temp_result_draw.to_csv('backtestdata.csv')
     userInfo.Temp_trade_info.to_csv('backtesttrade.csv')
     Temp_alldata.to_csv('backtestAll.csv')
+#KD值選股 https://www.finlab.tw/%e7%94%a8kd%e5%80%bc%e9%81%b8%e8%82%a1%ef%bc%9a%e9%82%84%e9%9c%80%e6%90%ad%e9%85%8d%e9%80%99%e4%b8%89%e7%a8%ae%e6%8c%87%e6%a8%99/
+def backtest_KD_pick(mainParament):
+    userInfo = get_user_info.data_user_info(mainParament.money_start,mainParament.date_start,mainParament.date_end)
+    Temp_result_pick = pd.DataFrame(columns=['date','選股數量'])
+    Temp_table = get_stock_history.get_stock_history(2330,userInfo.start_day,reGetInfo = False,UpdateInfo = False)
+    All_stock_signal = dict()
+    for key,value in get_stock_info.ts.codes.items():
+        if value.market == "上市" and len(value.code) == 4:
+            if get_stock_history.check_no_use_stock(value.code) == True:
+                print('get_stock_price: ' + str(value.code) + ' in no use')
+                continue
+            table = get_stock_history.get_stock_history(value.code,userInfo.start_day,reGetInfo = False,UpdateInfo = False)
+            table_K,table_D = talib.STOCH(table['High'],table['Low'],table['Close'],fastk_period=50, slowk_period=20, slowk_matype=0, slowd_period=20, slowd_matype=0)
+            table_sma10 = talib.SMA(np.array(table['Close']), 10)
+            table_sma240 = talib.SMA(np.array(table['Close']), 240)
+            signal_buy = (table_K > table_D)
+            signal_sell = (table_K < table_D)
+            signal_sma10 = table.Close < table_sma10
+            signal_sma240 = table.Close > table_sma240
+            signal = signal_buy.copy()
+            signal = (signal_sma10 & signal_sma240 & signal_buy)
+            signal[signal_sell] = -1
+            All_stock_signal[value.code] = signal
+    ROE_record_day = datetime.datetime(2000,1,1)
+    buy_data = pd.DataFrame(columns = ['Date','公司代號']).set_index('Date')
+    sell_data = pd.DataFrame(columns = ['Date','公司代號']).set_index('Date')
+    ROE_data = {}
+    jump_day = 240
+    for index,row in Temp_table.iterrows():
+        while userInfo.now_day < index:
+            userInfo.add_one_day()
+        if jump_day > 0:
+            jump_day = jump_day - 1
+            continue
+        if ROE_record_day <= index:
+            ROE_data = {}
+            ROE_record_day = tools.changeDateMonth(index,1)
+            BOOK_data = get_stock_history.get_allstock_financial_statement(tools.changeDateMonth(index,-3),get_stock_history.FS_type.BS)
+            CPL_data = get_stock_history.get_allstock_financial_statement(tools.changeDateMonth(index,-3),get_stock_history.FS_type.CPL)
+            ROE_data["ROE_data_1"] = pd.DataFrame({'ROE_data_1':(CPL_data["本期綜合損益總額（稅後）"]/BOOK_data['權益總額'])*100})
+            BOOK_data = get_stock_history.get_allstock_financial_statement(tools.changeDateMonth(index,-6),get_stock_history.FS_type.BS)
+            CPL_data = get_stock_history.get_allstock_financial_statement(tools.changeDateMonth(index,-6),get_stock_history.FS_type.CPL)
+            ROE_data["ROE_data_2"]  = pd.DataFrame({'ROE_data_2':(CPL_data["本期綜合損益總額（稅後）"]/BOOK_data['權益總額'])*100})
+            BOOK_data = get_stock_history.get_allstock_financial_statement(tools.changeDateMonth(index,-9),get_stock_history.FS_type.BS)
+            CPL_data = get_stock_history.get_allstock_financial_statement(tools.changeDateMonth(index,-9),get_stock_history.FS_type.CPL)
+            ROE_data["ROE_data_3"]  = pd.DataFrame({'ROE_data_3':(CPL_data["本期綜合損益總額（稅後）"]/BOOK_data['權益總額'])*100})
+            BOOK_data = get_stock_history.get_allstock_financial_statement(tools.changeDateMonth(index,-12),get_stock_history.FS_type.BS)
+            CPL_data = get_stock_history.get_allstock_financial_statement(tools.changeDateMonth(index,-12),get_stock_history.FS_type.CPL)
+            ROE_data["ROE_data_4"]  = pd.DataFrame({'ROE_data_4':(CPL_data["本期綜合損益總額（稅後）"]/BOOK_data['權益總額'])*100})
+            mask = tools.MixDataFrames(ROE_data)
+            
+            ROE_data_result =(mask["ROE_data_1"]+mask["ROE_data_2"]+mask["ROE_data_3"]+mask["ROE_data_4"])/4
+            ROE_data_result = ROE_data_result.dropna()
+            ROE_data = mask["ROE_data_1"]> ROE_data_result
+        buy_numbers = []
+        sell_numbers = []
+        for i,value in All_stock_signal.items():
+            try:
+                if value[index] == True:
+                    if ROE_data.index.__contains__(int(i)):
+                        if ROE_data[int(i)] == True:
+                            buy_numbers.append(i)
+                elif value[index] < 0 :
+                    sell_numbers.append(i)
+            except:
+                #print('error:' + str(index) + ' at ' + str(i))
+                continue
+        #出場訊號篩選--------------------------------------
+        if len(userInfo.handle_stock) > 0:
+            Temp_data = userInfo.handle_stock
+            for key,value in list(Temp_data.items()):
+                if sell_numbers.__contains__(key):
+                    userInfo.sell_stock(key,value.amount)
+        #入場訊號篩選--------------------------------------
+        if len(buy_numbers) > 0:
+            Temp_buy = pd.DataFrame(columns={'公司代號','volume'})
+            for number in buy_numbers:
+                volume = get_stock_history.get_stock_price(number,tools.DateTime2String(userInfo.now_day),get_stock_history.stock_data_kind.Volume)
+                Temp_buy = Temp_buy.append({'公司代號':number,'volume':volume},ignore_index = True)
+            Temp_buy = Temp_buy.sort_values(by='volume', ascending=False).set_index('公司代號')
+            userInfo.buy_all_stock(Temp_buy)
+            
+        if len(buy_numbers) != 0:
+            buy_data = buy_data.append({'Date':index,'公司代號':buy_numbers},ignore_index = True)
+        if len(sell_numbers) != 0:
+            sell_data = sell_data.append({'Date':index,'公司代號':sell_numbers},ignore_index = True)
+        #更新資訊--------------------------------------
+        userInfo.Record_userInfo()
+        userInfo.Recod_tradeInfo()
+        Temp_result_pick = Temp_result_pick.append({'date':userInfo.now_day,
+                                                '選股數量':len(buy_numbers)},ignore_index = True)
+    buy_data = buy_data.set_index('Date')
+    buy_data.to_csv('buy.csv')
+    sell_data = sell_data.set_index('Date')
+    sell_data.to_csv('sell.csv')
+    #最後總結算----------------------------
+    Temp_result_pick.set_index('date',inplace=True)
+    Temp_alldata = tools.MixDataFrames({'draw':userInfo.Temp_result_draw,'pick':Temp_result_pick},'date')
+    draw_figur.draw_backtest(userInfo.Temp_result_draw.set_index('date'))
+    Temp_alldata = tools.MixDataFrames({'all':Temp_alldata,'userinfo':userInfo.Temp_result_All},'date')
+    
+    userInfo.Temp_result_draw.set_index('date').to_csv('backtestdata.csv')
+    userInfo.Temp_trade_info.set_index('date').to_csv('backtesttrade.csv')
+    Temp_alldata.set_index('date').to_csv('backtestAll.csv')   
+        
+
+

@@ -88,6 +88,13 @@ def Check_ADL_isCheck():
     if myshow.check_ADL.isChecked() == True:
         Data_ADL = get_stock_history.get_ADL(tools.QtDate2DateTime(myshow.date_startDate.date()),tools.QtDate2DateTime(myshow.date_endDate.date()))
         df.draw_ADL(Data_ADL)
+def Check_ADLs_isCheck():
+    if myshow.check_ADLs.isChecked() == True:
+        Data_ADLs = get_stock_history.get_ADLs(tools.QtDate2DateTime(myshow.date_startDate.date()),tools.QtDate2DateTime(myshow.date_endDate.date()))
+        df.draw_ADLs(Data_ADLs)
+def Check_MACD_isCheck(m_history):
+    if myshow.check_MACD.isChecked() == True:
+        df.draw_MACD(m_history)
 def button_getStockHistory():
     #存更新日期
     date = myshow.date_startDate.date()
@@ -121,6 +128,8 @@ def button_getStockHistory():
         check_BollingerBands_isCheck(m_history,get_stock_info.Get_stock_info(stock_number))
         check_RSI_isCheck(m_history,get_stock_info.Get_stock_info(stock_number))
         Check_ADL_isCheck()
+        Check_ADLs_isCheck()
+        Check_MACD_isCheck(m_history)
         check_price_isCheck(m_history,get_stock_info.Get_stock_info(stock_number))#壹定要在最後面檢查 
     #df.draw_Show()
 def button_openPickWindow_click():
@@ -173,9 +182,6 @@ def button_moveToInputFromPick_click():
         data = mModel.item(Index.row(),0).text()
         text = str(data)
         myshow.input_stockNumber.setPlainText(text)
-def button_getADindex_click():
-    Data_ADL = get_stock_history.get_ADL(tools.QtDate2DateTime(myshow.date_startDate.date()),tools.QtDate2DateTime(myshow.date_endDate.date()))
-    df.draw_ADL(Data_ADL)
 
 def button_monthRP_click():#某股票月營收曲線
     if (myshow.input_stockNumber.toPlainText() == ''):
@@ -302,7 +308,15 @@ def button_backtest_click4():#創新高
                                 mybacktest.check_PBR_pick.isChecked(),
                                 mybacktest.check_ROE_pick.isChecked())
     backtest_stock.backtest_Record_high(BackTestParameter())
-
+def button_backtest_click5():#KD篩選
+    backtest_stock.set_check(mybacktest.check_monthRP_pick.isChecked(),
+                                mybacktest.check_PER_pick.isChecked(),
+                                mybacktest.check_volume_pick.isChecked(),
+                                mybacktest.check_pickOneStock.isChecked(),
+                                mybacktest.check_price_pick.isChecked(),
+                                mybacktest.check_PBR_pick.isChecked(),
+                                mybacktest.check_ROE_pick.isChecked())
+    backtest_stock.backtest_KD_pick(BackTestParameter())
 #取得月營收的資料
 def get_monthRP(date_end,date_start,Number):#end = 後面時間 start = 前面時間 Number = 股票號碼
     date_end_str = str(date_end.year()) + '-' + str(date_end.month()) + '-' + str(date_end.day())
@@ -456,7 +470,6 @@ def Init_mainWindow():#初始化mainwindow
     myshow.button_getStockHistory.clicked.connect(button_getStockHistory)#設定button功能
     myshow.button_openPickWindow.clicked.connect(button_openPickWindow_click)#設定button功能
     myshow.button_getMonthRP.clicked.connect(button_monthRP_click)#設定button功能
-    myshow.button_getADindex.clicked.connect(button_getADindex_click)#設定button功能
     #設定日期
     Date = datetime.datetime.strptime(get_stock_info.Update_date[0:10],"%Y-%m-%d")
     date = QtCore.QDate(Date.year,Date.month,Date.day)
@@ -497,6 +510,7 @@ def Init_backtestWindow():#初始化回測畫面
     mybacktest.button_backtest_2.clicked.connect(button_backtest_click2)
     mybacktest.button_backtest_3.clicked.connect(button_backtest_click3)
     mybacktest.button_backtest_4.clicked.connect(button_backtest_click4)
+    mybacktest.button_backtest_5.clicked.connect(button_backtest_click5)
     date = QtCore.QDate(datetime.datetime.today().year,datetime.datetime.today().month,datetime.datetime.today().day) 
 
     mybacktest.date_end.setMaximumDate(date)

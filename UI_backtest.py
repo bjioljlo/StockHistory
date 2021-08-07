@@ -369,6 +369,9 @@ class Ui_MainWindow3(object):
         self.label_30.setGeometry(QtCore.QRect(0, 140, 101, 16))
         self.label_30.setAlignment(QtCore.Qt.AlignCenter)
         self.label_30.setObjectName("label_30")
+        self.button_backtest_5 = QtWidgets.QPushButton(self.centralwidget)
+        self.button_backtest_5.setGeometry(QtCore.QRect(420, 450, 131, 32))
+        self.button_backtest_5.setObjectName("button_backtest_5")
         MainWindow3.setCentralWidget(self.centralwidget)
         self.menubar = QtWidgets.QMenuBar(MainWindow3)
         self.menubar.setGeometry(QtCore.QRect(0, 0, 800, 22))
@@ -418,5 +421,6 @@ class Ui_MainWindow3(object):
         self.label_29.setText(_translate("MainWindow3", "號為購買日"))
         self.button_backtest_4.setText(_translate("MainWindow3", "開始創新高回測"))
         self.label_30.setText(_translate("MainWindow3", "幾天內創新高"))
+        self.button_backtest_5.setText(_translate("MainWindow3", "開始KD值回測"))
 
 
