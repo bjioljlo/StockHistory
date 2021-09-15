@@ -1,3 +1,4 @@
+from time import time
 from PyQt5 import QtWidgets
 from PyQt5.QtGui import QStandardItemModel
 from PyQt5.QtCore import Qt
@@ -9,16 +10,17 @@ import sys
 import datetime
 import get_stock_info
 import get_stock_history
-import matplotlib.pyplot as plt
 import draw_figur as df
 import pandas as pd
 import tools
 import backtest_stock
+import threading
 
 main_titalList = ["股票號碼","股票名稱"]
 pick_titalList = ["股票號碼","股票名稱","每股參考淨值","基本每股盈餘（元）",
                 "毛利率(%)","營業利益率(%)","資產總額","負債總額","股本",
                 "權益總額","本期綜合損益總額（稅後）","PBR","PER","ROE","殖利率"]
+lock = threading.Lock()
 
 class BackTestParameter():
     def __init__(self):
@@ -105,16 +107,10 @@ def button_getStockHistory():
             m_history = get_stock_history.get_stock_history(key,str_date)
         return
     elif myshow.input_stockNumber.toPlainText() == "Update":
-        for key,value in get_stock_info.ts.codes.items():
-            if value.market == "上市" and len(value.code) == 4:
-                if get_stock_history.check_no_use_stock(value.code) == True:
-                    print('get_stock_price: ' + str(value.code) + ' in no use')
-                    continue
-                m_history = get_stock_history.get_stock_history(value.code,str_date)
-                print("get " + str(value.code) + " info susess!")
-        #存更新日期
-        get_stock_info.Update_date = str(datetime.datetime.today())[0:10]
-        get_stock_info.Save_Update_date()
+        str_date = [str_date]
+        new_thread = threading.Thread(target=Update_StockData_threading,args=str_date)
+        new_thread.setDaemon(True)
+        new_thread.start()
         return  
     else:
         stock_number = myshow.input_stockNumber.toPlainText()
@@ -131,7 +127,7 @@ def button_getStockHistory():
         Check_ADLs_isCheck()
         Check_MACD_isCheck(m_history)
         check_price_isCheck(m_history,get_stock_info.Get_stock_info(stock_number))#壹定要在最後面檢查 
-    #df.draw_Show()
+
 def button_openPickWindow_click():
         mypick.show()
 def button_openBackWindow_click():
@@ -461,7 +457,20 @@ def add_stock_List(model,stockNum,stockName,rowNum,array = None):
     if array != None:
         for i in range(len(array)):
             model.setData(model.index(rowNum,i+2),array[i])
-    
+def Update_StockData_threading(str_date):
+    lock.acquire()
+    for key,value in get_stock_info.ts.codes.items():
+        if value.market == "上市" and len(value.code) == 4:
+            if get_stock_history.check_no_use_stock(value.code) == True:
+                print('get_stock_price: ' + str(value.code) + ' in no use')
+                continue
+            m_history = get_stock_history.get_stock_history(value.code,str_date)
+            print("get " + str(value.code) + " info susess!")
+    #存更新日期
+    get_stock_info.Update_date = str(datetime.datetime.today())[0:10]
+    get_stock_info.Save_Update_date()    
+    lock.acquire()
+
 def Init_mainWindow():#初始化mainwindow
     myshow.button_addStock.clicked.connect(button_addStock_click)#設定button功能
     myshow.button_deletStock.clicked.connect(button_deletStock_click)#設定button功能
@@ -470,6 +479,8 @@ def Init_mainWindow():#初始化mainwindow
     myshow.button_getStockHistory.clicked.connect(button_getStockHistory)#設定button功能
     myshow.button_openPickWindow.clicked.connect(button_openPickWindow_click)#設定button功能
     myshow.button_getMonthRP.clicked.connect(button_monthRP_click)#設定button功能
+    myshow.button_runMysql.clicked.connect(tools.RunMysql)#設定button功能
+    myshow.button_stopMysql.clicked.connect(tools.stopThread)#設定button功能
     #設定日期
     Date = datetime.datetime.strptime(get_stock_info.Update_date[0:10],"%Y-%m-%d")
     date = QtCore.QDate(Date.year,Date.month,Date.day)
@@ -480,6 +491,7 @@ def Init_mainWindow():#初始化mainwindow
     myshow.date_endDate.setMaximumDate(today)
     myshow.date_endDate.setMinimumDate(QtCore.QDate(2001,1,1))
     myshow.date_endDate.setDate(date)
+    
 def Init_pickWindow():#初始化挑股票畫面
     mypick.button_pick.clicked.connect(button_pick_click)#設定button功能
     mypick.button_moveToInput.clicked.connect(button_moveToInputFromPick_click)#設定button功能
@@ -544,7 +556,7 @@ def Init_backtestWindow():#初始化回測畫面
     mybacktest.input_buyDay.setPlainText('15')
     mybacktest.input_RecordHigh.setPlainText('60')
     
-    
+
 
 
 app = QtWidgets.QApplication(sys.argv)
@@ -558,4 +570,6 @@ Init_backtestWindow()
 #從這中間加ＵＩ設定---------------
 myshow.show()
 sys.exit(app.exec_())
+
+
 

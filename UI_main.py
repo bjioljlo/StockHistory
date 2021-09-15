@@ -125,6 +125,12 @@ class Ui_MainWindow(object):
         self.check_MACD = QtWidgets.QCheckBox(self.centralwidget)
         self.check_MACD.setGeometry(QtCore.QRect(320, 180, 87, 20))
         self.check_MACD.setObjectName("check_MACD")
+        self.button_runMysql = QtWidgets.QPushButton(self.centralwidget)
+        self.button_runMysql.setGeometry(QtCore.QRect(320, 480, 113, 32))
+        self.button_runMysql.setObjectName("button_runMysql")
+        self.button_stopMysql = QtWidgets.QPushButton(self.centralwidget)
+        self.button_stopMysql.setGeometry(QtCore.QRect(430, 470, 113, 32))
+        self.button_stopMysql.setObjectName("button_stopMysql")
         MainWindow.setCentralWidget(self.centralwidget)
         self.menubar = QtWidgets.QMenuBar(MainWindow)
         self.menubar.setGeometry(QtCore.QRect(0, 0, 550, 22))
@@ -162,5 +168,7 @@ class Ui_MainWindow(object):
         self.check_ADL.setText(_translate("MainWindow", "顯示ADL"))
         self.check_ADLs.setText(_translate("MainWindow", "顯示ADLs"))
         self.check_MACD.setText(_translate("MainWindow", "顯示MACD"))
+        self.button_runMysql.setText(_translate("MainWindow", "開啟mysql"))
+        self.button_stopMysql.setText(_translate("MainWindow", "關閉mysql"))
 
 

@@ -1,6 +1,18 @@
-import datetime
+
+from datetime import datetime
 import random
 import pandas as pd
+import threading
+from sqlalchemy.ext.declarative import declarative_base
+import twstock as ts
+from pandas_datareader import data
+import schedule
+import yfinance as yf
+import time
+from flask import Flask
+from flask_sqlalchemy import SQLAlchemy
+MySql_server = SQLAlchemy
+threads = []
 
 def changeDateMonth(date,change_month):
     temp_month = date.month + change_month
@@ -89,4 +101,101 @@ def Total_with_Handling_fee_and_Tax(stock_price,amount,buyIn = True,persent = 0.
         return (stock_price * amount) + ((stock_price * amount)*((persent)/100))#買入
 def Count_Stock_Amount(money,price):#計算你可以買多少股      
     return (int)(money/(price*(100.1425/100)))
+
+
+def RunSchedule(func):
+    # 每天9:30執行任務
+    schedule.every().day.at('16:16').do(func)
+    temp_thread = threading.Thread(target=ScheduleStart)
+    temp_thread.start()
+    threads.append(temp_thread)
+def ScheduleStart():
+    t = threading.currentThread()
+    while getattr(t, "do_run", True):
+        schedule.run_pending()
+        time.sleep(0.5)
+
+def RunMysql():
+    temp_thread = threading.Thread(target=setMysqlServer)
+    temp_thread.start()
+    RunSchedule(runUpdate)
+
+def setMysqlServer():
+    global MySql_server
+    server_flask = Flask(__name__)#初始化server
+    #設定mysql DB
+    server_flask.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+    server_flask.config['SQLALCHEMY_DATABASE_URI'] = "mysql+pymysql://" + "demo" + ":" + "demo123" + "@" + "122.116.102.141" + ":"+ "3307" +"/"+"demo"
+    #連線mysql DB
+    MySql_server = SQLAlchemy(server_flask)
     
+
+def runUpdate():
+    print("Update all stocks start!")
+    df = pd.DataFrame()
+    for key,value in ts.codes.items():
+        if value.market == "上市" and len(value.code) == 4:
+            try:
+                deleteStockDayTable(str(value.code+".TW"))
+            except:
+                print("SQL No Table:" + str(value.code+".TW"))
+            
+            #SQL沒資料抓取一整包
+            yf.pdr_override()
+            start_date = datetime(2005,1,1)
+            end_date = datetime.today()#設定資料起訖日期
+            df = data.get_data_yahoo([value.code+".TW"], start_date, end_date,index_col=0)
+            if df.empty:
+                print("yahoo no data:" + str(value.code+".TW"))
+                continue
+            df.to_sql(name=value.code+".TW",con=MySql_server.engine)
+            print("Update stocks " + value.code+".TW" + " OK!")
+    #dataframe = pd.read_sql(sql = "2330.TW",con=MySql_server.engine,index_col='Date')
+    #print(dataframe)
+    print("Update all stocks end!")
+
+def stopThread():
+    for thread in threads:
+        thread.do_run = False
+    print("thread all stop")
+def readStockDay(name):
+    dataframe = pd.DataFrame()
+    try:
+        dataframe = pd.read_sql(sql = name,con=MySql_server.engine,index_col='Date')
+        return dataframe
+    except Exception as e:
+        print('SQL Error {}'.format(e.args))
+
+def readStockDay(name):
+    dataframe = pd.DataFrame()
+    try:
+        dataframe = pd.read_sql(sql = name,con=MySql_server.engine,index_col='Date')
+        return dataframe
+    except Exception as e:
+        print('SQL Error {}'.format(e.args))
+
+def deleteStockDayTable(name):
+    DynamicBase = declarative_base(class_registry=dict())
+    class StockDayInfo(DynamicBase,MySql_server.Model):
+        __tablename__ = ""
+        Date = MySql_server.Column(MySql_server.DateTime, primary_key=True)
+        Open = MySql_server.Column(MySql_server.Float)
+        High = MySql_server.Column(MySql_server.Float)
+        Low = MySql_server.Column(MySql_server.Float)
+        Close = MySql_server.Column(MySql_server.Float)
+        AdjClose = MySql_server.Column(MySql_server.Float)
+        Volume = MySql_server.Column(MySql_server.Integer)
+        def __init__(self,name,Date,Open,High,Low,Close,AdjClose,Volume):
+            self.__tablename__ = name
+            self.Date = Date
+            self.Open = Open
+            self.High = High
+            self.Low = Low
+            self.Close = Close
+            self.AdjClose = AdjClose
+            self.Volume = Volume
+    
+    temp_table = StockDayInfo.__table__
+    temp_table.name = name
+    StockDayInfo.__table__ = temp_table
+    StockDayInfo.__table__.drop(MySql_server.session.bind)
