@@ -11,7 +11,7 @@ import yfinance as yf
 import time
 from flask import Flask
 from flask_sqlalchemy import SQLAlchemy
-MySql_server = SQLAlchemy
+MySql_server = None
 threads = []
 
 def changeDateMonth(date,change_month):
@@ -104,11 +104,11 @@ def Count_Stock_Amount(money,price):#計算你可以買多少股
 
 
 def RunSchedule(func):
-    # 每天9:30執行任務
-    schedule.every().day.at('16:16').do(func)
+    schedule.every().day.at(str(datetime.today().hour)+ ":" + str(datetime.today().minute + 1)).do(func)
     temp_thread = threading.Thread(target=ScheduleStart)
     temp_thread.start()
     threads.append(temp_thread)
+
 def ScheduleStart():
     t = threading.currentThread()
     while getattr(t, "do_run", True):
@@ -118,6 +118,8 @@ def ScheduleStart():
 def RunMysql():
     temp_thread = threading.Thread(target=setMysqlServer)
     temp_thread.start()
+
+def RunScheduleNow():
     RunSchedule(runUpdate)
 
 def setMysqlServer():
@@ -154,17 +156,10 @@ def runUpdate():
     #print(dataframe)
     print("Update all stocks end!")
 
-def stopThread():
+def stopThreadSchedule():
     for thread in threads:
         thread.do_run = False
     print("thread all stop")
-def readStockDay(name):
-    dataframe = pd.DataFrame()
-    try:
-        dataframe = pd.read_sql(sql = name,con=MySql_server.engine,index_col='Date')
-        return dataframe
-    except Exception as e:
-        print('SQL Error {}'.format(e.args))
 
 def readStockDay(name):
     dataframe = pd.DataFrame()

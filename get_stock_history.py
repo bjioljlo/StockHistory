@@ -220,7 +220,7 @@ def get_stock_history(number,start,reGetInfo = False,UpdateInfo = True):#爬某�
         start_time  = datetime.datetime.strptime(start,"%Y-%m-%d")
     if type(number) != str:
         number = str(number)
-    data_time = datetime.datetime.strptime('2000-1-1',"%Y-%m-%d")
+    data_time = datetime.datetime.strptime('2005-1-1',"%Y-%m-%d")
     now_time = datetime.datetime.today()
     result = pd.DataFrame()
     if UpdateInfo == False:
@@ -234,36 +234,18 @@ def get_stock_history(number,start,reGetInfo = False,UpdateInfo = True):#爬某�
         print('日期請大於西元2000年')
         return
 
-    if os.path.isfile(filePath +'/' + fileName_stockInfo  + '/' + str(number) + '_' + '2000-1-1' +
+    m_history = load_stock_file(filePath +'/' + fileName_stockInfo  + '/' + str(number) + '_' + '2000-1-1' +
+                                                            '_' +
+                                                            str(now_time.year) +
+                                                            '-' + str(now_time.month) + 
+                                                            '-' + str(now_time.day),str(number))
+    
+    if m_history.empty == None:
+        if os.path.isfile(filePath +'/' + fileName_stockInfo  + '/' + str(number) + '_' + '2000-1-1' +
                                                             '_' +
                                                             str(now_time.year) +
                                                             '-' + str(now_time.month) + 
                                                             '-' + str(now_time.day) + '.csv') == False:
-        base_time = datetime.datetime.strptime('1970-1-1',"%Y-%m-%d")
-        data_time  = datetime.datetime.strptime('2000-1-1',"%Y-%m-%d")
-        period1 = (data_time - base_time).total_seconds()
-        period2 = (now_time - base_time).total_seconds()
-        period1 = int(period1)
-        period2 = int(period2)
-        site = "https://query1.finance.yahoo.com/v7/finance/download/" + str(number) +".TW?period1="+str(period1)+"&period2="+str(period2)+"&interval=1d&events=history&crumb=hP2rOschxO0"
-        response = requests.get(site,headers = tools.get_random_Header())#post(site)
-        save_stock_file(filePath +'/' + fileName_stockInfo  + '/' + str(number) + '_' + '2000-1-1' +
-                                                            '_' +
-                                                            str(now_time.year) +
-                                                            '-' + str(now_time.month) + 
-                                                            '-' + str(now_time.day),response)
-        # 偽停頓
-        time.sleep(1.5)
-        #刪除原本資料
-        deleteDate = datetime.datetime.strptime(get_stock_info.Update_date[0:10],"%Y-%m-%d")
-        if deleteDate != now_time:
-            delet_stock_file(filePath +'/' + fileName_stockInfo  + '/' + str(number) + '_' + '2000-1-1' +
-                                                            '_' +
-                                                            str(deleteDate.year) +
-                                                            '-' + str(deleteDate.month) + 
-                                                            '-' + str(deleteDate.day)+ '.csv')
-    else:
-        if reGetInfo == True:
             base_time = datetime.datetime.strptime('1970-1-1',"%Y-%m-%d")
             data_time  = datetime.datetime.strptime('2000-1-1',"%Y-%m-%d")
             period1 = (data_time - base_time).total_seconds()
@@ -271,7 +253,7 @@ def get_stock_history(number,start,reGetInfo = False,UpdateInfo = True):#爬某�
             period1 = int(period1)
             period2 = int(period2)
             site = "https://query1.finance.yahoo.com/v7/finance/download/" + str(number) +".TW?period1="+str(period1)+"&period2="+str(period2)+"&interval=1d&events=history&crumb=hP2rOschxO0"
-            response = requests.get(site,tools.get_random_Header())#post(site)
+            response = requests.get(site,headers = tools.get_random_Header())#post(site)
             save_stock_file(filePath +'/' + fileName_stockInfo  + '/' + str(number) + '_' + '2000-1-1' +
                                                                 '_' +
                                                                 str(now_time.year) +
@@ -279,14 +261,37 @@ def get_stock_history(number,start,reGetInfo = False,UpdateInfo = True):#爬某�
                                                                 '-' + str(now_time.day),response)
             # 偽停頓
             time.sleep(1.5)
-
-
-    m_history = load_stock_file(filePath +'/' + fileName_stockInfo  + '/' + str(number) + '_' + '2000-1-1' +
+            #刪除原本資料
+            deleteDate = datetime.datetime.strptime(get_stock_info.Update_date[0:10],"%Y-%m-%d")
+        if deleteDate != now_time:
+            delet_stock_file(filePath +'/' + fileName_stockInfo  + '/' + str(number) + '_' + '2000-1-1' +
                                                             '_' +
-                                                            str(now_time.year) +
-                                                            '-' + str(now_time.month) + 
-                                                            '-' + str(now_time.day))
-    
+                                                            str(deleteDate.year) +
+                                                            '-' + str(deleteDate.month) + 
+                                                            '-' + str(deleteDate.day)+ '.csv')
+        else:
+            if reGetInfo == True:
+                base_time = datetime.datetime.strptime('1970-1-1',"%Y-%m-%d")
+                data_time  = datetime.datetime.strptime('2000-1-1',"%Y-%m-%d")
+                period1 = (data_time - base_time).total_seconds()
+                period2 = (now_time - base_time).total_seconds()
+                period1 = int(period1)
+                period2 = int(period2)
+                site = "https://query1.finance.yahoo.com/v7/finance/download/" + str(number) +".TW?period1="+str(period1)+"&period2="+str(period2)+"&interval=1d&events=history&crumb=hP2rOschxO0"
+                response = requests.get(site,tools.get_random_Header())#post(site)
+                save_stock_file(filePath +'/' + fileName_stockInfo  + '/' + str(number) + '_' + '2000-1-1' +
+                                                                    '_' +
+                                                                    str(now_time.year) +
+                                                                    '-' + str(now_time.month) + 
+                                                                    '-' + str(now_time.day),response)
+                # 偽停頓
+                time.sleep(1.5)
+        m_history = load_stock_file(filePath +'/' + fileName_stockInfo  + '/' + str(number) + '_' + '2000-1-1' +
+                                                                '_' +
+                                                                str(now_time.year) +
+                                                                '-' + str(now_time.month) + 
+                                                                '-' + str(now_time.day),str(number))
+        
     mask = m_history.index >= start
     result = m_history[mask]
     result = result.dropna(axis = 0,how = 'any')
@@ -304,10 +309,12 @@ def save_stock_file(fileName,stockData,start_index = 0,end_index = 0):#存下歷
             pos = stringText.index('\n')
             pos2 = stringText.rindex('\r\n""\r\n')
             f.writelines(stringText[pos + 1:pos2])
-def load_stock_file(fileName):#讀取歷史資料
+def load_stock_file(fileName,stockName = ''):#讀取歷史資料
     if fileName in load_memery:
         return load_memery[fileName]
     df = pd.read_csv(fileName + '.csv', index_col='Date', parse_dates=['Date'])
+    if stockName != '':
+        df = tools.readStockDay(stockName + '.TW')
     df = df.dropna(how='any',inplace=False)#將某些null欄位去除
     try:
         df['Volume'] = df['Volume'].astype('int')

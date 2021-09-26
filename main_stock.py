@@ -457,7 +457,8 @@ def add_stock_List(model,stockNum,stockName,rowNum,array = None):
     if array != None:
         for i in range(len(array)):
             model.setData(model.index(rowNum,i+2),array[i])
-def Update_StockData_threading(str_date):
+
+def Update_StockData_threading(str_date):#異步更新所有台股資料
     lock.acquire()
     for key,value in get_stock_info.ts.codes.items():
         if value.market == "上市" and len(value.code) == 4:
@@ -479,8 +480,8 @@ def Init_mainWindow():#初始化mainwindow
     myshow.button_getStockHistory.clicked.connect(button_getStockHistory)#設定button功能
     myshow.button_openPickWindow.clicked.connect(button_openPickWindow_click)#設定button功能
     myshow.button_getMonthRP.clicked.connect(button_monthRP_click)#設定button功能
-    myshow.button_runMysql.clicked.connect(tools.RunMysql)#設定button功能
-    myshow.button_stopMysql.clicked.connect(tools.stopThread)#設定button功能
+    myshow.button_runSchedule.clicked.connect(tools.RunScheduleNow)#設定button功能
+    myshow.button_stopSchedule.clicked.connect(tools.stopThreadSchedule)#設定button功能
     #設定日期
     Date = datetime.datetime.strptime(get_stock_info.Update_date[0:10],"%Y-%m-%d")
     date = QtCore.QDate(Date.year,Date.month,Date.day)
@@ -568,6 +569,7 @@ Init_mainWindow()
 Init_pickWindow()
 Init_backtestWindow()
 #從這中間加ＵＩ設定---------------
+tools.RunMysql()
 myshow.show()
 sys.exit(app.exec_())
 
