@@ -2,6 +2,7 @@
 from datetime import datetime
 import random
 import pandas as pd
+import requests
 import threading
 from sqlalchemy.ext.declarative import declarative_base
 import twstock as ts
@@ -99,12 +100,20 @@ def Total_with_Handling_fee_and_Tax(stock_price,amount,buyIn = True,persent = 0.
         if buyIn == False:#賣出
             return (stock_price * amount) - ((stock_price * amount)*((persent + 0.3)/100))
         return (stock_price * amount) + ((stock_price * amount)*((persent)/100))#買入
-def Count_Stock_Amount(money,price):#計算你可以買多少股      
+def Count_Stock_Amount(money,price):#計算你可以買多少股
     return (int)(money/(price*(100.1425/100)))
+def get_SP500_list():#取得S&P500股票清單
+    url = 'https://www.slickcharts.com/sp500'
+    response = requests.get(url,headers= get_random_Header())
+    data = pd.read_html(response.text)[0]
+    # 欄位『Symbol』就是股票代碼
+    stk_list = data.Symbol
+    # 用 replace 將符號進行替換
+    stk_list = data.Symbol.apply(lambda x: x.replace('.', '-'))
+    return stk_list
 
-
-def RunSchedule(func):
-    schedule.every().day.at(str(datetime.today().hour)+ ":" + str(datetime.today().minute + 1)).do(func)
+def RunSchedule(func,UpdateTime):
+    schedule.every().day.at(UpdateTime).do(func)
     temp_thread = threading.Thread(target=ScheduleStart)
     temp_thread.start()
     threads.append(temp_thread)
@@ -113,14 +122,15 @@ def ScheduleStart():
     t = threading.currentThread()
     while getattr(t, "do_run", True):
         schedule.run_pending()
-        time.sleep(0.5)
+        time.sleep(30)
 
 def RunMysql():
     temp_thread = threading.Thread(target=setMysqlServer)
     temp_thread.start()
 
 def RunScheduleNow():
-    RunSchedule(runUpdate)
+    RunSchedule(runUpdate,str(datetime.today().hour)+ ":" + str(datetime.today().minute + 1))
+    RunSchedule(RunUpdate_sp500,str(datetime.today().hour)+ ":" + str(datetime.today().minute + 1))
 
 def setMysqlServer():
     global MySql_server
@@ -152,8 +162,30 @@ def runUpdate():
                 continue
             df.to_sql(name=value.code+".TW",con=MySql_server.engine)
             print("Update stocks " + value.code+".TW" + " OK!")
+    
     #dataframe = pd.read_sql(sql = "2330.TW",con=MySql_server.engine,index_col='Date')
     #print(dataframe)
+    print("Update all stocks end!")
+
+def RunUpdate_sp500():
+    print("Update all stocks start!")
+    sp500 = get_SP500_list()
+    for temp in sp500:
+        try:
+            deleteStockDayTable(temp)
+        except:
+            print("SQL No Table:" + str(temp))
+            
+        #SQL沒資料抓取一整包
+        yf.pdr_override()
+        start_date = datetime(2005,1,1)
+        end_date = datetime.today()#設定資料起訖日期
+        df = data.get_data_yahoo([temp], start_date, end_date,index_col=0)
+        if df.empty:
+            print("yahoo no data:" + str(temp))
+            continue
+        df.to_sql(name=temp,con=MySql_server.engine)
+        print("Update stocks " + temp + " OK!")
     print("Update all stocks end!")
 
 def stopThreadSchedule():
@@ -168,6 +200,7 @@ def readStockDay(name):
         return dataframe
     except Exception as e:
         print('SQL Error {}'.format(e.args))
+        return dataframe
 
 def deleteStockDayTable(name):
     DynamicBase = declarative_base(class_registry=dict())

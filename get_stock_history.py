@@ -240,7 +240,7 @@ def get_stock_history(number,start,reGetInfo = False,UpdateInfo = True):#爬某�
                                                             '-' + str(now_time.month) + 
                                                             '-' + str(now_time.day),str(number))
     
-    if m_history.empty == None:
+    if m_history.empty == True:
         if os.path.isfile(filePath +'/' + fileName_stockInfo  + '/' + str(number) + '_' + '2000-1-1' +
                                                             '_' +
                                                             str(now_time.year) +
@@ -312,9 +312,15 @@ def save_stock_file(fileName,stockData,start_index = 0,end_index = 0):#存下歷
 def load_stock_file(fileName,stockName = ''):#讀取歷史資料
     if fileName in load_memery:
         return load_memery[fileName]
-    df = pd.read_csv(fileName + '.csv', index_col='Date', parse_dates=['Date'])
+    df = pd.DataFrame()
     if stockName != '':
         df = tools.readStockDay(stockName + '.TW')
+    if df.empty == True:
+        try:
+            df = pd.read_csv(fileName + '.csv', index_col='Date', parse_dates=['Date'])
+        except:
+            print("no csv file")
+    
     df = df.dropna(how='any',inplace=False)#將某些null欄位去除
     try:
         df['Volume'] = df['Volume'].astype('int')

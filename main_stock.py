@@ -481,6 +481,7 @@ def Init_mainWindow():#初始化mainwindow
     myshow.button_openPickWindow.clicked.connect(button_openPickWindow_click)#設定button功能
     myshow.button_getMonthRP.clicked.connect(button_monthRP_click)#設定button功能
     myshow.button_runSchedule.clicked.connect(tools.RunScheduleNow)#設定button功能
+    #myshow.button_runSchedule.clicked.connect(tools.get_SP500_list)設定button功能
     myshow.button_stopSchedule.clicked.connect(tools.stopThreadSchedule)#設定button功能
     #設定日期
     Date = datetime.datetime.strptime(get_stock_info.Update_date[0:10],"%Y-%m-%d")
@@ -557,8 +558,6 @@ def Init_backtestWindow():#初始化回測畫面
     mybacktest.input_buyDay.setPlainText('15')
     mybacktest.input_RecordHigh.setPlainText('60')
     
-
-
 
 app = QtWidgets.QApplication(sys.argv)
 myshow = MyWindow()
