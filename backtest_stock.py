@@ -1,6 +1,6 @@
 import pandas as pd
 import numpy as np
-import datetime
+from datetime import datetime,timedelta
 
 import talib
 import get_stock_history
@@ -298,7 +298,7 @@ def backtest_Record_high(mainParament):
             if bool_check_ROE_pick == True:
                 Temp_result0['ROE'] = get_stock_history.get_ROE_range(userInfo.now_day,mainParament.ROE_start,mainParament.ROE_end)
             if bool_check_ROE_pick == True:
-                Temp_result0['ROE_last_seson'] = get_stock_history.get_ROE_range(userInfo.now_day - datetime.timedelta(weeks = 4),1,10000)
+                Temp_result0['ROE_last_seson'] = get_stock_history.get_ROE_range(userInfo.now_day - timedelta(weeks = 4),1,10000)
             Temp_result = tools.MixDataFrames(Temp_result0)
             
         #入場訊號篩選--------------------------------------

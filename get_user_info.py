@@ -1,4 +1,4 @@
-import datetime
+from datetime import datetime,timedelta
 from numpy import true_divide
 import pandas as pd
 import get_stock_history
@@ -47,7 +47,7 @@ class data_user_info():#使用者資訊
             self.Temp_trade_info = self.Temp_trade_info.set_index('date')
             return False
         else:
-            self.now_day = self.now_day + datetime.timedelta(days=1)#加一天
+            self.now_day = self.now_day + timedelta(days=1)#加一天
             return True
     def get_handle_stock(self):#手中股票總資料
         Temp = pd.DataFrame(columns = ['stock','number'])

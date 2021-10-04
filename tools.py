@@ -1,5 +1,5 @@
 
-from datetime import datetime
+from datetime import datetime,timedelta
 import random
 import pandas as pd
 import requests
@@ -62,12 +62,12 @@ def backWorkDays(date,days):#取得往後算days工作天後的日期
     input_date = date
     input_days = abs(days)
     if type(input_date) == str:
-        input_date = datetime.datetime.strptime(date,"%Y-%m-%d")
+        input_date = datetime.strptime(date,"%Y-%m-%d")
     while input_days > 0:
         if days < 0:
-            input_date = input_date + datetime.timedelta(days=1)#加一天
+            input_date = input_date + timedelta(days=1)#加一天
         else:
-            input_date = input_date - datetime.timedelta(days=1)#減一天
+            input_date = input_date - timedelta(days=1)#減一天
         
         if input_date.isoweekday() in [6,7]:
             continue
@@ -112,118 +112,118 @@ def get_SP500_list():#取得S&P500股票清單
     stk_list = data.Symbol.apply(lambda x: x.replace('.', '-'))
     return stk_list
 
-def RunSchedule(func,UpdateTime):
-    schedule.every().day.at(UpdateTime).do(func)
-    temp_thread = threading.Thread(target=ScheduleStart)
-    temp_thread.start()
-    threads.append(temp_thread)
+# def RunSchedule(func,UpdateTime):
+#     schedule.every().day.at(UpdateTime).do(func)
+#     temp_thread = threading.Thread(target=ScheduleStart)
+#     temp_thread.start()
+#     threads.append(temp_thread)
 
-def ScheduleStart():
-    t = threading.currentThread()
-    while getattr(t, "do_run", True):
-        schedule.run_pending()
-        time.sleep(30)
+# def ScheduleStart():
+#     t = threading.currentThread()
+#     while getattr(t, "do_run", True):
+#         schedule.run_pending()
+#         time.sleep(30)
 
-def RunMysql():
-    temp_thread = threading.Thread(target=setMysqlServer)
-    temp_thread.start()
+# def RunMysql():
+#     temp_thread = threading.Thread(target=setMysqlServer)
+#     temp_thread.start()
 
-def RunScheduleNow():
-    RunSchedule(runUpdate,str(datetime.today().hour)+ ":" + str(datetime.today().minute + 1))
-    RunSchedule(RunUpdate_sp500,str(datetime.today().hour)+ ":" + str(datetime.today().minute + 1))
+# def RunScheduleNow():
+#     RunSchedule(runUpdate,str(datetime.today().hour)+ ":" + str(datetime.today().minute + 1))
+#     RunSchedule(RunUpdate_sp500,str(datetime.today().hour)+ ":" + str(datetime.today().minute + 1))
 
-def setMysqlServer():
-    global MySql_server
-    server_flask = Flask(__name__)#初始化server
-    #設定mysql DB
-    server_flask.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-    server_flask.config['SQLALCHEMY_DATABASE_URI'] = "mysql+pymysql://" + "demo" + ":" + "demo123" + "@" + "122.116.102.141" + ":"+ "3307" +"/"+"demo"
-    #連線mysql DB
-    MySql_server = SQLAlchemy(server_flask)
+# def setMysqlServer():
+#     global MySql_server
+#     server_flask = Flask(__name__)#初始化server
+#     #設定mysql DB
+#     server_flask.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+#     server_flask.config['SQLALCHEMY_DATABASE_URI'] = "mysql+pymysql://" + "demo" + ":" + "demo123" + "@" + "122.116.102.141" + ":"+ "3307" +"/"+"demo"
+#     #連線mysql DB
+#     MySql_server = SQLAlchemy(server_flask)
     
 
-def runUpdate():
-    print("Update all stocks start!")
-    df = pd.DataFrame()
-    for key,value in ts.codes.items():
-        if value.market == "上市" and len(value.code) == 4:
-            try:
-                deleteStockDayTable(str(value.code+".TW"))
-            except:
-                print("SQL No Table:" + str(value.code+".TW"))
+# def runUpdate():
+#     print("Update all stocks start!")
+#     df = pd.DataFrame()
+#     for key,value in ts.codes.items():
+#         if value.market == "上市" and len(value.code) >= 4 and len(value.code) <= 5 and check_ETF_stock(value.code):
+#             try:
+#                 deleteStockDayTable(str(value.code+".TW"))
+#             except:
+#                 print("SQL No Table:" + str(value.code+".TW"))
             
-            #SQL沒資料抓取一整包
-            yf.pdr_override()
-            start_date = datetime(2005,1,1)
-            end_date = datetime.today()#設定資料起訖日期
-            df = data.get_data_yahoo([value.code+".TW"], start_date, end_date,index_col=0)
-            if df.empty:
-                print("yahoo no data:" + str(value.code+".TW"))
-                continue
-            df.to_sql(name=value.code+".TW",con=MySql_server.engine)
-            print("Update stocks " + value.code+".TW" + " OK!")
+#             #SQL沒資料抓取一整包
+#             yf.pdr_override()
+#             start_date = datetime(2005,1,1)
+#             end_date = datetime.today()#設定資料起訖日期
+#             df = data.get_data_yahoo([value.code+".TW"], start_date, end_date,index_col=0)
+#             if df.empty:
+#                 print("yahoo no data:" + str(value.code+".TW"))
+#                 continue
+#             df.to_sql(name=value.code+".TW",con=MySql_server.engine)
+#             print("Update stocks " + value.code+".TW" + " OK!")
     
-    #dataframe = pd.read_sql(sql = "2330.TW",con=MySql_server.engine,index_col='Date')
-    #print(dataframe)
-    print("Update all stocks end!")
+#     #dataframe = pd.read_sql(sql = "2330.TW",con=MySql_server.engine,index_col='Date')
+#     #print(dataframe)
+#     print("Update all stocks end!")
 
-def RunUpdate_sp500():
-    print("Update all stocks start!")
-    sp500 = get_SP500_list()
-    for temp in sp500:
-        try:
-            deleteStockDayTable(temp)
-        except:
-            print("SQL No Table:" + str(temp))
+# def RunUpdate_sp500():
+#     print("Update all stocks start!")
+#     sp500 = get_SP500_list()
+#     for temp in sp500:
+#         try:
+#             deleteStockDayTable(temp)
+#         except:
+#             print("SQL No Table:" + str(temp))
             
-        #SQL沒資料抓取一整包
-        yf.pdr_override()
-        start_date = datetime(2005,1,1)
-        end_date = datetime.today()#設定資料起訖日期
-        df = data.get_data_yahoo([temp], start_date, end_date,index_col=0)
-        if df.empty:
-            print("yahoo no data:" + str(temp))
-            continue
-        df.to_sql(name=temp,con=MySql_server.engine)
-        print("Update stocks " + temp + " OK!")
-    print("Update all stocks end!")
+#         #SQL沒資料抓取一整包
+#         yf.pdr_override()
+#         start_date = datetime(2005,1,1)
+#         end_date = datetime.today()#設定資料起訖日期
+#         df = data.get_data_yahoo([temp], start_date, end_date,index_col=0)
+#         if df.empty:
+#             print("yahoo no data:" + str(temp))
+#             continue
+#         df.to_sql(name=temp,con=MySql_server.engine)
+#         print("Update stocks " + temp + " OK!")
+#     print("Update all stocks end!")
 
-def stopThreadSchedule():
-    for thread in threads:
-        thread.do_run = False
-    print("thread all stop")
+# def stopThreadSchedule():
+#     for thread in threads:
+#         thread.do_run = False
+#     print("thread all stop")
 
-def readStockDay(name):
-    dataframe = pd.DataFrame()
-    try:
-        dataframe = pd.read_sql(sql = name,con=MySql_server.engine,index_col='Date')
-        return dataframe
-    except Exception as e:
-        print('SQL Error {}'.format(e.args))
-        return dataframe
+# def readStockDay(name):
+#     dataframe = pd.DataFrame()
+#     try:
+#         dataframe = pd.read_sql(sql = name,con=MySql_server.engine,index_col='Date')
+#         return dataframe
+#     except Exception as e:
+#         print('SQL Error {}'.format(e.args))
+#         return dataframe
 
-def deleteStockDayTable(name):
-    DynamicBase = declarative_base(class_registry=dict())
-    class StockDayInfo(DynamicBase,MySql_server.Model):
-        __tablename__ = ""
-        Date = MySql_server.Column(MySql_server.DateTime, primary_key=True)
-        Open = MySql_server.Column(MySql_server.Float)
-        High = MySql_server.Column(MySql_server.Float)
-        Low = MySql_server.Column(MySql_server.Float)
-        Close = MySql_server.Column(MySql_server.Float)
-        AdjClose = MySql_server.Column(MySql_server.Float)
-        Volume = MySql_server.Column(MySql_server.Integer)
-        def __init__(self,name,Date,Open,High,Low,Close,AdjClose,Volume):
-            self.__tablename__ = name
-            self.Date = Date
-            self.Open = Open
-            self.High = High
-            self.Low = Low
-            self.Close = Close
-            self.AdjClose = AdjClose
-            self.Volume = Volume
+# def deleteStockDayTable(name):
+#     DynamicBase = declarative_base(class_registry=dict())
+#     class StockDayInfo(DynamicBase,MySql_server.Model):
+#         __tablename__ = ""
+#         Date = MySql_server.Column(MySql_server.DateTime, primary_key=True)
+#         Open = MySql_server.Column(MySql_server.Float)
+#         High = MySql_server.Column(MySql_server.Float)
+#         Low = MySql_server.Column(MySql_server.Float)
+#         Close = MySql_server.Column(MySql_server.Float)
+#         AdjClose = MySql_server.Column(MySql_server.Float)
+#         Volume = MySql_server.Column(MySql_server.Integer)
+#         def __init__(self,name,Date,Open,High,Low,Close,AdjClose,Volume):
+#             self.__tablename__ = name
+#             self.Date = Date
+#             self.Open = Open
+#             self.High = High
+#             self.Low = Low
+#             self.Close = Close
+#             self.AdjClose = AdjClose
+#             self.Volume = Volume
     
-    temp_table = StockDayInfo.__table__
-    temp_table.name = name
-    StockDayInfo.__table__ = temp_table
-    StockDayInfo.__table__.drop(MySql_server.session.bind)
+#     temp_table = StockDayInfo.__table__
+#     temp_table.name = name
+#     StockDayInfo.__table__ = temp_table
+#     StockDayInfo.__table__.drop(MySql_server.session.bind)

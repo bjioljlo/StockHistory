@@ -7,9 +7,10 @@ from UI_main import Ui_MainWindow
 from UI_pick import Ui_MainWindow2
 from UI_backtest import Ui_MainWindow3
 import sys
-import datetime
+from datetime import datetime,timedelta
 import get_stock_info
 import get_stock_history
+import update_stock_info
 import draw_figur as df
 import pandas as pd
 import tools
@@ -115,9 +116,9 @@ def button_getStockHistory():
     else:
         stock_number = myshow.input_stockNumber.toPlainText()
         if myshow.check_UseNewInfo.isChecked():
-            m_history = get_stock_history.get_stock_history(stock_number,str_date,False)
+            m_history = get_stock_history.get_stock_history(stock_number,str_date,reGetInfo=False)
         else:
-            m_history = get_stock_history.get_stock_history(stock_number,str_date,False,False)
+            m_history = get_stock_history.get_stock_history(stock_number,str_date,reGetInfo=False,UpdateInfo=False)
         check_SMA_isCheck(m_history,get_stock_info.Get_stock_info(stock_number))
         check_Volume_isCheck(m_history,get_stock_info.Get_stock_info(stock_number))  
         check_KD_isCheck(m_history,get_stock_info.Get_stock_info(stock_number))
@@ -157,9 +158,9 @@ def button_pick_click():
     resultAllFS = get_financial_statement(volume_date,GPM,OPR,EPS,RPS)
 
     if volume_date.isoweekday() == 6:
-        volume_date = volume_date + datetime.timedelta(days=-1)#加一天
+        volume_date = volume_date + timedelta(days=-1)#加一天
     elif volume_date.isoweekday() == 7:
-        volume_date = volume_date + datetime.timedelta(days=-2)#加2天
+        volume_date = volume_date + timedelta(days=-2)#加2天
     else:
         pass
     
@@ -183,7 +184,7 @@ def button_monthRP_click():#某股票月營收曲線
     if (myshow.input_stockNumber.toPlainText() == ''):
         print('請輸入股票號碼')
         return
-    if (int(myshow.date_endDate.date().month()) == int(datetime.datetime.today().month)):
+    if (int(myshow.date_endDate.date().month()) == int(datetime.today().month)):
         print("本月還沒過完無資資訊")
         return
     data_result = None
@@ -195,9 +196,9 @@ def button_monthRP_Up_click():#月營收逐步升高篩選
     date = tools.QtDate2DateTime(myshow.date_endDate.date())
     
     if date.isoweekday() == 6:
-        date = date + datetime.timedelta(days=-1)#加一天
+        date = date + timedelta(days=-1)#加一天
     elif date.isoweekday() == 7:
-        date = date + datetime.timedelta(days=-2)#加2天
+        date = date + timedelta(days=-2)#加2天
     else:
         pass
 
@@ -316,10 +317,10 @@ def button_backtest_click5():#KD篩選
 #取得月營收的資料
 def get_monthRP(date_end,date_start,Number):#end = 後面時間 start = 前面時間 Number = 股票號碼
     date_end_str = str(date_end.year()) + '-' + str(date_end.month()) + '-' + str(date_end.day())
-    m_date_end = datetime.datetime.strptime(date_end_str,"%Y-%m-%d")
+    m_date_end = datetime.strptime(date_end_str,"%Y-%m-%d")
 
     date_start_str = str(date_start.year()) + '-' + str(date_start.month()) + '-' + str(date_start.day())
-    m_date_start = datetime.datetime.strptime(date_start_str,"%Y-%m-%d")
+    m_date_start = datetime.strptime(date_start_str,"%Y-%m-%d")
 
     stockNum = Number
     data_result = None
@@ -392,7 +393,7 @@ def get_volume(volumeNum,date,data = pd.DataFrame(),getMax = False):
             while (Temp_volume == None):
                 if get_stock_history.check_no_use_stock(index):
                     break
-                date = date + datetime.timedelta(days=-1)#加一天
+                date = date + timedelta(days=-1)#加一天
                 Temp_volume = get_stock_history.get_stock_price(str(index),tools.DateTime2String(date),get_stock_history.stock_data_kind.Volume)
             if Temp_volume != None and Temp_volume >= volumeNum:
                 if(mypick.check_volum_Max.isChecked()):
@@ -468,7 +469,7 @@ def Update_StockData_threading(str_date):#異步更新所有台股資料
             m_history = get_stock_history.get_stock_history(value.code,str_date)
             print("get " + str(value.code) + " info susess!")
     #存更新日期
-    get_stock_info.Update_date = str(datetime.datetime.today())[0:10]
+    get_stock_info.Update_date = str(datetime.today())[0:10]
     get_stock_info.Save_Update_date()    
     lock.acquire()
 
@@ -480,16 +481,16 @@ def Init_mainWindow():#初始化mainwindow
     myshow.button_getStockHistory.clicked.connect(button_getStockHistory)#設定button功能
     myshow.button_openPickWindow.clicked.connect(button_openPickWindow_click)#設定button功能
     myshow.button_getMonthRP.clicked.connect(button_monthRP_click)#設定button功能
-    myshow.button_runSchedule.clicked.connect(tools.RunScheduleNow)#設定button功能
+    myshow.button_runSchedule.clicked.connect(update_stock_info.RunScheduleNow)#設定button功能
     #myshow.button_runSchedule.clicked.connect(tools.get_SP500_list)設定button功能
-    myshow.button_stopSchedule.clicked.connect(tools.stopThreadSchedule)#設定button功能
+    myshow.button_stopSchedule.clicked.connect(update_stock_info.stopThreadSchedule)#設定button功能
     #設定日期
-    Date = datetime.datetime.strptime(get_stock_info.Update_date[0:10],"%Y-%m-%d")
+    Date = datetime.strptime(get_stock_info.Update_date[0:10],"%Y-%m-%d")
     date = QtCore.QDate(Date.year,Date.month,Date.day)
-    today = QtCore.QDate(datetime.datetime.today().year,datetime.datetime.today().month,datetime.datetime.today().day)
+    today = QtCore.QDate(datetime.today().year,datetime.today().month,datetime.today().day)
     myshow.date_startDate.setMaximumDate(today)
     myshow.date_startDate.setMinimumDate(QtCore.QDate(2000,1,1))
-    myshow.date_startDate.setDate(QtCore.QDate((datetime.datetime.today().year),(datetime.datetime.today().month - 6),datetime.datetime.today().day))
+    myshow.date_startDate.setDate(QtCore.QDate((datetime.today().year),(datetime.today().month - 6),datetime.today().day))
     myshow.date_endDate.setMaximumDate(today)
     myshow.date_endDate.setMinimumDate(QtCore.QDate(2001,1,1))
     myshow.date_endDate.setDate(date)
@@ -525,7 +526,7 @@ def Init_backtestWindow():#初始化回測畫面
     mybacktest.button_backtest_3.clicked.connect(button_backtest_click3)
     mybacktest.button_backtest_4.clicked.connect(button_backtest_click4)
     mybacktest.button_backtest_5.clicked.connect(button_backtest_click5)
-    date = QtCore.QDate(datetime.datetime.today().year,datetime.datetime.today().month,datetime.datetime.today().day) 
+    date = QtCore.QDate(datetime.today().year,datetime.today().month,datetime.today().day) 
 
     mybacktest.date_end.setMaximumDate(date)
     mybacktest.date_end.setMinimumDate(QtCore.QDate(2013,1,1))
@@ -568,7 +569,7 @@ Init_mainWindow()
 Init_pickWindow()
 Init_backtestWindow()
 #從這中間加ＵＩ設定---------------
-tools.RunMysql()
+update_stock_info.RunMysql()
 myshow.show()
 sys.exit(app.exec_())
 

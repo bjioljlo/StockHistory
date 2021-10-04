@@ -1,5 +1,5 @@
 import requests
-import datetime
+from datetime import datetime,timedelta
 import pandas as pd
 import get_stock_info
 import os
@@ -24,6 +24,7 @@ no_use_stock = [1603,5259,1262,2475,3519,
                 8488,1341,6671,8499,2243,
                 1902,2233,2448,3698,4725,
                 5264,5305,8497]
+five_word_ETF = ['00692','00878','00646','00881']
 
 Holiday_trigger = False
 
@@ -42,7 +43,7 @@ filePath = os.getcwd()#取得目錄路徑
 
 def check_no_use_stock(number):
     try:
-        temp = int(number)
+        number = int(number)
     except:
         print("check_no_use_stock error:" + number)
         return False
@@ -51,6 +52,18 @@ def check_no_use_stock(number):
             print(str(number))
             return True
     return False
+def check_ETF_stock(number):
+    try:
+        number = str(number)
+    except:
+        print("check_ETF_stock error:" + number)
+        return False
+    for num in range(0,five_word_ETF.__len__()):
+        if(str(number) == five_word_ETF[num]):
+            print(str(number))
+            return True
+    return False
+
 
 def get_stock_RecordHight(number,date,flashDay,recordDays):#取得number在flashDay天內天是否在recordDays內創新高
     while (flashDay > 0):
@@ -62,13 +75,13 @@ def get_stock_RecordHight(number,date,flashDay,recordDays):#取得number在flash
         while (recordDays > 0):
             Temp_price = get_stock_price(number,Now_day,stock_data_kind.AdjClose)
             if Temp_price == None:
-                Now_day = Now_day - datetime.timedelta(days = 1)
+                Now_day = Now_day - timedelta(days = 1)
                 continue
             if Temp_price > Now_price:
                 return False
-            Now_day = Now_day - datetime.timedelta(days = 1)
+            Now_day = Now_day - timedelta(days = 1)
             recordDays = recordDays - 1
-        date = date - datetime.timedelta(days = 1)
+        date = date - timedelta(days = 1)
         flashDay = flashDay - 1
     return True
 def get_stock_MA(number,date,MA_day):#取得某股票某天的均線
@@ -76,7 +89,7 @@ def get_stock_MA(number,date,MA_day):#取得某股票某天的均線
     Temp_date = date
     Temp_MA_day = MA_day
     while(Temp_MA_day > 0):
-        Temp_date = Temp_date + datetime.timedelta(days=-1)
+        Temp_date = Temp_date + timedelta(days=-1)
         temp = get_stock_price(number,Temp_date,stock_data_kind.AdjClose)
         if temp == None:
             continue
@@ -92,7 +105,7 @@ def get_stock_price(number,date,kind):#取得某股票某天的ＡＤＪ價格
     if check_no_use_stock(number) == True:
         print('get_stock_price: ' + str(number) + ' in no use')
         return None
-    stock_data = get_stock_history(number,date,False,False)
+    stock_data = get_stock_history(number,date,reGetInfo=False,UpdateInfo=False)
     if stock_data.empty == True:
         return None
     result = stock_data[stock_data.index == date]
@@ -101,11 +114,11 @@ def get_stock_price(number,date,kind):#取得某股票某天的ＡＤＪ價格
             return None
         if type(date) != str:
             date = tools.DateTime2String(date)
-        if datetime.datetime.strptime(date,"%Y-%m-%d").isoweekday() in [1,2,3,4,5]:
-            stock_data = get_stock_history(number,date,False,False) #只會重新抓硬碟資料
+        if datetime.strptime(date,"%Y-%m-%d").isoweekday() in [1,2,3,4,5]:
+            stock_data = get_stock_history(number,date,reGetInfo=False,UpdateInfo=False) #只會重新抓硬碟資料
             result = stock_data[stock_data.index == date]
             if result.empty == True:
-                print('get_stock_price: ' +'星期' + str(datetime.datetime.strptime(date,"%Y-%m-%d").isoweekday()))
+                print('get_stock_price: ' +'星期' + str(datetime.strptime(date,"%Y-%m-%d").isoweekday()))
                 print('get_stock_price: ' +str(number) + '--' + date + ' is no data. Its holiday?')
                 Holiday_trigger = True
                 return None
@@ -217,15 +230,12 @@ def get_stock_history(number,start,reGetInfo = False,UpdateInfo = True):#爬某�
     print("取得" + str(number) + "的資料從" + str(start) +"到今天")
     start_time = start
     if type(start_time) == str:
-        start_time  = datetime.datetime.strptime(start,"%Y-%m-%d")
+        start_time  = datetime.strptime(start,"%Y-%m-%d")
     if type(number) != str:
         number = str(number)
-    data_time = datetime.datetime.strptime('2005-1-1',"%Y-%m-%d")
-    now_time = datetime.datetime.today()
+    data_time = datetime.strptime('2005-1-1',"%Y-%m-%d")
+    now_time = datetime.today()
     result = pd.DataFrame()
-    if UpdateInfo == False:
-        now_time = datetime.datetime.strptime(get_stock_info.Update_date[0:10],"%Y-%m-%d")
-        #now_time = datetime.datetime.strptime('2020-1-2',"%Y-%m-%d")
 
     if get_stock_info.ts.codes.__contains__(number) == False:
         print("無此檔股票")
@@ -241,13 +251,16 @@ def get_stock_history(number,start,reGetInfo = False,UpdateInfo = True):#爬某�
                                                             '-' + str(now_time.day),str(number))
     
     if m_history.empty == True:
+        if UpdateInfo == False:
+            now_time = datetime.strptime(get_stock_info.Update_date[0:10],"%Y-%m-%d")
+
         if os.path.isfile(filePath +'/' + fileName_stockInfo  + '/' + str(number) + '_' + '2000-1-1' +
                                                             '_' +
                                                             str(now_time.year) +
                                                             '-' + str(now_time.month) + 
                                                             '-' + str(now_time.day) + '.csv') == False:
-            base_time = datetime.datetime.strptime('1970-1-1',"%Y-%m-%d")
-            data_time  = datetime.datetime.strptime('2000-1-1',"%Y-%m-%d")
+            base_time = datetime.strptime('1970-1-1',"%Y-%m-%d")
+            data_time  = datetime.strptime('2000-1-1',"%Y-%m-%d")
             period1 = (data_time - base_time).total_seconds()
             period2 = (now_time - base_time).total_seconds()
             period1 = int(period1)
@@ -262,7 +275,7 @@ def get_stock_history(number,start,reGetInfo = False,UpdateInfo = True):#爬某�
             # 偽停頓
             time.sleep(1.5)
             #刪除原本資料
-            deleteDate = datetime.datetime.strptime(get_stock_info.Update_date[0:10],"%Y-%m-%d")
+            deleteDate = datetime.strptime(get_stock_info.Update_date[0:10],"%Y-%m-%d")
         if deleteDate != now_time:
             delet_stock_file(filePath +'/' + fileName_stockInfo  + '/' + str(number) + '_' + '2000-1-1' +
                                                             '_' +
@@ -271,8 +284,8 @@ def get_stock_history(number,start,reGetInfo = False,UpdateInfo = True):#爬某�
                                                             '-' + str(deleteDate.day)+ '.csv')
         else:
             if reGetInfo == True:
-                base_time = datetime.datetime.strptime('1970-1-1',"%Y-%m-%d")
-                data_time  = datetime.datetime.strptime('2000-1-1',"%Y-%m-%d")
+                base_time = datetime.strptime('1970-1-1',"%Y-%m-%d")
+                data_time  = datetime.strptime('2000-1-1',"%Y-%m-%d")
                 period1 = (data_time - base_time).total_seconds()
                 period2 = (now_time - base_time).total_seconds()
                 period1 = int(period1)
@@ -336,7 +349,7 @@ def get_stock_AD_index(date):#取得上漲和下跌家數
     print('get_stock_AD_index')
     ADindex_result = pd.DataFrame(columns=['Date','上漲','下跌']).set_index('Date')
     if type(date) == str:
-        date = datetime.datetime.strptime(date,"%Y-%m-%d")
+        date = datetime.strptime(date,"%Y-%m-%d")
     time = date 
     str_date = tools.DateTime2String(time)
     time_yesterday = tools.backWorkDays(time,1)
@@ -360,7 +373,7 @@ def get_stock_AD_index(date):#取得上漲和下跌家數
             if check_no_use_stock(value.code) == True:
                 print('get_stock_price: ' + str(value.code) + ' in no use')
                 continue
-            m_history = get_stock_history(value.code,str_yesterday,False,False)['Close']
+            m_history = get_stock_history(value.code,str_yesterday,reGetInfo=False,UpdateInfo=False)['Close']
             try:
                 if m_history[str_yesterday] > m_history[str_date]:
                     down = down + 1
@@ -368,7 +381,7 @@ def get_stock_AD_index(date):#取得上漲和下跌家數
                     up = up + 1
             except:
                 print("get " + str(value.code) + " info fail!")
-                m_temp = get_stock_history(2330,str_yesterday,False,False)['Close']
+                m_temp = get_stock_history(2330,str_yesterday,reGetInfo=False,UpdateInfo=False)['Close']
                 if (m_temp.index == time).__contains__(True) != True:
                     return pd.DataFrame()
     ADindex_result_new = pd.DataFrame({'Date':[time],'上漲':[up],'下跌':[down]}).set_index('Date')
@@ -489,7 +502,7 @@ def get_PER_range(time,PER_start,PER_end,data = pd.DataFrame()):#time = 取得�
     EPS_date = time
     All_PER = data
     if type(time) == str:
-        EPS_date = datetime.datetime.strptime(time,"%Y-%m-%d")
+        EPS_date = datetime.strptime(time,"%Y-%m-%d")
     EPS_data = get_allstock_yield(EPS_date)
     if All_PER.empty == True:
         All_PER = EPS_data
@@ -512,7 +525,7 @@ def get_AVG_value(time,volume,days,data = pd.DataFrame()):#time = 取得資料�
     print('get_AVG_value: start')
     Volume_Time = time
     if type(Volume_Time) == str:
-        Volume_Time = datetime.datetime.strptime(time,"%Y-%m-%d")
+        Volume_Time = datetime.strptime(time,"%Y-%m-%d")
     All_monthRP = data
     if All_monthRP.empty == True:
         All_monthRP = get_allstock_monthly_report(Volume_Time)
@@ -532,12 +545,12 @@ def get_AVG_value(time,volume,days,data = pd.DataFrame()):#time = 取得資料�
                 if Temp_Volume_Time == Volume_Time:
                     break
                 NoDataDays = NoDataDays - 1
-                Temp_Volume_Time = Temp_Volume_Time + datetime.timedelta(days=-1)
+                Temp_Volume_Time = Temp_Volume_Time + timedelta(days=-1)
                 continue
             Temp_AvgVolume = Temp_AvgVolume + Temp_Volume
             AvgDays = AvgDays - 1
             NoDataDays = 10
-            Temp_Volume_Time = Temp_Volume_Time + datetime.timedelta(days=-1)
+            Temp_Volume_Time = Temp_Volume_Time + timedelta(days=-1)
         Temp_AvgVolume = Temp_AvgVolume / days
         if Temp_AvgVolume >= volume:
             Temp_number = int(All_monthRP.iloc[i].name)
@@ -562,7 +575,7 @@ def get_PBR_range(time,PBR_start,PBR_end,data = pd.DataFrame()):#time = 取得�
     PBR_date = time
     All_PBR = data
     if type(time) == str:
-        PBR_date = datetime.datetime.strptime(time,"%Y-%m-%d")
+        PBR_date = datetime.strptime(time,"%Y-%m-%d")
     Book_data = get_allstock_yield(PBR_date)
     if All_PBR.empty == True:
         All_PBR = Book_data
@@ -597,11 +610,11 @@ def get_ROE_range(time,ROE_start,ROE_end,data = pd.DataFrame()):#time = 取得�
     ROE_date = time
     All_ROE = data
     if type(time) == str:
-        ROE_date = datetime.datetime.strptime(time,"%Y-%m-%d")
+        ROE_date = datetime.strptime(time,"%Y-%m-%d")
     if ROE_date.month in [1,2,3]:
-        Use_ROE_date = datetime.datetime(ROE_date.year - 1,12,1)
+        Use_ROE_date = datetime(ROE_date.year - 1,12,1)
     else:
-        Use_ROE_date = datetime.datetime(ROE_date.year,tools.changeDateMonth(ROE_date,-3).month ,tools.check_monthDate(tools.changeDateMonth(ROE_date,-3).month,ROE_date.day))
+        Use_ROE_date = datetime(ROE_date.year,tools.changeDateMonth(ROE_date,-3).month ,tools.check_monthDate(tools.changeDateMonth(ROE_date,-3).month,ROE_date.day))
     BOOK_data = get_allstock_financial_statement(Use_ROE_date,FS_type.BS)
     CPL_data = get_allstock_financial_statement(Use_ROE_date,FS_type.CPL)
     if All_ROE.empty == True:
@@ -636,11 +649,11 @@ def get_price_range(time,high,low,data = pd.DataFrame()):#time = 取得資料的
     price_time = time
     All_price = data
     if type(time) == str:
-        price_time = datetime.datetime.strptime(time,"%Y-%m-%d")
+        price_time = datetime.strptime(time,"%Y-%m-%d")
     if price_time.month in [1,2,3]:
-        Use_price_time = datetime.datetime(price_time.year - 1,12,1)
+        Use_price_time = datetime(price_time.year - 1,12,1)
     else:
-        Use_price_time = datetime.datetime(price_time.year,tools.changeDateMonth(price_time,-3).month ,tools.check_monthDate(tools.changeDateMonth(price_time,-3).month,price_time.day))
+        Use_price_time = datetime(price_time.year,tools.changeDateMonth(price_time,-3).month ,tools.check_monthDate(tools.changeDateMonth(price_time,-3).month,price_time.day))
     if All_price.empty == True:
         return price_data
     for index,row in All_price.iterrows():
@@ -670,7 +683,7 @@ def get_yield_range(time,high,low,data = pd.DataFrame()):#time = 取得資料的
     yield_date = time
     All_yield = data
     if type(time) == str:
-        yield_date = datetime.datetime.strptime(time,"%Y-%m-%d")
+        yield_date = datetime.strptime(time,"%Y-%m-%d")
     yield_data = get_allstock_yield(yield_date)
     if All_yield.empty == True:
         All_yield = yield_data
@@ -700,7 +713,7 @@ def get_RecordHigh_range(time,Day,RecordHighDay,data = pd.DataFrame()):#time = �
     RH_date = time
     All_data = data
     if type(time) == str:
-        RH_date = datetime.datetime.strptime(time,"%Y-%m-%d")
+        RH_date = datetime.strptime(time,"%Y-%m-%d")
     if All_data.empty == True:
         return RH_result
     for index,row in All_data.iterrows():
