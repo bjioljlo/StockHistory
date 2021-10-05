@@ -1,4 +1,6 @@
 from datetime import datetime,timedelta
+from functools import update_wrapper
+import re
 import threading
 import schedule
 import time
@@ -16,24 +18,29 @@ MySql_server = None
 threads = []
 
 def RunSchedule(func,UpdateTime):
+    print("RunSchedule at:" + UpdateTime)
     schedule.every().day.at(UpdateTime).do(func)
-    temp_thread = threading.Thread(target=ScheduleStart)
-    temp_thread.start()
-    threads.append(temp_thread)
+    if threads.__len__() == 0:
+        temp_thread = threading.Thread(target=ScheduleStart)
+        temp_thread.start()
+        threads.append(temp_thread)
+    
 
 def ScheduleStart():
     t = threading.currentThread()
     while getattr(t, "do_run", True):
         schedule.run_pending()
-        time.sleep(30)
+        time.sleep(1)
 
 def RunMysql():
     temp_thread = threading.Thread(target=setMysqlServer)
     temp_thread.start()
 
 def RunScheduleNow():
-    RunSchedule(runUpdate,str(datetime.today().hour)+ ":" + str(datetime.today().minute + 1).zfill(2))
-    #RunSchedule(RunUpdate_sp500,str(datetime.today().hour)+ ":" + str(datetime.today().minute + 1))
+    RunSchedule(runUpdate,str(datetime.today().hour).zfill(2)+ ":" + str(datetime.today().minute + 1).zfill(2)+ ":01")
+    RunSchedule(RunUpdate_sp500,str(datetime.today().hour).zfill(2)+ ":" + str(datetime.today().minute + 1).zfill(2)+ ":05")
+
+    
 
 def setMysqlServer():
     global MySql_server
@@ -73,7 +80,7 @@ def runUpdate():
     print("Update all stocks end!")
 
 def RunUpdate_sp500():
-    print("Update all stocks start!")
+    print("Update all sp500 stocks start!")
     sp500 = tools.get_SP500_list()
     for temp in sp500:
         try:
