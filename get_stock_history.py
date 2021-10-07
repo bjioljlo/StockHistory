@@ -8,6 +8,7 @@ from io import StringIO
 import time
 from enum import Enum
 import tools
+import update_stock_info
 
 
 fileName_monthRP = "monthRP"
@@ -177,6 +178,7 @@ def get_allstock_monthly_report(start):#爬某月所有股票月營收
     load_memery[fileName] = df
     return df      
 def get_allstock_financial_statement(start,type):#爬某季所有股票歷史財報
+    print("get_allstock_financial_statement:" + str(type))
     for i in range(12):
         try:
             season = int(((start.month - 1)/3)+1)
@@ -184,9 +186,10 @@ def get_allstock_financial_statement(start,type):#爬某季所有股票歷史財
             if fileName in load_memery:
                 return load_memery[fileName]
             if os.path.isfile(fileName) == True:
+                print("已經有" + str(start.month)+ "月財務報告")
                 break
             financial_statement(start.year,season,type)
-            print(str(date.month)+ "月財務報告ＯＫ")
+            print("下載" + str(start.month)+ "月財務報告ＯＫ")
             break
         except:
             print(str(start.month)+ "月財務報告未出跳下一個月")
@@ -276,8 +279,8 @@ def get_stock_history(number,start,reGetInfo = False,UpdateInfo = True):#爬某�
             time.sleep(1.5)
             #刪除原本資料
             deleteDate = datetime.strptime(get_stock_info.Update_date[0:10],"%Y-%m-%d")
-        if deleteDate != now_time:
-            delet_stock_file(filePath +'/' + fileName_stockInfo  + '/' + str(number) + '_' + '2000-1-1' +
+            if deleteDate != now_time:
+                delet_stock_file(filePath +'/' + fileName_stockInfo  + '/' + str(number) + '_' + '2000-1-1' +
                                                             '_' +
                                                             str(deleteDate.year) +
                                                             '-' + str(deleteDate.month) + 
@@ -327,7 +330,7 @@ def load_stock_file(fileName,stockName = ''):#讀取歷史資料
         return load_memery[fileName]
     df = pd.DataFrame()
     if stockName != '':
-        df = tools.readStockDay(stockName + '.TW')
+        df = update_stock_info.readStockDay(stockName + '.TW')
     if df.empty == True:
         try:
             df = pd.read_csv(fileName + '.csv', index_col='Date', parse_dates=['Date'])
@@ -388,8 +391,8 @@ def get_stock_AD_index(date):#取得上漲和下跌家數
     ADindex_result = ADindex_result.append(ADindex_result_new)
     ADindex_result = ADindex_result.sort_index()
     ADindex_result.to_csv(fileName + '.csv')
+    load_memery[fileName] = ADindex_result
     df = ADindex_result[ADindex_result.index == time]
-    load_memery[fileName] = df
     return df
 def get_ADL_index(date,ADL_yesterday):#取得騰落數值
     ADL_today = get_stock_AD_index(date)

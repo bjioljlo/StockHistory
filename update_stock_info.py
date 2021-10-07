@@ -1,6 +1,4 @@
-from datetime import datetime,timedelta
-from functools import update_wrapper
-import re
+from datetime import datetime
 import threading
 import schedule
 import time
@@ -12,7 +10,7 @@ from pandas_datareader import data
 import yfinance as yf
 from sqlalchemy.ext.declarative import declarative_base
 import tools
-import get_stock_history
+import get_stock_history,get_stock_info
 
 MySql_server = None
 threads = []
@@ -23,8 +21,7 @@ def RunSchedule(func,UpdateTime):
     if threads.__len__() == 0:
         temp_thread = threading.Thread(target=ScheduleStart)
         temp_thread.start()
-        threads.append(temp_thread)
-    
+        threads.append(temp_thread)    
 
 def ScheduleStart():
     t = threading.currentThread()
@@ -33,25 +30,22 @@ def ScheduleStart():
         time.sleep(1)
 
 def RunMysql():
-    temp_thread = threading.Thread(target=setMysqlServer)
+    temp_thread = threading.Thread(target=setMysqlServer,args=["demo"])
     temp_thread.start()
 
 def RunScheduleNow():
     RunSchedule(runUpdate,str(datetime.today().hour).zfill(2)+ ":" + str(datetime.today().minute + 1).zfill(2)+ ":01")
     RunSchedule(RunUpdate_sp500,str(datetime.today().hour).zfill(2)+ ":" + str(datetime.today().minute + 1).zfill(2)+ ":05")
 
-    
-
-def setMysqlServer():
+def setMysqlServer(db_name):
     global MySql_server
     server_flask = Flask(__name__)#初始化server
     #設定mysql DB
     server_flask.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-    server_flask.config['SQLALCHEMY_DATABASE_URI'] = "mysql+pymysql://" + "demo" + ":" + "demo123" + "@" + "122.116.102.141" + ":"+ "3307" +"/"+"demo"
+    server_flask.config['SQLALCHEMY_DATABASE_URI'] = "mysql+pymysql://" + "demo" + ":" + "demo123" + "@" + "122.116.102.141" + ":"+ "3307" +"/"+ str(db_name)
     #連線mysql DB
     MySql_server = SQLAlchemy(server_flask)
     
-
 def runUpdate():
     print("Update all stocks start!")
     df = pd.DataFrame()
@@ -72,12 +66,16 @@ def runUpdate():
             if df.empty:
                 print("yahoo no data:" + str(value.code+".TW"))
                 continue
-            df.to_sql(name=value.code+".TW",con=MySql_server.engine)
+            df.to_sql(name=value.code+".TW",con=MySql_server.engine,if_exists='replace')
             print("Update stocks " + value.code+".TW" + " OK!")
     
     #dataframe = pd.read_sql(sql = "2330.TW",con=MySql_server.engine,index_col='Date')
     #print(dataframe)
+    #存更新日期
+    get_stock_info.Update_date = str(datetime.today())[0:10]
+    get_stock_info.Save_Update_date()
     print("Update all stocks end!")
+    get_stock_history.get_stock_AD_index(datetime.today())
 
 def RunUpdate_sp500():
     print("Update all sp500 stocks start!")

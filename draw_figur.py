@@ -40,21 +40,21 @@ def draw_RSI(table,stockInfo):#table = 表 stockInfo = 股票資訊結構
     panelCount = panelCount + 1
     PICS.append(mpf.make_addplot(mRSI,panel = panelCount,ylabel = "RSI"))
 def draw_ADL(table):
-    PICS.append(mpf.make_addplot(table,panel = 0,ylabel = "ADL"))
+    PICS.append(mpf.make_addplot(table,panel = 0,color='blue',ylabel = "ADL"))
 def draw_ADLs(table):
     global panelCount
     panelCount = panelCount + 1
     table_fast = tools.smooth_Data(table,10)
     table_slow = tools.smooth_Data(table,30)
-    PICS.append(mpf.make_addplot(table_fast,panel = panelCount))
-    PICS.append(mpf.make_addplot(table_slow,panel = panelCount))
-    PICS.append(mpf.make_addplot(table,panel = panelCount,ylabel = "ADLs"))
+    PICS.append(mpf.make_addplot(table_fast,panel = panelCount,color='red'))
+    PICS.append(mpf.make_addplot(table_slow,panel = panelCount,color='blue',ylabel = "ADLs"))
+    #PICS.append(mpf.make_addplot(table,panel = panelCount))
 def draw_MACD(table):
     global panelCount
     panelCount = panelCount + 1
     macd, macdsignal, macdhist = talib.MACD(table['Close'])
-    PICS.append(mpf.make_addplot(macd,panel = panelCount,ylabel = 'MACD'))
-    PICS.append(mpf.make_addplot(macdsignal,panel = panelCount))
+    PICS.append(mpf.make_addplot(macd,panel = panelCount,ylabel = 'MACD',color='blue'))
+    PICS.append(mpf.make_addplot(macdsignal,panel = panelCount,color='red'))
     PICS.append(mpf.make_addplot(macdhist,type = 'bar',panel = panelCount))
 def draw_monthRP(table,stockNum):
     axx = plt.axes()
@@ -80,9 +80,10 @@ def draw_Show():
     plt.show()
 
 def Clear_PICS():
-    global PICS,panelCount
+    global PICS,panelCount,show_volume
     PICS = []
     panelCount = 0
+    show_volume = False
     
     
 

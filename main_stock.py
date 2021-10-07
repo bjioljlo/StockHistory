@@ -1,4 +1,3 @@
-from time import time
 from PyQt5 import QtWidgets
 from PyQt5.QtGui import QStandardItemModel
 from PyQt5.QtCore import Qt
