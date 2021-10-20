@@ -28,8 +28,8 @@ def draw_KD(table,stockInfo):#table = 表 stockInfo = 股票資訊結構
     table['d'].fillna(value=0,inplace = True)
     global panelCount
     panelCount = panelCount + 1
-    PICS.append(mpf.make_addplot(table['k'],panel = panelCount,ylabel = "KD"))
-    PICS.append(mpf.make_addplot(table['d'],panel = panelCount))
+    PICS.append(mpf.make_addplot(table['k'],panel = panelCount,ylabel = "KD",color='red'))
+    PICS.append(mpf.make_addplot(table['d'],panel = panelCount,color='blue'))
 def draw_Volume(table,stockInfo):#table = 表 stockInfo = 股票資訊結構
     global show_volume,panelCount
     show_volume = True

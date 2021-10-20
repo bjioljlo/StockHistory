@@ -193,7 +193,7 @@ def button_monthRP_click():#某股票月營收曲線
     df.draw_monthRP(data_result,myshow.input_stockNumber.toPlainText())
 def button_monthRP_Up_click():#月營收逐步升高篩選
     date = tools.QtDate2DateTime(myshow.date_endDate.date())
-    
+    date_5 = date + timedelta(days=-14)#加一天
     if date.isoweekday() == 6:
         date = date + timedelta(days=-1)#加一天
     elif date.isoweekday() == 7:
@@ -265,7 +265,7 @@ def button_monthRP_Up_click():#月營收逐步升高篩選
         pick_data = tools.MixDataFrames({'pick':pick_data,'recordHigh':record_data})
         pick_data = pick_data.dropna(axis=0,how='any')
 
-    pick_data = get_volume(int(mypick.input_volum.toPlainText()),tools.changeDateMonth(date,0),pick_data)
+    pick_data = get_volume(int(mypick.input_volum.toPlainText()),tools.changeDateMonth(date_5,0),pick_data)
     pick_data = pick_data.dropna(axis=0,how='any')
 
     print("總挑選數量:" + str(len(pick_data)))
@@ -386,14 +386,15 @@ def get_financial_statement(date,GPM = '0' ,OPR ='0' ,EPS ='0',RPS ='0'):
 def get_volume(volumeNum,date,data = pd.DataFrame(),getMax = False):
     Temp_index = 0
     Temp_volume2 = 0
+    avgDay = 5
     if data.empty == False:
         for index,row in data.iterrows():
-            Temp_volume = get_stock_history.get_stock_price(str(index),tools.DateTime2String(date),get_stock_history.stock_data_kind.Volume)
+            Temp_volume = get_stock_history.get_stock_price(str(index),tools.DateTime2String(date),get_stock_history.stock_data_kind.Volume,isSMA=True)
             while (Temp_volume == None):
                 if get_stock_history.check_no_use_stock(index):
                     break
                 date = date + timedelta(days=-1)#加一天
-                Temp_volume = get_stock_history.get_stock_price(str(index),tools.DateTime2String(date),get_stock_history.stock_data_kind.Volume)
+                Temp_volume = get_stock_history.get_stock_price(str(index),tools.DateTime2String(date),get_stock_history.stock_data_kind.Volume,isSMA=True)
             if Temp_volume != None and Temp_volume >= volumeNum:
                 if(mypick.check_volum_Max.isChecked()):
                     if Temp_volume > Temp_volume2:

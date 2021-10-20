@@ -9,6 +9,7 @@ import time
 from enum import Enum
 import tools
 import update_stock_info
+import talib
 
 
 fileName_monthRP = "monthRP"
@@ -101,7 +102,7 @@ def get_stock_MA(number,date,MA_day):#取得某股票某天的均線
 def get_stock_yield(number,date):#取得某股票某天的殖利率
     data = get_allstock_yield(date)
     return data.at[number,'殖利率(%)']
-def get_stock_price(number,date,kind):#取得某股票某天的ＡＤＪ價格
+def get_stock_price(number,date,kind,isSMA = False):#取得某股票某天的ＡＤＪ價格
     global Holiday_trigger
     if check_no_use_stock(number) == True:
         print('get_stock_price: ' + str(number) + ' in no use')
@@ -109,6 +110,8 @@ def get_stock_price(number,date,kind):#取得某股票某天的ＡＤＪ價格
     stock_data = get_stock_history(number,date,reGetInfo=False,UpdateInfo=False)
     if stock_data.empty == True:
         return None
+    result = stock_data[kind.value]
+    result = tools.smooth_Data(result,5)
     result = stock_data[stock_data.index == date]
     if result.empty == True:
         if Holiday_trigger == True:
@@ -136,8 +139,8 @@ def get_stock_monthly_report(number,start):#爬某月某個股票月營收
     df = get_allstock_monthly_report(start)
     return df.loc[[str(number)]]
 def get_allstock_monthly_report(start):#爬某月所有股票月營收
-    if start.day < 15:#還沒超過15號，拿前一個月
-        print("get_allstock_monthly_report:未到15號取上個月報表")
+    if start.day < 25:#還沒超過15號，拿前一個月
+        print("get_allstock_monthly_report:未到25號取上個月報表")
         start = tools.changeDateMonth(start,-1)
     year = start.year
     fileName = filePath + '/' + fileName_monthRP + '/' + str(start.year)+'-'+str(start.month)+'monthly_report.csv'
@@ -348,6 +351,22 @@ def load_stock_file(fileName,stockName = ''):#讀取歷史資料
 def delet_stock_file(fileName):#刪除歷史資料
     if os.path.isfile(fileName) == True:
         os.remove(fileName)
+def load_other_file(fileName,file = ''):
+    if fileName in load_memery:
+        return load_memery[fileName]
+    df = pd.DataFrame()
+    if file != '':
+        df = update_stock_info.readStockDay(file)
+    if df.empty == True:
+        try:
+            df = pd.read_csv(fileName + '.csv', index_col='Date', parse_dates=['Date'])
+        except:
+            print("no csv file")
+    
+    df = df.dropna(how='any',inplace=False)#將某些null欄位去除
+    load_memery[fileName] = df
+    return df
+
 def get_stock_AD_index(date):#取得上漲和下跌家數
     print('get_stock_AD_index')
     ADindex_result = pd.DataFrame(columns=['Date','上漲','下跌']).set_index('Date')
@@ -364,9 +383,18 @@ def get_stock_AD_index(date):#取得上漲和下跌家數
     fileName = filePath +'/' + fileName_index + '/' + 'AD_index'
     if fileName in load_memery:
         ADindex_result = load_memery[fileName]
-    if os.path.isfile(fileName + '.csv') == True:
-        ADindex_result = pd.read_csv(fileName + '.csv', index_col='Date', parse_dates=['Date'])
-        load_memery[fileName] = ADindex_result
+    
+    #=========test
+    ADindex_result = load_other_file(fileName,'AD_index')
+    if ADindex_result.empty == True:
+        if os.path.isfile(fileName + '.csv') == True:
+            ADindex_result = pd.read_csv(fileName + '.csv', index_col='Date', parse_dates=['Date'])
+            load_memery[fileName] = ADindex_result
+        else:
+            print('no csv file')
+    #=========
+
+
     up = 0
     down = 0
     if ADindex_result.empty == False and (ADindex_result.index == time).__contains__(True):
@@ -390,6 +418,7 @@ def get_stock_AD_index(date):#取得上漲和下跌家數
     ADindex_result_new = pd.DataFrame({'Date':[time],'上漲':[up],'下跌':[down]}).set_index('Date')
     ADindex_result = ADindex_result.append(ADindex_result_new)
     ADindex_result = ADindex_result.sort_index()
+    update_stock_info.saveTable('AD_index',ADindex_result)
     ADindex_result.to_csv(fileName + '.csv')
     load_memery[fileName] = ADindex_result
     df = ADindex_result[ADindex_result.index == time]
