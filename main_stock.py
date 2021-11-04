@@ -494,6 +494,9 @@ def Init_mainWindow():#初始化mainwindow
     myshow.date_endDate.setMaximumDate(today)
     myshow.date_endDate.setMinimumDate(QtCore.QDate(2001,1,1))
     myshow.date_endDate.setDate(date)
+    myshow.input_SMA1.setPlainText("5")
+    myshow.input_SMA2.setPlainText("20")
+    myshow.input_SMA3.setPlainText("60")
     
 def Init_pickWindow():#初始化挑股票畫面
     mypick.button_pick.clicked.connect(button_pick_click)#設定button功能

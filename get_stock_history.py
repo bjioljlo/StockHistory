@@ -111,7 +111,8 @@ def get_stock_price(number,date,kind,isSMA = False):#取得某股票某天的Ａ
     if stock_data.empty == True:
         return None
     result = stock_data[kind.value]
-    result = tools.smooth_Data(result,5)
+    if kind == stock_data_kind.Volume:
+        result = tools.smooth_Data(result,5)
     result = stock_data[stock_data.index == date]
     if result.empty == True:
         if Holiday_trigger == True:
@@ -139,7 +140,7 @@ def get_stock_monthly_report(number,start):#爬某月某個股票月營收
     df = get_allstock_monthly_report(start)
     return df.loc[[str(number)]]
 def get_allstock_monthly_report(start):#爬某月所有股票月營收
-    if start.day < 25:#還沒超過15號，拿前一個月
+    if start.day < 15:#還沒超過15號，拿前一個月
         print("get_allstock_monthly_report:未到25號取上個月報表")
         start = tools.changeDateMonth(start,-1)
     year = start.year
@@ -185,6 +186,34 @@ def get_allstock_financial_statement(start,type):#爬某季所有股票歷史財
     for i in range(12):
         try:
             season = int(((start.month - 1)/3)+1)
+            if season == 4:
+                season = 3
+                if start < datetime(start.year,11,14):
+                    season = 2
+                    start = tools.changeDateMonth(start,-6)
+                else:
+                    start = tools.changeDateMonth(start,-3)
+            elif season == 3:
+                season = 2
+                if start < datetime(start.year,8,14):
+                    season = 1
+                    start = tools.changeDateMonth(start,-6)
+                else:
+                    start = tools.changeDateMonth(start,-3)
+            elif season == 2:
+                season = 1
+                if start < datetime(start.year,5,15):
+                    season = 4
+                    start = tools.changeDateMonth(start,-6)
+                else:
+                    start = tools.changeDateMonth(start,-3)
+            elif season == 1:
+                season = 4
+                if start < datetime(start.year,3,31):
+                    season = 3
+                    start = tools.changeDateMonth(start,-6)
+                else:
+                    start = tools.changeDateMonth(start,-3)
             fileName = filePath + '/' + fileName_season + '/' + str(start.year)+"-season"+str(season)+"-"+type.value+".csv"
             if fileName in load_memery:
                 return load_memery[fileName]
@@ -499,7 +528,7 @@ def get_monthRP_up(time,avgNum,upNum):#time = 取得資料的時間 avgNum = 平
     
     data = {}
     for i in range(avgNum+upNum):
-        temp_now = tools.changeDateMonth(time,-i)
+        temp_now = tools.changeDateMonth(time,-(i+1))
         data['%d-%d-01'%(temp_now.year, temp_now.month)] = get_allstock_monthly_report(temp_now)
 
     result = pd.DataFrame({k:result['當月營收'] for k,result in data.items()}).transpose()
