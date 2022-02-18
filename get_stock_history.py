@@ -1,3 +1,4 @@
+from calendar import month
 import requests
 from datetime import datetime,timedelta
 import pandas as pd
@@ -25,8 +26,8 @@ no_use_stock = [1603,5259,1262,2475,3519,
                 2025,5546,6598,4148,4552,
                 8488,1341,6671,8499,2243,
                 1902,2233,2448,3698,4725,
-                5264,5305,8497]
-five_word_ETF = ['00692','00878','00646','00881']
+                5264,5305,8497,5244,1752]
+five_word_ETF = ['00692','00878','00646','00881','00733']
 
 Holiday_trigger = False
 
@@ -101,18 +102,32 @@ def get_stock_MA(number,date,MA_day):#取得某股票某天的均線
     return Temp_MA
 def get_stock_yield(number,date):#取得某股票某天的殖利率
     data = get_allstock_yield(date)
-    return data.at[number,'殖利率(%)']
+    if type(number) == str:
+        number = int(number)
+    mask = data.index == number
+    data = data[mask]
+    return data
+def get_stock_Operating(number,date):
+    data = get_allstock_financial_statement(date,FS_type.PLA)
+    if type(number) == str:
+        number = int(number)
+    mask = data.index == number
+    data = data[mask]
+    return data
 def get_stock_price(number,date,kind,isSMA = False):#取得某股票某天的ＡＤＪ價格
     global Holiday_trigger
     if check_no_use_stock(number) == True:
         print('get_stock_price: ' + str(number) + ' in no use')
         return None
     stock_data = get_stock_history(number,date,reGetInfo=False,UpdateInfo=False)
+    if kind == stock_data_kind.Volume:
+        stock_data = get_stock_history(number,tools.backWorkDays(date,15) ,reGetInfo=False,UpdateInfo=False)
+        stock_data = tools.smooth_Data(stock_data,5)
     if stock_data.empty == True:
         return None
     result = stock_data[kind.value]
-    if kind == stock_data_kind.Volume:
-        result = tools.smooth_Data(result,5)
+    # if kind == stock_data_kind.Volume:
+    #     result = tools.smooth_Data(result,5)
     result = stock_data[stock_data.index == date]
     if result.empty == True:
         if Holiday_trigger == True:
@@ -188,28 +203,28 @@ def get_allstock_financial_statement(start,type):#爬某季所有股票歷史財
             season = int(((start.month - 1)/3)+1)
             if season == 4:
                 season = 3
-                if start < datetime(start.year,11,14):
+                if start < datetime(start.year,11,28):
                     season = 2
                     start = tools.changeDateMonth(start,-6)
                 else:
                     start = tools.changeDateMonth(start,-3)
             elif season == 3:
                 season = 2
-                if start < datetime(start.year,8,14):
+                if start < datetime(start.year,8,28):
                     season = 1
                     start = tools.changeDateMonth(start,-6)
                 else:
                     start = tools.changeDateMonth(start,-3)
             elif season == 2:
                 season = 1
-                if start < datetime(start.year,5,15):
+                if start < datetime(start.year,5,28):
                     season = 4
                     start = tools.changeDateMonth(start,-6)
                 else:
                     start = tools.changeDateMonth(start,-3)
             elif season == 1:
                 season = 4
-                if start < datetime(start.year,3,31):
+                if start < datetime(start.year,2,28):
                     season = 3
                     start = tools.changeDateMonth(start,-6)
                 else:
@@ -227,30 +242,38 @@ def get_allstock_financial_statement(start,type):#爬某季所有股票歷史財
             print(str(start.month)+ "月財務報告未出跳下一個月")
             start = tools.changeDateMonth(start,-1)
             continue
-    
-        
+
     stock = pd.read_csv(fileName,index_col='公司代號', parse_dates=['公司代號'])
     load_memery[fileName] = stock
     return stock
 def get_allstock_yield(start):#爬某天所有股票殖利率
     fileName = filePath + '/' + fileName_yield + '/' + str(start.year) + '-' + str(start.month) + '-' + str(start.day) + '_Dividend_yield' 
-
+    m_yield = pd.DataFrame()
     if fileName in load_memery:
         return load_memery[fileName]
-    if os.path.isfile(fileName + '.csv') == False:
-        url = 'https://www.twse.com.tw/exchangeReport/BWIBBU_d?response=csv&date=' + str(start.year)+str(start.month).zfill(2)+str(start.day).zfill(2)+ '&selectType=ALL'
-        response = requests.get(url,tools.get_random_Header())
-        save_stock_file(fileName,response,1,2)
-        # 偽停頓
-        time.sleep(1.5)
+    #去資料庫抓資料
+    m_yield = update_stock_info.read_Dividend_yield('Dividend_yield_'+ str(start.year) + '_' + str(start.month) + '_' + str(start.day))
 
-    try:
-        m_yield = pd.read_csv(fileName + '.csv',index_col='證券代號',parse_dates=['證券代號'])
-    except:
-        m_yield = pd.read_csv(fileName + '.csv',index_col='證券代號',parse_dates=['證券代號'],encoding = 'ANSI')
-    
-    m_yield[["本益比"]] = m_yield[["本益比"]].astype(float)
-    m_yield[["股價淨值比"]] = m_yield[["股價淨值比"]].astype(float)
+    if m_yield.empty == True:
+        if os.path.isfile(fileName + '.csv') == False:
+            url = 'https://www.twse.com.tw/exchangeReport/BWIBBU_d?response=csv&date=' + str(start.year)+str(start.month).zfill(2)+str(start.day).zfill(2)+ '&selectType=ALL'
+            response = requests.get(url,tools.get_random_Header())
+            save_stock_file(fileName,response,1,2)
+            # 偽停頓
+            time.sleep(1)
+        try:
+            m_yield = pd.read_csv(fileName + '.csv')
+        except:
+            m_yield = pd.read_csv(fileName + '.csv',encoding = 'ANSI')
+        #整理一下資料
+        m_yield.rename(columns = {"證券代號":"code"},inplace = True)
+        m_yield.set_index("code",inplace = True)
+        #存到資料庫
+        update_stock_info.saveTable('Dividend_yield_'+ str(start.year) + '_' + str(start.month) + '_' + str(start.day),m_yield)
+        
+        
+    #m_yield[["本益比"]] = m_yield[["本益比"]].astype(float)
+    #m_yield[["股價淨值比"]] = m_yield[["股價淨值比"]].astype(float)
     load_memery[fileName] = m_yield
     return m_yield
 def get_stock_financial_statement(number,start):#爬某個股票的歷史財報
@@ -527,6 +550,8 @@ def get_monthRP_up(time,avgNum,upNum):#time = 取得資料的時間 avgNum = 平
         return load_memery[fileName]
     
     data = {}
+    if upNum <= 0 or avgNum <= 0:
+        return pd.DataFrame()
     for i in range(avgNum+upNum):
         temp_now = tools.changeDateMonth(time,-(i+1))
         data['%d-%d-01'%(temp_now.year, temp_now.month)] = get_allstock_monthly_report(temp_now)
@@ -534,7 +559,7 @@ def get_monthRP_up(time,avgNum,upNum):#time = 取得資料的時間 avgNum = 平
     result = pd.DataFrame({k:result['當月營收'] for k,result in data.items()}).transpose()
     result.index = pd.to_datetime(result.index)
     result = result.sort_index()
-
+    
     method2 = result.rolling(avgNum,min_periods=avgNum).mean()
     method2 = (method2 > method2.shift()).iloc[-upNum:].sum()
     final_result = method2[method2 >= upNum]
@@ -549,6 +574,42 @@ def get_monthRP_up(time,avgNum,upNum):#time = 取得資料的時間 avgNum = 平
     load_memery[str(time.year) +str(time.month) + str(avgNum) + str(upNum)] = final_result
     print('get_monthRP_up: end' )
     return final_result
+
+#取得同期營業利益率增高篩選
+def get_OMGR_up(time,upNum):#time = 取得資料的時間 upNum = 連續成長多少季
+    print('get_OMGR_up: start:'+ str(time) )
+    fileName = "get_OMGR_up_" + str(time.year) + str(time.month) + str(upNum)
+    if fileName in load_memery:
+        print('get_OMGR_up: end' )
+        return load_memery[fileName]
+    data = {}
+    if upNum <= 0:
+        return pd.DataFrame()
+    for i in range(upNum + 5):
+        temp_now = tools.changeDateMonth(time,-((i+2)*3))
+        data['%d-%d-1'%(temp_now.year, temp_now.month)] = get_allstock_financial_statement(temp_now,FS_type.PLA)
+    
+    result = pd.DataFrame({k:result['營業利益率(%)'] for k,result in data.items()}).transpose()
+    result.index = pd.to_datetime(result.index)
+    result = result.sort_index()
+    
+    count = 0
+    final_result = pd.DataFrame()
+    for index,row in result.iterrows():
+        count = count + 1
+        if count < 5:
+            continue
+        else:           
+            print(index) #現在
+            print(row)
+            a_string = str(index.year -1)+'-'+str(index.month).zfill(2)
+            print(result[a_string]) #去年同期
+            temp = ((row - result[a_string])/result[a_string]) * 100
+            final_result = final_result.append(temp,ignore_index=True)
+    method2 = (final_result > final_result.shift()).iloc[-upNum:].sum()
+    method2 = method2[method2 >= upNum]
+    method2 = pd.DataFrame(method2)
+    return method2
 
 #取得本益比篩選
 def get_PER_range(time,PER_start,PER_end,data = pd.DataFrame()):#time = 取得資料的時間 PER_start = PER最小值 PER_end PER最大值
@@ -785,6 +846,8 @@ def get_RecordHigh_range(time,Day,RecordHighDay,data = pd.DataFrame()):#time = �
     RH_result = RH_result.astype('int')
     print('RecordHigh: end')
     return RH_result
+
+
 
 #爬取歷史財報並存檔
 def financial_statement(year, season, type):#year = 年 season = 季 type = 財報種類

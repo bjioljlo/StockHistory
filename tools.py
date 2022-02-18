@@ -17,6 +17,7 @@ threads = []
 
 def changeDateMonth(date,change_month):
     temp_month = date.month + change_month
+    
     print("changeDateMonth:" + str(date.month) + " to " + str(temp_month))
     if(temp_month >= 13):
         year = temp_month//12
@@ -28,7 +29,7 @@ def changeDateMonth(date,change_month):
         temp_month = abs(temp_month)
         year = temp_month//12
         month = temp_month%12
-        year = year - 1
+        year = - 1 - year 
         if(month == 0):
             month = 12
         else:

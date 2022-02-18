@@ -131,6 +131,12 @@ class Ui_MainWindow(object):
         self.button_stopSchedule = QtWidgets.QPushButton(self.centralwidget)
         self.button_stopSchedule.setGeometry(QtCore.QRect(200, 340, 161, 32))
         self.button_stopSchedule.setObjectName("button_stopSchedule")
+        self.button_getDividend_yield = QtWidgets.QPushButton(self.centralwidget)
+        self.button_getDividend_yield.setGeometry(QtCore.QRect(370, 310, 113, 32))
+        self.button_getDividend_yield.setObjectName("button_getDividend_yield")
+        self.button_getOperating_Margin = QtWidgets.QPushButton(self.centralwidget)
+        self.button_getOperating_Margin.setGeometry(QtCore.QRect(370, 340, 113, 32))
+        self.button_getOperating_Margin.setObjectName("button_getOperating_Margin")
         MainWindow.setCentralWidget(self.centralwidget)
         self.menubar = QtWidgets.QMenuBar(MainWindow)
         self.menubar.setGeometry(QtCore.QRect(0, 0, 550, 22))
@@ -170,5 +176,7 @@ class Ui_MainWindow(object):
         self.check_MACD.setText(_translate("MainWindow", "顯示MACD"))
         self.button_runSchedule.setText(_translate("MainWindow", "mysql股票Update"))
         self.button_stopSchedule.setText(_translate("MainWindow", "mysql股票Update Stop"))
+        self.button_getDividend_yield.setText(_translate("MainWindow", "歷史殖利率紀錄"))
+        self.button_getOperating_Margin.setText(_translate("MainWindow", "營業利益率紀錄"))
 
 

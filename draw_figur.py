@@ -63,6 +63,20 @@ def draw_monthRP(table,stockNum):
     plt.ylabel("UNIT-->NTD:1000,000")
     plt.title(stockNum)
     plt.show()
+def draw_Operating_Margin(table,stockNum):
+    axx = plt.axes()
+    axx.plot(table['營業利益率(%)'],label = '營業利益率(%)')
+    plt.xlabel("date")
+    plt.ylabel("Operating_Margin(%)")
+    plt.title(stockNum)
+    plt.show()
+def draw_Dividend_yield(table,stockNum):
+    axx = plt.axes()
+    axx.plot(table['殖利率(%)'],label = '殖利率(%)')
+    plt.xlabel("date")
+    plt.ylabel("Dividend_yield(%)")
+    plt.title(stockNum)
+    plt.show()
 def draw_backtest(data):
     ax4 = plt.axes()
     ax4.plot(data,label = '回測結果',color ='b')

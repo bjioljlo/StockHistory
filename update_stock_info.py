@@ -14,6 +14,7 @@ import tools
 import get_stock_history,get_stock_info
 
 MySql_server = None
+SQL_DataByDay = None
 threads = []
 
 def RunSchedule(func,UpdateTime):
@@ -28,12 +29,12 @@ def ScheduleStart():
     t = threading.currentThread()
     while getattr(t, "do_run", True):
         schedule.run_pending()
-        time.sleep(1)
+        time.sleep(0.5)
 
 def RunMysql():
     temp_thread = threading.Thread(target=setMysqlServer,args=["demo"])
     temp_thread.start()
-
+    
 def RunScheduleNow():
     RunSchedule(runUpdate,str(datetime.today().hour).zfill(2)+ ":" + str(datetime.today().minute + 1).zfill(2)+ ":01")
    #RunSchedule(RunUpdate_sp500,str(datetime.today().hour).zfill(2)+ ":" + str(datetime.today().minute + 1).zfill(2)+ ":05")
@@ -55,6 +56,8 @@ def runUpdate():
         if value.market == "上市" and len(value.code) >= 4 :
             if len(value.code) >= 5 and get_stock_history.check_ETF_stock(value.code) == False:
                 continue
+#            if int(value.code) < 9000:
+ #               continue
             try:
                 deleteStockDayTable(str(value.code+".TW"))
             except:
@@ -77,7 +80,8 @@ def runUpdate():
     get_stock_info.Update_date = str(datetime.today())[0:10]
     get_stock_info.Save_Update_date()
     print("Update all stocks end!")
-    #get_stock_history.get_stock_AD_index(datetime.today())
+    #get_stock_history.get_stock_AD_index(datetime.today())#更新騰落
+    #get_stock_history.get_allstock_yield(datetime.today())#更新殖利率
 
 def RunUpdate_sp500():
     print("Update all sp500 stocks start!")
@@ -114,6 +118,15 @@ def readStockDay(name):
         print('SQL Error {}'.format(e.args))
         return dataframe
 
+def read_Dividend_yield(name):
+    dataframe = pd.DataFrame()
+    try:
+        dataframe = pd.read_sql(sql = name,con=MySql_server.engine,index_col='code')
+        return dataframe
+    except Exception as e:
+        print('SQL Error {}'.format(e.args))
+        return dataframe
+    
 def deleteStockDayTable(name):
     DynamicBase = declarative_base(class_registry=dict())
     class StockDayInfo(DynamicBase,MySql_server.Model):

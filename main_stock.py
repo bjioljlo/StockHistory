@@ -97,7 +97,34 @@ def Check_ADLs_isCheck():
 def Check_MACD_isCheck(m_history):
     if myshow.check_MACD.isChecked() == True:
         df.draw_MACD(m_history)
-def button_getStockHistory():
+
+def button_openPickWindow_click():
+    mypick.show()
+def button_openBackWindow_click():
+    mybacktest.show()
+def button_moveToInput_click():
+    Index = myshow.treeView.currentIndex()
+    mModel = myshow.treeView.model()
+    data = mModel.item(Index.row(),0).text()
+    text = str(data)
+    myshow.input_stockNumber.setPlainText(text)
+def button_addStock_click():
+    stocknum = myshow.input_stockNumber.toPlainText()
+    get_stock_info.Add_stock_info(stocknum)
+    myshow.treeView.setModel(creat_treeView_model(myshow.treeView,main_titalList,False))#設定treeView功能
+def button_deletStock_click():
+    stocknum = myshow.input_stockNumber.toPlainText()
+    get_stock_info.Delet_stock_info(stocknum)
+    myshow.treeView.setModel(creat_treeView_model(myshow.treeView,main_titalList,False))#設定treeView功能
+def button_moveToInputFromPick_click():
+        Index = mypick.treeView_pick.currentIndex()
+        mModel = mypick.treeView_pick.model()
+        data = mModel.item(Index.row(),0).text()
+        text = str(data)
+        myshow.input_stockNumber.setPlainText(text)
+
+#第1頁的UI
+def button_getStockHistory():#某股票蠟燭圖
     #存更新日期
     date = myshow.date_startDate.date()
     str_date = str(date.year())+'-'+ str(date.month())+'-'+str(date.day())
@@ -127,26 +154,45 @@ def button_getStockHistory():
         Check_ADLs_isCheck()
         Check_MACD_isCheck(m_history)
         check_price_isCheck(m_history,get_stock_info.Get_stock_info(stock_number))#壹定要在最後面檢查 
+def button_monthRP_click():#某股票月營收曲線
+    if (myshow.input_stockNumber.toPlainText() == ''):
+        print('請輸入股票號碼')
+        return
+    if (int(myshow.date_endDate.date().month()) == int(datetime.today().month)):
+        print("本月還沒過完無資資訊")
+        return
+    data_result = None
+    data_result = get_monthRP(myshow.date_endDate.date(),
+                                myshow.date_startDate.date(),
+                                myshow.input_stockNumber.toPlainText())
+    df.draw_monthRP(data_result,myshow.input_stockNumber.toPlainText())
+def button_Dividend_yield_click():#某股票殖利率曲線
+    if (myshow.input_stockNumber.toPlainText() == ''):
+        print('請輸入股票號碼')
+        return
+    if (int(myshow.date_endDate.date().day()) == int(datetime.today().day)):
+        print("今天還沒過完無資資訊")
+        return
+    data_result = None
+    data_result = get_Dividend_yield(myshow.date_endDate.date(),
+                                myshow.date_startDate.date(),
+                                myshow.input_stockNumber.toPlainText())
+    df.draw_Dividend_yield(data_result,myshow.input_stockNumber.toPlainText())
+def button_Operating_Margin_click():#某股票營業利益率曲線
+    if (myshow.input_stockNumber.toPlainText() == ''):
+        print('請輸入股票號碼')
+        return
+    if (int(myshow.date_endDate.date().day()) == int(datetime.today().day)):
+        print("今天還沒過完無資資訊")
+        return
+    data_result = None
+    data_result = get_Operating_Margin(myshow.date_endDate.date(),
+                                myshow.date_startDate.date(),
+                                myshow.input_stockNumber.toPlainText())
+    df.draw_Operating_Margin(data_result,myshow.input_stockNumber.toPlainText())
 
-def button_openPickWindow_click():
-        mypick.show()
-def button_openBackWindow_click():
-        mybacktest.show()
-def button_moveToInput_click():
-    Index = myshow.treeView.currentIndex()
-    mModel = myshow.treeView.model()
-    data = mModel.item(Index.row(),0).text()
-    text = str(data)
-    myshow.input_stockNumber.setPlainText(text)
-def button_addStock_click():
-    stocknum = myshow.input_stockNumber.toPlainText()
-    get_stock_info.Add_stock_info(stocknum)
-    myshow.treeView.setModel(creat_treeView_model(myshow.treeView,main_titalList,False))#設定treeView功能
-def button_deletStock_click():
-    stocknum = myshow.input_stockNumber.toPlainText()
-    get_stock_info.Delet_stock_info(stocknum)
-    myshow.treeView.setModel(creat_treeView_model(myshow.treeView,main_titalList,False))#設定treeView功能
-def button_pick_click():
+#第2頁的UI
+def button_pick_click():#其他數值篩選
     volume_date = tools.QtDate2DateTime(myshow.date_endDate.date())
     GPM = mypick.input_GPM.toPlainText()
     OPR = mypick.input_OPR.toPlainText()
@@ -172,28 +218,8 @@ def button_pick_click():
 
     mypick.treeView_pick.setModel(creat_treeView_model(mypick.treeView_pick,pick_titalList))#設定treeView功能
     set_treeView2(mypick.treeView_pick.model(),resultAllFS)
-def button_moveToInputFromPick_click():
-        Index = mypick.treeView_pick.currentIndex()
-        mModel = mypick.treeView_pick.model()
-        data = mModel.item(Index.row(),0).text()
-        text = str(data)
-        myshow.input_stockNumber.setPlainText(text)
-
-def button_monthRP_click():#某股票月營收曲線
-    if (myshow.input_stockNumber.toPlainText() == ''):
-        print('請輸入股票號碼')
-        return
-    if (int(myshow.date_endDate.date().month()) == int(datetime.today().month)):
-        print("本月還沒過完無資資訊")
-        return
-    data_result = None
-    data_result = get_monthRP(myshow.date_endDate.date(),
-                                myshow.date_startDate.date(),
-                                myshow.input_stockNumber.toPlainText())
-    df.draw_monthRP(data_result,myshow.input_stockNumber.toPlainText())
 def button_monthRP_Up_click():#月營收逐步升高篩選
     date = tools.QtDate2DateTime(myshow.date_endDate.date())
-    date_5 = date + timedelta(days=-14)#加一天
     if date.isoweekday() == 6:
         date = date + timedelta(days=-1)#加一天
     elif date.isoweekday() == 7:
@@ -205,7 +231,7 @@ def button_monthRP_Up_click():#月營收逐步升高篩選
     OPR = mypick.input_OPR.toPlainText()
     EPS = mypick.input_EPS.toPlainText()
     RPS = mypick.input_RPS.toPlainText()    
-
+    OMGR = mypick.input_OMGR.toPlainText()
     FS_data = pd.DataFrame()
     result_data = pd.DataFrame()
     BOOK_data = pd.DataFrame()
@@ -228,6 +254,9 @@ def button_monthRP_Up_click():#月營收逐步升高篩選
     yield_data = get_stock_history.get_yield_range(tools.changeDateMonth(date,0),
                                                 float(mypick.input_yiled_high.toPlainText()),
                                                 float(mypick.input_yiled_low.toPlainText()))
+    OMGR_data = get_stock_history.get_OMGR_up(tools.changeDateMonth(date,0),
+                                              int(mypick.input_OMGR.toPlainText()))
+    
     pick_data = FS_data
     if result_data.empty == False:            
         pick_data = pd.merge(pick_data,result_data,left_index=True,right_index=True,how='left')
@@ -248,6 +277,10 @@ def button_monthRP_Up_click():#月營收逐步升高篩選
     if yield_data.empty == False:
         pick_data = pd.merge(pick_data,yield_data,left_index=True,right_index=True,how='left')
         pick_data = pick_data.dropna(axis=0,how='any')
+    
+    if OMGR_data.empty == False:
+        pick_data = pd.merge(pick_data,OMGR_data,left_index=True,right_index=True,how='left')
+        pick_data = pick_data.dropna(axis=0,how='any')
 
     price_data = get_stock_history.get_price_range(date,
                                                 int(mypick.input_price_high.toPlainText()),
@@ -265,12 +298,14 @@ def button_monthRP_Up_click():#月營收逐步升高篩選
         pick_data = tools.MixDataFrames({'pick':pick_data,'recordHigh':record_data})
         pick_data = pick_data.dropna(axis=0,how='any')
 
-    pick_data = get_volume(int(mypick.input_volum.toPlainText()),tools.changeDateMonth(date_5,0),pick_data)
+    pick_data = get_volume(int(mypick.input_volum.toPlainText()),tools.changeDateMonth(date,0),pick_data)
     pick_data = pick_data.dropna(axis=0,how='any')
 
     print("總挑選數量:" + str(len(pick_data)))
     mypick.treeView_pick.setModel(creat_treeView_model(mypick.treeView_pick,pick_titalList))#設定treeView功能
     set_treeView2(mypick.treeView_pick.model(),pick_data)
+
+#第3頁的UI
 def button_backtest_click():#月營收回測開始紐
         if mybacktest.check_monthRP_pick.isChecked() == mybacktest.check_PER_pick.isChecked() == mybacktest.check_volume_pick.isChecked() == False:
             print("都沒選是要回測個毛線！")
@@ -344,10 +379,75 @@ def get_monthRP(date_end,date_start,Number):#end = 後面時間 start = 前面�
             print(str(m_date_start) + "月營收未出喔")
     data_result.set_index('日期',inplace=True)
     return data_result
+#取得殖利率的資料
+def get_Dividend_yield(date_end,date_start,Number):#end = 後面時間 start = 前面時間 Number = 股票號碼
+    date_end_str = str(date_end.year()) + '-' + str(date_end.month()) + '-' + str(date_end.day())
+    m_date_end = datetime.strptime(date_end_str,"%Y-%m-%d")
 
+    date_start_str = str(date_start.year()) + '-' + str(date_start.month()) + '-' + str(date_start.day())
+    m_date_start = datetime.strptime(date_start_str,"%Y-%m-%d")
+
+    stockNum = Number
+    data_result = None
+    
+    while (m_date_start <= m_date_end):
+         #週末直接跳過
+        if m_date_start.isoweekday() in [6,7]:
+            print(str(m_date_start) + 'is 星期' + str(m_date_start.isoweekday()))
+            m_date_start = tools.backWorkDays(m_date_start,-1)#加一天
+            continue
+        #先看看台積有沒有資料，如果沒有表示這天是非週末假日跳過 
+        if get_stock_history.get_stock_price(2330,m_date_start,get_stock_history.stock_data_kind.AdjClose) == None:
+            print(str(m_date_start) + "這天沒開市")
+            m_date_start = tools.backWorkDays(m_date_start,-1)#加一天
+            continue
+        try:
+            Dividend_yield_temp = get_stock_history.get_stock_yield(stockNum,m_date_start)
+        except:
+            print(str(m_date_start) + "殖利率未出喔")
+            m_date_start = tools.backWorkDays(m_date_start,-1)#加一天
+            continue
+        Dividend_yield_temp.insert(0,'Date',m_date_start)
+        data_result = pd.concat([data_result,Dividend_yield_temp])
+        m_date_start = tools.backWorkDays(m_date_start,-1)#加一天
+    data_result.set_index('Date',inplace=True)
+    return data_result
+#取得營業利益率的資料
+def get_Operating_Margin(date_end,date_start,Number):#end = 後面時間 start = 前面時間 Number = 股票號碼
+    date_end_str = str(date_end.year()) + '-' + str(date_end.month()) + '-' + str(date_end.day())
+    m_date_end = datetime.strptime(date_end_str,"%Y-%m-%d")
+
+    date_start_str = str(date_start.year()) + '-' + str(date_start.month()) + '-' + str(date_start.day())
+    m_date_start = datetime.strptime(date_start_str,"%Y-%m-%d")
+
+    m_date_start_day = int(date_start.day())
+    stockNum = Number
+    data_result = None
+    while (m_date_start <= m_date_end):
+         #週末直接跳過
+        if m_date_start.isoweekday() in [6,7]:
+            print(str(m_date_start) + 'is 星期' + str(m_date_start.isoweekday()))
+            m_date_start = tools.backWorkDays(m_date_start,1)#加一天
+            continue
+        #先看看台積有沒有資料，如果沒有表示這天是非週末假日跳過 
+        if get_stock_history.get_stock_price(2330,m_date_start,get_stock_history.stock_data_kind.AdjClose) == None:
+            print(str(m_date_start) + "這天沒開市")
+            m_date_start = tools.backWorkDays(m_date_start,1)#加一天
+            continue
+        try:
+            Operating_Margin_temp = get_stock_history.get_stock_Operating(stockNum,m_date_start)
+        except:
+            print(str(m_date_start) + "營業利益率未出喔")
+            m_date_start = tools.backWorkDays(m_date_start,1)#加一天
+            continue
+        Operating_Margin_temp.insert(0,'Date',m_date_start)
+        data_result = pd.concat([data_result,Operating_Margin_temp])
+        m_date_start = tools.changeDateMonth(m_date_start,3)#加一季
+        m_date_start = m_date_start.replace(day = m_date_start_day)
+    data_result.set_index('Date',inplace=True)
+    return data_result
 #取得各種財報數字篩選
 def get_financial_statement(date,GPM = '0' ,OPR ='0' ,EPS ='0',RPS ='0'):
-    FS_type = get_stock_history.FS_type.PLA
     resultAllFS1 = []
     resultAllFS2 = []
     resultAllFS3 = []
@@ -356,24 +456,24 @@ def get_financial_statement(date,GPM = '0' ,OPR ='0' ,EPS ='0',RPS ='0'):
     volume_date = date
     for i in range(12):
         try:
-            this = get_stock_history.get_allstock_financial_statement(date,FS_type)
-            print(str(date.month)+ "月財務報告ＯＫ")
+            this = get_stock_history.get_allstock_financial_statement(volume_date,FS_type)
+            print(str(volume_date.month)+ "月財務報告ＯＫ")
             break
         except:
-            print(str(date.month)+ "月財務報告未出跳下一個月")
-            date = tools.changeDateMonth(date,-1)
+            print(str(volume_date.month)+ "月財務報告未出跳下一個月")
+            volume_date = tools.changeDateMonth(volume_date,-1)
             continue
     this1 = this["毛利率(%)"] > float(GPM)
     this2 = this["營業利益率(%)"] > float(OPR)
     resultAllFS1 = this[this1 & this2]
             
     FS_type = get_stock_history.FS_type.BS
-    this = get_stock_history.get_allstock_financial_statement(date,FS_type)
+    this = get_stock_history.get_allstock_financial_statement(volume_date,FS_type)
     this1 = this["每股參考淨值"] > float(RPS)
     resultAllFS2 = this[this1]
 
     FS_type = get_stock_history.FS_type.CPL
-    this = get_stock_history.get_allstock_financial_statement(date,FS_type)
+    this = get_stock_history.get_allstock_financial_statement(volume_date,FS_type)
     this1 = this["基本每股盈餘（元）"] > float(EPS)
     resultAllFS3 = this[this1]
 
@@ -381,12 +481,10 @@ def get_financial_statement(date,GPM = '0' ,OPR ='0' ,EPS ='0',RPS ='0'):
     resultAllFS = pd.merge(resultAllFS3,resultAllFS_temp,left_index=True,right_index=True)
 
     return resultAllFS
-
 #取得交易量篩選
 def get_volume(volumeNum,date,data = pd.DataFrame(),getMax = False):
     Temp_index = 0
     Temp_volume2 = 0
-    avgDay = 5
     if data.empty == False:
         for index,row in data.iterrows():
             Temp_volume = get_stock_history.get_stock_price(str(index),tools.DateTime2String(date),get_stock_history.stock_data_kind.Volume,isSMA=True)
@@ -481,23 +579,25 @@ def Init_mainWindow():#初始化mainwindow
     myshow.button_getStockHistory.clicked.connect(button_getStockHistory)#設定button功能
     myshow.button_openPickWindow.clicked.connect(button_openPickWindow_click)#設定button功能
     myshow.button_getMonthRP.clicked.connect(button_monthRP_click)#設定button功能
+    myshow.button_getDividend_yield.clicked.connect(button_Dividend_yield_click)#設定button功能
     myshow.button_runSchedule.clicked.connect(update_stock_info.RunScheduleNow)#設定button功能
     #myshow.button_runSchedule.clicked.connect(tools.get_SP500_list)設定button功能
     myshow.button_stopSchedule.clicked.connect(update_stock_info.stopThreadSchedule)#設定button功能
+    myshow.button_getOperating_Margin.clicked.connect(button_Operating_Margin_click)#設定button功能
     #設定日期
     Date = datetime.strptime(get_stock_info.Update_date[0:10],"%Y-%m-%d")
     date = QtCore.QDate(Date.year,Date.month,Date.day)
     today = QtCore.QDate(datetime.today().year,datetime.today().month,datetime.today().day)
     myshow.date_startDate.setMaximumDate(today)
     myshow.date_startDate.setMinimumDate(QtCore.QDate(2000,1,1))
-    myshow.date_startDate.setDate(QtCore.QDate((datetime.today().year),(datetime.today().month - 6),datetime.today().day))
+    enddate = tools.changeDateMonth(tools.QtDate2DateTime(date),-6)
+    myshow.date_startDate.setDate(QtCore.QDate((enddate.year),(enddate.month),(enddate.day)))
     myshow.date_endDate.setMaximumDate(today)
     myshow.date_endDate.setMinimumDate(QtCore.QDate(2001,1,1))
     myshow.date_endDate.setDate(date)
     myshow.input_SMA1.setPlainText("5")
     myshow.input_SMA2.setPlainText("20")
     myshow.input_SMA3.setPlainText("60")
-    
 def Init_pickWindow():#初始化挑股票畫面
     mypick.button_pick.clicked.connect(button_pick_click)#設定button功能
     mypick.button_moveToInput.clicked.connect(button_moveToInputFromPick_click)#設定button功能
@@ -508,6 +608,7 @@ def Init_pickWindow():#初始化挑股票畫面
     mypick.input_GPM.setPlainText("0")
     mypick.input_OPR.setPlainText("0")
     mypick.input_RPS.setPlainText("0")
+    mypick.input_OMGR.setPlainText("0")
     mypick.input_monthRP_smoothAVG.setPlainText("0")
     mypick.input_monthRP_UpMpnth.setPlainText("0")
     mypick.input_volum.setPlainText("0")
@@ -561,7 +662,6 @@ def Init_backtestWindow():#初始化回測畫面
     mybacktest.input_yield_end.setPlainText('0')
     mybacktest.input_buyDay.setPlainText('15')
     mybacktest.input_RecordHigh.setPlainText('60')
-    
 
 app = QtWidgets.QApplication(sys.argv)
 myshow = MyWindow()
