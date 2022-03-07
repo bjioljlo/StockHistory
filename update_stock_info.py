@@ -44,7 +44,7 @@ def setMysqlServer(db_name):
     server_flask = Flask(__name__)#初始化server
     #設定mysql DB
     server_flask.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-    server_flask.config['SQLALCHEMY_DATABASE_URI'] = "mysql+pymysql://" + "demo" + ":" + "demo123" + "@" + "122.116.102.141" + ":"+ "3307" +"/"+ str(db_name)
+    server_flask.config['SQLALCHEMY_DATABASE_URI'] = "mysql+pymysql://" + "demo" + ":" + "~Demo123" + "@" + "122.116.102.141" + ":"+ "3307" +"/"+ str(db_name)
     #server_flask.config['SQLALCHEMY_DATABASE_URI'] = "mysql+pymysql://" + "demo" + ":" + "demo123" + "@" + "127.0.0.1" + ":"+ "3306" +"/"+ str(db_name)
     #連線mysql DB
     MySql_server = SQLAlchemy(server_flask)

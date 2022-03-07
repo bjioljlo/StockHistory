@@ -203,28 +203,28 @@ def get_allstock_financial_statement(start,type):#爬某季所有股票歷史財
             season = int(((start.month - 1)/3)+1)
             if season == 4:
                 season = 3
-                if start < datetime(start.year,11,28):
+                if start < datetime(start.year,12,31):
                     season = 2
                     start = tools.changeDateMonth(start,-6)
                 else:
                     start = tools.changeDateMonth(start,-3)
             elif season == 3:
                 season = 2
-                if start < datetime(start.year,8,28):
+                if start < datetime(start.year,9,30):
                     season = 1
                     start = tools.changeDateMonth(start,-6)
                 else:
                     start = tools.changeDateMonth(start,-3)
             elif season == 2:
                 season = 1
-                if start < datetime(start.year,5,28):
+                if start < datetime(start.year,6,30):
                     season = 4
                     start = tools.changeDateMonth(start,-6)
                 else:
                     start = tools.changeDateMonth(start,-3)
             elif season == 1:
                 season = 4
-                if start < datetime(start.year,2,28):
+                if start < datetime(start.year,3,31):
                     season = 3
                     start = tools.changeDateMonth(start,-6)
                 else:
@@ -544,7 +544,7 @@ def get_ADL(start_time,end_time):
 #取得月營收逐步升高的篩選資料
 def get_monthRP_up(time,avgNum,upNum):#time = 取得資料的時間 avgNum = 平滑曲線月份 upNum = 連續成長月份
     print('get_monthRP_up: start:'+ str(time) )
-    fileName = str(time.year) +str(time.month) + str(avgNum) + str(upNum)
+    fileName ='get_monthRP_up:' + str(time.year) +str(time.month) + str(avgNum) + str(upNum)
     if fileName in load_memery:
         print('get_monthRP_up: end' )
         return load_memery[fileName]
@@ -571,7 +571,7 @@ def get_monthRP_up(time,avgNum,upNum):#time = 取得資料的時間 avgNum = 平
 
     final_result = final_result.rename(index=int)
     final_result.index.name = '公司代號'
-    load_memery[str(time.year) +str(time.month) + str(avgNum) + str(upNum)] = final_result
+    load_memery[fileName] = final_result
     print('get_monthRP_up: end' )
     return final_result
 
@@ -600,15 +600,14 @@ def get_OMGR_up(time,upNum):#time = 取得資料的時間 upNum = 連續成長�
         if count < 5:
             continue
         else:           
-            print(index) #現在
-            print(row)
             a_string = str(index.year -1)+'-'+str(index.month).zfill(2)
-            print(result[a_string]) #去年同期
             temp = ((row - result[a_string])/result[a_string]) * 100
             final_result = final_result.append(temp,ignore_index=True)
     method2 = (final_result > final_result.shift()).iloc[-upNum:].sum()
     method2 = method2[method2 >= upNum]
     method2 = pd.DataFrame(method2)
+    load_memery[fileName] = method2
+    print('get_OMGR_up: end' )
     return method2
 
 #取得本益比篩選
@@ -847,7 +846,41 @@ def get_RecordHigh_range(time,Day,RecordHighDay,data = pd.DataFrame()):#time = �
     print('RecordHigh: end')
     return RH_result
 
+#取得交易量篩選
+def get_volume(volumeNum,date,data = pd.DataFrame(),getMax = False):
+    Temp_index = 0
+    Temp_volume2 = 0
+    volume_data = pd.DataFrame(columns=['公司代號','volume'])
+    if volumeNum <= 0:
+        return volume_data
+    All_data = data
+    if All_data.empty == True:
+        print("get_volume:輸入的data是空的")
+        return volume_data
 
+    for index,row in All_data.iterrows():
+        Temp_volume = get_stock_price(str(index),tools.DateTime2String(date),stock_data_kind.Volume,isSMA=True)
+        while (Temp_volume == None):
+            if check_no_use_stock(index):
+                break
+            date = date + timedelta(days=-1)#加一天
+            Temp_volume = get_stock_price(str(index),tools.DateTime2String(date),stock_data_kind.Volume,isSMA=True)
+        if Temp_volume != None and Temp_volume >= volumeNum:
+            Temp_number = int(index)
+            volume_data = volume_data.append({'公司代號':Temp_number,'volume':Temp_volume},ignore_index=True)
+            if(getMax):
+                if Temp_volume > Temp_volume2:
+                    if(Temp_index != 0):
+                        volume_data = volume_data.drop(index = Temp_index)
+                    Temp_index = index
+                    Temp_volume2 = Temp_volume
+                else:
+                    volume_data = volume_data.drop(index = index)
+            else:
+                pass
+    volume_data['公司代號'] = volume_data['公司代號'].astype('int')
+    volume_data.set_index('公司代號',inplace=True)
+    return volume_data
 
 #爬取歷史財報並存檔
 def financial_statement(year, season, type):#year = 年 season = 季 type = 財報種類

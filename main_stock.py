@@ -2,6 +2,7 @@ from PyQt5 import QtWidgets
 from PyQt5.QtGui import QStandardItemModel
 from PyQt5.QtCore import Qt
 from PyQt5 import QtCore
+from sqlalchemy import false, null
 from UI_main import Ui_MainWindow
 from UI_pick import Ui_MainWindow2
 from UI_backtest import Ui_MainWindow3
@@ -213,12 +214,12 @@ def button_pick_click():#其他數值篩選
     if price_data.empty == False:
         resultAllFS = tools.MixDataFrames({'pick':resultAllFS,'recordHigh':price_data})
         resultAllFS = resultAllFS.dropna(axis=0,how='any')
-    resultAllFS = get_volume(int(mypick.input_volum.toPlainText()),tools.changeDateMonth(volume_date,0),resultAllFS)
+    resultAllFS = get_stock_history.get_volume(int(mypick.input_volum.toPlainText()),tools.changeDateMonth(volume_date,0),resultAllFS)
 
 
     mypick.treeView_pick.setModel(creat_treeView_model(mypick.treeView_pick,pick_titalList))#設定treeView功能
     set_treeView2(mypick.treeView_pick.model(),resultAllFS)
-def button_monthRP_Up_click():#月營收逐步升高篩選
+def button_monthRP_Up_click():#全部篩選
     date = tools.QtDate2DateTime(myshow.date_endDate.date())
     if date.isoweekday() == 6:
         date = date + timedelta(days=-1)#加一天
@@ -226,80 +227,84 @@ def button_monthRP_Up_click():#月營收逐步升高篩選
         date = date + timedelta(days=-2)#加2天
     else:
         pass
-
-    GPM = mypick.input_GPM.toPlainText()
-    OPR = mypick.input_OPR.toPlainText()
-    EPS = mypick.input_EPS.toPlainText()
-    RPS = mypick.input_RPS.toPlainText()    
-    OMGR = mypick.input_OMGR.toPlainText()
+    try:
+        GPM = mypick.input_GPM.value()
+        OPR = mypick.input_OPR.value()
+        EPS = mypick.input_EPS.value()
+        RPS = mypick.input_RPS.value() 
+        monthRP_smoothAVG = mypick.input_monthRP_smoothAVG.value()
+        monthRP_UpMpnth = mypick.input_monthRP_UpMpnth.value()
+        PBR_low = mypick.input_PBR_low.value()
+        PBR_high = mypick.input_PBR_high.value()
+        PER_low = mypick.input_PER_low.value()
+        PER_high = mypick.input_PER_high.value()
+        ROE_low = mypick.input_ROE_low.value()
+        ROE_high = mypick.input_ROE_high.value()
+        yiled_high = mypick.input_yiled_high.value()
+        yiled_low = mypick.input_yiled_low.value()
+        OMGR = mypick.input_OMGR.value()
+        price_high = mypick.input_price_high.value()
+        price_low = mypick.input_price_low.value()
+        flash_Day = mypick.input_flash_Day.value()
+        record_Day = mypick.input_record_Day.value()
+        volum = mypick.input_volum.value()
+    except:
+        print("Get value error")
+        return
     FS_data = pd.DataFrame()
+    pick_data = pd.DataFrame()
     result_data = pd.DataFrame()
     BOOK_data = pd.DataFrame()
     PER_data = pd.DataFrame()
     yield_data = pd.DataFrame()
 
     FS_data = get_financial_statement(date,GPM,OPR,EPS,RPS)
-    result_data = get_stock_history.get_monthRP_up(tools.changeDateMonth(date,0),
-                                                int(mypick.input_monthRP_smoothAVG.toPlainText()),
-                                                int(mypick.input_monthRP_UpMpnth.toPlainText()))
-    BOOK_data = get_stock_history.get_PBR_range(tools.changeDateMonth(date,0),
-                                                float(mypick.input_PBR_low.toPlainText()),
-                                                float(mypick.input_PBR_high.toPlainText()))
-    PER_data = get_stock_history.get_PER_range(tools.changeDateMonth(date,0),
-                                                float(mypick.input_PER_low.toPlainText()),
-                                                float(mypick.input_PER_high.toPlainText()))
-    ROE_data = get_stock_history.get_ROE_range(tools.changeDateMonth(date,0),
-                                                float(mypick.input_ROE_low.toPlainText()),
-                                                float(mypick.input_ROE_high.toPlainText()))
-    yield_data = get_stock_history.get_yield_range(tools.changeDateMonth(date,0),
-                                                float(mypick.input_yiled_high.toPlainText()),
-                                                float(mypick.input_yiled_low.toPlainText()))
-    OMGR_data = get_stock_history.get_OMGR_up(tools.changeDateMonth(date,0),
-                                              int(mypick.input_OMGR.toPlainText()))
+    result_data = get_stock_history.get_monthRP_up(tools.changeDateMonth(date,0),monthRP_smoothAVG,monthRP_UpMpnth)
+    BOOK_data = get_stock_history.get_PBR_range(tools.changeDateMonth(date,0),PBR_low,PBR_high)
+    PER_data = get_stock_history.get_PER_range(tools.changeDateMonth(date,0),PER_low,PER_high)
+    ROE_data = get_stock_history.get_ROE_range(tools.changeDateMonth(date,0),ROE_low,ROE_high)
+    yield_data = get_stock_history.get_yield_range(tools.changeDateMonth(date,0),yiled_high,yiled_low)
+    OMGR_data = get_stock_history.get_OMGR_up(tools.changeDateMonth(date,0),OMGR)
     
     pick_data = FS_data
-    if result_data.empty == False:            
+    if monthRP_smoothAVG > 0 or monthRP_UpMpnth > 0:            
         pick_data = pd.merge(pick_data,result_data,left_index=True,right_index=True,how='left')
         pick_data = pick_data.dropna(axis=0,how='any')
     
-    if BOOK_data.empty == False:
+    if PBR_low > 0 or PBR_high > 0:
         pick_data = pd.merge(pick_data,BOOK_data,left_index=True,right_index=True,how='left')
         pick_data = pick_data.dropna(axis=0,how='any')
     
-    if PER_data.empty == False:
+    if PER_low > 0 or PER_high > 0:
         pick_data = pd.merge(pick_data,PER_data,left_index=True,right_index=True,how='left')
         pick_data = pick_data.dropna(axis=0,how='any')
     
-    if ROE_data.empty == False:
+    if ROE_low > 0 or ROE_high > 0:
         pick_data = pd.merge(pick_data,ROE_data,left_index=True,right_index=True,how='left')
         pick_data = pick_data.dropna(axis=0,how='any')
     
-    if yield_data.empty == False:
+    if yiled_high > 0 or yiled_low > 0:
         pick_data = pd.merge(pick_data,yield_data,left_index=True,right_index=True,how='left')
         pick_data = pick_data.dropna(axis=0,how='any')
     
-    if OMGR_data.empty == False:
+    if OMGR > 0:
         pick_data = pd.merge(pick_data,OMGR_data,left_index=True,right_index=True,how='left')
         pick_data = pick_data.dropna(axis=0,how='any')
-
-    price_data = get_stock_history.get_price_range(date,
-                                                int(mypick.input_price_high.toPlainText()),
-                                                int(mypick.input_price_low.toPlainText()),
-                                                pick_data)
-    if price_data.empty == False:
+    
+    if price_high > 0 or price_low > 0:
+        price_data = get_stock_history.get_price_range(date,price_high,price_low,pick_data)
         pick_data = tools.MixDataFrames({'pick':pick_data,'price':price_data})
         pick_data = pick_data.dropna(axis=0,how='any')
 
-    record_data = get_stock_history.get_RecordHigh_range(date,
-                                                        int(mypick.input_flash_Day.toPlainText()),
-                                                        int(mypick.input_record_Day.toPlainText()),
-                                                        pick_data)
-    if record_data.empty == False:
+    if flash_Day > 0 or record_Day > 0:
+        record_data = get_stock_history.get_RecordHigh_range(date,flash_Day,record_Day,pick_data)
         pick_data = tools.MixDataFrames({'pick':pick_data,'recordHigh':record_data})
         pick_data = pick_data.dropna(axis=0,how='any')
 
-    pick_data = get_volume(int(mypick.input_volum.toPlainText()),tools.changeDateMonth(date,0),pick_data)
-    pick_data = pick_data.dropna(axis=0,how='any')
+    if volum > 0:
+        volume_data =get_stock_history.get_volume(volum * 10000,tools.changeDateMonth(date,0),pick_data,mypick.check_volum_Max.isChecked())
+        pick_data = tools.MixDataFrames({'pick':pick_data,'volumeData':volume_data})
+        pick_data = pick_data.dropna(axis=0,how='any')
 
     print("總挑選數量:" + str(len(pick_data)))
     mypick.treeView_pick.setModel(creat_treeView_model(mypick.treeView_pick,pick_titalList))#設定treeView功能
@@ -369,14 +374,14 @@ def get_monthRP(date_end,date_start,Number):#end = 後面時間 start = 前面�
         monthRP_temp['當月營收'] = int(monthRP_temp['當月營收'])/1000
         data_result = pd.concat([data_result,monthRP_temp])
         m_date_start = tools.changeDateMonth(m_date_start,+1)
-    if m_date_start>m_date_end and m_date_end.year == m_date_start.year:
-        try:
-            monthRP_temp = get_stock_history.get_stock_monthly_report(stockNum,m_date_start)
-            monthRP_temp.insert(0,'日期',m_date_start)
-            monthRP_temp['當月營收'] = int(monthRP_temp['當月營收'])/1000
-            data_result = pd.concat([data_result,monthRP_temp])
-        except:
-            print(str(m_date_start) + "月營收未出喔")
+    # if m_date_start>m_date_end and m_date_end.year == m_date_start.year:
+    #     try:
+    #         monthRP_temp = get_stock_history.get_stock_monthly_report(stockNum,m_date_start)
+    #         monthRP_temp.insert(0,'日期',m_date_start)
+    #         monthRP_temp['當月營收'] = int(monthRP_temp['當月營收'])/1000
+    #         data_result = pd.concat([data_result,monthRP_temp])
+    #     except:
+    #         print(str(m_date_start) + "月營收未出喔")
     data_result.set_index('日期',inplace=True)
     return data_result
 #取得殖利率的資料
@@ -477,39 +482,45 @@ def get_financial_statement(date,GPM = '0' ,OPR ='0' ,EPS ='0',RPS ='0'):
     this1 = this["基本每股盈餘（元）"] > float(EPS)
     resultAllFS3 = this[this1]
 
-    resultAllFS_temp = pd.merge(resultAllFS1,resultAllFS2,left_index=True,right_index=True) 
-    resultAllFS = pd.merge(resultAllFS3,resultAllFS_temp,left_index=True,right_index=True)
+    resultAllFS_temp = tools.MixDataFrames({'resultAllFS1':resultAllFS1,'resultAllFS2':resultAllFS2})
+    resultAllFS = tools.MixDataFrames({'resultAllFS3':resultAllFS3,'resultAllFS_temp':resultAllFS_temp})
 
     return resultAllFS
-#取得交易量篩選
-def get_volume(volumeNum,date,data = pd.DataFrame(),getMax = False):
-    Temp_index = 0
-    Temp_volume2 = 0
-    if data.empty == False:
-        for index,row in data.iterrows():
-            Temp_volume = get_stock_history.get_stock_price(str(index),tools.DateTime2String(date),get_stock_history.stock_data_kind.Volume,isSMA=True)
-            while (Temp_volume == None):
-                if get_stock_history.check_no_use_stock(index):
-                    break
-                date = date + timedelta(days=-1)#加一天
-                Temp_volume = get_stock_history.get_stock_price(str(index),tools.DateTime2String(date),get_stock_history.stock_data_kind.Volume,isSMA=True)
-            if Temp_volume != None and Temp_volume >= volumeNum:
-                if(mypick.check_volum_Max.isChecked()):
-                    if Temp_volume > Temp_volume2:
-                        if(Temp_index != 0):
-                            data = data.drop(index = Temp_index)
-                        Temp_index = index
-                        Temp_volume2 = Temp_volume
-                    else:
-                        data = data.drop(index = index)
-                else:
-                    pass
-                 
-            else:
-                data = data.drop(index = index)
-    else:
-        print("get_volume:輸入的data是空的")
-    return data
+# #取得交易量篩選
+# def get_volume(volumeNum,date,data = pd.DataFrame(),getMax = False):
+#     Temp_index = 0
+#     Temp_volume2 = 0
+#     volume_data = pd.DataFrame(columns=['公司代號','volume'])
+#     if volumeNum <= 0:
+#         return volume_data
+#     All_data = data
+#     if All_data.empty == True:
+#         print("get_volume:輸入的data是空的")
+#         return volume_data
+
+#     for index,row in All_data.iterrows():
+#         Temp_volume = get_stock_history.get_stock_price(str(index),tools.DateTime2String(date),get_stock_history.stock_data_kind.Volume,isSMA=True)
+#         while (Temp_volume == None):
+#             if get_stock_history.check_no_use_stock(index):
+#                 break
+#             date = date + timedelta(days=-1)#加一天
+#             Temp_volume = get_stock_history.get_stock_price(str(index),tools.DateTime2String(date),get_stock_history.stock_data_kind.Volume,isSMA=True)
+#         if Temp_volume != None and Temp_volume >= volumeNum:
+#             Temp_number = int(index)
+#             volume_data = volume_data.append({'公司代號':Temp_number,'volume':Temp_volume},ignore_index=True)
+#             if(mypick.check_volum_Max.isChecked()):
+#                 if Temp_volume > Temp_volume2:
+#                     if(Temp_index != 0):
+#                         volume_data = volume_data.drop(index = Temp_index)
+#                     Temp_index = index
+#                     Temp_volume2 = Temp_volume
+#                 else:
+#                     volume_data = volume_data.drop(index = index)
+#             else:
+#                 pass
+#     volume_data['公司代號'] = volume_data['公司代號'].astype('int')
+#     volume_data.set_index('公司代號',inplace=True)
+#     return volume_data
 
 def set_treeView2(model,inputdataFram):
     i = 0
@@ -556,8 +567,8 @@ def add_stock_List(model,stockNum,stockName,rowNum,array = None):
     if array != None:
         for i in range(len(array)):
             model.setData(model.index(rowNum,i+2),array[i])
-
-def Update_StockData_threading(str_date):#異步更新所有台股資料
+#異步更新所有台股資料
+def Update_StockData_threading(str_date):
     lock.acquire()
     for key,value in get_stock_info.ts.codes.items():
         if value.market == "上市" and len(value.code) == 4:
@@ -604,26 +615,26 @@ def Init_pickWindow():#初始化挑股票畫面
     mypick.treeView_pick.setModel(creat_treeView_model(mypick.treeView_pick,pick_titalList))#設定treeView功能
     mypick.button_pick_2.clicked.connect(button_monthRP_Up_click)#設定button功能
     mypick.button_openBackWindow.clicked.connect(button_openBackWindow_click)#設定button功能
-    mypick.input_EPS.setPlainText("0")
-    mypick.input_GPM.setPlainText("0")
-    mypick.input_OPR.setPlainText("0")
-    mypick.input_RPS.setPlainText("0")
-    mypick.input_OMGR.setPlainText("0")
-    mypick.input_monthRP_smoothAVG.setPlainText("0")
-    mypick.input_monthRP_UpMpnth.setPlainText("0")
-    mypick.input_volum.setPlainText("0")
-    mypick.input_price_high.setPlainText("0")
-    mypick.input_price_low.setPlainText("0")
-    mypick.input_PBR_high.setPlainText("0")
-    mypick.input_PBR_low.setPlainText("0")
-    mypick.input_PER_high.setPlainText("0")
-    mypick.input_PER_low.setPlainText("0")
-    mypick.input_ROE_high.setPlainText("0")
-    mypick.input_ROE_low.setPlainText("0")
-    mypick.input_yiled_high.setPlainText("0")
-    mypick.input_yiled_low.setPlainText("0")
-    mypick.input_flash_Day.setPlainText("0")
-    mypick.input_record_Day.setPlainText("0")
+    mypick.input_EPS.setValue(0)
+    mypick.input_GPM.setValue(0)
+    mypick.input_OPR.setValue(0)
+    mypick.input_RPS.setValue(0)
+    mypick.input_OMGR.setValue(0)
+    mypick.input_monthRP_smoothAVG.setValue(0)
+    mypick.input_monthRP_UpMpnth.setValue(0)
+    mypick.input_volum.setValue(0)
+    mypick.input_price_high.setValue(0)
+    mypick.input_price_low.setValue(0)
+    mypick.input_PBR_high.setValue(0)
+    mypick.input_PBR_low.setValue(0)
+    mypick.input_PER_high.setValue(0)
+    mypick.input_PER_low.setValue(0)
+    mypick.input_ROE_high.setValue(0)
+    mypick.input_ROE_low.setValue(0)
+    mypick.input_yiled_high.setValue(0)
+    mypick.input_yiled_low.setValue(0)
+    mypick.input_flash_Day.setValue(0)
+    mypick.input_record_Day.setValue(0)
 def Init_backtestWindow():#初始化回測畫面
     mybacktest.button_backtest.clicked.connect(button_backtest_click)#設定button功能
     mybacktest.button_backtest_2.clicked.connect(button_backtest_click2)

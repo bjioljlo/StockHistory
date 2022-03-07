@@ -82,7 +82,7 @@ def MixDataFrames(DataFrames = {},index = '公司代號'):#合併報表
             result_data = value
             first = False
         else:
-            result_data = pd.merge(result_data,value,on=index,how='inner')
+            result_data = pd.merge(result_data,value,on=index,how='inner',suffixes=['', "_R"])
     return result_data
 def get_random_Header():#取得隨機header
     headers_site = [ 'Mozilla/5.0 (Windows; U; Windows NT 5.1; it; rv:1.8.1.11) Gecko/20071127 Firefox/2.0.0.11',
