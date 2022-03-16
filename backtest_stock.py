@@ -459,6 +459,7 @@ def backtest_KD_pick(mainParament):
     userInfo.Temp_result_draw.set_index('date').to_csv('backtestdata.csv')
     userInfo.Temp_trade_info.set_index('date').to_csv('backtesttrade.csv')
     Temp_alldata.set_index('date').to_csv('backtestAll.csv')   
-        
-
+#PEG選股外加月營收增高 https://www.finlab.tw/finlab-tw-stock-peg-strategy/#PEG_ding_yi 
+def backtest_PEG_pick(mainParament):
+    userInfo = get_user_info.data_user_info(mainParament.money_start,mainParament.date_start,mainParament.date_end)
 

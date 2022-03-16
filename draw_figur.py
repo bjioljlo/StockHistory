@@ -48,7 +48,6 @@ def draw_ADLs(table):
     table_slow = tools.smooth_Data(table,30)
     PICS.append(mpf.make_addplot(table_fast,panel = panelCount,color='red'))
     PICS.append(mpf.make_addplot(table_slow,panel = panelCount,color='blue',ylabel = "ADLs"))
-    #PICS.append(mpf.make_addplot(table,panel = panelCount))
 def draw_MACD(table):
     global panelCount
     panelCount = panelCount + 1
@@ -75,6 +74,20 @@ def draw_Dividend_yield(table,stockNum):
     axx.plot(table['殖利率(%)'],label = '殖利率(%)')
     plt.xlabel("date")
     plt.ylabel("Dividend_yield(%)")
+    plt.title(stockNum)
+    plt.show()
+def draw_Operating_Margin_Ratio(table,stockNum):
+    axx = plt.axes()
+    axx.plot(table['營業利益率成長率(%)'],label = '營業利益率成長率(%)')
+    plt.xlabel("date")
+    plt.ylabel("Dividend_yield_up(%)")
+    plt.title(stockNum)
+    plt.show()
+def draw_ROE(table,stockNum):
+    axx = plt.axes()
+    axx.plot(table['ROE'],label = 'ROE')
+    plt.xlabel("date")
+    plt.ylabel("ROE")
     plt.title(stockNum)
     plt.show()
 def draw_backtest(data):

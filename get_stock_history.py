@@ -1,7 +1,9 @@
-from calendar import month
+from distutils.command.config import dump_file
+from queue import Empty
 import requests
 from datetime import datetime,timedelta
 import pandas as pd
+from sqlalchemy import true
 import get_stock_info
 import os
 import numpy as np
@@ -10,7 +12,6 @@ import time
 from enum import Enum
 import tools
 import update_stock_info
-import talib
 
 
 fileName_monthRP = "monthRP"
@@ -19,14 +20,8 @@ fileName_yield = "yieldInfo"
 fileName_season = "seasonInfo"
 fileName_index = "indexInfo"
 
-no_use_stock = [1603,5259,1262,2475,3519,
-                3579,9157,3083,4576,6706,
-                4439,4571,4572,4581,5283,
-                6491,6592,6672,6715,6698,
-                2025,5546,6598,4148,4552,
-                8488,1341,6671,8499,2243,
-                1902,2233,2448,3698,4725,
-                5264,5305,8497,5244,1752]
+no_use_stock = []
+
 five_word_ETF = ['00692','00878','00646','00881','00733']
 
 Holiday_trigger = False
@@ -67,7 +62,6 @@ def check_ETF_stock(number):
             return True
     return False
 
-
 def get_stock_RecordHight(number,date,flashDay,recordDays):#取得number在flashDay天內天是否在recordDays內創新高
     while (flashDay > 0):
         if check_no_use_stock(number) == True:
@@ -107,7 +101,7 @@ def get_stock_yield(number,date):#取得某股票某天的殖利率
     mask = data.index == number
     data = data[mask]
     return data
-def get_stock_Operating(number,date):
+def get_stock_Operating(number,date):#取得營業利益率
     data = get_allstock_financial_statement(date,FS_type.PLA)
     if type(number) == str:
         number = int(number)
@@ -153,51 +147,69 @@ def get_stock_monthly_report(number,start):#爬某月某個股票月營收
         print("無此檔股票")
         return
     df = get_allstock_monthly_report(start)
-    return df.loc[[str(number)]]
+    if type(number) == str:
+        number = int(number)
+    df = df[df.index == number]
+    return df
 def get_allstock_monthly_report(start):#爬某月所有股票月營收
-    if start.day < 15:#還沒超過15號，拿前一個月
-        print("get_allstock_monthly_report:未到25號取上個月報表")
+    if start.day < 15:#還沒超過15號，拿前兩個月
+        print("get_allstock_monthly_report:未到15號取上個月報表")
         start = tools.changeDateMonth(start,-1)
     year = start.year
+    m_data = pd.DataFrame()
     fileName = filePath + '/' + fileName_monthRP + '/' + str(start.year)+'-'+str(start.month)+'monthly_report.csv'
     if fileName in load_memery:
         return load_memery[fileName]
     
-    if os.path.isfile(fileName) == False:
-        # 假如是西元，轉成民國
-        if year > 1990:
-            year -= 1911
-        url = 'https://mops.twse.com.tw/nas/t21/sii/t21sc03_'+str(year)+'_'+str(start.month)+'_0.html'
-        if year <= 98:
-            url = 'https://mops.twse.com.tw/nas/t21/sii/t21sc03_'+str(year)+'_'+str(start.month)+'.html'
-        
-        # 下載該年月的網站，並用pandas轉換成 dataframe
-        r = requests.get(url, headers = tools.get_random_Header())
-        r.encoding = 'big5-hkscs'
+    #去資料庫抓資料
+    m_data = update_stock_info.read_Dividend_yield('Monthly_report_'+ str(start.year) + '_' + str(start.month))
+    if m_data.empty == True:
+        if os.path.isfile(fileName) == False:
+            # 假如是西元，轉成民國
+            if year > 1990:
+                year -= 1911
+            url = 'https://mops.twse.com.tw/nas/t21/sii/t21sc03_'+str(year)+'_'+str(start.month)+'_0.html'
+            if year <= 98:
+                url = 'https://mops.twse.com.tw/nas/t21/sii/t21sc03_'+str(year)+'_'+str(start.month)+'.html'
+            
+            # 下載該年月的網站，並用pandas轉換成 dataframe
+            r = requests.get(url, headers = tools.get_random_Header())
+            r.encoding = 'big5-hkscs'
 
-        dfs = pd.read_html(StringIO(r.text), encoding='big-5')
+            dfs = pd.read_html(StringIO(r.text), encoding='big-5')
 
-        df = pd.concat([df for df in dfs if df.shape[1] <= 11 and df.shape[1] > 5])
-        
-        if 'levels' in dir(df.columns):
-            df.columns = df.columns.get_level_values(1)
-        else:
-            df = df[list(range(0,10))]
-            column_index = df.index[(df[0] == '公司代號')][0]
-            df.columns = df.iloc[column_index]
-        
-        df['當月營收'] = pd.to_numeric(df['當月營收'], 'coerce')
-        df = df[~df['當月營收'].isnull()]
-        df = df[df['公司代號'] != '合計']
-        
-        df.to_csv(fileName,index = False)
-        # 偽停頓
-        time.sleep(1.5)
-    df = pd.read_csv(fileName,index_col='公司代號', parse_dates=['公司代號'])
-    load_memery[fileName] = df
-    return df      
+            df = pd.concat([df for df in dfs if df.shape[1] <= 11 and df.shape[1] > 5])
+            
+            if 'levels' in dir(df.columns):
+                df.columns = df.columns.get_level_values(1)
+            else:
+                df = df[list(range(0,10))]
+                column_index = df.index[(df[0] == '公司代號')][0]
+                df.columns = df.iloc[column_index]
+            
+            df['當月營收'] = pd.to_numeric(df['當月營收'], 'coerce')
+            df = df[~df['當月營收'].isnull()]
+            df = df[df['公司代號'] != '合計']
+            
+            df.to_csv(fileName,index = False)
+            # 偽停頓
+            time.sleep(1.5)
+            
+        m_data = pd.read_csv(fileName)
+        m_data.drop(m_data.tail(1).index,inplace=True)
+        #整理一下資料
+        m_data.rename(columns = {"公司代號":"code"},inplace = True)
+        #print(m_data.dtypes)
+        m_data[["code"]] = m_data[["code"]].astype(int)
+        #print(m_data.dtypes)
+        m_data.set_index("code",inplace = True)
+        #存到資料庫
+        update_stock_info.saveTable('Monthly_report_'+ str(start.year) + '_' + str(start.month),m_data)
+    load_memery[fileName] = m_data
+    return m_data      
 def get_allstock_financial_statement(start,type):#爬某季所有股票歷史財報
     print("get_allstock_financial_statement:" + str(type))
+    Temp_data = pd.DataFrame()
     for i in range(12):
         try:
             season = int(((start.month - 1)/3)+1)
@@ -232,18 +244,28 @@ def get_allstock_financial_statement(start,type):#爬某季所有股票歷史財
             fileName = filePath + '/' + fileName_season + '/' + str(start.year)+"-season"+str(season)+"-"+type.value+".csv"
             if fileName in load_memery:
                 return load_memery[fileName]
-            if os.path.isfile(fileName) == True:
-                print("已經有" + str(start.month)+ "月財務報告")
+            Temp_data = update_stock_info.read_Dividend_yield(str(start.year)+"-season"+str(season)+"-"+type.value)
+            if Temp_data.empty == True:
+                if os.path.isfile(fileName) == True:
+                    print("已經有" + str(start.month)+ "月財務報告")
+                    break
+                financial_statement(start.year,season,type)
+                print("下載" + str(start.month)+ "月財務報告ＯＫ")
                 break
-            financial_statement(start.year,season,type)
-            print("下載" + str(start.month)+ "月財務報告ＯＫ")
-            break
+            else:
+                break
         except:
             print(str(start.month)+ "月財務報告未出跳下一個月")
             start = tools.changeDateMonth(start,-1)
             continue
-
-    stock = pd.read_csv(fileName,index_col='公司代號', parse_dates=['公司代號'])
+    if Temp_data.empty == True:
+        stock = pd.read_csv(fileName)
+        #整理一下資料
+        stock.rename(columns = {"公司代號":"code"},inplace = True)
+        stock.set_index("code",inplace = True)
+        update_stock_info.saveTable(str(start.year)+"-season"+str(season)+"-"+type.value,stock)
+    else:
+        stock = Temp_data
     load_memery[fileName] = stock
     return stock
 def get_allstock_yield(start):#爬某天所有股票殖利率
@@ -302,123 +324,26 @@ def get_stock_history(number,start,reGetInfo = False,UpdateInfo = True):#爬某�
         print('日期請大於西元2000年')
         return
 
-    m_history = load_stock_file(filePath +'/' + fileName_stockInfo  + '/' + str(number) + '_' + '2000-1-1' +
-                                                            '_' +
-                                                            str(now_time.year) +
-                                                            '-' + str(now_time.month) + 
-                                                            '-' + str(now_time.day),str(number))
+    m_history = load_stock_file(filePath +'/' + fileName_stockInfo  + '/' + str(number) + '_TW.csv',str(number))
     
     if m_history.empty == True:
-        if UpdateInfo == False:
-            now_time = datetime.strptime(get_stock_info.Update_date[0:10],"%Y-%m-%d")
-
-        if os.path.isfile(filePath +'/' + fileName_stockInfo  + '/' + str(number) + '_' + '2000-1-1' +
-                                                            '_' +
-                                                            str(now_time.year) +
-                                                            '-' + str(now_time.month) + 
-                                                            '-' + str(now_time.day) + '.csv') == False:
-            base_time = datetime.strptime('1970-1-1',"%Y-%m-%d")
-            data_time  = datetime.strptime('2000-1-1',"%Y-%m-%d")
-            period1 = (data_time - base_time).total_seconds()
-            period2 = (now_time - base_time).total_seconds()
-            period1 = int(period1)
-            period2 = int(period2)
-            site = "https://query1.finance.yahoo.com/v7/finance/download/" + str(number) +".TW?period1="+str(period1)+"&period2="+str(period2)+"&interval=1d&events=history&crumb=hP2rOschxO0"
-            response = requests.get(site,headers = tools.get_random_Header())#post(site)
-            save_stock_file(filePath +'/' + fileName_stockInfo  + '/' + str(number) + '_' + '2000-1-1' +
-                                                                '_' +
-                                                                str(now_time.year) +
-                                                                '-' + str(now_time.month) + 
-                                                                '-' + str(now_time.day),response)
+        if os.path.isfile(filePath +'/' + fileName_stockInfo  + '/' + str(number) + '_TW.csv') == False:
+            # 去ＹＦ讀取資料
+            update_stock_info.yf_info(str(number) + '.TW')
             # 偽停頓
             time.sleep(1.5)
-            #刪除原本資料
-            deleteDate = datetime.strptime(get_stock_info.Update_date[0:10],"%Y-%m-%d")
-            if deleteDate != now_time:
-                delet_stock_file(filePath +'/' + fileName_stockInfo  + '/' + str(number) + '_' + '2000-1-1' +
-                                                            '_' +
-                                                            str(deleteDate.year) +
-                                                            '-' + str(deleteDate.month) + 
-                                                            '-' + str(deleteDate.day)+ '.csv')
         else:
             if reGetInfo == True:
-                base_time = datetime.strptime('1970-1-1',"%Y-%m-%d")
-                data_time  = datetime.strptime('2000-1-1',"%Y-%m-%d")
-                period1 = (data_time - base_time).total_seconds()
-                period2 = (now_time - base_time).total_seconds()
-                period1 = int(period1)
-                period2 = int(period2)
-                site = "https://query1.finance.yahoo.com/v7/finance/download/" + str(number) +".TW?period1="+str(period1)+"&period2="+str(period2)+"&interval=1d&events=history&crumb=hP2rOschxO0"
-                response = requests.get(site,tools.get_random_Header())#post(site)
-                save_stock_file(filePath +'/' + fileName_stockInfo  + '/' + str(number) + '_' + '2000-1-1' +
-                                                                    '_' +
-                                                                    str(now_time.year) +
-                                                                    '-' + str(now_time.month) + 
-                                                                    '-' + str(now_time.day),response)
+                # 去ＹＦ讀取資料
+                update_stock_info.yf_info(str(number) + '.TW')
                 # 偽停頓
                 time.sleep(1.5)
-        m_history = load_stock_file(filePath +'/' + fileName_stockInfo  + '/' + str(number) + '_' + '2000-1-1' +
-                                                                '_' +
-                                                                str(now_time.year) +
-                                                                '-' + str(now_time.month) + 
-                                                                '-' + str(now_time.day),str(number))
-        
+        m_history = load_stock_file(filePath +'/' + fileName_stockInfo  + '/' + str(number) + '_TW.csv',str(number))
+       
     mask = m_history.index >= start
     result = m_history[mask]
     result = result.dropna(axis = 0,how = 'any')
     return result
-def save_stock_file(fileName,stockData,start_index = 0,end_index = 0):#存下歷史資料
-    with open(fileName + '.csv', 'w') as f:
-        if start_index == end_index == 0:
-            f.writelines(stockData.text)
-        else:
-            stringText = stockData.text
-            stringText = stringText.replace(",\r\n","\r\n")
-            stringText = stringText.replace("-","0")
-            for i in range(10):
-                stringText = stringText.replace(str(i) + ",",str(i))
-            pos = stringText.index('\n')
-            pos2 = stringText.rindex('\r\n""\r\n')
-            f.writelines(stringText[pos + 1:pos2])
-def load_stock_file(fileName,stockName = ''):#讀取歷史資料
-    if fileName in load_memery:
-        return load_memery[fileName]
-    df = pd.DataFrame()
-    if stockName != '':
-        df = update_stock_info.readStockDay(stockName + '.TW')
-    if df.empty == True:
-        try:
-            df = pd.read_csv(fileName + '.csv', index_col='Date', parse_dates=['Date'])
-        except:
-            print("no csv file")
-    
-    df = df.dropna(how='any',inplace=False)#將某些null欄位去除
-    try:
-        df['Volume'] = df['Volume'].astype('int')
-    except:
-        print('no Volume')
-    
-    load_memery[fileName] = df
-    return df
-def delet_stock_file(fileName):#刪除歷史資料
-    if os.path.isfile(fileName) == True:
-        os.remove(fileName)
-def load_other_file(fileName,file = ''):
-    if fileName in load_memery:
-        return load_memery[fileName]
-    df = pd.DataFrame()
-    if file != '':
-        df = update_stock_info.readStockDay(file)
-    if df.empty == True:
-        try:
-            df = pd.read_csv(fileName + '.csv', index_col='Date', parse_dates=['Date'])
-        except:
-            print("no csv file")
-    
-    df = df.dropna(how='any',inplace=False)#將某些null欄位去除
-    load_memery[fileName] = df
-    return df
-
 def get_stock_AD_index(date):#取得上漲和下跌家數
     print('get_stock_AD_index')
     ADindex_result = pd.DataFrame(columns=['Date','上漲','下跌']).set_index('Date')
@@ -443,7 +368,7 @@ def get_stock_AD_index(date):#取得上漲和下跌家數
             ADindex_result = pd.read_csv(fileName + '.csv', index_col='Date', parse_dates=['Date'])
             load_memery[fileName] = ADindex_result
         else:
-            print('no csv file')
+            print('no AD_index csv file')
     #=========
 
 
@@ -452,10 +377,14 @@ def get_stock_AD_index(date):#取得上漲和下跌家數
     if ADindex_result.empty == False and (ADindex_result.index == time).__contains__(True):
         return ADindex_result[ADindex_result.index == time]
     for key,value in get_stock_info.ts.codes.items():
-        if value.market == "上市" and len(value.code) == 4:
+        if value.market == "上市" and len(value.code) == 4 and value.type == "股票":
             if check_no_use_stock(value.code) == True:
                 print('get_stock_price: ' + str(value.code) + ' in no use')
                 continue
+            #====test 測完請拿掉
+            # if int(value.code) < 9000:
+            #     continue
+            #====test 測完請拿掉
             m_history = get_stock_history(value.code,str_yesterday,reGetInfo=False,UpdateInfo=False)['Close']
             try:
                 if m_history[str_yesterday] > m_history[str_date]:
@@ -487,7 +416,68 @@ def get_ADLs_index(date):#取得騰落百分比
         return None
     ADLs_today = (ADLs_today['上漲']/(ADLs_today['上漲']+ADLs_today['下跌'])) - 0.5
     return float(ADLs_today)
+def get_Operating_Margin_up(number,date):#取得營業利益成長率
+    m_date_start = date
+    data_result = None
+    if type(date) == str:
+        m_date_start = datetime.strptime(date,"%Y-%m-%d")
+    Operating_Margin_now = get_stock_Operating(number,m_date_start)
+    Operating_Margin_old = get_stock_Operating(number,tools.changeDateMonth(m_date_start,-12))
+    Operating_Margin_temp = ((Operating_Margin_now['營業利益率(%)'] - Operating_Margin_old['營業利益率(%)'])/Operating_Margin_old['營業利益率(%)']) * 100
+    Operating_Margin_now.insert(0,'營業利益率成長率(%)',Operating_Margin_temp)
+    data_result = pd.concat([data_result,Operating_Margin_now])
+    return data_result
+def get_stock_PEG(number,date):#取得本益成長比
+    if check_no_use_stock(number) == True:
+        print(str(number) + ' in no use')
+        return None
+    EPS_data = get_allstock_yield(date)
+    OMUR_data = get_Operating_Margin_up(number,date)
+    if OMUR_data.empty == True:
+        return None
+    data_PEG = EPS_data.at[number,'本益比'] / OMUR_data.at[number,'營業利益率成長率(%)']
+    return data_PEG
+
+def save_stock_file(fileName,stockData,start_index = 0,end_index = 0):#存下歷史資料
+    with open(fileName + '.csv', 'w') as f:
+        if start_index == end_index == 0:
+            f.writelines(stockData.text)
+        else:
+            stringText = stockData.text
+            stringText = stringText.replace(",\r\n","\r\n")
+            stringText = stringText.replace("-","0")
+            for i in range(10):
+                stringText = stringText.replace(str(i) + ",",str(i))
+            pos = stringText.index('\n')
+            pos2 = stringText.rindex('\r\n""\r\n')
+            f.writelines(stringText[pos + 1:pos2])
+def load_stock_file(fileName,stockName = ''):#讀取歷史資料
+    if fileName in load_memery:
+        return load_memery[fileName]
+    df = pd.DataFrame()
+    if stockName != '':
+        df = update_stock_info.readStockDay(stockName + '.TW')
+    if df.empty == True:
+        try:
+            df = pd.read_csv(fileName + '.csv', index_col='Date', parse_dates=['Date'])
+        except:
+            print("no " + stockName + '.TW' + " csv file")
+            return df
+        update_stock_info.saveTable(stockName + '.TW',df)
     
+    df = df.dropna(how='any',inplace=False)#將某些null欄位去除
+    try:
+        df['Volume'] = df['Volume'].astype('int')
+    except:
+        print('no Volume')
+    
+    load_memery[fileName] = df
+    return df
+def delet_stock_file(fileName):#刪除歷史資料
+    if os.path.isfile(fileName) == True:
+        os.remove(fileName)
+
+#大盤綜合資料-------------   
 #取得騰落進階指標資料
 def get_ADLs(start_time,end_time):
     now_time = start_time
@@ -511,7 +501,6 @@ def get_ADLs(start_time,end_time):
         data = data.append(temp_data)
         now_time = tools.backWorkDays(now_time,-1)
     return data
-
 #取得騰落指標資料
 def get_ADL(start_time,end_time):
     ADL_yesterday = 0
@@ -541,7 +530,8 @@ def get_ADL(start_time,end_time):
         now_time = tools.backWorkDays(now_time,-1)
     return data
 
-#取得月營收逐步升高的篩選資料
+#個股篩選-------------  
+#取得月營收逐步升高的篩選
 def get_monthRP_up(time,avgNum,upNum):#time = 取得資料的時間 avgNum = 平滑曲線月份 upNum = 連續成長月份
     print('get_monthRP_up: start:'+ str(time) )
     fileName ='get_monthRP_up:' + str(time.year) +str(time.month) + str(avgNum) + str(upNum)
@@ -574,8 +564,7 @@ def get_monthRP_up(time,avgNum,upNum):#time = 取得資料的時間 avgNum = 平
     load_memery[fileName] = final_result
     print('get_monthRP_up: end' )
     return final_result
-
-#取得同期營業利益率增高篩選
+#取得同期營業利益成長率增高篩選
 def get_OMGR_up(time,upNum):#time = 取得資料的時間 upNum = 連續成長多少季
     print('get_OMGR_up: start:'+ str(time) )
     fileName = "get_OMGR_up_" + str(time.year) + str(time.month) + str(upNum)
@@ -609,15 +598,14 @@ def get_OMGR_up(time,upNum):#time = 取得資料的時間 upNum = 連續成長�
     load_memery[fileName] = method2
     print('get_OMGR_up: end' )
     return method2
-
-#取得本益比篩選
+#取得本益比篩選 #股價/每股盈餘(EPS)
 def get_PER_range(time,PER_start,PER_end,data = pd.DataFrame()):#time = 取得資料的時間 PER_start = PER最小值 PER_end PER最大值
     print('get_PER_range: start')
     PER_data = pd.DataFrame(columns = ['公司代號','PER'])
     if PER_start == PER_end == 0:
         return PER_data
     if PER_end < 0 or PER_start < 0 or PER_end < PER_start:
-        print("PBR range number wrong!")
+        print("PER range number wrong!")
         return PER_data
     
     EPS_date = time
@@ -640,7 +628,35 @@ def get_PER_range(time,PER_start,PER_end,data = pd.DataFrame()):#time = 取得�
 
     print('get_PER_range: end')
     return PER_data
+#取得本益成長比(PEG)篩選
+def get_PEG_range(time,PEG_start,PEG_end,data = pd.DataFrame()):#time = 取得資料的時間 PEG_start = PEG最小值 PEG_end PEG最大值
+    print('get_PEG_range: start')
+    PEG_data = pd.DataFrame(columns = ['公司代號','PEG'])
+    if PEG_start == PEG_end == 0:
+        return PEG_end
+    if PEG_end < 0 or PEG_start < 0 or PEG_end < PEG_start:
+        print("PEG range number wrong!")
+        return PEG_data
+    PEG_date = time
+    All_PEG = data
+    if type(time) == str:
+        PEG_date = datetime.strptime(time,"%Y-%m-%d")
+    if All_PEG.empty == True:
+        All_PEG = get_allstock_yield(PEG_date)
+    for index,row in All_PEG.iterrows():
+        Temp_PEG = get_stock_PEG(index,PEG_date)
+        if Temp_PEG == None or Temp_PEG < 0 :
+            continue
+        print('get_PEG_range:' + str(index) + '= ' + str(Temp_PEG))
+        if (Temp_PEG > PEG_start) and (Temp_PEG < PEG_end):
+            Temp_number = int(index)
+            PEG_data = PEG_data.append({'公司代號':Temp_number,'PEG':Temp_PEG},ignore_index=True)
+    PEG_data['公司代號'] = PEG_data['公司代號'].astype('int')
+    PEG_data.set_index('公司代號',inplace=True)
 
+    print('get_PEG_range: end')
+    return PEG_data
+    
 #取得平均日成交金額篩選
 def get_AVG_value(time,volume,days,data = pd.DataFrame()):#time = 取得資料的時間 volume = 平均成交金額 days = 平均天數
     print('get_AVG_value: start')
@@ -682,7 +698,6 @@ def get_AVG_value(time,volume,days,data = pd.DataFrame()):#time = 取得資料�
     Volume_data.set_index('公司代號',inplace=True)
     print('get_AVG_value: end')
     return Volume_data
-    
 #取得股價淨值比篩選  #股價/每股淨值 = PBR 
 def get_PBR_range(time,PBR_start,PBR_end,data = pd.DataFrame()):#time = 取得資料的時間 PBR_start = PBR最小值 PBR_end PBR最大值
     print('get_PBR_rang: start')
@@ -714,8 +729,7 @@ def get_PBR_range(time,PBR_start,PBR_end,data = pd.DataFrame()):#time = 取得�
     PBR_data.set_index('公司代號',inplace=True)
 
     print('get_PBR_rang: end')
-    return PBR_data
-    
+    return PBR_data    
 #取得股東權益報酬率 #ROE(股東權益報酬率) = 稅後淨利/股東權益
 def get_ROE_range(time,ROE_start,ROE_end,data = pd.DataFrame()):#time = 取得資料的時間 ROE_start = ROE最小值 ROE_end ROE最大值
     print('get_ROE_rang: start')
@@ -757,7 +771,6 @@ def get_ROE_range(time,ROE_start,ROE_end,data = pd.DataFrame()):#time = 取得�
 
     print('get_ROE_rang: end')
     return ROE_data
-
 #取得股價篩選
 def get_price_range(time,high,low,data = pd.DataFrame()):#time = 取得資料的時間 high = 最高價 low = 最低價
     print('get_price_rang: start')
@@ -790,9 +803,8 @@ def get_price_range(time,high,low,data = pd.DataFrame()):#time = 取得資料的
     price_data.set_index('公司代號',inplace=True)
 
     print('get_price_rang: end')
-    return price_data
-    
-#取得殖利率篩選
+    return price_data    
+#取得殖利率篩選 #(股息÷股價) × 100%
 def get_yield_range(time,high,low,data = pd.DataFrame()):#time = 取得資料的時間 high = 殖利率最高值 low = 殖利率最低值
     print('get_yield_range: start')
     yield_data_result = pd.DataFrame(columns=['公司代號','殖利率'])
@@ -820,7 +832,6 @@ def get_yield_range(time,high,low,data = pd.DataFrame()):#time = 取得資料的
     
     print('get_yield_range: end')
     return yield_data_result
-
 #取得創新高篩選
 def get_RecordHigh_range(time,Day,RecordHighDay,data = pd.DataFrame()):#time = 取得資料的時間 Day = 往前找多少天的創新高 RecordHighDay = 找創新高的區間
     print('get_RecordHigh: start')
@@ -845,12 +856,11 @@ def get_RecordHigh_range(time,Day,RecordHighDay,data = pd.DataFrame()):#time = �
     RH_result = RH_result.astype('int')
     print('RecordHigh: end')
     return RH_result
-
 #取得交易量篩選
 def get_volume(volumeNum,date,data = pd.DataFrame(),getMax = False):
     Temp_index = 0
     Temp_volume2 = 0
-    volume_data = pd.DataFrame(columns=['公司代號','volume'])
+    volume_data = pd.DataFrame(columns=['code','volume'])
     if volumeNum <= 0:
         return volume_data
     All_data = data
@@ -867,7 +877,7 @@ def get_volume(volumeNum,date,data = pd.DataFrame(),getMax = False):
             Temp_volume = get_stock_price(str(index),tools.DateTime2String(date),stock_data_kind.Volume,isSMA=True)
         if Temp_volume != None and Temp_volume >= volumeNum:
             Temp_number = int(index)
-            volume_data = volume_data.append({'公司代號':Temp_number,'volume':Temp_volume},ignore_index=True)
+            volume_data = volume_data.append({'code':Temp_number,'volume':Temp_volume},ignore_index=True)
             if(getMax):
                 if Temp_volume > Temp_volume2:
                     if(Temp_index != 0):
@@ -878,8 +888,8 @@ def get_volume(volumeNum,date,data = pd.DataFrame(),getMax = False):
                     volume_data = volume_data.drop(index = index)
             else:
                 pass
-    volume_data['公司代號'] = volume_data['公司代號'].astype('int')
-    volume_data.set_index('公司代號',inplace=True)
+    volume_data['code'] = volume_data['code'].astype('int')
+    volume_data.set_index('code',inplace=True)
     return volume_data
 
 #爬取歷史財報並存檔
@@ -1112,3 +1122,19 @@ def translate_dataFrame2(response,type,year,season = 1):
                         column.append(afterTaxIncomeMargin)
 
     return pd.DataFrame(data = data,columns=column)
+
+def load_other_file(fileName,file = ''):
+    if fileName in load_memery:
+        return load_memery[fileName]
+    df = pd.DataFrame()
+    if file != '':
+        df = update_stock_info.readStockDay(file)
+    if df.empty == True:
+        try:
+            df = pd.read_csv(fileName + '.csv', index_col='Date', parse_dates=['Date'])
+        except:
+            print("no " + fileName + " csv file")
+    
+    df = df.dropna(how='any',inplace=False)#將某些null欄位去除
+    load_memery[fileName] = df
+    return df

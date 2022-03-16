@@ -1,6 +1,6 @@
 from datetime import datetime
+from mimetypes import encodings_map
 import threading
-from pandas.core.frame import DataFrame
 import schedule
 import time
 from flask import Flask
@@ -37,7 +37,7 @@ def RunMysql():
     
 def RunScheduleNow():
     RunSchedule(runUpdate,str(datetime.today().hour).zfill(2)+ ":" + str(datetime.today().minute + 1).zfill(2)+ ":01")
-   #RunSchedule(RunUpdate_sp500,str(datetime.today().hour).zfill(2)+ ":" + str(datetime.today().minute + 1).zfill(2)+ ":05")
+    RunSchedule(RunUpdate_sp500,str(datetime.today().hour).zfill(2)+ ":" + str(datetime.today().minute + 1).zfill(2)+ ":05")
 
 def setMysqlServer(db_name):
     global MySql_server
@@ -56,12 +56,12 @@ def runUpdate():
         if value.market == "上市" and len(value.code) >= 4 :
             if len(value.code) >= 5 and get_stock_history.check_ETF_stock(value.code) == False:
                 continue
-#            if int(value.code) < 9000:
- #               continue
-            try:
-                deleteStockDayTable(str(value.code+".TW"))
-            except:
-                print("SQL No Table:" + str(value.code+".TW"))
+        #    if int(value.code) < 9000:
+        #        continue
+            # try:
+            #     deleteStockDayTable(str(value.code+".TW"))
+            # except:
+            #     print("SQL No Table:" + str(value.code+".TW"))
             
             #SQL沒資料抓取一整包
             yf.pdr_override()
@@ -72,6 +72,7 @@ def runUpdate():
                 print("yahoo no data:" + str(value.code+".TW"))
                 continue
             df.to_sql(name=value.code+".TW",con=MySql_server.engine,if_exists='replace')
+            get_stock_history.load_memery[value.code+".TW"] = df
             print("Update stocks " + value.code+".TW" + " OK!")
     
     #dataframe = pd.read_sql(sql = "2330.TW",con=MySql_server.engine,index_col='Date')
@@ -80,7 +81,7 @@ def runUpdate():
     get_stock_info.Update_date = str(datetime.today())[0:10]
     get_stock_info.Save_Update_date()
     print("Update all stocks end!")
-    #get_stock_history.get_stock_AD_index(datetime.today())#更新騰落
+    get_stock_history.get_stock_AD_index(end_date)#更新騰落
     #get_stock_history.get_allstock_yield(datetime.today())#更新殖利率
 
 def RunUpdate_sp500():
@@ -126,7 +127,7 @@ def read_Dividend_yield(name):
     except Exception as e:
         print('SQL Error {}'.format(e.args))
         return dataframe
-    
+ 
 def deleteStockDayTable(name):
     DynamicBase = declarative_base(class_registry=dict())
     class StockDayInfo(DynamicBase,MySql_server.Model):
@@ -154,4 +155,20 @@ def deleteStockDayTable(name):
     StockDayInfo.__table__.drop(MySql_server.session.bind)
 
 def saveTable(_name,_df = pd.DataFrame()):
-    _df.to_sql(name=_name,con=MySql_server.engine,if_exists='replace')
+    try:
+        _df.to_sql(name=_name,con=MySql_server.engine,if_exists='replace')
+        return True
+    except Exception as e:
+        print('SQL Error {}'.format(e.args))
+        return False
+    
+def yf_info(name):
+    yf.pdr_override()
+    start_date = datetime(2005,1,1)
+    end_date = datetime.today()#設定資料起訖日期
+    df = data.get_data_yahoo([name], start_date, end_date,index_col=0)
+    if df.empty:
+        print("yahoo no data:" + str(name))
+        return df
+    df.to_sql(name=name,con=MySql_server.engine,if_exists='replace')
+    print("Update stocks " + name + " OK!")

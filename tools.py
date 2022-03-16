@@ -74,7 +74,7 @@ def backWorkDays(date,days):#取得往後算days工作天後的日期
             continue
         input_days = input_days - 1
     return input_date
-def MixDataFrames(DataFrames = {},index = '公司代號'):#合併報表
+def MixDataFrames(DataFrames = {},index = 'code'):#合併報表
     result_data = pd.DataFrame()
     first = True
     for key,value in DataFrames.items():
