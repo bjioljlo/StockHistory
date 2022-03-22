@@ -1,6 +1,7 @@
 
 from datetime import datetime,timedelta
 import random
+from tkinter.messagebox import NO
 import pandas as pd
 import requests
 import threading
@@ -9,7 +10,6 @@ import twstock as ts
 from pandas_datareader import data
 import schedule
 import yfinance as yf
-import time
 from flask import Flask
 from flask_sqlalchemy import SQLAlchemy
 MySql_server = None
@@ -112,7 +112,8 @@ def get_SP500_list():#取得S&P500股票清單
     # 用 replace 將符號進行替換
     stk_list = data.Symbol.apply(lambda x: x.replace('.', '-'))
     return stk_list
-
+        
+        
 # def RunSchedule(func,UpdateTime):
 #     schedule.every().day.at(UpdateTime).do(func)
 #     temp_thread = threading.Thread(target=ScheduleStart)

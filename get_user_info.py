@@ -1,12 +1,10 @@
-from datetime import datetime,timedelta
-from numpy import true_divide
+from datetime import timedelta
 import pandas as pd
-import get_stock_history
+from get_stock_history import get_stock_price,stock_data_kind
 import get_stock_info
 import tools
 import twstock as ts #抓取台灣股票資料套件
-
-ts.__update_codes()
+#ts.__update_codes()
 
 class data_user_stock():#手持股票資訊
     def __init__(self,stock_info,amount,price):
@@ -16,7 +14,7 @@ class data_user_stock():#手持股票資訊
     def add_amount(self,amount,price):
         self.price = ((self.price * self.amount) + (price * amount)) / (self.amount + amount)
         self.amount = self.amount + amount
-    def minus_amount(self,amount):
+    def minus_amount(self,amount) -> bool:
         if self.amount > amount:
             self.amount = self.amount - amount
             return True
@@ -61,7 +59,7 @@ class data_user_info():#使用者資訊
     def get_user_stock_asset(self):#股票資產
         Temp_money = 0
         for key,value in self.handle_stock.items():
-            Temp = get_stock_history.get_stock_price(key,self.now_day,get_stock_history.stock_data_kind.AdjClose)
+            Temp = get_stock_price(key,self.now_day,stock_data_kind.AdjClose)
             if Temp == None:
                 print('no use stock')
                 return 0
@@ -76,7 +74,7 @@ class data_user_info():#使用者資訊
                 if self.buy_stock(index,1000) == False:
                     data = data.drop(index=index)
     def buy_stock(self,number,amount):#買股票
-        stock_price = get_stock_history.get_stock_price(number,self.now_day,get_stock_history.stock_data_kind.AdjClose)
+        stock_price = get_stock_price(number,self.now_day,stock_data_kind.AdjClose)
         if stock_price == None:
             print(str(number) + ' no use stock')
             return False
@@ -100,7 +98,7 @@ class data_user_info():#使用者資訊
             print('股票數量不足')
             return False
         else:
-            stock_price = get_stock_history.get_stock_price(number,self.now_day,get_stock_history.stock_data_kind.AdjClose)
+            stock_price = get_stock_price(number,self.now_day,stock_data_kind.AdjClose)
             self.now_money = self.now_money + tools.Total_with_Handling_fee_and_Tax(stock_price,amount,False)
             if self.handle_stock[number].minus_amount(amount) == False:
                 self.handle_stock.pop(number,None)
@@ -124,8 +122,5 @@ class data_user_info():#使用者資訊
                                                 '號碼':temp_numbers,
                                                 '數量':temp_amount,
                                                 '均價':temp_price},ignore_index=True)
-        
-        
 
-    
-    
+

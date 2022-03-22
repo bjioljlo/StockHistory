@@ -82,7 +82,7 @@ def runUpdate():
     get_stock_info.Save_Update_date()
     print("Update all stocks end!")
     get_stock_history.get_stock_AD_index(end_date)#更新騰落
-    #get_stock_history.get_allstock_yield(datetime.today())#更新殖利率
+    get_stock_history.get_allstock_yield(end_date)#更新殖利率
 
 def RunUpdate_sp500():
     print("Update all sp500 stocks start!")

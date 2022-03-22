@@ -1,9 +1,9 @@
-from distutils.command.config import dump_file
-from queue import Empty
+
+from asyncio import FastChildWatcher
 import requests
 from datetime import datetime,timedelta
 import pandas as pd
-from sqlalchemy import true
+from sqlalchemy import false
 import get_stock_info
 import os
 import numpy as np
@@ -63,28 +63,63 @@ def check_ETF_stock(number):
     return False
 
 def get_stock_RecordHight(number,date,flashDay,recordDays):#取得number在flashDay天內天是否在recordDays內創新高
-    while (flashDay > 0):
+    All_data = get_stock_history(number,date+timedelta(days=-100),reGetInfo=False,UpdateInfo=False)
+    mask = All_data.index <= date
+    data = All_data[mask]
+    data = data.sort_index(ascending=False)
+    Pass = True
+    for index,row in data.iterrows():
+        Pass = True
         if check_no_use_stock(number) == True:
             print('get_stock_price: ' + str(number) + ' in no use')
             return False
-        Now_day = date
-        Now_price = get_stock_price(number,Now_day,stock_data_kind.AdjClose)
-        while (recordDays > 0):
-            Temp_price = get_stock_price(number,Now_day,stock_data_kind.AdjClose)
-            if Temp_price == None:
-                Now_day = Now_day - timedelta(days = 1)
-                continue
-            if Temp_price > Now_price:
+        Now_day = index
+        Now_price = row['Adj Close']
+        mask = All_data.index <= Now_day
+        data2 = All_data[mask]
+        data2 = data2.sort_index(ascending=False)
+        for i in range(recordDays):
+            try:
+                Temp_price = data2.iloc[i+1]['Adj Close']
+            except:
                 return False
-            Now_day = Now_day - timedelta(days = 1)
-            recordDays = recordDays - 1
-        date = date - timedelta(days = 1)
-        flashDay = flashDay - 1
-    return True
+            if Temp_price <= Now_price:
+                continue
+            else:
+                Pass = False
+                flashDay = flashDay -1
+                if flashDay <= 0:
+                    return False
+                break
+        if Pass:
+            return True
+        
+    # while (flashDay > 0):
+    #     if check_no_use_stock(number) == True:
+    #         print('get_stock_price: ' + str(number) + ' in no use')
+    #         return False
+    #     Now_day = date
+    #     Now_price = get_stock_price(number,Now_day,stock_data_kind.AdjClose)
+    #     while (recordDays > 0):
+    #         Temp_price = get_stock_price(number,Now_day,stock_data_kind.AdjClose)
+    #         if Temp_price == None:
+    #             Now_day = Now_day - timedelta(days = 1)
+    #             continue
+    #         if Temp_price > Now_price:
+    #             return False
+    #         Now_day = Now_day - timedelta(days = 1)
+    #         recordDays = recordDays - 1
+    #     date = date - timedelta(days = 1)
+    #     flashDay = flashDay - 1
+    # return True
 def get_stock_MA(number,date,MA_day):#取得某股票某天的均線
     Temp_MA = 0
     Temp_date = date
     Temp_MA_day = MA_day
+    All_data = get_stock_history(number,Temp_date,reGetInfo=False,UpdateInfo=False).sort_index(ascending=False)
+    for index,row in All_data.iterrows():
+        pass
+    
     while(Temp_MA_day > 0):
         Temp_date = Temp_date + timedelta(days=-1)
         temp = get_stock_price(number,Temp_date,stock_data_kind.AdjClose)
@@ -111,7 +146,7 @@ def get_stock_Operating(number,date):#取得營業利益率
 def get_stock_price(number,date,kind,isSMA = False):#取得某股票某天的ＡＤＪ價格
     global Holiday_trigger
     if check_no_use_stock(number) == True:
-        print('get_stock_price: ' + str(number) + ' in no use')
+        print(''.join(['get_stock_price: ' , str(number) , ' in no use']))
         return None
     stock_data = get_stock_history(number,date,reGetInfo=False,UpdateInfo=False)
     if kind == stock_data_kind.Volume:
@@ -132,8 +167,8 @@ def get_stock_price(number,date,kind,isSMA = False):#取得某股票某天的Ａ
             stock_data = get_stock_history(number,date,reGetInfo=False,UpdateInfo=False) #只會重新抓硬碟資料
             result = stock_data[stock_data.index == date]
             if result.empty == True:
-                print('get_stock_price: ' +'星期' + str(datetime.strptime(date,"%Y-%m-%d").isoweekday()))
-                print('get_stock_price: ' +str(number) + '--' + date + ' is no data. Its holiday?')
+                print(''.join(['get_stock_price: ','星期',str(datetime.strptime(date,"%Y-%m-%d").isoweekday())]))
+                print(''.join(['get_stock_price: ',str(number),'--', date , ' is no data. Its holiday?']))
                 Holiday_trigger = True
                 return None
         else:
@@ -306,11 +341,11 @@ def get_stock_financial_statement(number,start):#爬某個股票的歷史財報
         return
     stock = get_allstock_financial_statement(start,type)
     return stock.loc[int(number)]
-def get_stock_history(number,start,reGetInfo = False,UpdateInfo = True):#爬某個股票的歷史紀錄
-    print("取得" + str(number) + "的資料從" + str(start) +"到今天")
+def get_stock_history(number,start,reGetInfo = False,UpdateInfo = True) -> pd.DataFrame:#爬某個股票的歷史紀錄
+    print(''.join(["取得" , str(number) , "的資料從" , str(start) ,"到今天"]))
     start_time = start
     if type(start_time) == str:
-        start_time  = datetime.strptime(start,"%Y-%m-%d")
+        start_time  = datetime.strptime(start_time,"%Y-%m-%d")
     if type(number) != str:
         number = str(number)
     data_time = datetime.strptime('2005-1-1',"%Y-%m-%d")
@@ -340,7 +375,7 @@ def get_stock_history(number,start,reGetInfo = False,UpdateInfo = True):#爬某�
                 time.sleep(1.5)
         m_history = load_stock_file(filePath +'/' + fileName_stockInfo  + '/' + str(number) + '_TW.csv',str(number))
        
-    mask = m_history.index >= start
+    mask = m_history.index >= start_time
     result = m_history[mask]
     result = result.dropna(axis = 0,how = 'any')
     return result
@@ -701,7 +736,7 @@ def get_AVG_value(time,volume,days,data = pd.DataFrame()):#time = 取得資料�
 #取得股價淨值比篩選  #股價/每股淨值 = PBR 
 def get_PBR_range(time,PBR_start,PBR_end,data = pd.DataFrame()):#time = 取得資料的時間 PBR_start = PBR最小值 PBR_end PBR最大值
     print('get_PBR_rang: start')
-    PBR_data = pd.DataFrame(columns = ['公司代號','PBR'])
+    PBR_data = pd.DataFrame(columns = ['code','PBR'])
     if PBR_start == PBR_end == 0:
         return PBR_data
     if PBR_end < 0 or PBR_start < 0 or PBR_end < PBR_start:
@@ -718,22 +753,25 @@ def get_PBR_range(time,PBR_start,PBR_end,data = pd.DataFrame()):#time = 取得�
     for index,row in All_PBR.iterrows():
         if check_no_use_stock(index):
             continue
-        Temp_PBR = Book_data.at[index,'股價淨值比']
+        try:
+            Temp_PBR = Book_data.at[index,'股價淨值比']
+        except:
+            continue
         if Temp_PBR < 0:
             continue
         print('get_PBR_range:' + str(index) + '= ' + str(Temp_PBR))
         if (Temp_PBR > PBR_start) and (Temp_PBR < PBR_end):
             Temp_number = int(index)
-            PBR_data = PBR_data.append({'公司代號':Temp_number,'PBR':Temp_PBR},ignore_index=True)
-    PBR_data['公司代號'] = PBR_data['公司代號'].astype('int')
-    PBR_data.set_index('公司代號',inplace=True)
+            PBR_data = PBR_data.append({'code':Temp_number,'PBR':Temp_PBR},ignore_index=True)
+    PBR_data['code'] = PBR_data['code'].astype('int')
+    PBR_data.set_index('code',inplace=True)
 
     print('get_PBR_rang: end')
     return PBR_data    
 #取得股東權益報酬率 #ROE(股東權益報酬率) = 稅後淨利/股東權益
 def get_ROE_range(time,ROE_start,ROE_end,data = pd.DataFrame()):#time = 取得資料的時間 ROE_start = ROE最小值 ROE_end ROE最大值
     print('get_ROE_rang: start')
-    ROE_data = pd.DataFrame(columns = ['公司代號','ROE'])
+    ROE_data = pd.DataFrame(columns = ['code','ROE'])
     #股東權益＝資產 － 負債 （資產負債表中）
     #稅後淨利 = (本期綜合損益)
     if ROE_start == ROE_end == 0:
@@ -765,9 +803,9 @@ def get_ROE_range(time,ROE_start,ROE_end,data = pd.DataFrame()):#time = 取得�
         print('get_ROE_range:' + str(index) + '--' + str(Temp_CPL) + '/' +  str(Temp_Book) + '= ' + str(Temp_ROE))
         if (Temp_ROE > ROE_start) and (Temp_ROE < ROE_end):
             Temp_number = int(index)
-            ROE_data =ROE_data.append({'公司代號':Temp_number,'ROE':Temp_ROE},ignore_index=True)
-    ROE_data['公司代號'] = ROE_data['公司代號'].astype('int')
-    ROE_data.set_index('公司代號',inplace=True)
+            ROE_data =ROE_data.append({'code':Temp_number,'ROE':Temp_ROE},ignore_index=True)
+    ROE_data['code'] = ROE_data['code'].astype('int')
+    ROE_data.set_index('code',inplace=True)
 
     print('get_ROE_rang: end')
     return ROE_data
@@ -835,7 +873,7 @@ def get_yield_range(time,high,low,data = pd.DataFrame()):#time = 取得資料的
 #取得創新高篩選
 def get_RecordHigh_range(time,Day,RecordHighDay,data = pd.DataFrame()):#time = 取得資料的時間 Day = 往前找多少天的創新高 RecordHighDay = 找創新高的區間
     print('get_RecordHigh: start')
-    RH_result = pd.DataFrame(columns=['公司代號','創新高']).astype('int')
+    RH_result = pd.DataFrame(columns=['code','創新高']).astype('int')
     if Day == RecordHighDay == 0:
         return RH_result
     if Day < 0 or RecordHighDay < 0:
@@ -849,10 +887,13 @@ def get_RecordHigh_range(time,Day,RecordHighDay,data = pd.DataFrame()):#time = �
     if All_data.empty == True:
         return RH_result
     for index,row in All_data.iterrows():
+        if get_stock_info.ts.codes.__contains__(str(index)) == False:
+            print(''.join([str(index),":無此檔股票"]))
+            continue 
         if get_stock_RecordHight(index,RH_date,Day,RecordHighDay) == True:
             Temp_number = int(index)
-            RH_result = RH_result.append({'公司代號':Temp_number,'創新高':1},ignore_index=True)          
-    RH_result.set_index('公司代號',inplace=True) 
+            RH_result = RH_result.append({'code':Temp_number,'創新高':1},ignore_index=True)          
+    RH_result.set_index('code',inplace=True) 
     RH_result = RH_result.astype('int')
     print('RecordHigh: end')
     return RH_result

@@ -17,6 +17,8 @@ import tools
 import backtest_stock
 import threading
 
+
+
 main_titalList = ["股票號碼","股票名稱"]
 pick_titalList = ["股票號碼","股票名稱","每股參考淨值","基本每股盈餘（元）",
                 "毛利率(%)","營業利益率(%)","資產總額","負債總額","股本",
@@ -366,7 +368,8 @@ def button_backtest_click2():#PER PBR 回測開始紐
                                 mybacktest.check_ROE_pick.isChecked())
     backtest_stock.backtest_PERandPBR(BackTestParameter())
 def button_backtest_click3():#定期定額
-    backtest_stock.backtest_Regular_quota(BackTestParameter())
+    _data = backtest_stock.backtest_Regular_quota_test(BackTestParameter())
+    df.draw_backtest(_data)
 def button_backtest_click4():#創新高
     backtest_stock.set_check(mybacktest.check_monthRP_pick.isChecked(),
                                 mybacktest.check_PER_pick.isChecked(),
@@ -375,7 +378,7 @@ def button_backtest_click4():#創新高
                                 mybacktest.check_price_pick.isChecked(),
                                 mybacktest.check_PBR_pick.isChecked(),
                                 mybacktest.check_ROE_pick.isChecked())
-    backtest_stock.backtest_Record_high(BackTestParameter())
+    backtest_stock.backtest_Record_high_Fast(BackTestParameter())
 def button_backtest_click5():#KD篩選
     backtest_stock.set_check(mybacktest.check_monthRP_pick.isChecked(),
                                 mybacktest.check_PER_pick.isChecked(),
