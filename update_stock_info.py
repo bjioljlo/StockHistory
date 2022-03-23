@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timedelta
 from mimetypes import encodings_map
 import threading
 import schedule
@@ -37,7 +37,7 @@ def RunMysql():
     
 def RunScheduleNow():
     RunSchedule(runUpdate,str(datetime.today().hour).zfill(2)+ ":" + str(datetime.today().minute + 1).zfill(2)+ ":01")
-    RunSchedule(RunUpdate_sp500,str(datetime.today().hour).zfill(2)+ ":" + str(datetime.today().minute + 1).zfill(2)+ ":05")
+    #RunSchedule(RunUpdate_sp500,str(datetime.today().hour).zfill(2)+ ":" + str(datetime.today().minute + 1).zfill(2)+ ":05")
 
 def setMysqlServer(db_name):
     global MySql_server
@@ -52,6 +52,7 @@ def setMysqlServer(db_name):
 def runUpdate():
     print("Update all stocks start!")
     df = pd.DataFrame()
+    end_date = datetime.today() - timedelta(days=1)#設定資料起訖日期
     for key,value in ts.codes.items():
         if value.market == "上市" and len(value.code) >= 4 :
             if len(value.code) >= 5 and get_stock_history.check_ETF_stock(value.code) == False:
@@ -75,14 +76,15 @@ def runUpdate():
             get_stock_history.load_memery[value.code+".TW"] = df
             print("Update stocks " + value.code+".TW" + " OK!")
     
-    #dataframe = pd.read_sql(sql = "2330.TW",con=MySql_server.engine,index_col='Date')
+    dataframe = pd.read_sql(sql = "2330.TW",con=MySql_server.engine,index_col='Date')
     #print(dataframe)
     #存更新日期
     get_stock_info.Update_date = str(datetime.today())[0:10]
     get_stock_info.Save_Update_date()
-    print("Update all stocks end!")
+    
     get_stock_history.get_stock_AD_index(end_date)#更新騰落
     get_stock_history.get_allstock_yield(end_date)#更新殖利率
+    print("Update all stocks end!")
 
 def RunUpdate_sp500():
     print("Update all sp500 stocks start!")
