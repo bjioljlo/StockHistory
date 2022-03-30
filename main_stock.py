@@ -357,7 +357,8 @@ def button_backtest_click():#月營收回測開始紐
                 mybacktest.check_price_pick.isChecked(),
                 mybacktest.check_PBR_pick.isChecked(),
                 mybacktest.check_ROE_pick.isChecked())
-        backtest_stock.backtest_monthRP_Up(BackTestParameter())
+        _data = backtest_stock.backtest_monthRP_Up_Fast(BackTestParameter())
+        df.draw_backtest(_data)
 def button_backtest_click2():#PER PBR 回測開始紐
     backtest_stock.set_check(mybacktest.check_monthRP_pick.isChecked(),
                                 mybacktest.check_PER_pick.isChecked(),
@@ -366,9 +367,10 @@ def button_backtest_click2():#PER PBR 回測開始紐
                                 mybacktest.check_price_pick.isChecked(),
                                 mybacktest.check_PBR_pick.isChecked(),
                                 mybacktest.check_ROE_pick.isChecked())
-    backtest_stock.backtest_PERandPBR(BackTestParameter())
+    _data = backtest_stock.backtest_PERandPBR_Fast(BackTestParameter())
+    df.draw_backtest(_data)
 def button_backtest_click3():#定期定額
-    _data = backtest_stock.backtest_Regular_quota_test(BackTestParameter())
+    _data = backtest_stock.backtest_Regular_quota_Fast(BackTestParameter())
     df.draw_backtest(_data)
 def button_backtest_click4():#創新高
     backtest_stock.set_check(mybacktest.check_monthRP_pick.isChecked(),
@@ -378,7 +380,8 @@ def button_backtest_click4():#創新高
                                 mybacktest.check_price_pick.isChecked(),
                                 mybacktest.check_PBR_pick.isChecked(),
                                 mybacktest.check_ROE_pick.isChecked())
-    backtest_stock.backtest_Record_high_Fast(BackTestParameter())
+    _data = backtest_stock.backtest_Record_high_Fast(BackTestParameter())
+    df.draw_backtest(_data)
 def button_backtest_click5():#KD篩選
     backtest_stock.set_check(mybacktest.check_monthRP_pick.isChecked(),
                                 mybacktest.check_PER_pick.isChecked(),
@@ -387,7 +390,19 @@ def button_backtest_click5():#KD篩選
                                 mybacktest.check_price_pick.isChecked(),
                                 mybacktest.check_PBR_pick.isChecked(),
                                 mybacktest.check_ROE_pick.isChecked())
-    backtest_stock.backtest_KD_pick(BackTestParameter())
+    _data = backtest_stock.backtest_KD_pick(BackTestParameter())
+    df.draw_backtest(_data)
+def button_backtest_click6():#PEG篩選
+    backtest_stock.set_check(mybacktest.check_monthRP_pick.isChecked(),
+                                mybacktest.check_PER_pick.isChecked(),
+                                mybacktest.check_volume_pick.isChecked(),
+                                mybacktest.check_pickOneStock.isChecked(),
+                                mybacktest.check_price_pick.isChecked(),
+                                mybacktest.check_PBR_pick.isChecked(),
+                                mybacktest.check_ROE_pick.isChecked())
+    _data = backtest_stock.backtest_PEG_pick_Fast(BackTestParameter())
+    df.draw_backtest(_data)
+    
 #取得月營收的資料
 def get_monthRP(date_end,date_start,Number):#end = 後面時間 start = 前面時間 Number = 股票號碼
     date_end_str = str(date_end.year()) + '-' + str(date_end.month()) + '-' + str(date_end.day())
@@ -724,6 +739,7 @@ def Init_backtestWindow():#初始化回測畫面
     mybacktest.button_backtest_3.clicked.connect(button_backtest_click3)
     mybacktest.button_backtest_4.clicked.connect(button_backtest_click4)
     mybacktest.button_backtest_5.clicked.connect(button_backtest_click5)
+    mybacktest.button_backtest_6.clicked.connect(button_backtest_click6)
     date = QtCore.QDate(datetime.today().year,datetime.today().month,datetime.today().day) 
 
     mybacktest.date_end.setMaximumDate(date)

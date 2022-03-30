@@ -1,5 +1,6 @@
 
 from asyncio import FastChildWatcher
+from cmath import exp
 import requests
 from datetime import datetime,timedelta
 import pandas as pd
@@ -12,6 +13,7 @@ import time
 from enum import Enum
 import tools
 import update_stock_info
+from queue import Queue
 
 
 fileName_monthRP = "monthRP"
@@ -63,7 +65,7 @@ def check_ETF_stock(number):
     return False
 
 def get_stock_RecordHight(number,date,flashDay,recordDays):#取得number在flashDay天內天是否在recordDays內創新高
-    All_data = get_stock_history(number,date+timedelta(days=-100),reGetInfo=False,UpdateInfo=False)
+    All_data = get_stock_history(number,date+timedelta(days=-200),reGetInfo=False,UpdateInfo=False)
     mask = All_data.index <= date
     data = All_data[mask]
     data = data.sort_index(ascending=False)
@@ -116,19 +118,24 @@ def get_stock_MA(number,date,MA_day):#取得某股票某天的均線
     Temp_MA = 0
     Temp_date = date
     Temp_MA_day = MA_day
-    All_data = get_stock_history(number,Temp_date,reGetInfo=False,UpdateInfo=False).sort_index(ascending=False)
+    Temp_day_info = Queue()
+    All_data = get_stock_history(number,Temp_date+timedelta(days=-100),reGetInfo=False,UpdateInfo=False)
     for index,row in All_data.iterrows():
-        pass
+        temp = row['Adj Close']
+        Temp_day_info.put(temp)
+        if Temp_MA_day > 0:
+            Temp_MA = Temp_MA + temp
+            Temp_MA_day = Temp_MA_day - 1
+        else:
+            if index == Temp_date:
+                Temp_MA = round(Temp_MA/MA_day,4)
+                return Temp_MA
+            else:
+                Temp_MA = Temp_MA - Temp_day_info.get()
+                Temp_MA = Temp_MA + temp
+                continue
+                
     
-    while(Temp_MA_day > 0):
-        Temp_date = Temp_date + timedelta(days=-1)
-        temp = get_stock_price(number,Temp_date,stock_data_kind.AdjClose)
-        if temp == None:
-            continue
-        Temp_MA = Temp_MA + get_stock_price(number,Temp_date,stock_data_kind.AdjClose)
-        Temp_MA_day = Temp_MA_day - 1
-    Temp_MA = round(Temp_MA/MA_day,4)
-    return Temp_MA
 def get_stock_yield(number,date):#取得某股票某天的殖利率
     data = get_allstock_yield(date)
     if type(number) == str:
@@ -463,14 +470,18 @@ def get_Operating_Margin_up(number,date):#取得營業利益成長率
     data_result = pd.concat([data_result,Operating_Margin_now])
     return data_result
 def get_stock_PEG(number,date):#取得本益成長比
+    print(''.join([str(number),':取得PEG在',str(date)]))
     if check_no_use_stock(number) == True:
         print(str(number) + ' in no use')
         return None
     EPS_data = get_allstock_yield(date)
     OMUR_data = get_Operating_Margin_up(number,date)
-    if OMUR_data.empty == True:
+    if OMUR_data.empty == True or EPS_data.empty == True :
         return None
-    data_PEG = EPS_data.at[number,'本益比'] / OMUR_data.at[number,'營業利益率成長率(%)']
+    try:
+        data_PEG = EPS_data.at[number,'本益比'] / OMUR_data.at[number,'營業利益率成長率(%)']
+    except KeyError:
+        return None
     return data_PEG
 
 def save_stock_file(fileName,stockData,start_index = 0,end_index = 0):#存下歷史資料
@@ -595,7 +606,7 @@ def get_monthRP_up(time,avgNum,upNum):#time = 取得資料的時間 avgNum = 平
         final_result = final_result
 
     final_result = final_result.rename(index=int)
-    final_result.index.name = '公司代號'
+    final_result.index.name = 'code'
     load_memery[fileName] = final_result
     print('get_monthRP_up: end' )
     return final_result
@@ -636,7 +647,7 @@ def get_OMGR_up(time,upNum):#time = 取得資料的時間 upNum = 連續成長�
 #取得本益比篩選 #股價/每股盈餘(EPS)
 def get_PER_range(time,PER_start,PER_end,data = pd.DataFrame()):#time = 取得資料的時間 PER_start = PER最小值 PER_end PER最大值
     print('get_PER_range: start')
-    PER_data = pd.DataFrame(columns = ['公司代號','PER'])
+    PER_data = pd.DataFrame(columns = ['code','PER'])
     if PER_start == PER_end == 0:
         return PER_data
     if PER_end < 0 or PER_start < 0 or PER_end < PER_start:
@@ -657,16 +668,16 @@ def get_PER_range(time,PER_start,PER_end,data = pd.DataFrame()):#time = 取得�
         print('get_PER_range:' + str(index) + '= ' + str(Temp_PER))
         if (Temp_PER > PER_start) and (Temp_PER < PER_end):
             Temp_number = int(index)
-            PER_data = PER_data.append({'公司代號':Temp_number,'PER':Temp_PER},ignore_index=True)
-    PER_data['公司代號'] = PER_data['公司代號'].astype('int')
-    PER_data.set_index('公司代號',inplace=True)
+            PER_data = PER_data.append({'code':Temp_number,'PER':Temp_PER},ignore_index=True)
+    PER_data['code'] = PER_data['code'].astype('int')
+    PER_data.set_index('code',inplace=True)
 
     print('get_PER_range: end')
     return PER_data
 #取得本益成長比(PEG)篩選
 def get_PEG_range(time,PEG_start,PEG_end,data = pd.DataFrame()):#time = 取得資料的時間 PEG_start = PEG最小值 PEG_end PEG最大值
     print('get_PEG_range: start')
-    PEG_data = pd.DataFrame(columns = ['公司代號','PEG'])
+    PEG_data = pd.DataFrame(columns = ['code','PEG'])
     if PEG_start == PEG_end == 0:
         return PEG_end
     if PEG_end < 0 or PEG_start < 0 or PEG_end < PEG_start:
@@ -685,9 +696,9 @@ def get_PEG_range(time,PEG_start,PEG_end,data = pd.DataFrame()):#time = 取得�
         print('get_PEG_range:' + str(index) + '= ' + str(Temp_PEG))
         if (Temp_PEG > PEG_start) and (Temp_PEG < PEG_end):
             Temp_number = int(index)
-            PEG_data = PEG_data.append({'公司代號':Temp_number,'PEG':Temp_PEG},ignore_index=True)
-    PEG_data['公司代號'] = PEG_data['公司代號'].astype('int')
-    PEG_data.set_index('公司代號',inplace=True)
+            PEG_data = PEG_data.append({'code':Temp_number,'PEG':Temp_PEG},ignore_index=True)
+    PEG_data['code'] = PEG_data['code'].astype('int')
+    PEG_data.set_index('code',inplace=True)
 
     print('get_PEG_range: end')
     return PEG_data
@@ -701,7 +712,7 @@ def get_AVG_value(time,volume,days,data = pd.DataFrame()):#time = 取得資料�
     All_monthRP = data
     if All_monthRP.empty == True:
         All_monthRP = get_allstock_monthly_report(Volume_Time)
-    Volume_data = pd.DataFrame(columns = ['公司代號','volume'])
+    Volume_data = pd.DataFrame(columns = ['code','volume'])
     for i in range(0,len(All_monthRP)):
         Temp_AvgVolume = 0
         AvgDays = days
@@ -726,11 +737,11 @@ def get_AVG_value(time,volume,days,data = pd.DataFrame()):#time = 取得資料�
         Temp_AvgVolume = Temp_AvgVolume / days
         if Temp_AvgVolume >= volume:
             Temp_number = int(All_monthRP.iloc[i].name)
-            Volume_data.loc[(len(Volume_data)+1)] = {'公司代號':Temp_number,'volume':Temp_AvgVolume}
+            Volume_data.loc[(len(Volume_data)+1)] = {'code':Temp_number,'volume':Temp_AvgVolume}
         print('get_AVG_value: ' + str(All_monthRP.iloc[i].name) + '/' + str(Temp_AvgVolume))
-    Volume_data['公司代號'] = Volume_data['公司代號'].astype('int')
+    Volume_data['code'] = Volume_data['code'].astype('int')
     Volume_data['volume'] = Volume_data['volume'].astype('int')
-    Volume_data.set_index('公司代號',inplace=True)
+    Volume_data.set_index('code',inplace=True)
     print('get_AVG_value: end')
     return Volume_data
 #取得股價淨值比篩選  #股價/每股淨值 = PBR 
@@ -812,7 +823,7 @@ def get_ROE_range(time,ROE_start,ROE_end,data = pd.DataFrame()):#time = 取得�
 #取得股價篩選
 def get_price_range(time,high,low,data = pd.DataFrame()):#time = 取得資料的時間 high = 最高價 low = 最低價
     print('get_price_rang: start')
-    price_data = pd.DataFrame(columns=['公司代號','price'])
+    price_data = pd.DataFrame(columns=['code','price'])
     if high == low == 0:
         return price_data
     if high < low or high < 0 or low < 0:
@@ -836,9 +847,9 @@ def get_price_range(time,high,low,data = pd.DataFrame()):#time = 取得資料的
             continue
         if (Temp_price > low) and (Temp_price < high):
             Temp_number = int(index)
-            price_data =price_data.append({'公司代號':Temp_number,'price':Temp_price},ignore_index=True)
-    price_data['公司代號'] = price_data['公司代號'].astype('int')
-    price_data.set_index('公司代號',inplace=True)
+            price_data =price_data.append({'code':Temp_number,'price':Temp_price},ignore_index=True)
+    price_data['code'] = price_data['code'].astype('int')
+    price_data.set_index('code',inplace=True)
 
     print('get_price_rang: end')
     return price_data    
@@ -874,6 +885,7 @@ def get_yield_range(time,high,low,data = pd.DataFrame()):#time = 取得資料的
 def get_RecordHigh_range(time,Day,RecordHighDay,data = pd.DataFrame()):#time = 取得資料的時間 Day = 往前找多少天的創新高 RecordHighDay = 找創新高的區間
     print('get_RecordHigh: start')
     RH_result = pd.DataFrame(columns=['code','創新高']).astype('int')
+    get_infos = 3
     if Day == RecordHighDay == 0:
         return RH_result
     if Day < 0 or RecordHighDay < 0:
@@ -892,7 +904,10 @@ def get_RecordHigh_range(time,Day,RecordHighDay,data = pd.DataFrame()):#time = �
             continue 
         if get_stock_RecordHight(index,RH_date,Day,RecordHighDay) == True:
             Temp_number = int(index)
-            RH_result = RH_result.append({'code':Temp_number,'創新高':1},ignore_index=True)          
+            RH_result = RH_result.append({'code':Temp_number,'創新高':1},ignore_index=True)   
+            get_infos = get_infos - 1
+            if get_infos <= 0:
+                break
     RH_result.set_index('code',inplace=True) 
     RH_result = RH_result.astype('int')
     print('RecordHigh: end')
