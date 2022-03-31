@@ -85,8 +85,6 @@ def runUpdate():
     get_stock_info.Update_date = str(datetime.today())[0:10]
     get_stock_info.Save_Update_date()
     
-    get_stock_history.get_stock_AD_index(end_date)#更新騰落
-    
     print("Update all stocks end!")
 
 def RunUpdate_sp500():
@@ -111,8 +109,11 @@ def RunUpdate_sp500():
     print("Update all stocks end!")
     
 def RunUpDate2():
+    print("Update stocks other Info start!")
     end_date = datetime.today()#設定資料起訖日期
     get_stock_history.get_allstock_yield(end_date)#順便更新台灣殖利率
+    get_stock_history.get_stock_AD_index(end_date)#更新騰落
+    print("Update stocks other Info end!")
 
 def stopThreadSchedule():
     for thread in threads:
