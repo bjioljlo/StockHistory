@@ -112,7 +112,7 @@ def RunUpDate2():
     print("Update stocks other Info start!")
     end_date = datetime.today()#設定資料起訖日期
     #get_stock_history.get_allstock_yield(end_date)#順便更新台灣殖利率
-    get_stock_history.get_stock_AD_index(end_date)#更新騰落
+    get_stock_history.get_stock_AD_index(end_date,True)#更新騰落
     print("Update stocks other Info end!")
 
 def stopThreadSchedule():

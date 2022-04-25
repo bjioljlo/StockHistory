@@ -379,7 +379,7 @@ def get_stock_history(number,start,reGetInfo = False,UpdateInfo = True) -> pd.Da
     result = m_history[mask]
     result = result.dropna(axis = 0,how = 'any')
     return result
-def get_stock_AD_index(date):#取得上漲和下跌家數
+def get_stock_AD_index(date,getNew = False):#取得上漲和下跌家數
     print('get_stock_AD_index')
     ADindex_result = pd.DataFrame(columns=['Date','上漲','下跌']).set_index('Date')
     if type(date) == str:
@@ -393,7 +393,7 @@ def get_stock_AD_index(date):#取得上漲和下跌家數
     
     str_yesterday = tools.DateTime2String(time_yesterday)
     fileName = filePath +'/' + fileName_index + '/' + 'AD_index'
-    if fileName in load_memery:
+    if getNew and fileName in load_memery:
         ADindex_result = load_memery[fileName]
     
     #=========test
