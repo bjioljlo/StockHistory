@@ -393,7 +393,7 @@ def get_stock_AD_index(date,getNew = False):#取得上漲和下跌家數
     
     str_yesterday = tools.DateTime2String(time_yesterday)
     fileName = filePath +'/' + fileName_index + '/' + 'AD_index'
-    if getNew and fileName in load_memery:
+    if getNew == False and fileName in load_memery:
         ADindex_result = load_memery[fileName]
     
     #=========test
