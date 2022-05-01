@@ -40,7 +40,8 @@ def RunScheduleNow():
     #RunSchedule(RunUpdate_sp500,str(datetime.today().hour).zfill(2)+ ":" + str(datetime.today().minute + 1).zfill(2)+ ":05")
     RunSchedule(runUpdate,"14:01:01")
     RunSchedule(RunUpdate_sp500,"04:31:05")
-    RunSchedule(RunUpDate2,"20:01:05")
+    # RunSchedule(RunUpDate2,"20:01:05")
+    RunSchedule(RunUpDate2,str(datetime.today().hour).zfill(2)+ ":" + str(datetime.today().minute + 1).zfill(2)+ ":05")
 
 def setMysqlServer(db_name):
     global MySql_server
