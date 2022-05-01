@@ -393,17 +393,17 @@ def get_stock_AD_index(date,getNew = False):#取得上漲和下跌家數
     
     str_yesterday = tools.DateTime2String(time_yesterday)
     fileName = filePath +'/' + fileName_index + '/' + 'AD_index'
-    if getNew == False and fileName in load_memery:
-        ADindex_result = load_memery[fileName]
+    # if fileName in load_memery:
+    #     ADindex_result = load_memery[fileName]
     
     #=========test
-    # ADindex_result = load_other_file(fileName,'AD_index')
-    # if ADindex_result.empty == True:
-    #     if os.path.isfile(fileName + '.csv') == True:
-    #         ADindex_result = pd.read_csv(fileName + '.csv', index_col='Date', parse_dates=['Date'])
-    #         load_memery[fileName] = ADindex_result
-    #     else:
-    #         print('no AD_index csv file')
+    ADindex_result = load_other_file(fileName,'AD_index')
+    if ADindex_result.empty == True:
+        if os.path.isfile(fileName + '.csv') == True:
+            ADindex_result = pd.read_csv(fileName + '.csv', index_col='Date', parse_dates=['Date'])
+            load_memery[fileName] = ADindex_result
+        else:
+            print('no AD_index csv file')
     #=========
 
 
