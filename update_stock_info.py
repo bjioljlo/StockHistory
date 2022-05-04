@@ -110,7 +110,7 @@ def RunUpdate_sp500():
     
 def RunUpDate2():
     print("Update stocks other Info start!")
-    end_date = datetime.today()#設定資料起訖日期
+    end_date = datetime(datetime.today().year,datetime.today().month,datetime.today().day)#設定資料起訖日期
     #end_date = datetime(2022,4,28)#設定資料起訖日期
     #get_stock_history.get_allstock_yield(end_date)#順便更新台灣殖利率
     get_stock_history.get_stock_AD_index(end_date,True)#更新騰落
