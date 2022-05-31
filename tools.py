@@ -5,6 +5,7 @@ from tkinter.messagebox import NO
 import pandas as pd
 import requests
 import threading
+from sqlalchemy import true
 from sqlalchemy.ext.declarative import declarative_base
 import twstock as ts
 from pandas_datareader import data
@@ -14,6 +15,8 @@ from flask import Flask
 from flask_sqlalchemy import SQLAlchemy
 MySql_server = None
 threads = []
+Season_RP_time_month =  [5 ,8 ,11,3 ]
+Season_RP_time_day =    [15,31,14,31]
 
 def changeDateMonth(date,change_month):
     temp_month = date.month + change_month
@@ -112,8 +115,23 @@ def get_SP500_list():#取得S&P500股票清單
     # 用 replace 將符號進行替換
     stk_list = data.Symbol.apply(lambda x: x.replace('.', '-'))
     return stk_list
-        
-        
+def CheckFS_season(date):#檢查當季資料出來沒
+    season = int(((date.month - 1)/3)+1)
+    year = int(date.year)
+    if season == 4:
+        if datetime.today() > datetime(year+1,Season_RP_time_month[season-1],Season_RP_time_day[season-1]):
+            return True
+        else:
+            return False
+    else:
+        if datetime.today() > datetime(year,Season_RP_time_month[season-1],Season_RP_time_day[season-1]):
+            return True
+        else:
+            return False
+    
+    
+    
+    
 # def RunSchedule(func,UpdateTime):
 #     schedule.every().day.at(UpdateTime).do(func)
 #     temp_thread = threading.Thread(target=ScheduleStart)

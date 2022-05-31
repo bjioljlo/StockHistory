@@ -2,7 +2,6 @@ from PyQt5 import QtWidgets
 from PyQt5.QtGui import QStandardItemModel
 from PyQt5.QtCore import Qt
 from PyQt5 import QtCore
-from sqlalchemy import true
 from UI_main import Ui_MainWindow
 from UI_pick import Ui_MainWindow2
 from UI_backtest import Ui_MainWindow3
@@ -130,6 +129,7 @@ def button_moveToInputFromPick_click():
 def button_getStockHistory():#某股票蠟燭圖
     #存更新日期
     date = myshow.date_startDate.date()
+    end_date = tools.QtDate2DateTime(myshow.date_endDate.date())
     str_date = str(date.year())+'-'+ str(date.month())+'-'+str(date.day())
     df.Clear_PICS()
     if myshow.input_stockNumber.toPlainText() == "":
@@ -148,6 +148,9 @@ def button_getStockHistory():#某股票蠟燭圖
             m_history = get_stock_history.get_stock_history(stock_number,str_date,reGetInfo=False)
         else:
             m_history = get_stock_history.get_stock_history(stock_number,str_date,reGetInfo=False,UpdateInfo=False)
+        if myshow.check_ADL.isChecked() or myshow.check_ADLs.isChecked():
+            mask = m_history.index <= end_date
+            m_history = m_history[mask]
         check_SMA_isCheck(m_history,get_stock_info.Get_stock_info(stock_number))
         check_Volume_isCheck(m_history,get_stock_info.Get_stock_info(stock_number))  
         check_KD_isCheck(m_history,get_stock_info.Get_stock_info(stock_number))
@@ -494,6 +497,7 @@ def get_Operating_Margin(date_end,date_start,Number):#end = 後面時間 start =
         except:
             print(str(m_date_start) + "營業利益率未出喔")
             m_date_start = tools.backWorkDays(m_date_start,1)#加一天
+            break
             continue
         Operating_Margin_temp.insert(0,'Date',m_date_start)
         data_result = pd.concat([data_result,Operating_Margin_temp])
@@ -512,6 +516,9 @@ def get_financial_statement(date,GPM = '0' ,OPR ='0' ,EPS ='0',RPS ='0'):
     for i in range(12):
         try:
             this = get_stock_history.get_allstock_financial_statement(volume_date,FS_type)
+            if this.empty:
+                volume_date = tools.changeDateMonth(volume_date,-1)
+                continue
             print(str(volume_date.month)+ "月財務報告ＯＫ")
             break
         except:
@@ -565,6 +572,10 @@ def get_Operating_Margin_Ratio(date_end,date_start,Number):
             print(str(m_date_start) + "營業利益率未出喔")
             m_date_start = tools.backWorkDays(m_date_start,1)#加一天
             continue
+        if Operating_Margin_now.empty:
+            print(str(m_date_start) + "營業利益率未出喔")
+            m_date_start = tools.changeDateMonth(m_date_start,3)#加一季
+            continue
         Operating_Margin_temp = ((Operating_Margin_now['營業利益率(%)'] - Operating_Margin_old['營業利益率(%)'])/Operating_Margin_old['營業利益率(%)']) * 100
         Operating_Margin_now.insert(0,'營業利益率成長率(%)',Operating_Margin_temp)
         Operating_Margin_now.insert(0,'Date',m_date_start)
@@ -582,6 +593,8 @@ def get_ROE(date_end,date_start,Number):
     m_date_start = datetime.strptime(date_start_str,"%Y-%m-%d")
 
     m_date_start_day = int(date_start.day())
+    if m_date_start_day > 28:
+        m_date_start_day = 28
     stockNum = int(Number)
     data_result = pd.DataFrame(columns = ['Date','ROE'])
     while (m_date_start <= m_date_end):
@@ -602,6 +615,8 @@ def get_ROE(date_end,date_start,Number):
             print(str(m_date_start) + "營業利益率未出喔")
             m_date_start = tools.backWorkDays(m_date_start,1)#加一天
             continue
+        if BOOK_data.empty or CPL_data.empty:
+            break
         Temp_Book = int(BOOK_data.at[stockNum,'權益總額']) 
         Temp_CPL = int(CPL_data.at[stockNum,"本期綜合損益總額（稅後）"])
         Temp_ROE = round((Temp_CPL/Temp_Book),4) * 100
@@ -698,10 +713,12 @@ def Init_mainWindow():#初始化mainwindow
     myshow.date_startDate.setMaximumDate(today)
     myshow.date_startDate.setMinimumDate(QtCore.QDate(2000,1,1))
     enddate = tools.changeDateMonth(tools.QtDate2DateTime(date),-6)
-    myshow.date_startDate.setDate(QtCore.QDate((enddate.year),(enddate.month),(enddate.day)))
+    yesterday = tools.backWorkDays(datetime.today(),1)
+    end_yesterday = tools.changeDateMonth(yesterday,-6)
+    myshow.date_startDate.setDate(QtCore.QDate((end_yesterday.year),(end_yesterday.month),(end_yesterday.day)))
     myshow.date_endDate.setMaximumDate(today)
     myshow.date_endDate.setMinimumDate(QtCore.QDate(2001,1,1))
-    myshow.date_endDate.setDate(date)
+    myshow.date_endDate.setDate(QtCore.QDate((yesterday.year),(yesterday.month),(yesterday.day)))
     myshow.input_SMA1.setPlainText("5")
     myshow.input_SMA2.setPlainText("20")
     myshow.input_SMA3.setPlainText("60")

@@ -1,10 +1,6 @@
-
-from asyncio import FastChildWatcher
-from cmath import exp
 import requests
 from datetime import datetime,timedelta
 import pandas as pd
-from sqlalchemy import false
 import get_stock_info
 import os
 import numpy as np
@@ -251,55 +247,68 @@ def get_allstock_monthly_report(start):#爬某月所有股票月營收
     return m_data      
 def get_allstock_financial_statement(start,type):#爬某季所有股票歷史財報
     print("get_allstock_financial_statement:" + str(type))
+    season = int(((start.month - 1)/3)+1)
     Temp_data = pd.DataFrame()
-    for i in range(12):
-        try:
-            season = int(((start.month - 1)/3)+1)
-            if season == 4:
-                season = 3
-                if start < datetime(start.year,12,31):
-                    season = 2
-                    start = tools.changeDateMonth(start,-6)
-                else:
-                    start = tools.changeDateMonth(start,-3)
-            elif season == 3:
-                season = 2
-                if start < datetime(start.year,9,30):
-                    season = 1
-                    start = tools.changeDateMonth(start,-6)
-                else:
-                    start = tools.changeDateMonth(start,-3)
-            elif season == 2:
-                season = 1
-                if start < datetime(start.year,6,30):
-                    season = 4
-                    start = tools.changeDateMonth(start,-6)
-                else:
-                    start = tools.changeDateMonth(start,-3)
-            elif season == 1:
-                season = 4
-                if start < datetime(start.year,3,31):
-                    season = 3
-                    start = tools.changeDateMonth(start,-6)
-                else:
-                    start = tools.changeDateMonth(start,-3)
-            fileName = filePath + '/' + fileName_season + '/' + str(start.year)+"-season"+str(season)+"-"+type.value+".csv"
-            if fileName in load_memery:
-                return load_memery[fileName]
-            Temp_data = update_stock_info.read_Dividend_yield(str(start.year)+"-season"+str(season)+"-"+type.value)
-            if Temp_data.empty == True:
-                if os.path.isfile(fileName) == True:
-                    print("已經有" + str(start.month)+ "月財務報告")
-                    break
-                financial_statement(start.year,season,type)
-                print("下載" + str(start.month)+ "月財務報告ＯＫ")
-                break
-            else:
-                break
-        except:
-            print(str(start.month)+ "月財務報告未出跳下一個月")
-            start = tools.changeDateMonth(start,-1)
-            continue
+    if tools.CheckFS_season(start) == False:
+        print('Season rp is no data yet!')
+        return pd.DataFrame()
+    fileName = filePath + '/' + fileName_season + '/' + str(start.year)+"-season"+str(season)+"-"+type.value+".csv"
+    if fileName in load_memery:
+        return load_memery[fileName]
+    Temp_data = update_stock_info.read_Dividend_yield(str(start.year)+"-season"+str(season)+"-"+type.value)
+    if Temp_data.empty == True:
+        if os.path.isfile(fileName) == True:
+            print("已經有" + str(start.month)+ "月財務報告")
+        financial_statement(start.year,season,type)
+        print("下載" + str(start.month)+ "月財務報告ＯＫ")
+    # for i in range(12):
+    #     try:
+    #         season = int(((start.month - 1)/3)+1)
+    #         if season == 4:
+    #             season = 3
+    #             if start < datetime(start.year,11,14):
+    #                 season = 2
+    #                 start = tools.changeDateMonth(start,-6)
+    #             else:
+    #                 start = tools.changeDateMonth(start,-3)
+    #         elif season == 3:
+    #             season = 2
+    #             if start < datetime(start.year,8,31):
+    #                 season = 1
+    #                 start = tools.changeDateMonth(start,-6)
+    #             else:
+    #                 start = tools.changeDateMonth(start,-3)
+    #         elif season == 2:
+    #             season = 1
+    #             if start < datetime(start.year,5,15):
+    #                 season = 4
+    #                 start = tools.changeDateMonth(start,-6)
+    #             else:
+    #                 start = tools.changeDateMonth(start,-3)
+    #         elif season == 1:
+    #             season = 4
+    #             if start < datetime(start.year,3,31):
+    #                 season = 3
+    #                 start = tools.changeDateMonth(start,-6)
+    #             else:
+    #                 start = tools.changeDateMonth(start,-3)
+    #         fileName = filePath + '/' + fileName_season + '/' + str(start.year)+"-season"+str(season)+"-"+type.value+".csv"
+    #         if fileName in load_memery:
+    #             return load_memery[fileName]
+    #         Temp_data = update_stock_info.read_Dividend_yield(str(start.year)+"-season"+str(season)+"-"+type.value)
+    #         if Temp_data.empty == True:
+    #             if os.path.isfile(fileName) == True:
+    #                 print("已經有" + str(start.month)+ "月財務報告")
+    #                 break
+    #             financial_statement(start.year,season,type)
+    #             print("下載" + str(start.month)+ "月財務報告ＯＫ")
+    #             break
+    #         else:
+    #             break
+    #     except:
+    #         print(str(start.month)+ "月財務報告未出跳下一個月")
+    #         start = tools.changeDateMonth(start,-1)
+    #         continue
     if Temp_data.empty == True:
         stock = pd.read_csv(fileName)
         #整理一下資料
@@ -620,14 +629,18 @@ def get_OMGR_up(time,upNum):#time = 取得資料的時間 upNum = 連續成長�
     data = {}
     if upNum <= 0:
         return pd.DataFrame()
+    k = 0
     for i in range(upNum + 5):
-        temp_now = tools.changeDateMonth(time,-((i+2)*3))
+        temp_now = tools.changeDateMonth(time,-((i+k)*3))
+        temp_data = get_allstock_financial_statement(temp_now,FS_type.PLA)
+        if temp_data.empty:
+            k = 1
+            temp_now = tools.changeDateMonth(time,-((i+k)*3))
         data['%d-%d-1'%(temp_now.year, temp_now.month)] = get_allstock_financial_statement(temp_now,FS_type.PLA)
     
     result = pd.DataFrame({k:result['營業利益率(%)'] for k,result in data.items()}).transpose()
     result.index = pd.to_datetime(result.index)
     result = result.sort_index()
-    
     count = 0
     final_result = pd.DataFrame()
     for index,row in result.iterrows():
@@ -636,7 +649,7 @@ def get_OMGR_up(time,upNum):#time = 取得資料的時間 upNum = 連續成長�
             continue
         else:           
             a_string = str(index.year -1)+'-'+str(index.month).zfill(2)
-            temp = ((row - result[a_string])/result[a_string]) * 100
+            temp = round(((row - result[a_string])/result[a_string]) * 100,2)
             final_result = final_result.append(temp,ignore_index=True)
     method2 = (final_result > final_result.shift()).iloc[-upNum:].sum()
     method2 = method2[method2 >= upNum]
@@ -1037,7 +1050,7 @@ def translate_dataFrame2(response,type,year,season = 1):
                                 [25,44,45,53,57],
                                 [16,34,35,44,48],
                                 [5,8,9,17,21]])
-    if(year == 110):
+    if(year <= 111):
         column_pos_array = np.array([[24,42,43,53,57],
                                 [5,8,9,19,23],
                                 [5,8,9,19,23],
