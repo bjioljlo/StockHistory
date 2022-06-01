@@ -479,6 +479,8 @@ def get_Operating_Margin(date_end,date_start,Number):#end = 後面時間 start =
     m_date_start = datetime.strptime(date_start_str,"%Y-%m-%d")
 
     m_date_start_day = int(date_start.day())
+    if m_date_start_day > 28:
+        m_date_start_day = 28
     stockNum = Number
     data_result = None
     while (m_date_start <= m_date_end):
@@ -552,6 +554,8 @@ def get_Operating_Margin_Ratio(date_end,date_start,Number):
     m_date_start = datetime.strptime(date_start_str,"%Y-%m-%d")
 
     m_date_start_day = int(date_start.day())
+    if m_date_start_day > 28:
+        m_date_start_day = 28
     stockNum = Number
     data_result = None
     while (m_date_start <= m_date_end):
