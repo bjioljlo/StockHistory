@@ -372,6 +372,9 @@ class Ui_MainWindow3(object):
         self.button_backtest_5 = QtWidgets.QPushButton(self.centralwidget)
         self.button_backtest_5.setGeometry(QtCore.QRect(420, 450, 131, 32))
         self.button_backtest_5.setObjectName("button_backtest_5")
+        self.button_backtest_6 = QtWidgets.QPushButton(self.centralwidget)
+        self.button_backtest_6.setGeometry(QtCore.QRect(280, 450, 131, 32))
+        self.button_backtest_6.setObjectName("button_backtest_6")
         MainWindow3.setCentralWidget(self.centralwidget)
         self.menubar = QtWidgets.QMenuBar(MainWindow3)
         self.menubar.setGeometry(QtCore.QRect(0, 0, 800, 22))
@@ -422,5 +425,6 @@ class Ui_MainWindow3(object):
         self.button_backtest_4.setText(_translate("MainWindow3", "開始創新高回測"))
         self.label_30.setText(_translate("MainWindow3", "幾天內創新高"))
         self.button_backtest_5.setText(_translate("MainWindow3", "開始KD值回測"))
+        self.button_backtest_6.setText(_translate("MainWindow3", "開始PEG值回測"))
 
 
