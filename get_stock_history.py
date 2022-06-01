@@ -395,7 +395,7 @@ def get_stock_history(number,start,reGetInfo = False,UpdateInfo = True) -> pd.Da
     result = m_history[mask]
     result = result.dropna(axis = 0,how = 'any')
     return result
-def get_stock_AD_index(date):#取得上漲和下跌家數
+def get_stock_AD_index(date,getNew = False):#取得上漲和下跌家數
     print('get_stock_AD_index')
     ADindex_result = pd.DataFrame(columns=['Date','上漲','下跌']).set_index('Date')
     if type(date) == str:
@@ -409,8 +409,8 @@ def get_stock_AD_index(date):#取得上漲和下跌家數
     
     str_yesterday = tools.DateTime2String(time_yesterday)
     fileName = filePath +'/' + fileName_index + '/' + 'AD_index'
-    if fileName in load_memery:
-        ADindex_result = load_memery[fileName]
+    # if fileName in load_memery:
+    #     ADindex_result = load_memery[fileName]
     
     #=========test
     ADindex_result = load_other_file(fileName,'AD_index')
@@ -447,11 +447,14 @@ def get_stock_AD_index(date):#取得上漲和下跌家數
                 m_temp = get_stock_history(2330,str_yesterday,reGetInfo=False,UpdateInfo=False)['Close']
                 if (m_temp.index == time).__contains__(True) != True:
                     return pd.DataFrame()
+                m_temp = get_stock_history(2330,str_date,reGetInfo=False,UpdateInfo=False)['Close']
+                if (m_temp.index == time).__contains__(True) != True:
+                    return pd.DataFrame()
     ADindex_result_new = pd.DataFrame({'Date':[time],'上漲':[up],'下跌':[down]}).set_index('Date')
     ADindex_result = ADindex_result.append(ADindex_result_new)
     ADindex_result = ADindex_result.sort_index()
     update_stock_info.saveTable('AD_index',ADindex_result)
-    ADindex_result.to_csv(fileName + '.csv')
+    #ADindex_result.to_csv(fileName + '.csv')
     load_memery[fileName] = ADindex_result
     df = ADindex_result[ADindex_result.index == time]
     return df

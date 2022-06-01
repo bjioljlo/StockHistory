@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timedelta
 from mimetypes import encodings_map
 import threading
 import schedule
@@ -36,8 +36,12 @@ def RunMysql():
     temp_thread.start()
     
 def RunScheduleNow():
-    RunSchedule(runUpdate,str(datetime.today().hour).zfill(2)+ ":" + str(datetime.today().minute + 1).zfill(2)+ ":01")
-    # RunSchedule(RunUpdate_sp500,str(datetime.today().hour).zfill(2)+ ":" + str(datetime.today().minute + 1).zfill(2)+ ":05")
+    #RunSchedule(runUpdate,str(datetime.today().hour).zfill(2)+ ":" + str(datetime.today().minute + 1).zfill(2)+ ":01")
+    #RunSchedule(RunUpdate_sp500,str(datetime.today().hour).zfill(2)+ ":" + str(datetime.today().minute + 1).zfill(2)+ ":05")
+    RunSchedule(runUpdate,"14:01:01")
+    RunSchedule(RunUpdate_sp500,"04:31:05")
+    RunSchedule(RunUpDate2,"20:01:05")
+    # RunSchedule(RunUpDate2,str(datetime.today().hour).zfill(2)+ ":" + str(datetime.today().minute + 1).zfill(2)+ ":05")
 
 def setMysqlServer(db_name):
     global MySql_server
@@ -52,6 +56,7 @@ def setMysqlServer(db_name):
 def runUpdate():
     print("Update all stocks start!")
     df = pd.DataFrame()
+    #end_date = datetime.today() - timedelta(days=1)#設定資料起訖日期
     for key,value in ts.codes.items():
         if value.market == "上市" and len(value.code) >= 4 :
             if len(value.code) >= 5 and get_stock_history.check_ETF_stock(value.code) == False:
@@ -81,8 +86,6 @@ def runUpdate():
     get_stock_info.Update_date = str(datetime.today())[0:10]
     get_stock_info.Save_Update_date()
     print("Update all stocks end!")
-    get_stock_history.get_stock_AD_index(end_date)#更新騰落
-    get_stock_history.get_allstock_yield(end_date)#更新殖利率
 
 def RunUpdate_sp500():
     print("Update all sp500 stocks start!")
@@ -104,6 +107,15 @@ def RunUpdate_sp500():
         df.to_sql(name=temp,con=MySql_server.engine)
         print("Update stocks " + temp + " OK!")
     print("Update all stocks end!")
+    
+def RunUpDate2():
+    print("Update stocks other Info start!")
+    end_date = datetime(datetime.today().year,datetime.today().month,datetime.today().day)#設定資料起訖日期
+    #end_date = datetime(2022,4,28)#設定資料起訖日期
+    #get_stock_history.get_allstock_yield(end_date)#順便更新台灣殖利率
+    get_stock_history.get_stock_AD_index(end_date,True)#更新騰落
+    get_stock_history.load_memery.clear()
+    print("Update stocks other Info end!")
 
 def stopThreadSchedule():
     for thread in threads:
