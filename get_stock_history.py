@@ -30,6 +30,7 @@ class FS_type(Enum):
     CPL = 'Consolidated-profit-and-loss-summary'  #'綜合損益彙總表'
     BS = 'Balance-sheet' #'資產負債彙總表'
     PLA = 'Profit-and-loss-analysis-summary'  #'營益分析彙總表'
+    SCF = 'Statement of Cash Flows' #現金流量表
 
 class stock_data_kind(Enum):
     AdjClose = 'Adj Close'
@@ -976,6 +977,8 @@ def financial_statement(year, season, type):#year = 年 season = 季 type = 財�
         url = 'https://mops.twse.com.tw/mops/web/ajax_t163sb05'
     elif type == FS_type.PLA:
         url = 'https://mops.twse.com.tw/mops/web/ajax_t163sb06'
+    elif type == FS_type.SCF:
+        url = 'https://mops.twse.com.tw/mops/web/ajax_t163sb20'
     else:
         print('type does not match')
 
