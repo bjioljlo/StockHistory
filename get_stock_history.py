@@ -30,7 +30,7 @@ class FS_type(Enum):
     CPL = 'Consolidated-profit-and-loss-summary'  #'綜合損益彙總表'
     BS = 'Balance-sheet' #'資產負債彙總表'
     PLA = 'Profit-and-loss-analysis-summary'  #'營益分析彙總表'
-    SCF = 'Statement of Cash Flows' #現金流量表
+    SCF = 'Statement-of-Cash-Flows' #現金流量表
 
 class stock_data_kind(Enum):
     AdjClose = 'Adj Close'
@@ -142,6 +142,13 @@ def get_stock_yield(number,date):#取得某股票某天的殖利率
     return data
 def get_stock_Operating(number,date):#取得營業利益率
     data = get_allstock_financial_statement(date,FS_type.PLA)
+    if type(number) == str:
+        number = int(number)
+    mask = data.index == number
+    data = data[mask]
+    return data
+def get_stock_SCF(number,date):#取得現金流量表
+    data = get_allstock_financial_statement(date,FS_type.SCF)
     if type(number) == str:
         number = int(number)
     mask = data.index == number
@@ -350,14 +357,14 @@ def get_allstock_yield(start):#爬某天所有股票殖利率
     #m_yield[["股價淨值比"]] = m_yield[["股價淨值比"]].astype(float)
     load_memery[fileName] = m_yield
     return m_yield
-def get_stock_financial_statement(number,start):#爬某個股票的歷史財報
-    #season = int(((start.month() - 1)/3)+1)
-    type = FS_type.PLA
-    if get_stock_info.ts.codes.__contains__(number) == False:
-        print("無此檔股票")
-        return
-    stock = get_allstock_financial_statement(start,type)
-    return stock.loc[int(number)]
+# def get_stock_financial_statement(number,start):#爬某個股票的歷史財報
+#     #season = int(((start.month() - 1)/3)+1)
+#     type = FS_type.PLA
+#     if get_stock_info.ts.codes.__contains__(number) == False:
+#         print("無此檔股票")
+#         return
+#     stock = get_allstock_financial_statement(start,type)
+#     return stock.loc[int(number)]
 def get_stock_history(number,start,reGetInfo = False,UpdateInfo = True) -> pd.DataFrame:#爬某個股票的歷史紀錄
     print(''.join(["取得" , str(number) , "的資料從" , str(start) ,"到今天"]))
     start_time = start
@@ -1157,6 +1164,13 @@ def translate_dataFrame2(response,type,year,season = 1):
                                         [15,22],
                                         [16,23],
                                         [11,18]])
+    if (type == FS_type.SCF):
+        column_pos_array = np.array([[3,4,5],
+                                    [3,4,5],
+                                    [3,4,5],
+                                    [3,4,5],
+                                    [3,4,5],
+                                    [3,4,5]])
     data = []
     index = []
     column = []
@@ -1178,11 +1192,15 @@ def translate_dataFrame2(response,type,year,season = 1):
                     profitMargin = remove_td(td_array[column_pos_array[k][2]])
                     preTaxIncomeMargin = remove_td(td_array[column_pos_array[k][3]])
                     afterTaxIncomeMargin = remove_td(td_array[column_pos_array[k][4]])
+                if (type == FS_type.SCF):
+                    profitMargin2 = remove_td(td_array[column_pos_array[k][2]])
                 if(i > 1):
                     if name == '公司名稱':
                         continue
                     if (type == FS_type.CPL):
                         data.append([name,code,revenue,profitRatio])
+                    elif (type == FS_type.SCF):
+                        data.append([name,code,revenue,profitRatio,profitMargin2])
                     else:
                         data.append([name,code,revenue,profitRatio,profitMargin,preTaxIncomeMargin,afterTaxIncomeMargin])
                     #index.append(name)
@@ -1195,6 +1213,8 @@ def translate_dataFrame2(response,type,year,season = 1):
                         column.append(profitMargin)
                         column.append(preTaxIncomeMargin)
                         column.append(afterTaxIncomeMargin)
+                    if (type == FS_type.SCF):
+                        column.append(profitMargin2)
 
     return pd.DataFrame(data = data,columns=column)
 

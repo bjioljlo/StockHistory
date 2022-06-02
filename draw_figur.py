@@ -90,6 +90,20 @@ def draw_ROE(table,stockNum):
     plt.ylabel("ROE")
     plt.title(stockNum)
     plt.show()
+def draw_FreeSCF(table,stockNum):
+    axx = plt.axes()
+    axx.plot(table['FreeCF'],label = 'FreeCF')
+    plt.xlabel("date")
+    plt.ylabel("FreeCF")
+    plt.title(stockNum)
+    plt.show()
+def draw_SCF(table,stockNum):
+    axx = plt.axes()
+    axx.plot(table['營業活動之淨現金流入（流出）'],label = '營業活動之淨現金流入（流出）')
+    plt.xlabel("date")
+    plt.ylabel("cash flows from operations")
+    plt.title(stockNum)
+    plt.show()
 def draw_backtest(data):
     ax4 = plt.axes()
     ax4.plot(data,label = '回測結果',color ='b')
