@@ -149,6 +149,9 @@ class Ui_MainWindow(object):
         self.button_getSCF = QtWidgets.QPushButton(self.centralwidget)
         self.button_getSCF.setGeometry(QtCore.QRect(320, 370, 113, 32))
         self.button_getSCF.setObjectName("button_getSCF")
+        self.button_getICF = QtWidgets.QPushButton(self.centralwidget)
+        self.button_getICF.setGeometry(QtCore.QRect(320, 400, 113, 32))
+        self.button_getICF.setObjectName("button_getICF")
         MainWindow.setCentralWidget(self.centralwidget)
         self.menubar = QtWidgets.QMenuBar(MainWindow)
         self.menubar.setGeometry(QtCore.QRect(0, 0, 550, 22))
@@ -194,5 +197,6 @@ class Ui_MainWindow(object):
         self.button_getROE.setText(_translate("MainWindow", "歷史ROE紀錄"))
         self.button_getFreeCF.setText(_translate("MainWindow", "自由現金流紀錄"))
         self.button_getSCF.setText(_translate("MainWindow", "營業現金流紀錄"))
+        self.button_getICF.setText(_translate("MainWindow", "投資現金流紀錄"))
 
 

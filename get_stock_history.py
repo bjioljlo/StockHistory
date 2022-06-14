@@ -192,13 +192,21 @@ def get_stock_monthly_report(number,start):#爬某月某個股票月營收
     if get_stock_info.ts.codes.__contains__(number) == False:
         print("無此檔股票")
         return
+    if (int(start.month) == int(datetime.today().month)):
+        print("本月還沒過完無資資訊")
+        return
+    if int(start.month) == int(tools.changeDateMonth(datetime.today(),-1).month) and (int(datetime.today().day)) < 15 :
+        print("還沒15號沒有上個月的資料")
+        return
+    if int(start.day) < 15:
+        start = start.replace(day = 15)
     df = get_allstock_monthly_report(start)
     if type(number) == str:
         number = int(number)
     df = df[df.index == number]
     return df
 def get_allstock_monthly_report(start):#爬某月所有股票月營收
-    if start.day < 15:#還沒超過15號，拿前兩個月
+    if start.day < 15 :#還沒超過15號，拿前兩個月
         print("get_allstock_monthly_report:未到15號取上個月報表")
         start = tools.changeDateMonth(start,-1)
     year = start.year
@@ -485,6 +493,11 @@ def get_Operating_Margin_up(number,date):#取得營業利益成長率
         m_date_start = datetime.strptime(date,"%Y-%m-%d")
     Operating_Margin_now = get_stock_Operating(number,m_date_start)
     Operating_Margin_old = get_stock_Operating(number,tools.changeDateMonth(m_date_start,-12))
+    if Operating_Margin_now.empty:
+        print(str(m_date_start) + "營業利益率未出喔")
+        m_date_start = tools.changeDateMonth(m_date_start,-3)
+        Operating_Margin_now = get_stock_Operating(number,m_date_start)
+        Operating_Margin_old = get_stock_Operating(number,tools.changeDateMonth(m_date_start,-12))
     Operating_Margin_temp = ((Operating_Margin_now['營業利益率(%)'] - Operating_Margin_old['營業利益率(%)'])/Operating_Margin_old['營業利益率(%)']) * 100
     Operating_Margin_now.insert(0,'營業利益率成長率(%)',Operating_Margin_temp)
     data_result = pd.concat([data_result,Operating_Margin_now])

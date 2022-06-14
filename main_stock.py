@@ -235,6 +235,18 @@ def button_SCF_click():#某股票營業現金流
                                 myshow.date_startDate.date(),
                                 myshow.input_stockNumber.toPlainText())
     df.draw_SCF(data_result_up,myshow.input_stockNumber.toPlainText())
+def button_ICF_click():#某股票投資現金流
+    if (myshow.input_stockNumber.toPlainText() == ''):
+        print('請輸入股票號碼')
+        return
+    if (int(myshow.date_endDate.date().day()) == int(datetime.today().day)):
+        print("今天還沒過完無資資訊")
+        return
+    data_result_up = None
+    data_result_up = get_SCF(myshow.date_endDate.date(),
+                                myshow.date_startDate.date(),
+                                myshow.input_stockNumber.toPlainText())
+    df.draw_ICF(data_result_up,myshow.input_stockNumber.toPlainText())
 def button_FreeSCF_click():#某股票自由現金流
     if (myshow.input_stockNumber.toPlainText() == ''):
         print('請輸入股票號碼')
@@ -531,7 +543,7 @@ def get_Operating_Margin(date_end,date_start,Number):#end = 後面時間 start =
         m_date_start = m_date_start.replace(day = m_date_start_day)
     data_result.set_index('Date',inplace=True)
     return data_result
-#取得營業現金流的資料
+#取得現金流的資料
 def get_SCF(date_end,date_start,Number):#end = 後面時間 start = 前面時間 Number = 股票號碼
     date_end_str = str(date_end.year()) + '-' + str(date_end.month()) + '-' + str(date_end.day())
     m_date_end = datetime.strptime(date_end_str,"%Y-%m-%d")
@@ -558,7 +570,7 @@ def get_SCF(date_end,date_start,Number):#end = 後面時間 start = 前面時間
         try:
             Operating_Margin_temp = get_stock_history.get_stock_SCF(stockNum,m_date_start)
         except:
-            print(str(m_date_start) + "營業現金流未出喔")
+            print(str(m_date_start) + "現金流未出喔")
             m_date_start = tools.backWorkDays(m_date_start,1)#加一天
             break
             continue
@@ -814,6 +826,7 @@ def Init_mainWindow():#初始化mainwindow
     myshow.button_getROE.clicked.connect(button_ROE_Ratio_click)
     myshow.button_getFreeCF.clicked.connect(button_FreeSCF_click)
     myshow.button_getSCF.clicked.connect(button_SCF_click)
+    myshow.button_getICF.clicked.connect(button_ICF_click)
     #設定日期
     Date = datetime.strptime(get_stock_info.Update_date[0:10],"%Y-%m-%d")
     date = QtCore.QDate(Date.year,Date.month,Date.day)
