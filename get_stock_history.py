@@ -192,10 +192,10 @@ def get_stock_monthly_report(number,start):#爬某月某個股票月營收
     if get_stock_info.ts.codes.__contains__(number) == False:
         print("無此檔股票")
         return
-    if (int(start.month) == int(datetime.today().month)):
+    if int(start.month) == int(datetime.today().month) and int(start.year) == int(datetime.today().year):
         print("本月還沒過完無資資訊")
         return
-    if int(start.month) == int(tools.changeDateMonth(datetime.today(),-1).month) and (int(datetime.today().day)) < 15 :
+    if int(start.month) == int(tools.changeDateMonth(datetime.today(),-1).month) and int(datetime.today().day) < 15 and int(start.year) == int(datetime.today().year):
         print("還沒15號沒有上個月的資料")
         return
     if int(start.day) < 15:

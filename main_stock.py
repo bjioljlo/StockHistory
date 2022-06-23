@@ -121,9 +121,12 @@ def button_deletStock_click():
 def button_moveToInputFromPick_click():
         Index = mypick.treeView_pick.currentIndex()
         mModel = mypick.treeView_pick.model()
-        data = mModel.item(Index.row(),0).text()
-        text = str(data)
-        myshow.input_stockNumber.setPlainText(text)
+        try:
+            data = mModel.item(Index.row(),0).text()
+            text = str(data)
+            myshow.input_stockNumber.setPlainText(text)
+        except:
+            print("")
 
 #第1頁的UI
 def button_getStockHistory():#某股票蠟燭圖
