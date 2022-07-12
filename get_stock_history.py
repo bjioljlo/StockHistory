@@ -154,6 +154,19 @@ def get_stock_SCF(number,date):#取得現金流量表
     mask = data.index == number
     data = data[mask]
     return data
+def get_stock_FreeCF(number,date):#取得自由現金流
+    try:
+        FreeSCF_Margin_temp = get_stock_SCF(number,date)
+    except:
+        print(str(date) + "現金流量表未出喔")
+        return None
+    if FreeSCF_Margin_temp.empty:
+        print(str(date) + "現金流量表未出喔")
+        return None
+    Temp_Business = int(FreeSCF_Margin_temp.at[number,'營業活動之淨現金流入（流出）'])
+    Temp_Invest = int(FreeSCF_Margin_temp.at[number,'投資活動之淨現金流入（流出）'])
+    Temp_Free = int(Temp_Business+Temp_Invest)
+    return Temp_Free
 def get_stock_price(number,date,kind,isSMA = False):#取得某股票某天的ＡＤＪ價格
     global Holiday_trigger
     if check_no_use_stock(number) == True:
@@ -489,15 +502,19 @@ def get_ADLs_index(date):#取得騰落百分比
 def get_Operating_Margin_up(number,date):#取得營業利益成長率
     m_date_start = date
     data_result = None
+    Timer = 2
     if type(date) == str:
         m_date_start = datetime.strptime(date,"%Y-%m-%d")
     Operating_Margin_now = get_stock_Operating(number,m_date_start)
     Operating_Margin_old = get_stock_Operating(number,tools.changeDateMonth(m_date_start,-12))
-    if Operating_Margin_now.empty:
-        print(str(m_date_start) + "營業利益率未出喔")
+    while Operating_Margin_now.empty:
+        print("日期:"+str(m_date_start)+" ("+ str(number) + ")的營業利益率未出喔")
         m_date_start = tools.changeDateMonth(m_date_start,-3)
         Operating_Margin_now = get_stock_Operating(number,m_date_start)
         Operating_Margin_old = get_stock_Operating(number,tools.changeDateMonth(m_date_start,-12))
+        if Timer == 0:
+            break
+        Timer = Timer - 1
     Operating_Margin_temp = ((Operating_Margin_now['營業利益率(%)'] - Operating_Margin_old['營業利益率(%)'])/Operating_Margin_old['營業利益率(%)']) * 100
     Operating_Margin_now.insert(0,'營業利益率成長率(%)',Operating_Margin_temp)
     data_result = pd.concat([data_result,Operating_Margin_now])
@@ -654,12 +671,17 @@ def get_OMGR_up(time,upNum):#time = 取得資料的時間 upNum = 連續成長�
     if upNum <= 0:
         return pd.DataFrame()
     k = 0
+    Timer = 2
     for i in range(upNum + 5):
         temp_now = tools.changeDateMonth(time,-((i+k)*3))
         temp_data = get_allstock_financial_statement(temp_now,FS_type.PLA)
-        if temp_data.empty:
-            k = 1
+        while temp_data.empty:
+            k = k + 1
             temp_now = tools.changeDateMonth(time,-((i+k)*3))
+            temp_data = get_allstock_financial_statement(temp_now,FS_type.PLA)
+            if Timer == 0:
+                break
+            Timer = Timer - 1
         data['%d-%d-1'%(temp_now.year, temp_now.month)] = get_allstock_financial_statement(temp_now,FS_type.PLA)
     
     result = pd.DataFrame({k:result['營業利益率(%)'] for k,result in data.items()}).transpose()
@@ -681,6 +703,44 @@ def get_OMGR_up(time,upNum):#time = 取得資料的時間 upNum = 連續成長�
     load_memery[fileName] = method2
     print('get_OMGR_up: end' )
     return method2
+#取得FCF連續增高篩選
+def get_FCF_up(time,upNum):#time = 取得資料的時間 upNum = 連續成長多少季
+    print('get_FCF_up: start:'+ str(time))
+    fileName = "get_FCF_up_" + str(time.year) + str(time.month) + str(upNum)
+    Timer = 2
+    if fileName in load_memery:
+        print('get_FCF_up: end' )
+        return load_memery[fileName]
+    data = {}
+    if upNum <= 0:
+        return pd.DataFrame()
+    k = 0
+    for i in range(upNum+1):
+        temp_now = tools.changeDateMonth(time,-((i+k)*3))
+        temp_data = get_allstock_financial_statement(temp_now,FS_type.SCF)
+        while temp_data.empty:
+            k = k + 1
+            temp_now = tools.changeDateMonth(time,-((i+k)*3))
+            temp_data = get_allstock_financial_statement(temp_now,FS_type.SCF)
+            if Timer == 0:
+                break
+            Timer = Timer - 1
+        temp_result = temp_data
+        if temp_result["投資活動之淨現金流入（流出）"].dtype == object: 
+            temp_result["投資活動之淨現金流入（流出）"] = pd.to_numeric(temp_result["投資活動之淨現金流入（流出）"].str.replace('--', '0'))
+        temp_result[['投資活動之淨現金流入（流出）']] = temp_result[['投資活動之淨現金流入（流出）']].astype(int)
+        temp_result['自由現金流入（流出）'] = temp_result['營業活動之淨現金流入（流出）'] + temp_result['投資活動之淨現金流入（流出）']
+        data['%d-%d-1'%(temp_now.year, temp_now.month)] = temp_result
+    result = pd.DataFrame({k:result['自由現金流入（流出）'] for k,result in data.items()}).transpose()
+    result.index = pd.to_datetime(result.index)
+    result = result.sort_index()
+    method2 = (result > result.shift()).iloc[-upNum:].sum()
+    method2 = method2[method2 >= upNum]
+    method2 = pd.DataFrame(method2)
+    load_memery[fileName] = method2
+    print('get_FCF_up: end' )
+    return method2
+
 #取得本益比篩選 #股價/每股盈餘(EPS)
 def get_PER_range(time,PER_start,PER_end,data = pd.DataFrame()):#time = 取得資料的時間 PER_start = PER最小值 PER_end PER最大值
     print('get_PER_range: start')
@@ -838,6 +898,14 @@ def get_ROE_range(time,ROE_start,ROE_end,data = pd.DataFrame()):#time = 取得�
         Use_ROE_date = datetime(ROE_date.year,tools.changeDateMonth(ROE_date,-3).month ,tools.check_monthDate(tools.changeDateMonth(ROE_date,-3).month,ROE_date.day))
     BOOK_data = get_allstock_financial_statement(Use_ROE_date,FS_type.BS)
     CPL_data = get_allstock_financial_statement(Use_ROE_date,FS_type.CPL)
+    Timer = 2
+    while BOOK_data.empty or CPL_data.empty:
+        Use_ROE_date = tools.changeDateMonth(Use_ROE_date,-3)
+        BOOK_data = get_allstock_financial_statement(Use_ROE_date,FS_type.BS)
+        CPL_data = get_allstock_financial_statement(Use_ROE_date,FS_type.CPL)
+        if Timer == 0:
+            break
+        Timer = Timer - 1
     if All_ROE.empty == True:
         All_ROE = BOOK_data
     for index,row in All_ROE.iterrows():

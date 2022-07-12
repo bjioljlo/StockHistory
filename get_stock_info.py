@@ -64,7 +64,8 @@ def Get_stock_info(number):#取得某隻追蹤股票資訊
     if stock_list.__contains__(number):
         return stock_list[number]
     else:
-        return "no this stock infomation"
+        print("no this stock infomation")
+        return number
 
 stock_list = Load_stock_info()
 Update_date = Load_Update_date()
