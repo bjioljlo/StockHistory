@@ -557,6 +557,19 @@
      <string>投資現金流紀錄</string>
     </property>
    </widget>
+   <widget class="QPushButton" name="button_getPCF">
+    <property name="geometry">
+     <rect>
+      <x>310</x>
+      <y>430</y>
+      <width>131</width>
+      <height>41</height>
+     </rect>
+    </property>
+    <property name="text">
+     <string>股價現金流量比率</string>
+    </property>
+   </widget>
   </widget>
   <widget class="QMenuBar" name="menubar">
    <property name="geometry">
