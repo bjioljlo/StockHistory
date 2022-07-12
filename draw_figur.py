@@ -97,6 +97,13 @@ def draw_FreeSCF(table,stockNum):
     plt.ylabel("FreeCF")
     plt.title(stockNum)
     plt.show()
+def draw_PCF(table,stockNum):
+    axx = plt.axes()
+    axx.plot(table['P/CF'],label = 'P/CF')
+    plt.xlabel("date")
+    plt.ylabel("P/CF")
+    plt.title(stockNum)
+    plt.show()
 def draw_SCF(table,stockNum):
     axx = plt.axes()
     axx.plot(table['營業活動之淨現金流入（流出）'],label = '營業活動之淨現金流入（流出）')
