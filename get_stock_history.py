@@ -30,6 +30,7 @@ class FS_type(Enum):
     CPL = 'Consolidated-profit-and-loss-summary'  #'綜合損益彙總表'
     BS = 'Balance-sheet' #'資產負債彙總表'
     PLA = 'Profit-and-loss-analysis-summary'  #'營益分析彙總表'
+    SCF = 'Statement-of-Cash-Flows' #現金流量表
 
 class stock_data_kind(Enum):
     AdjClose = 'Adj Close'
@@ -146,6 +147,26 @@ def get_stock_Operating(number,date):#取得營業利益率
     mask = data.index == number
     data = data[mask]
     return data
+def get_stock_SCF(number,date):#取得現金流量表
+    data = get_allstock_financial_statement(date,FS_type.SCF)
+    if type(number) == str:
+        number = int(number)
+    mask = data.index == number
+    data = data[mask]
+    return data
+def get_stock_FreeCF(number,date):#取得自由現金流
+    try:
+        FreeSCF_Margin_temp = get_stock_SCF(number,date)
+    except:
+        print(str(date) + "現金流量表未出喔")
+        return None
+    if FreeSCF_Margin_temp.empty:
+        print(str(date) + "現金流量表未出喔")
+        return None
+    Temp_Business = int(FreeSCF_Margin_temp.at[number,'營業活動之淨現金流入（流出）'])
+    Temp_Invest = int(FreeSCF_Margin_temp.at[number,'投資活動之淨現金流入（流出）'])
+    Temp_Free = int(Temp_Business+Temp_Invest)
+    return Temp_Free
 def get_stock_price(number,date,kind,isSMA = False):#取得某股票某天的ＡＤＪ價格
     global Holiday_trigger
     if check_no_use_stock(number) == True:
@@ -184,13 +205,21 @@ def get_stock_monthly_report(number,start):#爬某月某個股票月營收
     if get_stock_info.ts.codes.__contains__(number) == False:
         print("無此檔股票")
         return
+    if int(start.month) == int(datetime.today().month) and int(start.year) == int(datetime.today().year):
+        print("本月還沒過完無資資訊")
+        return
+    if int(start.month) == int(tools.changeDateMonth(datetime.today(),-1).month) and int(datetime.today().day) < 15 and int(start.year) == int(datetime.today().year):
+        print("還沒15號沒有上個月的資料")
+        return
+    if int(start.day) < 15:
+        start = start.replace(day = 15)
     df = get_allstock_monthly_report(start)
     if type(number) == str:
         number = int(number)
     df = df[df.index == number]
     return df
 def get_allstock_monthly_report(start):#爬某月所有股票月營收
-    if start.day < 15:#還沒超過15號，拿前兩個月
+    if start.day < 15 :#還沒超過15號，拿前兩個月
         print("get_allstock_monthly_report:未到15號取上個月報表")
         start = tools.changeDateMonth(start,-1)
     year = start.year
@@ -349,14 +378,14 @@ def get_allstock_yield(start):#爬某天所有股票殖利率
     #m_yield[["股價淨值比"]] = m_yield[["股價淨值比"]].astype(float)
     load_memery[fileName] = m_yield
     return m_yield
-def get_stock_financial_statement(number,start):#爬某個股票的歷史財報
-    #season = int(((start.month() - 1)/3)+1)
-    type = FS_type.PLA
-    if get_stock_info.ts.codes.__contains__(number) == False:
-        print("無此檔股票")
-        return
-    stock = get_allstock_financial_statement(start,type)
-    return stock.loc[int(number)]
+# def get_stock_financial_statement(number,start):#爬某個股票的歷史財報
+#     #season = int(((start.month() - 1)/3)+1)
+#     type = FS_type.PLA
+#     if get_stock_info.ts.codes.__contains__(number) == False:
+#         print("無此檔股票")
+#         return
+#     stock = get_allstock_financial_statement(start,type)
+#     return stock.loc[int(number)]
 def get_stock_history(number,start,reGetInfo = False,UpdateInfo = True) -> pd.DataFrame:#爬某個股票的歷史紀錄
     print(''.join(["取得" , str(number) , "的資料從" , str(start) ,"到今天"]))
     start_time = start
@@ -473,10 +502,19 @@ def get_ADLs_index(date):#取得騰落百分比
 def get_Operating_Margin_up(number,date):#取得營業利益成長率
     m_date_start = date
     data_result = None
+    Timer = 2
     if type(date) == str:
         m_date_start = datetime.strptime(date,"%Y-%m-%d")
     Operating_Margin_now = get_stock_Operating(number,m_date_start)
     Operating_Margin_old = get_stock_Operating(number,tools.changeDateMonth(m_date_start,-12))
+    while Operating_Margin_now.empty:
+        print("日期:"+str(m_date_start)+" ("+ str(number) + ")的營業利益率未出喔")
+        m_date_start = tools.changeDateMonth(m_date_start,-3)
+        Operating_Margin_now = get_stock_Operating(number,m_date_start)
+        Operating_Margin_old = get_stock_Operating(number,tools.changeDateMonth(m_date_start,-12))
+        if Timer == 0:
+            break
+        Timer = Timer - 1
     Operating_Margin_temp = ((Operating_Margin_now['營業利益率(%)'] - Operating_Margin_old['營業利益率(%)'])/Operating_Margin_old['營業利益率(%)']) * 100
     Operating_Margin_now.insert(0,'營業利益率成長率(%)',Operating_Margin_temp)
     data_result = pd.concat([data_result,Operating_Margin_now])
@@ -633,12 +671,17 @@ def get_OMGR_up(time,upNum):#time = 取得資料的時間 upNum = 連續成長�
     if upNum <= 0:
         return pd.DataFrame()
     k = 0
+    Timer = 2
     for i in range(upNum + 5):
         temp_now = tools.changeDateMonth(time,-((i+k)*3))
         temp_data = get_allstock_financial_statement(temp_now,FS_type.PLA)
-        if temp_data.empty:
-            k = 1
+        while temp_data.empty:
+            k = k + 1
             temp_now = tools.changeDateMonth(time,-((i+k)*3))
+            temp_data = get_allstock_financial_statement(temp_now,FS_type.PLA)
+            if Timer == 0:
+                break
+            Timer = Timer - 1
         data['%d-%d-1'%(temp_now.year, temp_now.month)] = get_allstock_financial_statement(temp_now,FS_type.PLA)
     
     result = pd.DataFrame({k:result['營業利益率(%)'] for k,result in data.items()}).transpose()
@@ -660,6 +703,44 @@ def get_OMGR_up(time,upNum):#time = 取得資料的時間 upNum = 連續成長�
     load_memery[fileName] = method2
     print('get_OMGR_up: end' )
     return method2
+#取得FCF連續增高篩選
+def get_FCF_up(time,upNum):#time = 取得資料的時間 upNum = 連續成長多少季
+    print('get_FCF_up: start:'+ str(time))
+    fileName = "get_FCF_up_" + str(time.year) + str(time.month) + str(upNum)
+    Timer = 2
+    if fileName in load_memery:
+        print('get_FCF_up: end' )
+        return load_memery[fileName]
+    data = {}
+    if upNum <= 0:
+        return pd.DataFrame()
+    k = 0
+    for i in range(upNum+1):
+        temp_now = tools.changeDateMonth(time,-((i+k)*3))
+        temp_data = get_allstock_financial_statement(temp_now,FS_type.SCF)
+        while temp_data.empty:
+            k = k + 1
+            temp_now = tools.changeDateMonth(time,-((i+k)*3))
+            temp_data = get_allstock_financial_statement(temp_now,FS_type.SCF)
+            if Timer == 0:
+                break
+            Timer = Timer - 1
+        temp_result = temp_data
+        if temp_result["投資活動之淨現金流入（流出）"].dtype == object: 
+            temp_result["投資活動之淨現金流入（流出）"] = pd.to_numeric(temp_result["投資活動之淨現金流入（流出）"].str.replace('--', '0'))
+        temp_result[['投資活動之淨現金流入（流出）']] = temp_result[['投資活動之淨現金流入（流出）']].astype(int)
+        temp_result['自由現金流入（流出）'] = temp_result['營業活動之淨現金流入（流出）'] + temp_result['投資活動之淨現金流入（流出）']
+        data['%d-%d-1'%(temp_now.year, temp_now.month)] = temp_result
+    result = pd.DataFrame({k:result['自由現金流入（流出）'] for k,result in data.items()}).transpose()
+    result.index = pd.to_datetime(result.index)
+    result = result.sort_index()
+    method2 = (result > result.shift()).iloc[-upNum:].sum()
+    method2 = method2[method2 >= upNum]
+    method2 = pd.DataFrame(method2)
+    load_memery[fileName] = method2
+    print('get_FCF_up: end' )
+    return method2
+
 #取得本益比篩選 #股價/每股盈餘(EPS)
 def get_PER_range(time,PER_start,PER_end,data = pd.DataFrame()):#time = 取得資料的時間 PER_start = PER最小值 PER_end PER最大值
     print('get_PER_range: start')
@@ -817,6 +898,14 @@ def get_ROE_range(time,ROE_start,ROE_end,data = pd.DataFrame()):#time = 取得�
         Use_ROE_date = datetime(ROE_date.year,tools.changeDateMonth(ROE_date,-3).month ,tools.check_monthDate(tools.changeDateMonth(ROE_date,-3).month,ROE_date.day))
     BOOK_data = get_allstock_financial_statement(Use_ROE_date,FS_type.BS)
     CPL_data = get_allstock_financial_statement(Use_ROE_date,FS_type.CPL)
+    Timer = 2
+    while BOOK_data.empty or CPL_data.empty:
+        Use_ROE_date = tools.changeDateMonth(Use_ROE_date,-3)
+        BOOK_data = get_allstock_financial_statement(Use_ROE_date,FS_type.BS)
+        CPL_data = get_allstock_financial_statement(Use_ROE_date,FS_type.CPL)
+        if Timer == 0:
+            break
+        Timer = Timer - 1
     if All_ROE.empty == True:
         All_ROE = BOOK_data
     for index,row in All_ROE.iterrows():
@@ -976,6 +1065,8 @@ def financial_statement(year, season, type):#year = 年 season = 季 type = 財�
         url = 'https://mops.twse.com.tw/mops/web/ajax_t163sb05'
     elif type == FS_type.PLA:
         url = 'https://mops.twse.com.tw/mops/web/ajax_t163sb06'
+    elif type == FS_type.SCF:
+        url = 'https://mops.twse.com.tw/mops/web/ajax_t163sb20'
     else:
         print('type does not match')
 
@@ -1154,6 +1245,13 @@ def translate_dataFrame2(response,type,year,season = 1):
                                         [15,22],
                                         [16,23],
                                         [11,18]])
+    if (type == FS_type.SCF):
+        column_pos_array = np.array([[3,4,5],
+                                    [3,4,5],
+                                    [3,4,5],
+                                    [3,4,5],
+                                    [3,4,5],
+                                    [3,4,5]])
     data = []
     index = []
     column = []
@@ -1175,11 +1273,15 @@ def translate_dataFrame2(response,type,year,season = 1):
                     profitMargin = remove_td(td_array[column_pos_array[k][2]])
                     preTaxIncomeMargin = remove_td(td_array[column_pos_array[k][3]])
                     afterTaxIncomeMargin = remove_td(td_array[column_pos_array[k][4]])
+                if (type == FS_type.SCF):
+                    profitMargin2 = remove_td(td_array[column_pos_array[k][2]])
                 if(i > 1):
                     if name == '公司名稱':
                         continue
                     if (type == FS_type.CPL):
                         data.append([name,code,revenue,profitRatio])
+                    elif (type == FS_type.SCF):
+                        data.append([name,code,revenue,profitRatio,profitMargin2])
                     else:
                         data.append([name,code,revenue,profitRatio,profitMargin,preTaxIncomeMargin,afterTaxIncomeMargin])
                     #index.append(name)
@@ -1192,6 +1294,8 @@ def translate_dataFrame2(response,type,year,season = 1):
                         column.append(profitMargin)
                         column.append(preTaxIncomeMargin)
                         column.append(afterTaxIncomeMargin)
+                    if (type == FS_type.SCF):
+                        column.append(profitMargin2)
 
     return pd.DataFrame(data = data,columns=column)
 
