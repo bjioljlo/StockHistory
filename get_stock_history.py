@@ -1,6 +1,9 @@
+from dataclasses import replace
 import requests
 from datetime import datetime,timedelta
 import pandas as pd
+from sqlalchemy import column
+import talib
 import get_stock_info
 import os
 import numpy as np
@@ -115,22 +118,23 @@ def get_stock_MA(number,date,MA_day):#取得某股票某天的均線
     Temp_MA = 0
     Temp_date = date
     Temp_MA_day = MA_day
-    Temp_day_info = Queue()
     All_data = get_stock_history(number,Temp_date+timedelta(days=-100),reGetInfo=False,UpdateInfo=False)
-    for index,row in All_data.iterrows():
-        temp = row['Adj Close']
-        Temp_day_info.put(temp)
-        if Temp_MA_day > 0:
-            Temp_MA = Temp_MA + temp
-            Temp_MA_day = Temp_MA_day - 1
-        else:
-            if index == Temp_date:
-                Temp_MA = round(Temp_MA/MA_day,4)
-                return Temp_MA
-            else:
-                Temp_MA = Temp_MA - Temp_day_info.get()
-                Temp_MA = Temp_MA + temp
-                continue
+    Temp_MA = talib.SMA(All_data['Adj Close'],Temp_MA_day)[Temp_date]
+    return Temp_MA
+    # for index,row in All_data.iterrows():
+    #     temp = row['Adj Close']
+    #     Temp_day_info.put(temp)
+    #     if Temp_MA_day > 0:
+    #         Temp_MA = Temp_MA + temp
+    #         Temp_MA_day = Temp_MA_day - 1
+    #     else:
+    #         if index == Temp_date:
+    #             Temp_MA = round(Temp_MA/MA_day,4)
+    #             return Temp_MA
+    #         else:
+    #             Temp_MA = Temp_MA - Temp_day_info.get()
+    #             Temp_MA = Temp_MA + temp
+    #             continue
                 
     
 def get_stock_yield(number,date):#取得某股票某天的殖利率
@@ -519,6 +523,26 @@ def get_Operating_Margin_up(number,date):#取得營業利益成長率
     Operating_Margin_now.insert(0,'營業利益率成長率(%)',Operating_Margin_temp)
     data_result = pd.concat([data_result,Operating_Margin_now])
     return data_result
+def get_Operating_Margin_up(date):#取得營業利益成長率
+    m_date_start = date
+    data_result = pd.DataFrame()
+    Timer = 2
+    if type(date) == str:
+        m_date_start = datetime.strptime(date,"%Y-%m-%d")
+    Operating_Margin_now = get_allstock_financial_statement(m_date_start,FS_type.PLA)
+    Operating_Margin_old = get_allstock_financial_statement(tools.changeDateMonth(m_date_start,-12),FS_type.PLA)
+    while Operating_Margin_now.empty:
+        print("日期:"+str(m_date_start)+" ("+")的營業利益率未出喔")
+        m_date_start = tools.changeDateMonth(m_date_start,-3)
+        Operating_Margin_now = get_allstock_financial_statement(m_date_start,FS_type.PLA)
+        Operating_Margin_old = get_allstock_financial_statement(tools.changeDateMonth(m_date_start,-12),FS_type.PLA)
+        if Timer == 0:
+            break
+        Timer = Timer - 1
+    data_result['營業利益率成長率(%)'] = ((Operating_Margin_now['營業利益率(%)'] - Operating_Margin_old['營業利益率(%)'])/Operating_Margin_old['營業利益率(%)']) * 100
+    # Operating_Margin_now.insert(0,'營業利益率成長率(%)',Operating_Margin_temp)
+    # data_result = pd.concat([data_result,Operating_Margin_now])
+    return data_result
 def get_stock_PEG(number,date):#取得本益成長比
     print(''.join([str(number),':取得PEG在',str(date)]))
     if check_no_use_stock(number) == True:
@@ -533,7 +557,17 @@ def get_stock_PEG(number,date):#取得本益成長比
     except KeyError:
         return None
     return data_PEG
-
+def get_stock_PEG(date):#取得本益成長比
+    print(''.join(['取得PEG在',str(date)]))
+    EPS_data = get_allstock_yield(date)
+    OMUR_data = get_Operating_Margin_up(date)
+    if OMUR_data.empty == True or EPS_data.empty == True :
+        return None
+    try:
+        EPS_data['PEG'] = EPS_data['本益比'] / OMUR_data['營業利益率成長率(%)']
+    except KeyError:
+        return None
+    return EPS_data
 def save_stock_file(fileName,stockData,start_index = 0,end_index = 0):#存下歷史資料
     with open(fileName + '.csv', 'w') as f:
         if start_index == end_index == 0:
@@ -758,19 +792,23 @@ def get_PER_range(time,PER_start,PER_end,data = pd.DataFrame()):#time = 取得�
     EPS_data = get_allstock_yield(EPS_date)
     if All_PER.empty == True:
         All_PER = EPS_data
-    for index,row in All_PER.iterrows():
-        Temp_PER = EPS_data.at[index,'本益比']
-        if Temp_PER < 0:
-            continue
-        print('get_PER_range:' + str(index) + '= ' + str(Temp_PER))
-        if (Temp_PER > PER_start) and (Temp_PER < PER_end):
-            Temp_number = int(index)
-            PER_data = PER_data.append({'code':Temp_number,'PER':Temp_PER},ignore_index=True)
-    PER_data['code'] = PER_data['code'].astype('int')
-    PER_data.set_index('code',inplace=True)
+    mask1 = All_PER['本益比'] >= PER_start
+    mask2 = All_PER['本益比'] <= PER_end
+    PER_data = All_PER[(mask1 & mask2)]
+    PER_data.rename(columns = {'本益比':'PER'},inplace= True)
+    # for index,row in All_PER.iterrows():
+    #     Temp_PER = EPS_data.at[index,'本益比']
+    #     if Temp_PER < 0:
+    #         continue
+    #     print('get_PER_range:' + str(index) + '= ' + str(Temp_PER))
+    #     if (Temp_PER > PER_start) and (Temp_PER < PER_end):
+    #         Temp_number = int(index)
+    #         PER_data = PER_data.append({'code':Temp_number,'PER':Temp_PER},ignore_index=True)
+    # PER_data['code'] = PER_data['code'].astype('int')
+    # PER_data.set_index('code',inplace=True)
 
     print('get_PER_range: end')
-    return PER_data
+    return PER_data['PER']
 #取得本益成長比(PEG)篩選
 def get_PEG_range(time,PEG_start,PEG_end,data = pd.DataFrame()):#time = 取得資料的時間 PEG_start = PEG最小值 PEG_end PEG最大值
     print('get_PEG_range: start')
@@ -785,17 +823,23 @@ def get_PEG_range(time,PEG_start,PEG_end,data = pd.DataFrame()):#time = 取得�
     if type(time) == str:
         PEG_date = datetime.strptime(time,"%Y-%m-%d")
     if All_PEG.empty == True:
-        All_PEG = get_allstock_yield(PEG_date)
-    for index,row in All_PEG.iterrows():
-        Temp_PEG = get_stock_PEG(index,PEG_date)
-        if Temp_PEG == None or Temp_PEG < 0 :
-            continue
-        print('get_PEG_range:' + str(index) + '= ' + str(Temp_PEG))
-        if (Temp_PEG > PEG_start) and (Temp_PEG < PEG_end):
-            Temp_number = int(index)
-            PEG_data = PEG_data.append({'code':Temp_number,'PEG':Temp_PEG},ignore_index=True)
-    PEG_data['code'] = PEG_data['code'].astype('int')
-    PEG_data.set_index('code',inplace=True)
+        All_PEG = get_stock_PEG(PEG_date)
+    
+    All_PEG_Temp = pd.DataFrame(columns={'PEG'})
+    All_PEG_Temp['PEG'] = All_PEG['PEG']
+    mask1 = All_PEG_Temp['PEG'] >= PEG_start
+    mask2 = All_PEG_Temp['PEG'] <= PEG_end
+    PEG_data = All_PEG_Temp[(mask1 & mask2)]
+    # for index,row in All_PEG.iterrows():
+    #     Temp_PEG = get_stock_PEG(index,PEG_date)
+    #     if Temp_PEG == None or Temp_PEG < 0 :
+    #         continue
+    #     print('get_PEG_range:' + str(index) + '= ' + str(Temp_PEG))
+    #     if (Temp_PEG > PEG_start) and (Temp_PEG < PEG_end):
+    #         Temp_number = int(index)
+    #         PEG_data = PEG_data.append({'code':Temp_number,'PEG':Temp_PEG},ignore_index=True)
+    # PEG_data['code'] = PEG_data['code'].astype('int')
+    # PEG_data.set_index('code',inplace=True)
 
     print('get_PEG_range: end')
     return PEG_data
@@ -858,24 +902,29 @@ def get_PBR_range(time,PBR_start,PBR_end,data = pd.DataFrame()):#time = 取得�
     Book_data = get_allstock_yield(PBR_date)
     if All_PBR.empty == True:
         All_PBR = Book_data
-    for index,row in All_PBR.iterrows():
-        if check_no_use_stock(index):
-            continue
-        try:
-            Temp_PBR = Book_data.at[index,'股價淨值比']
-        except:
-            continue
-        if Temp_PBR < 0:
-            continue
-        print('get_PBR_range:' + str(index) + '= ' + str(Temp_PBR))
-        if (Temp_PBR > PBR_start) and (Temp_PBR < PBR_end):
-            Temp_number = int(index)
-            PBR_data = PBR_data.append({'code':Temp_number,'PBR':Temp_PBR},ignore_index=True)
-    PBR_data['code'] = PBR_data['code'].astype('int')
-    PBR_data.set_index('code',inplace=True)
+    
+    mask1 = All_PBR['股價淨值比'] >= PBR_start
+    mask2 = All_PBR['股價淨值比'] <= PBR_end
+    PBR_data = All_PBR[(mask1 & mask2)]
+    PBR_data.rename(columns = {'股價淨值比':'PBR'},inplace= True)
+    # for index,row in All_PBR.iterrows():
+    #     if check_no_use_stock(index):
+    #         continue
+    #     try:
+    #         Temp_PBR = Book_data.at[index,'股價淨值比']
+    #     except:
+    #         continue
+    #     if Temp_PBR < 0:
+    #         continue
+    #     print('get_PBR_range:' + str(index) + '= ' + str(Temp_PBR))
+    #     if (Temp_PBR > PBR_start) and (Temp_PBR < PBR_end):
+    #         Temp_number = int(index)
+    #         PBR_data = PBR_data.append({'code':Temp_number,'PBR':Temp_PBR},ignore_index=True)
+    # PBR_data['code'] = PBR_data['code'].astype('int')
+    # PBR_data.set_index('code',inplace=True)
 
     print('get_PBR_rang: end')
-    return PBR_data    
+    return PBR_data['PBR']
 #取得股東權益報酬率 #ROE(股東權益報酬率) = 稅後淨利/股東權益
 def get_ROE_range(time,ROE_start,ROE_end,data = pd.DataFrame()):#time = 取得資料的時間 ROE_start = ROE最小值 ROE_end ROE最大值
     print('get_ROE_rang: start')
@@ -892,36 +941,43 @@ def get_ROE_range(time,ROE_start,ROE_end,data = pd.DataFrame()):#time = 取得�
     All_ROE = data
     if type(time) == str:
         ROE_date = datetime.strptime(time,"%Y-%m-%d")
-    if ROE_date.month in [1,2,3]:
-        Use_ROE_date = datetime(ROE_date.year - 1,12,1)
-    else:
-        Use_ROE_date = datetime(ROE_date.year,tools.changeDateMonth(ROE_date,-3).month ,tools.check_monthDate(tools.changeDateMonth(ROE_date,-3).month,ROE_date.day))
-    BOOK_data = get_allstock_financial_statement(Use_ROE_date,FS_type.BS)
-    CPL_data = get_allstock_financial_statement(Use_ROE_date,FS_type.CPL)
+    # if ROE_date.month in [1,2,3]:
+    #     Use_ROE_date = datetime(ROE_date.year - 1,12,1)
+    # else:
+    #     Use_ROE_date = datetime(ROE_date.year,tools.changeDateMonth(ROE_date,-3).month ,tools.check_monthDate(tools.changeDateMonth(ROE_date,-3).month,ROE_date.day))
+    BOOK_data = get_allstock_financial_statement(ROE_date,FS_type.BS)
+    CPL_data = get_allstock_financial_statement(ROE_date,FS_type.CPL)
     Timer = 2
     while BOOK_data.empty or CPL_data.empty:
-        Use_ROE_date = tools.changeDateMonth(Use_ROE_date,-3)
-        BOOK_data = get_allstock_financial_statement(Use_ROE_date,FS_type.BS)
-        CPL_data = get_allstock_financial_statement(Use_ROE_date,FS_type.CPL)
+        ROE_date = tools.changeDateMonth(ROE_date,-3)
+        BOOK_data = get_allstock_financial_statement(ROE_date,FS_type.BS)
+        CPL_data = get_allstock_financial_statement(ROE_date,FS_type.CPL)
         if Timer == 0:
             break
         Timer = Timer - 1
     if All_ROE.empty == True:
         All_ROE = BOOK_data
-    for index,row in All_ROE.iterrows():
-        if check_no_use_stock(index):
-            continue
-        Temp_Book = int(BOOK_data.at[index,'權益總額'])
-        Temp_CPL = int(CPL_data.at[index,"本期綜合損益總額（稅後）"])
-        Temp_ROE = round((Temp_CPL/Temp_Book),4) * 100
-        if Temp_ROE < 0:
-            continue
-        print('get_ROE_range:' + str(index) + '--' + str(Temp_CPL) + '/' +  str(Temp_Book) + '= ' + str(Temp_ROE))
-        if (Temp_ROE > ROE_start) and (Temp_ROE < ROE_end):
-            Temp_number = int(index)
-            ROE_data =ROE_data.append({'code':Temp_number,'ROE':Temp_ROE},ignore_index=True)
-    ROE_data['code'] = ROE_data['code'].astype('int')
-    ROE_data.set_index('code',inplace=True)
+
+    All_ROE_Temp = pd.DataFrame(columns={'ROE'})
+    All_ROE_Temp['ROE'] = round((CPL_data["本期綜合損益總額（稅後）"]/BOOK_data['權益總額']),4) * 100
+    mask1 = All_ROE_Temp['ROE'] >= ROE_start
+    mask2 = All_ROE_Temp['ROE'] <= ROE_end
+    ROE_data = All_ROE_Temp[(mask1 & mask2)]
+
+    # for index,row in All_ROE.iterrows():
+    #     if check_no_use_stock(index):
+    #         continue
+    #     Temp_Book = int(BOOK_data.at[index,'權益總額'])
+    #     Temp_CPL = int(CPL_data.at[index,"本期綜合損益總額（稅後）"])
+    #     Temp_ROE = round((Temp_CPL/Temp_Book),4) * 100
+    #     if Temp_ROE < 0:
+    #         continue
+    #     print('get_ROE_range:' + str(index) + '--' + str(Temp_CPL) + '/' +  str(Temp_Book) + '= ' + str(Temp_ROE))
+    #     if (Temp_ROE > ROE_start) and (Temp_ROE < ROE_end):
+    #         Temp_number = int(index)
+    #         ROE_data =ROE_data.append({'code':Temp_number,'ROE':Temp_ROE},ignore_index=True)
+    # ROE_data['code'] = ROE_data['code'].astype('int')
+    # ROE_data.set_index('code',inplace=True)
 
     print('get_ROE_rang: end')
     return ROE_data
@@ -938,16 +994,16 @@ def get_price_range(time,high,low,data = pd.DataFrame()):#time = 取得資料的
     All_price = data
     if type(time) == str:
         price_time = datetime.strptime(time,"%Y-%m-%d")
-    if price_time.month in [1,2,3]:
-        Use_price_time = datetime(price_time.year - 1,12,1)
-    else:
-        Use_price_time = datetime(price_time.year,tools.changeDateMonth(price_time,-3).month ,tools.check_monthDate(tools.changeDateMonth(price_time,-3).month,price_time.day))
+    # if price_time.month in [1,2,3]:
+    #     Use_price_time = datetime(price_time.year - 1,12,1)
+    # else:
+    #     Use_price_time = datetime(price_time.year,tools.changeDateMonth(price_time,-3).month ,tools.check_monthDate(tools.changeDateMonth(price_time,-3).month,price_time.day))
     if All_price.empty == True:
         return price_data
     for index,row in All_price.iterrows():
         if check_no_use_stock(index):
             continue
-        Temp_price = get_stock_price(index,Use_price_time,stock_data_kind.AdjClose)
+        Temp_price = get_stock_price(index,price_time,stock_data_kind.AdjClose)
         if Temp_price == None:
             continue
         if (Temp_price > low) and (Temp_price < high):
@@ -974,15 +1030,20 @@ def get_yield_range(time,high,low,data = pd.DataFrame()):#time = 取得資料的
     yield_data = get_allstock_yield(yield_date)
     if All_yield.empty == True:
         All_yield = yield_data
-    for index,row in All_yield.iterrows():
-        Temp_yield = yield_data.at[index,'殖利率(%)']
-        if Temp_yield < 0 or Temp_yield == None:
-            continue
-        if (Temp_yield <= high) and (Temp_yield >= low):
-            Temp_number = int(index)
-            yield_data_result = yield_data_result.append({'公司代號':Temp_number,'殖利率':Temp_yield},ignore_index=True)
-    yield_data_result['公司代號'] = yield_data_result['公司代號'].astype('int')
-    yield_data_result.set_index('公司代號',inplace=True)    
+
+    mask1 = All_yield['殖利率(%)'] >= low
+    mask2 = All_yield['殖利率(%)'] <= high
+    yield_data_result = All_yield[(mask1 & mask2)]
+    yield_data_result.rename(columns={'殖利率(%)':'殖利率'},inplace=True)
+    # for index,row in All_yield.iterrows():
+    #     Temp_yield = yield_data.at[index,'殖利率(%)']
+    #     if Temp_yield < 0 or Temp_yield == None:
+    #         continue
+    #     if (Temp_yield <= high) and (Temp_yield >= low):
+    #         Temp_number = int(index)
+    #         yield_data_result = yield_data_result.append({'公司代號':Temp_number,'殖利率':Temp_yield},ignore_index=True)
+    # yield_data_result['公司代號'] = yield_data_result['公司代號'].astype('int')
+    # yield_data_result.set_index('公司代號',inplace=True)    
     
     print('get_yield_range: end')
     return yield_data_result
