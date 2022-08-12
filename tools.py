@@ -1,27 +1,18 @@
 
 from datetime import datetime,timedelta
 import random
-from tkinter.messagebox import NO
 import pandas as pd
 import requests
-import threading
-from sqlalchemy import true
-from sqlalchemy.ext.declarative import declarative_base
-import twstock as ts
-from pandas_datareader import data
-import schedule
-import yfinance as yf
-from flask import Flask
-from flask_sqlalchemy import SQLAlchemy
+
 MySql_server = None
 threads = []
 Season_RP_time_month =  [5 ,8 ,11,3 ]
 Season_RP_time_day =    [15,31,14,31]
 
-def changeDateMonth(date,change_month):
+def changeDateMonth(date:datetime,change_month:int) -> datetime:
     temp_month = date.month + change_month
     
-    print("changeDateMonth:" + str(date.month) + " to " + str(temp_month))
+    # print("changeDateMonth:" + str(date.month) + " to " + str(temp_month))
     if(temp_month >= 13):
         year = temp_month//12
         month = temp_month%12
@@ -42,17 +33,17 @@ def changeDateMonth(date,change_month):
         date = datetime(year = date.year,month = temp_month,day = check_monthDate(temp_month,date.day))
 
     return date
-def smooth_Data(data,everage):# data = 資料  everage = 往前多少資料平均
+def smooth_Data(data:pd.DataFrame,everage) -> pd.DataFrame:# data = 資料  everage = 往前多少資料平均
     result = data.rolling(everage,min_periods = everage).mean()
     return result
-def QtDate2DateTime(date):
+def QtDate2DateTime(date) -> datetime:
     date_str = str(date.year()) + '-' + str(date.month()) + '-' + str(date.day())
     date_result = datetime.strptime(date_str,"%Y-%m-%d")
     return date_result
-def DateTime2String(date):
+def DateTime2String(date:datetime) -> str:
     date_str = str(date.year) + '-' + str(date.month) + '-' + str(date.day)
     return date_str
-def check_monthDate(month,day):#確認日期正確性
+def check_monthDate(month:int,day:int) -> int:#確認日期正確性
     result_day = day
     if(day > 28):
         if(month == 2):
@@ -62,7 +53,7 @@ def check_monthDate(month,day):#確認日期正確性
         else:
             result_day = day
     return result_day
-def backWorkDays(date,days):#取得往後算days工作天後的日期
+def backWorkDays(date,days:int) -> datetime:#取得往後算days工作天後的日期
     input_date = date
     input_days = abs(days)
     if type(input_date) == str:
@@ -77,7 +68,7 @@ def backWorkDays(date,days):#取得往後算days工作天後的日期
             continue
         input_days = input_days - 1
     return input_date
-def MixDataFrames(DataFrames = {},index = 'code'):#合併報表
+def MixDataFrames(DataFrames = {},index = 'code') -> pd.DataFrame:#合併報表
     result_data = pd.DataFrame()
     first = True
     for key,value in DataFrames.items():
