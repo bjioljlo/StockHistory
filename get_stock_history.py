@@ -131,6 +131,30 @@ class Debt_Indicator(Indicator):
             return pd.DataFrame()
         table_result[self._name] = table_Debt / table_Assets
         return table_result       
+class MR_Growth_Indicator(Indicator):
+    def __init__(self, name: str, monthRP:Month_Report) -> None:
+        super().__init__(name, monthRP._Unit)
+        self.monthRP = monthRP
+    def get_ALL_Report(self, date):
+        data_result = pd.DataFrame()
+        MR_now = self.monthRP.get_ReportByType(date,info.Month_type.MR)
+        MR_old = self.monthRP.get_ReportByType(tools.changeDateMonth(date,-12),info.Month_type.MR)
+        if MR_now.empty or MR_old.empty:
+            return pd.DataFrame()
+        data_result[self._name] = ((MR_now - MR_old)/MR_old) * 100
+        return data_result
+class SR_Growth_Indicator(Indicator):
+    def __init__(self, name: str, PLA_RP:Season_Report) -> None:
+        super().__init__(name, PLA_RP._Unit)
+        self.PLA_RP = PLA_RP
+    def get_ALL_Report(self, date):
+        data_result = pd.DataFrame()
+        SR_now = self.PLA_RP.get_ReportByType(date,info.PLA_type.type_0)
+        SR_old = self.PLA_RP.get_ReportByType(tools.changeDateMonth(date,-12),info.PLA_type.type_0)
+        if SR_now.empty or SR_old.empty:
+            return pd.DataFrame()
+        data_result[self._name] = ((SR_now - SR_old)/SR_old) * 100
+        return data_result
 class OM_Growth_Indicator(Indicator):
     def __init__(self, name: str,PLA_RP:Season_Report) -> None:
         super().__init__(name, PLA_RP._Unit)
@@ -214,6 +238,8 @@ ROE_index = ROE_Indicator('ROE',CPL_RP,BS_RP)#取得股東權益報酬率
 FreeCF_index = FreeCF_Indicator('FreeCF',SCF_RP)#取得自由現金流
 Debt_index = Debt_Indicator('Debt',BS_RP)#取得資產負債比率
 OM_Growth_index = OM_Growth_Indicator('OM_Growth',PLA_RP)#取得營業利益成長率
+MR_Growth_index = MR_Growth_Indicator('MR_Growth',Month_RP)#取得月營收成長率
+SR_Growth_index = SR_Growth_Indicator('SR_Growth',PLA_RP)#取得季營收成長率
 PEG_index = PEG_Indicator('PEG',OM_Growth_index,Yield_RP)#取得本益成長比
 PER_index = Original_Indicator('PER',Yield_RP,info.Day_type.PER)#取得本益比
 PBR_index = Original_Indicator('PBR',Yield_RP,info.Day_type.PBR)#取得股價淨值比

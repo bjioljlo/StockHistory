@@ -353,6 +353,38 @@ def button_DebtRatio_click():#某股票資產負債比率
                main_imge._report._name,
                main_imge._report._name,
                'Debt Asset Ratio')
+def button_MonthRevenueGrowth_click():
+    if(myshow.input_stockNumber.toPlainText() == ''):
+        print('請輸入股票號碼')
+        return
+    if (int(myshow.date_endDate.date().day()) == int(datetime.today().day)):
+        print("今天還沒過完無資資訊")
+        return
+    main_imge = gsh.All_imge(tools.QtDate2DateTime(myshow.date_startDate.date()),
+                                  tools.QtDate2DateTime(myshow.date_endDate.date()),
+                                  gsh.MR_Growth_index)
+    data_result = main_imge.get_Chart(int(myshow.input_stockNumber.toPlainText()))
+    df.draw_RP(data_result,
+               myshow.input_stockNumber.toPlainText(),
+               main_imge._report._name,
+               main_imge._report._name,
+               'Month Revenue Growth')
+def button_SeasonRevenueGrowth_click():
+    if(myshow.input_stockNumber.toPlainText() == ''):
+        print('請輸入股票號碼')
+        return
+    if (int(myshow.date_endDate.date().day()) == int(datetime.today().day)):
+        print("今天還沒過完無資資訊")
+        return
+    main_imge = gsh.All_imge(tools.QtDate2DateTime(myshow.date_startDate.date()),
+                                  tools.QtDate2DateTime(myshow.date_endDate.date()),
+                                  gsh.SR_Growth_index)
+    data_result = main_imge.get_Chart(int(myshow.input_stockNumber.toPlainText()))
+    df.draw_RP(data_result,
+               myshow.input_stockNumber.toPlainText(),
+               main_imge._report._name,
+               main_imge._report._name,
+               'Season Revenue Growth')
 #第2頁的UI
 def button_pick_click():#其他數值篩選
     volume_date = tools.QtDate2DateTime(myshow.date_endDate.date())
@@ -1049,6 +1081,8 @@ def Init_mainWindow():#初始化mainwindow
     myshow.button_getPCF.clicked.connect(button_PCF_click)
     myshow.button_getEPS.clicked.connect(button_EPS_click)
     myshow.button_getDebtRatio.clicked.connect(button_DebtRatio_click)
+    myshow.button_getMonth_Growth.clicked.connect(button_MonthRevenueGrowth_click)
+    myshow.button_getSeason_Growth.clicked.connect(button_SeasonRevenueGrowth_click)
     #設定日期
     Date = datetime.strptime(get_stock_info.Update_date[0:10],"%Y-%m-%d")
     date = QtCore.QDate(Date.year,Date.month,Date.day)
