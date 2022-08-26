@@ -8,7 +8,7 @@ from UI_backtest import Ui_MainWindow3
 import sys
 from datetime import datetime,timedelta
 import get_stock_info
-import get_stock_history
+import get_stock_history as gsh
 import update_stock_info
 import draw_figur as df
 import pandas as pd
@@ -93,11 +93,11 @@ def check_RSI_isCheck(m_history,stockInfo):
         df.draw_RSI(m_history,stockInfo)
 def Check_ADL_isCheck():
     if myshow.check_ADL.isChecked() == True:
-        Data_ADL = get_stock_history.get_ADL(tools.QtDate2DateTime(myshow.date_startDate.date()),tools.QtDate2DateTime(myshow.date_endDate.date()))
+        Data_ADL = gsh.get_ADL(tools.QtDate2DateTime(myshow.date_startDate.date()),tools.QtDate2DateTime(myshow.date_endDate.date()))
         df.draw_ADL(Data_ADL)
 def Check_ADLs_isCheck():
     if myshow.check_ADLs.isChecked() == True:
-        Data_ADLs = get_stock_history.get_ADLs(tools.QtDate2DateTime(myshow.date_startDate.date()),tools.QtDate2DateTime(myshow.date_endDate.date()))
+        Data_ADLs = gsh.get_ADLs(tools.QtDate2DateTime(myshow.date_startDate.date()),tools.QtDate2DateTime(myshow.date_endDate.date()))
         df.draw_ADLs(Data_ADLs)
 def Check_MACD_isCheck(m_history):
     if myshow.check_MACD.isChecked() == True:
@@ -143,7 +143,7 @@ def button_getStockHistory():#某股票蠟燭圖
     df.Clear_PICS()
     if myshow.input_stockNumber.toPlainText() == "":
         for key,value in get_stock_info.stock_list.items():
-            m_history = get_stock_history.get_stock_history(key,str_date)
+            m_history = gsh.get_stock_history(key,str_date)
         return
     elif myshow.input_stockNumber.toPlainText() == "Update":
         str_date = [str_date]
@@ -154,9 +154,9 @@ def button_getStockHistory():#某股票蠟燭圖
     else:
         stock_number = myshow.input_stockNumber.toPlainText()
         if myshow.check_UseNewInfo.isChecked():
-            m_history = get_stock_history.get_stock_history(stock_number,str_date,reGetInfo=False)
+            m_history = gsh.get_stock_history(stock_number,str_date,reGetInfo=False)
         else:
-            m_history = get_stock_history.get_stock_history(stock_number,str_date,reGetInfo=False,UpdateInfo=False)
+            m_history = gsh.get_stock_history(stock_number,str_date,reGetInfo=False,UpdateInfo=False)
         if myshow.check_ADL.isChecked() or myshow.check_ADLs.isChecked():
             mask = m_history.index <= end_date
             m_history = m_history[mask]
@@ -173,17 +173,24 @@ def button_monthRP_click():#某股票月營收曲線
     if (myshow.input_stockNumber.toPlainText() == ''):
         print('請輸入股票號碼')
         return
+    if (int(myshow.date_endDate.date().day()) == int(datetime.today().day)):
+        print("今天還沒過完無資資訊")
+        return
     if (int(myshow.date_endDate.date().month()) == int(datetime.today().month)):
         print("本月還沒過完無資資訊")
         return
     if int(myshow.date_endDate.date().month()) == int(tools.changeDateMonth(datetime.today(),-1).month) and (int(datetime.today().day)) < 15 :
         print("還沒15號沒有上個月的資料")
         return
-    data_result = None
-    data_result = get_monthRP(myshow.date_endDate.date(),
-                                myshow.date_startDate.date(),
-                                myshow.input_stockNumber.toPlainText())
-    df.draw_monthRP(data_result,myshow.input_stockNumber.toPlainText())
+    main_imge = gsh.All_imge(tools.QtDate2DateTime(myshow.date_startDate.date()),
+                                  tools.QtDate2DateTime(myshow.date_endDate.date()),
+                                  gsh.Month_index)
+    data_result = main_imge.get_Chart(int(myshow.input_stockNumber.toPlainText()))
+    df.draw_RP(data_result,
+               myshow.input_stockNumber.toPlainText(),
+               main_imge._report._name,
+               main_imge._report._name,
+               'Monthly Revenue(UNIT-->NTD:1000,000)')
 def button_Dividend_yield_click():#某股票殖利率曲線
     if (myshow.input_stockNumber.toPlainText() == ''):
         print('請輸入股票號碼')
@@ -191,11 +198,15 @@ def button_Dividend_yield_click():#某股票殖利率曲線
     if (int(myshow.date_endDate.date().day()) == int(datetime.today().day)):
         print("今天還沒過完無資資訊")
         return
-    data_result = None
-    data_result = get_Dividend_yield(myshow.date_endDate.date(),
-                                myshow.date_startDate.date(),
-                                myshow.input_stockNumber.toPlainText())
-    df.draw_Dividend_yield(data_result,myshow.input_stockNumber.toPlainText())
+    main_imge = gsh.All_imge(tools.QtDate2DateTime(myshow.date_startDate.date()),
+                                  tools.QtDate2DateTime(myshow.date_endDate.date()),
+                                  gsh.Yield_index)
+    data_result = main_imge.get_Chart(int(myshow.input_stockNumber.toPlainText()))
+    df.draw_RP(data_result,
+               myshow.input_stockNumber.toPlainText(),
+               main_imge._report._name,
+               main_imge._report._name,
+               'Dividend yield')
 def button_Operating_Margin_click():#某股票營業利益率曲線
     if (myshow.input_stockNumber.toPlainText() == ''):
         print('請輸入股票號碼')
@@ -203,11 +214,15 @@ def button_Operating_Margin_click():#某股票營業利益率曲線
     if (int(myshow.date_endDate.date().day()) == int(datetime.today().day)):
         print("今天還沒過完無資資訊")
         return
-    data_result = None
-    data_result = get_Operating_Margin(myshow.date_endDate.date(),
-                                myshow.date_startDate.date(),
-                                myshow.input_stockNumber.toPlainText())
-    df.draw_Operating_Margin(data_result,myshow.input_stockNumber.toPlainText())
+    main_imge = gsh.All_imge(tools.QtDate2DateTime(myshow.date_startDate.date()),
+                                  tools.QtDate2DateTime(myshow.date_endDate.date()),
+                                  gsh.OM_index)
+    data_result = main_imge.get_Chart(int(myshow.input_stockNumber.toPlainText()))
+    df.draw_RP(data_result,
+               myshow.input_stockNumber.toPlainText(),
+               main_imge._report._name,
+               main_imge._report._name,
+               'Operating Margin Ratio')
 def button_Operating_Margin_Ratio_click():#某股票營業利益成長率曲線
     if (myshow.input_stockNumber.toPlainText() == ''):
         print('請輸入股票號碼')
@@ -215,11 +230,16 @@ def button_Operating_Margin_Ratio_click():#某股票營業利益成長率曲線
     if (int(myshow.date_endDate.date().day()) == int(datetime.today().day)):
         print("今天還沒過完無資資訊")
         return
-    data_result_up = None
-    data_result_up = get_Operating_Margin_Ratio(myshow.date_endDate.date(),
-                                myshow.date_startDate.date(),
-                                myshow.input_stockNumber.toPlainText())
-    df.draw_Operating_Margin_Ratio(data_result_up,myshow.input_stockNumber.toPlainText())
+    main_imge = gsh.All_imge(tools.QtDate2DateTime(myshow.date_startDate.date()),
+                                  tools.QtDate2DateTime(myshow.date_endDate.date()),
+                                  gsh.OM_Growth_index)
+    #取得營業利益率成長率資料(與去年同季相比)
+    data_result_up = main_imge.get_Chart(int(myshow.input_stockNumber.toPlainText()))
+    df.draw_RP(data_result_up,
+               myshow.input_stockNumber.toPlainText(),
+               main_imge._report._name,
+               main_imge._report._name,
+               'Operating Margin Growth Up (season by season)(%)')
 def button_ROE_Ratio_click():#某股票ROE曲線
     if (myshow.input_stockNumber.toPlainText() == ''):
         print('請輸入股票號碼')
@@ -227,23 +247,32 @@ def button_ROE_Ratio_click():#某股票ROE曲線
     if (int(myshow.date_endDate.date().day()) == int(datetime.today().day)):
         print("今天還沒過完無資資訊")
         return
-    data_result_up = None
-    data_result_up = get_ROE(myshow.date_endDate.date(),
-                                myshow.date_startDate.date(),
-                                myshow.input_stockNumber.toPlainText())
-    df.draw_ROE(data_result_up,myshow.input_stockNumber.toPlainText())
-def button_SCF_click():#某股票營業現金流
+    #取得ROE資料
+    main_imge = gsh.All_imge(tools.QtDate2DateTime(myshow.date_startDate.date()),
+                                  tools.QtDate2DateTime(myshow.date_endDate.date()),
+                                  gsh.ROE_index)
+    data_result_up = main_imge.get_Chart(int(myshow.input_stockNumber.toPlainText()))
+    df.draw_RP(data_result_up,
+               myshow.input_stockNumber.toPlainText(),
+               main_imge._report._name,
+               main_imge._report._name,
+               'Return On Equity Ratio(ROE)')
+def button_OCF_click():#某股票營業現金流
     if (myshow.input_stockNumber.toPlainText() == ''):
         print('請輸入股票號碼')
         return
     if (int(myshow.date_endDate.date().day()) == int(datetime.today().day)):
         print("今天還沒過完無資資訊")
         return
-    data_result_up = None
-    data_result_up = get_SCF(myshow.date_endDate.date(),
-                                myshow.date_startDate.date(),
-                                myshow.input_stockNumber.toPlainText())
-    df.draw_SCF(data_result_up,myshow.input_stockNumber.toPlainText())
+    main_imge = gsh.All_imge(tools.QtDate2DateTime(myshow.date_startDate.date()),
+                                  tools.QtDate2DateTime(myshow.date_endDate.date()),
+                                  gsh.OCF_index)
+    data_result = main_imge.get_Chart(int(myshow.input_stockNumber.toPlainText()))
+    df.draw_RP(data_result,
+               myshow.input_stockNumber.toPlainText(),
+               main_imge._report._name,
+               main_imge._report._name,
+               'Operating cash flow')
 def button_ICF_click():#某股票投資現金流
     if (myshow.input_stockNumber.toPlainText() == ''):
         print('請輸入股票號碼')
@@ -251,11 +280,15 @@ def button_ICF_click():#某股票投資現金流
     if (int(myshow.date_endDate.date().day()) == int(datetime.today().day)):
         print("今天還沒過完無資資訊")
         return
-    data_result_up = None
-    data_result_up = get_SCF(myshow.date_endDate.date(),
-                                myshow.date_startDate.date(),
-                                myshow.input_stockNumber.toPlainText())
-    df.draw_ICF(data_result_up,myshow.input_stockNumber.toPlainText())
+    main_imge = gsh.All_imge(tools.QtDate2DateTime(myshow.date_startDate.date()),
+                                  tools.QtDate2DateTime(myshow.date_endDate.date()),
+                                  gsh.ICF_index)
+    data_result = main_imge.get_Chart(int(myshow.input_stockNumber.toPlainText()))
+    df.draw_RP(data_result,
+               myshow.input_stockNumber.toPlainText(),
+               main_imge._report._name,
+               main_imge._report._name,
+               'Investment cash flow')
 def button_FreeSCF_click():#某股票自由現金流
     if (myshow.input_stockNumber.toPlainText() == ''):
         print('請輸入股票號碼')
@@ -263,11 +296,15 @@ def button_FreeSCF_click():#某股票自由現金流
     if (int(myshow.date_endDate.date().day()) == int(datetime.today().day)):
         print("今天還沒過完無資資訊")
         return
-    data_result_up = None
-    data_result_up = get_FreeSCF_Margin(myshow.date_endDate.date(),
-                                myshow.date_startDate.date(),
-                                myshow.input_stockNumber.toPlainText())
-    df.draw_FreeSCF(data_result_up,myshow.input_stockNumber.toPlainText())
+    main_imge = gsh.All_imge(tools.QtDate2DateTime(myshow.date_startDate.date()),
+                                  tools.QtDate2DateTime(myshow.date_endDate.date()),
+                                  gsh.FreeCF_index)
+    data_result = main_imge.get_Chart(int(myshow.input_stockNumber.toPlainText()))
+    df.draw_RP(data_result,
+               myshow.input_stockNumber.toPlainText(),
+               main_imge._report._name,
+               main_imge._report._name,
+               'Free cash flow')
 def button_PCF_click():#某股票股價現金流量比
     if (myshow.input_stockNumber.toPlainText() == ''):
         print('請輸入股票號碼')
@@ -275,11 +312,47 @@ def button_PCF_click():#某股票股價現金流量比
     if (int(myshow.date_endDate.date().day()) == int(datetime.today().day)):
         print("今天還沒過完無資資訊")
         return
-    data_result_up = None
-    data_result_up = get_PCF_Ratio(myshow.date_endDate.date(),
-                                myshow.date_startDate.date(),
-                                myshow.input_stockNumber.toPlainText())
-    df.draw_PCF(data_result_up,myshow.input_stockNumber.toPlainText())
+    main_imge = gsh.All_imge(tools.QtDate2DateTime(myshow.date_startDate.date()),
+                                  tools.QtDate2DateTime(myshow.date_endDate.date()),
+                                  gsh.PCF_index)
+    data_result = main_imge.get_Chart(int(myshow.input_stockNumber.toPlainText()))
+    df.draw_RP(data_result,
+               myshow.input_stockNumber.toPlainText(),
+               main_imge._report._name,
+               main_imge._report._name,
+               'Price to Cash Flow Ratio(P/CF)')
+def button_EPS_click():#某股票eps
+    if(myshow.input_stockNumber.toPlainText() == ''):
+        print('請輸入股票號碼')
+        return
+    if (int(myshow.date_endDate.date().day()) == int(datetime.today().day)):
+        print("今天還沒過完無資資訊")
+        return
+    main_imge = gsh.All_imge(tools.QtDate2DateTime(myshow.date_startDate.date()),
+                                  tools.QtDate2DateTime(myshow.date_endDate.date()),
+                                  gsh.EPS_index)
+    data_result = main_imge.get_Chart(int(myshow.input_stockNumber.toPlainText()))
+    df.draw_RP(data_result,
+               myshow.input_stockNumber.toPlainText(),
+               main_imge._report._name,
+               main_imge._report._name,
+               'Earnings Per Share(EPS)')
+def button_DebtRatio_click():#某股票資產負債比率
+    if(myshow.input_stockNumber.toPlainText() == ''):
+        print('請輸入股票號碼')
+        return
+    if (int(myshow.date_endDate.date().day()) == int(datetime.today().day)):
+        print("今天還沒過完無資資訊")
+        return
+    main_imge = gsh.All_imge(tools.QtDate2DateTime(myshow.date_startDate.date()),
+                                  tools.QtDate2DateTime(myshow.date_endDate.date()),
+                                  gsh.Debt_index)
+    data_result = main_imge.get_Chart(int(myshow.input_stockNumber.toPlainText()))
+    df.draw_RP(data_result,
+               myshow.input_stockNumber.toPlainText(),
+               main_imge._report._name,
+               main_imge._report._name,
+               'Debt Asset Ratio')
 #第2頁的UI
 def button_pick_click():#其他數值篩選
     volume_date = tools.QtDate2DateTime(myshow.date_endDate.date())
@@ -298,12 +371,11 @@ def button_pick_click():#其他數值篩選
     else:
         pass
     
-    price_data = get_stock_history.get_price_range(volume_date,int(mypick.input_price_high.toPlainText()),int(mypick.input_price_low.toPlainText()),resultAllFS)
+    price_data = gsh.get_price_range(volume_date,int(mypick.input_price_high.toPlainText()),int(mypick.input_price_low.toPlainText()),resultAllFS)
     if price_data.empty == False:
         resultAllFS = tools.MixDataFrames({'pick':resultAllFS,'recordHigh':price_data})
         resultAllFS = resultAllFS.dropna(axis=0,how='any')
-    resultAllFS = get_stock_history.get_volume(int(mypick.input_volum.toPlainText()),tools.changeDateMonth(volume_date,0),resultAllFS)
-
+    resultAllFS = gsh.get_volume(int(mypick.input_volum.toPlainText()),tools.changeDateMonth(volume_date,0),resultAllFS)
 
     mypick.treeView_pick.setModel(creat_treeView_model(mypick.treeView_pick,pick_titalList))#設定treeView功能
     set_treeView2(mypick.treeView_pick.model(),resultAllFS)
@@ -339,6 +411,8 @@ def button_monthRP_Up_click():#全部篩選
         PEG_low = mypick.input_PEG_low.value()
         PEG_high = mypick.input_PEG_high.value()
         FCF = mypick.input_FCF.value()
+        ROE_up = mypick.input_ROE.value()
+        EPS_up = mypick.input_EPS_up.value()
     except:
         print("Get value error")
         return
@@ -350,26 +424,46 @@ def button_monthRP_Up_click():#全部篩選
     yield_data = pd.DataFrame()
     PEG_data = pd.DataFrame()
     FCF_data = pd.DataFrame()
+    ROE_Up_data = pd.DataFrame()
+    EPS_up_data = pd.DataFrame()
 
     FS_data = get_financial_statement(date,GPM,OPR,EPS,RPS)
-    result_data = get_stock_history.get_monthRP_up(tools.changeDateMonth(date,0),monthRP_smoothAVG,monthRP_UpMpnth)
-    BOOK_data = get_stock_history.get_PBR_range(tools.changeDateMonth(date,0),PBR_low,PBR_high)
-    PER_data = get_stock_history.get_PER_range(tools.changeDateMonth(date,0),PER_low,PER_high)
-    ROE_data = get_stock_history.get_ROE_range(tools.changeDateMonth(date,0),ROE_low,ROE_high)
-    yield_data = get_stock_history.get_yield_range(tools.changeDateMonth(date,0),yiled_high,yiled_low)
-    OMGR_data = get_stock_history.get_OMGR_up(tools.changeDateMonth(date,0),OMGR)
-    PEG_data = get_stock_history.get_PEG_range(tools.changeDateMonth(date,0),PEG_low,PEG_high)
-    FCF_data = get_stock_history.get_FCF_up(tools.changeDateMonth(date,0),FCF)
+    
+    mainfun = gsh.All_fuc(tools.changeDateMonth(date,0),gsh.Month_index)
+    result_data = mainfun.get_Smooth_Up_Auto(monthRP_smoothAVG,monthRP_UpMpnth)
+    
+    mainfun.report = gsh.PBR_index
+    BOOK_data = mainfun.get_Filter_Auto(PBR_high,PBR_low)
+    
+    mainfun.report = gsh.PER_index
+    PER_data = mainfun.get_Filter_Auto(PER_high,PER_low)
+    
+    mainfun.report = gsh.ROE_index
+    ROE_data = mainfun.get_Filter_Auto(ROE_high,ROE_low)
+    ROE_Up_data = mainfun.get_Up_Auto(ROE_up)
+    
+    mainfun.report = gsh.Yield_index
+    yield_data = mainfun.get_Filter_Auto(yiled_high,yiled_low)
+    
+    mainfun.report = gsh.OM_Growth_index
+    OMGR_data = mainfun.get_Up_Auto(OMGR)
+    
+    mainfun.report = gsh.PEG_index
+    PEG_data = mainfun.get_Filter_Auto(PEG_high,PEG_low)
+    
+    mainfun.report = gsh.FreeCF_index
+    FCF_data = mainfun.get_Up_Auto(FCF)
+    
+    mainfun.report = gsh.EPS_index
+    EPS_up_data = mainfun.get_Up_Auto(EPS_up)
     
     pick_data = FS_data
     if monthRP_smoothAVG > 0 or monthRP_UpMpnth > 0:            
         pick_data = pd.merge(pick_data,result_data,left_index=True,right_index=True,how='left')
         pick_data = pick_data.dropna(axis=0,how='any')
-    
     if PBR_low > 0 or PBR_high > 0:
         pick_data = pd.merge(pick_data,BOOK_data,left_index=True,right_index=True,how='left')
         pick_data = pick_data.dropna(axis=0,how='any')
-    
     if PER_low > 0 or PER_high > 0:
         pick_data = pd.merge(pick_data,PER_data,left_index=True,right_index=True,how='left')
         pick_data = pick_data.dropna(axis=0,how='any')
@@ -379,37 +473,45 @@ def button_monthRP_Up_click():#全部篩選
     if ROE_low > 0 or ROE_high > 0:
         pick_data = pd.merge(pick_data,ROE_data,left_index=True,right_index=True,how='left')
         pick_data = pick_data.dropna(axis=0,how='any')
-    
     if yiled_high > 0 or yiled_low > 0:
         pick_data = pd.merge(pick_data,yield_data,left_index=True,right_index=True,how='left')
         pick_data = pick_data.dropna(axis=0,how='any')
-    
     if OMGR > 0:
         pick_data = pd.merge(pick_data,OMGR_data,left_index=True,right_index=True,how='left')
         pick_data = pick_data.dropna(axis=0,how='any')
-    
     if FCF > 0:
         pick_data = pd.merge(pick_data,FCF_data,left_index=True,right_index=True,how='left')
         pick_data = pick_data.dropna(axis=0,how='any')
-    
+    if ROE_up > 0:
+        pick_data = pd.merge(pick_data,ROE_Up_data,left_index=True,right_index=True,how='left')
+        pick_data = pick_data.dropna(axis=0,how='any')
+    if EPS_up > 0:
+        pick_data = pd.merge(pick_data,EPS_up_data,left_index=True,right_index=True,how='left')
+        pick_data = pick_data.dropna(axis=0,how='any')
     if price_high > 0 or price_low > 0:
-        price_data = get_stock_history.get_price_range(date,price_high,price_low,pick_data)
+        price_data = gsh.get_price_range(date,price_high,price_low,pick_data)
         pick_data = tools.MixDataFrames({'pick':pick_data,'price':price_data})
         pick_data = pick_data.dropna(axis=0,how='any')
-
     if flash_Day > 0 or record_Day > 0:
-        record_data = get_stock_history.get_RecordHigh_range(date,flash_Day,record_Day,pick_data)
+        record_data = gsh.get_RecordHigh_range(date,flash_Day,record_Day,pick_data)
         pick_data = tools.MixDataFrames({'pick':pick_data,'recordHigh':record_data})
         pick_data = pick_data.dropna(axis=0,how='any')
-
     if volum > 0:
-        volume_data =get_stock_history.get_volume(volum * 10000,tools.changeDateMonth(date,0),pick_data,mypick.check_volum_Max.isChecked())
+        volume_data =gsh.get_volume(volum * 10000,tools.changeDateMonth(date,0),pick_data,mypick.check_volum_Max.isChecked())
         pick_data = tools.MixDataFrames({'pick':pick_data,'volumeData':volume_data})
         pick_data = pick_data.dropna(axis=0,how='any')
-
     print("總挑選數量:" + str(len(pick_data)))
     mypick.treeView_pick.setModel(creat_treeView_model(mypick.treeView_pick,pick_titalList))#設定treeView功能
     set_treeView2(mypick.treeView_pick.model(),pick_data)
+def button_inuptNumber_click():# 帶入數值
+    mypick.input_PER_high.setValue(15)#本益比
+    mypick.input_PBR_high.setValue(2)#股價淨值比
+    mypick.input_yiled_high.setValue(999)#殖利率
+    mypick.input_yiled_low.setValue(4)#殖利率
+    mypick.input_EPS_up.setValue(4)#EPS
+    mypick.input_monthRP_UpMpnth.setValue(12)#月營收
+    mypick.input_monthRP_smoothAVG.setValue(4)#月營收
+    mypick.input_volum.setValue(200)#成交量
 #第3頁的UI
 def button_backtest_click():#月營收回測開始紐
         if mybacktest.check_monthRP_pick.isChecked() == mybacktest.check_PER_pick.isChecked() == mybacktest.check_volume_pick.isChecked() == False:
@@ -470,245 +572,282 @@ def button_backtest_click6():#PEG篩選
     df.draw_backtest(_data)
     
 #取得月營收的資料
-def get_monthRP(date_end,date_start,Number):#end = 後面時間 start = 前面時間 Number = 股票號碼
-    date_end_str = str(date_end.year()) + '-' + str(date_end.month()) + '-' + str(date_end.day())
-    m_date_end = datetime.strptime(date_end_str,"%Y-%m-%d")
+# def get_monthRP(date_end,date_start,Number):#end = 後面時間 start = 前面時間 Number = 股票號碼
+#     date_end_str = str(date_end.year()) + '-' + str(date_end.month()) + '-' + str(date_end.day())
+#     m_date_end = datetime.strptime(date_end_str,"%Y-%m-%d")
 
-    date_start_str = str(date_start.year()) + '-' + str(date_start.month()) + '-' + str(date_start.day())
-    m_date_start = datetime.strptime(date_start_str,"%Y-%m-%d")
+#     date_start_str = str(date_start.year()) + '-' + str(date_start.month()) + '-' + str(date_start.day())
+#     m_date_start = datetime.strptime(date_start_str,"%Y-%m-%d")
 
-    stockNum = Number
-    data_result = None
-    while (m_date_start <= m_date_end):
-        try:
-            monthRP_temp = get_stock_history.get_stock_monthly_report(stockNum,m_date_start)
-        except:
-            print(str(m_date_start) + "月營收未出喔")
-            m_date_start = tools.changeDateMonth(m_date_start,+1)
-            continue
-        monthRP_temp.insert(0,'日期',m_date_start)
-        monthRP_temp['當月營收'] = int(monthRP_temp['當月營收'])/1000
-        data_result = pd.concat([data_result,monthRP_temp])
-        m_date_start = tools.changeDateMonth(m_date_start,+1)
-    # if m_date_start>m_date_end and m_date_end.year == m_date_start.year:
-    #     try:
-    #         monthRP_temp = get_stock_history.get_stock_monthly_report(stockNum,m_date_start)
-    #         monthRP_temp.insert(0,'日期',m_date_start)
-    #         monthRP_temp['當月營收'] = int(monthRP_temp['當月營收'])/1000
-    #         data_result = pd.concat([data_result,monthRP_temp])
-    #     except:
-    #         print(str(m_date_start) + "月營收未出喔")
-    data_result.set_index('日期',inplace=True)
-    return data_result
+#     stockNum = int(Number)
+#     data_result = None
+#     while (m_date_start <= m_date_end):
+#         monthRP_temp = gsh.Month_RP.get_ReportByNumber(m_date_start,stockNum)
+#         if monthRP_temp.empty:
+#             m_date_start = tools.changeDateMonth(m_date_start,+1)
+#             continue
+#         monthRP_temp.insert(0,'Date',m_date_start)
+#         monthRP_temp['當月營收'] = int(monthRP_temp['當月營收'])/1000
+#         data_result = pd.concat([data_result,monthRP_temp])
+#         m_date_start = tools.changeDateMonth(m_date_start,+1)
+
+#     data_result.set_index('Date',inplace=True)
+#     return data_result
 #取得殖利率的資料
-def get_Dividend_yield(date_end,date_start,Number):#end = 後面時間 start = 前面時間 Number = 股票號碼
-    date_end_str = str(date_end.year()) + '-' + str(date_end.month()) + '-' + str(date_end.day())
-    m_date_end = datetime.strptime(date_end_str,"%Y-%m-%d")
+# def get_Dividend_yield(date_end,date_start,Number):#end = 後面時間 start = 前面時間 Number = 股票號碼
+#     date_end_str = str(date_end.year()) + '-' + str(date_end.month()) + '-' + str(date_end.day())
+#     m_date_end = datetime.strptime(date_end_str,"%Y-%m-%d")
 
-    date_start_str = str(date_start.year()) + '-' + str(date_start.month()) + '-' + str(date_start.day())
-    m_date_start = datetime.strptime(date_start_str,"%Y-%m-%d")
+#     date_start_str = str(date_start.year()) + '-' + str(date_start.month()) + '-' + str(date_start.day())
+#     m_date_start = datetime.strptime(date_start_str,"%Y-%m-%d")
 
-    stockNum = Number
-    data_result = None
+#     stockNum = int(Number)
+#     data_result = None
     
-    while (m_date_start <= m_date_end):
-         #週末直接跳過
-        if m_date_start.isoweekday() in [6,7]:
-            print(str(m_date_start) + 'is 星期' + str(m_date_start.isoweekday()))
-            m_date_start = tools.backWorkDays(m_date_start,-1)#加一天
-            continue
-        #先看看台積有沒有資料，如果沒有表示這天是非週末假日跳過 
-        if get_stock_history.get_stock_price(2330,m_date_start,get_stock_history.stock_data_kind.AdjClose) == None:
-            print(str(m_date_start) + "這天沒開市")
-            m_date_start = tools.backWorkDays(m_date_start,-1)#加一天
-            continue
-        try:
-            Dividend_yield_temp = get_stock_history.get_stock_yield(stockNum,m_date_start)
-        except:
-            print(str(m_date_start) + "殖利率未出喔")
-            m_date_start = tools.backWorkDays(m_date_start,-1)#加一天
-            continue
-        Dividend_yield_temp.insert(0,'Date',m_date_start)
-        data_result = pd.concat([data_result,Dividend_yield_temp])
-        m_date_start = tools.backWorkDays(m_date_start,-1)#加一天
-    data_result.set_index('Date',inplace=True)
-    return data_result
+#     while (m_date_start <= m_date_end):
+#         #週末直接跳過
+#         if m_date_start.isoweekday() in [6,7]:
+#             print(str(m_date_start) + 'is 星期' + str(m_date_start.isoweekday()))
+#             m_date_start = tools.backWorkDays(m_date_start,-1)#加一天
+#             continue
+#         #先看看台積有沒有資料，如果沒有表示這天是非週末假日跳過 
+#         if gsh.get_stock_price(2330,m_date_start,gsh.stock_data_kind.AdjClose) == None:
+#             print(str(m_date_start) + "這天沒開市")
+#             m_date_start = tools.backWorkDays(m_date_start,-1)#加一天
+#             continue
+#         Dividend_yield_temp = gsh.Yield_RP.get_ReportByNumber(m_date_start,stockNum)
+#         if Dividend_yield_temp.empty:
+#             m_date_start = tools.backWorkDays(m_date_start,-1)#加一天
+#             continue
+#         Dividend_yield_temp.insert(0,'Date',m_date_start)
+#         data_result = pd.concat([data_result,Dividend_yield_temp])
+#         m_date_start = tools.backWorkDays(m_date_start,-1)#加一天
+#     data_result.set_index('Date',inplace=True)
+#     return data_result
 #取得營業利益率的資料
-def get_Operating_Margin(date_end,date_start,Number):#end = 後面時間 start = 前面時間 Number = 股票號碼
-    date_end_str = str(date_end.year()) + '-' + str(date_end.month()) + '-' + str(date_end.day())
-    m_date_end = datetime.strptime(date_end_str,"%Y-%m-%d")
+# def get_Operating_Margin(date_end,date_start,Number):#end = 後面時間 start = 前面時間 Number = 股票號碼
+#     date_end_str = str(date_end.year()) + '-' + str(date_end.month()) + '-' + str(date_end.day())
+#     m_date_end = datetime.strptime(date_end_str,"%Y-%m-%d")
 
-    date_start_str = str(date_start.year()) + '-' + str(date_start.month()) + '-' + str(date_start.day())
-    m_date_start = datetime.strptime(date_start_str,"%Y-%m-%d")
+#     date_start_str = str(date_start.year()) + '-' + str(date_start.month()) + '-' + str(date_start.day())
+#     m_date_start = datetime.strptime(date_start_str,"%Y-%m-%d")
 
-    m_date_start_day = int(date_start.day())
-    if m_date_start_day > 28:
-        m_date_start_day = 28
-    stockNum = Number
-    data_result = None
-    while (m_date_start <= m_date_end):
-        #週末直接跳過
-        if m_date_start.isoweekday() in [6,7]:
-            print(str(m_date_start) + 'is 星期' + str(m_date_start.isoweekday()))
-            m_date_start = tools.backWorkDays(m_date_start,1)#加一天
-            continue
-        #先看看台積有沒有資料，如果沒有表示這天是非週末假日跳過 
-        if get_stock_history.get_stock_price(2330,m_date_start,get_stock_history.stock_data_kind.AdjClose) == None:
-            print(str(m_date_start) + "這天沒開市")
-            m_date_start = tools.backWorkDays(m_date_start,1)#加一天
-            continue
-        try:
-            Operating_Margin_temp = get_stock_history.get_stock_Operating(stockNum,m_date_start)
-        except:
-            print(str(m_date_start) + "營業利益率未出喔")
-            m_date_start = tools.backWorkDays(m_date_start,1)#加一天
-            break
-            continue
-        Operating_Margin_temp.insert(0,'Date',m_date_start)
-        data_result = pd.concat([data_result,Operating_Margin_temp])
-        m_date_start = tools.changeDateMonth(m_date_start,3)#加一季
-        m_date_start = m_date_start.replace(day = m_date_start_day)
-    data_result.set_index('Date',inplace=True)
-    return data_result
+#     m_date_start_day = int(date_start.day())
+#     if m_date_start_day > 28:
+#         m_date_start_day = 28
+#     stockNum = int(Number)
+#     data_result = None
+#     while (m_date_start <= m_date_end):
+#         #週末直接跳過
+#         if m_date_start.isoweekday() in [6,7]:
+#             print(str(m_date_start) + 'is 星期' + str(m_date_start.isoweekday()))
+#             m_date_start = tools.backWorkDays(m_date_start,1)#加一天
+#             continue
+#         #先看看台積有沒有資料，如果沒有表示這天是非週末假日跳過 
+#         if gsh.get_stock_price(2330,m_date_start,gsh.stock_data_kind.AdjClose) == None:
+#             print(str(m_date_start) + "這天沒開市")
+#             m_date_start = tools.backWorkDays(m_date_start,1)#加一天
+#             continue
+#         Operating_Margin_temp = gsh.PLA_RP.get_ReportByNumber(m_date_start,stockNum) #get_stock_history.get_stock_Operating(stockNum,m_date_start)
+#         if Operating_Margin_temp.empty:
+#             m_date_start = tools.backWorkDays(m_date_start,1)#加一天
+#             break
+
+#         Operating_Margin_temp.insert(0,'Date',m_date_start)
+#         data_result = pd.concat([data_result,Operating_Margin_temp])
+#         m_date_start = tools.changeDateMonth(m_date_start,3)#加一季
+#         m_date_start = m_date_start.replace(day = m_date_start_day)
+#     data_result.set_index('Date',inplace=True)
+#     return data_result
 #取得現金流的資料
-def get_SCF(date_end,date_start,Number):#end = 後面時間 start = 前面時間 Number = 股票號碼
-    date_end_str = str(date_end.year()) + '-' + str(date_end.month()) + '-' + str(date_end.day())
-    m_date_end = datetime.strptime(date_end_str,"%Y-%m-%d")
+# def get_SCF_Ratio(date_end,date_start,Number):#end = 後面時間 start = 前面時間 Number = 股票號碼
+#     date_end_str = str(date_end.year()) + '-' + str(date_end.month()) + '-' + str(date_end.day())
+#     m_date_end = datetime.strptime(date_end_str,"%Y-%m-%d")
 
-    date_start_str = str(date_start.year()) + '-' + str(date_start.month()) + '-' + str(date_start.day())
-    m_date_start = datetime.strptime(date_start_str,"%Y-%m-%d")
+#     date_start_str = str(date_start.year()) + '-' + str(date_start.month()) + '-' + str(date_start.day())
+#     m_date_start = datetime.strptime(date_start_str,"%Y-%m-%d")
 
-    m_date_start_day = int(date_start.day())
-    if m_date_start_day > 28:
-        m_date_start_day = 28
-    stockNum = Number
-    data_result = None
-    while (m_date_start <= m_date_end):
-        #週末直接跳過
-        if m_date_start.isoweekday() in [6,7]:
-            print(str(m_date_start) + 'is 星期' + str(m_date_start.isoweekday()))
-            m_date_start = tools.backWorkDays(m_date_start,1)#加一天
-            continue
-        #先看看台積有沒有資料，如果沒有表示這天是非週末假日跳過 
-        if get_stock_history.get_stock_price(2330,m_date_start,get_stock_history.stock_data_kind.AdjClose) == None:
-            print(str(m_date_start) + "這天沒開市")
-            m_date_start = tools.backWorkDays(m_date_start,1)#加一天
-            continue
-        try:
-            Operating_Margin_temp = get_stock_history.get_stock_SCF(stockNum,m_date_start)
-        except:
-            print(str(m_date_start) + "現金流未出喔")
-            m_date_start = tools.backWorkDays(m_date_start,1)#加一天
-            break
-            continue
-        Operating_Margin_temp.insert(0,'Date',m_date_start)
-        data_result = pd.concat([data_result,Operating_Margin_temp])
-        m_date_start = tools.changeDateMonth(m_date_start,3)#加一季
-        m_date_start = m_date_start.replace(day = m_date_start_day)
-    data_result.set_index('Date',inplace=True)
-    return data_result
+#     m_date_start_day = int(date_start.day())
+#     if m_date_start_day > 28:
+#         m_date_start_day = 28
+#     stockNum = int(Number)
+#     data_result = None
+#     while (m_date_start <= m_date_end):
+#         #週末直接跳過
+#         if m_date_start.isoweekday() in [6,7]:
+#             print(str(m_date_start) + 'is 星期' + str(m_date_start.isoweekday()))
+#             m_date_start = tools.backWorkDays(m_date_start,1)#加一天
+#             continue
+#         #先看看台積有沒有資料，如果沒有表示這天是非週末假日跳過 
+#         if gsh.get_stock_price(2330,m_date_start,gsh.stock_data_kind.AdjClose) == None:
+#             print(str(m_date_start) + "這天沒開市")
+#             m_date_start = tools.backWorkDays(m_date_start,1)#加一天
+#             continue
+#         Operating_Margin_temp = gsh.SCF_RP.get_ReportByNumber(m_date_start,stockNum)
+#         if Operating_Margin_temp.empty:
+#             m_date_start = tools.backWorkDays(m_date_start,1)#加一天
+#             break
+#         Operating_Margin_temp.insert(0,'Date',m_date_start)
+#         data_result = pd.concat([data_result,Operating_Margin_temp])
+#         m_date_start = tools.changeDateMonth(m_date_start,3)#加一季
+#         m_date_start = m_date_start.replace(day = m_date_start_day)
+#     data_result.set_index('Date',inplace=True)
+#     return data_result
 #取得自由現金流的資料
-def get_FreeSCF_Margin(date_end,date_start,Number):#end = 後面時間 start = 前面時間 Number = 股票號碼
-    date_end_str = str(date_end.year()) + '-' + str(date_end.month()) + '-' + str(date_end.day())
-    m_date_end = datetime.strptime(date_end_str,"%Y-%m-%d")
+# def get_FreeSCF_Margin(date_end,date_start,Number):#end = 後面時間 start = 前面時間 Number = 股票號碼
+#     date_end_str = str(date_end.year()) + '-' + str(date_end.month()) + '-' + str(date_end.day())
+#     m_date_end = datetime.strptime(date_end_str,"%Y-%m-%d")
 
-    date_start_str = str(date_start.year()) + '-' + str(date_start.month()) + '-' + str(date_start.day())
-    m_date_start = datetime.strptime(date_start_str,"%Y-%m-%d")
+#     date_start_str = str(date_start.year()) + '-' + str(date_start.month()) + '-' + str(date_start.day())
+#     m_date_start = datetime.strptime(date_start_str,"%Y-%m-%d")
 
-    m_date_start_day = int(date_start.day())
-    if m_date_start_day > 28:
-        m_date_start_day = 28
-    stockNum = int(Number)
-    data_result = pd.DataFrame(columns = ['Date','FreeCF'])
-    while (m_date_start <= m_date_end):
-        #週末直接跳過
-        if m_date_start.isoweekday() in [6,7]:
-            print(str(m_date_start) + 'is 星期' + str(m_date_start.isoweekday()))
-            m_date_start = tools.backWorkDays(m_date_start,1)#加一天
-            continue
-        #先看看台積有沒有資料，如果沒有表示這天是非週末假日跳過 
-        if get_stock_history.get_stock_price(2330,m_date_start,get_stock_history.stock_data_kind.AdjClose) == None:
-            print(str(m_date_start) + "這天沒開市")
-            m_date_start = tools.backWorkDays(m_date_start,1)#加一天
-            continue
-        try:
-            #FreeSCF_Margin_temp = get_stock_history.get_stock_SCF(stockNum,m_date_start)
-            Temp_Free = get_stock_history.get_stock_FreeCF(stockNum,m_date_start)
-        except:
-            print(str(m_date_start) + "現金流量表未出喔")
-            m_date_start = tools.backWorkDays(m_date_start,1)#加一天
-            continue
-        if Temp_Free == None:
-            print(str(m_date_start) + "現金流量表未出喔")
-            break
-        #Temp_Business = int(FreeSCF_Margin_temp.at[stockNum,'營業活動之淨現金流入（流出）'])
-        #Temp_Invest = int(FreeSCF_Margin_temp.at[stockNum,'投資活動之淨現金流入（流出）'])
-        #Temp_Free = int(Temp_Business+Temp_Invest)
-        data_result = data_result.append({'Date':m_date_start,'FreeCF':Temp_Free},ignore_index=True)
-        m_date_start = tools.changeDateMonth(m_date_start,3)#加一季
-        m_date_start = m_date_start.replace(day = m_date_start_day)
-    data_result.set_index('Date',inplace=True)
-    return data_result
+#     m_date_start_day = int(date_start.day())
+#     if m_date_start_day > 28:
+#         m_date_start_day = 28
+#     stockNum = int(Number)
+#     data_result = pd.DataFrame(columns = ['Date','FreeCF'])
+#     while (m_date_start <= m_date_end):
+#         #週末直接跳過
+#         if m_date_start.isoweekday() in [6,7]:
+#             print(str(m_date_start) + 'is 星期' + str(m_date_start.isoweekday()))
+#             m_date_start = tools.backWorkDays(m_date_start,1)#加一天
+#             continue
+#         #先看看台積有沒有資料，如果沒有表示這天是非週末假日跳過 
+#         if gsh.get_stock_price(2330,m_date_start,gsh.stock_data_kind.AdjClose) == None:
+#             print(str(m_date_start) + "這天沒開市")
+#             m_date_start = tools.backWorkDays(m_date_start,1)#加一天
+#             continue
+
+#         # Temp_Free = get_stock_history.get_stock_FreeCF(stockNum,m_date_start)
+#         Temp_Free = gsh.FCF_index.get_ReportByNumber(m_date_start,stockNum)
+#         if Temp_Free.empty:
+#             print(str(m_date_start) + "現金流量表未出喔")
+#             m_date_start = tools.changeDateMonth(m_date_start,3)#加一季
+#             continue
+#         Temp_Free.insert(0,'Date',m_date_start)
+#         data_result = pd.concat([data_result,Temp_Free])
+#         # data_result = data_result.append({'Date':m_date_start,'FreeCF':Temp_Free},ignore_index=True)
+#         m_date_start = tools.changeDateMonth(m_date_start,3)#加一季
+#         m_date_start = m_date_start.replace(day = m_date_start_day)
+#     data_result.set_index('Date',inplace=True)
+#     return data_result
 #取得股價現金流比率的資料
-def get_PCF_Ratio(date_end,date_start,Number):#end = 後面時間 start = 前面時間 Number = 股票號碼
-    print("股價現金流比率")
-    date_end_str = str(date_end.year()) + '-' + str(date_end.month()) + '-' + str(date_end.day())
-    m_date_end = datetime.strptime(date_end_str,"%Y-%m-%d")
+# def get_PCF_Ratio(date_end,date_start,Number):#end = 後面時間 start = 前面時間 Number = 股票號碼
+#     print("股價現金流比率")
+#     date_end_str = str(date_end.year()) + '-' + str(date_end.month()) + '-' + str(date_end.day())
+#     m_date_end = datetime.strptime(date_end_str,"%Y-%m-%d")
 
-    date_start_str = str(date_start.year()) + '-' + str(date_start.month()) + '-' + str(date_start.day())
-    m_date_start = datetime.strptime(date_start_str,"%Y-%m-%d")
+#     date_start_str = str(date_start.year()) + '-' + str(date_start.month()) + '-' + str(date_start.day())
+#     m_date_start = datetime.strptime(date_start_str,"%Y-%m-%d")
 
-    m_date_start_day = int(date_start.day())
-    if m_date_start_day > 28:
-        m_date_start_day = 28
-    stockNum = int(Number)
-    data_result = pd.DataFrame(columns = ['Date','P/CF'])
-    SCF_Margin_temp2 = pd.DataFrame()
-    BOOK_data2 = pd.DataFrame()
-    while (m_date_start <= m_date_end):
-        #週末直接跳過
-        if m_date_start.isoweekday() in [6,7]:
-            print(str(m_date_start) + 'is 星期' + str(m_date_start.isoweekday()))
-            m_date_start = tools.backWorkDays(m_date_start,-1)#加一天
-            continue
-        #先看看台積有沒有資料，如果沒有表示這天是非週末假日跳過 
-        if get_stock_history.get_stock_price(2330,m_date_start,get_stock_history.stock_data_kind.AdjClose) == None:
-            print(str(m_date_start) + "這天沒開市")
-            m_date_start = tools.backWorkDays(m_date_start,-1)#加一天
-            continue
-        try:
-            SCF_Margin_temp = get_stock_history.get_stock_SCF(stockNum,m_date_start)
-            BOOK_data = get_stock_history.get_allstock_financial_statement(m_date_start,get_stock_history.FS_type.BS)
-        except:
-            print(str(m_date_start) + "現金流量表未出喔(error)")
-            m_date_start = tools.backWorkDays(m_date_start,-1)#加一天
-            continue
-        if SCF_Margin_temp.empty or BOOK_data.empty:
-            print(str(m_date_start) + "現金流量表未出喔(empty)")
-            SCF_Margin_temp = SCF_Margin_temp2
-            BOOK_data = BOOK_data2
-            #break
-        Temp_Business = int(SCF_Margin_temp.at[stockNum,'營業活動之淨現金流入（流出）']) #現金流
-        Temp_BS = int(BOOK_data.at[stockNum,'股本'])/10 #發行股數
-        Temp_price = get_stock_history.get_stock_price(stockNum,m_date_start,get_stock_history.stock_data_kind.AdjClose)
-        Temp_PCF = float(Temp_price/(Temp_Business/Temp_BS))
-        data_result = data_result.append({'Date':m_date_start,'P/CF':Temp_PCF},ignore_index=True)
-        m_date_start = tools.backWorkDays(m_date_start,-1)#加一天
-        SCF_Margin_temp2 = SCF_Margin_temp
-        BOOK_data2 = BOOK_data
-    data_result.set_index('Date',inplace=True)
-    return data_result
+#     stockNum = int(Number)
+#     data_result = pd.DataFrame(columns = ['Date','P/CF'])
+#     SCF_Margin_temp2 = pd.DataFrame()
+#     BOOK_data2 = pd.DataFrame()
+#     while (m_date_start <= m_date_end):
+#         #週末直接跳過
+#         if m_date_start.isoweekday() in [6,7]:
+#             print(str(m_date_start) + 'is 星期' + str(m_date_start.isoweekday()))
+#             m_date_start = tools.backWorkDays(m_date_start,-1)#加一天
+#             continue
+#         #先看看台積有沒有資料，如果沒有表示這天是非週末假日跳過 
+#         if gsh.get_stock_price(2330,m_date_start,gsh.stock_data_kind.AdjClose) == None:
+#             print(str(m_date_start) + "這天沒開市")
+#             m_date_start = tools.backWorkDays(m_date_start,-1)#加一天
+#             continue
+        
+#         SCF_Margin_temp = gsh.SCF_RP.get_ReportByNumber(m_date_start,stockNum)
+#         BOOK_data = gsh.BS_RP.get_ALL_Report(m_date_start)
+#         if SCF_Margin_temp.empty or BOOK_data.empty:
+#             print(str(m_date_start) + "現金流量表未出喔(empty)")
+#             SCF_Margin_temp = SCF_Margin_temp2
+#             BOOK_data = BOOK_data2
+#         Temp_Business = int(SCF_Margin_temp.at[stockNum,'營業活動之淨現金流入（流出）']) #現金流
+#         Temp_BS = int(BOOK_data.at[stockNum,'股本'])/10 #發行股數
+#         Temp_price = gsh.get_stock_price(stockNum,m_date_start,gsh.stock_data_kind.AdjClose)
+#         Temp_PCF = float(Temp_price/(Temp_Business/Temp_BS))
+#         data_result = data_result.append({'Date':m_date_start,'P/CF':Temp_PCF},ignore_index=True)
+#         m_date_start = tools.backWorkDays(m_date_start,-1)#加一天
+#         SCF_Margin_temp2 = SCF_Margin_temp
+#         BOOK_data2 = BOOK_data
+#     data_result.set_index('Date',inplace=True)
+#     return data_result
+#取得EPS的資料
+# def get_EPS_Ratio(date_end,date_start,Number):#end = 後面時間 start = 前面時間 Number = 股票號碼
+#     print("get_EPS_Ratio")
+#     date_end_str = str(date_end.year()) + '-' + str(date_end.month()) + '-' + str(date_end.day())
+#     m_date_end = datetime.strptime(date_end_str,"%Y-%m-%d")
+
+#     date_start_str = str(date_start.year()) + '-' + str(date_start.month()) + '-' + str(date_start.day())
+#     m_date_start = datetime.strptime(date_start_str,"%Y-%m-%d")
+    
+#     stockNum = int(Number)
+#     data_result = pd.DataFrame(columns = ['Date','EPS'])
+#     CPL_data = pd.DataFrame()
+#     while (m_date_start <= m_date_end):
+#         #週末直接跳過
+#         if m_date_start.isoweekday() in [6,7]:
+#             print(str(m_date_start) + 'is 星期' + str(m_date_start.isoweekday()))
+#             m_date_start = tools.backWorkDays(m_date_start,-1)#加一天
+#             continue
+#         #先看看台積有沒有資料，如果沒有表示這天是非週末假日跳過 
+#         if gsh.get_stock_price(2330,m_date_start,gsh.stock_data_kind.AdjClose) == None:
+#             print(str(m_date_start) + "這天沒開市")
+#             m_date_start = tools.backWorkDays(m_date_start,-1)#加一天
+#             continue
+
+#         CPL_data = gsh.CPL_RP.get_ALL_Report(m_date_start)
+#         if CPL_data.empty:
+#             m_date_start = tools.backWorkDays(m_date_start,-1)#加一天
+#             continue
+#         data_result = data_result.append({'Date':m_date_start,'EPS':CPL_data['基本每股盈餘（元）'][stockNum]},ignore_index=True)
+#         m_date_start = tools.changeDateMonth(m_date_start,3)#加一季
+#     data_result.set_index('Date',inplace=True)
+#     return data_result
+#取得負債比率
+# def get_Debt_Asset_Ratio(date_end,date_start,Number):#end = 後面時間 start = 前面時間 Number = 股票號碼
+#     date_end_str = str(date_end.year()) + '-' + str(date_end.month()) + '-' + str(date_end.day())
+#     m_date_end = datetime.strptime(date_end_str,"%Y-%m-%d")
+
+#     date_start_str = str(date_start.year()) + '-' + str(date_start.month()) + '-' + str(date_start.day())
+#     m_date_start = datetime.strptime(date_start_str,"%Y-%m-%d")
+
+#     stockNum = int(Number)
+#     data_result = pd.DataFrame(columns = ['Date','資產負債率'])
+#     while (m_date_start <= m_date_end):
+#         #週末直接跳過
+#         if m_date_start.isoweekday() in [6,7]:
+#             print(str(m_date_start) + 'is 星期' + str(m_date_start.isoweekday()))
+#             m_date_start = tools.backWorkDays(m_date_start,-1)#加一天
+#             continue
+#         #先看看台積有沒有資料，如果沒有表示這天是非週末假日跳過 
+#         if gsh.get_stock_price(2330,m_date_start,gsh.stock_data_kind.AdjClose) == None:
+#             print(str(m_date_start) + "這天沒開市")
+#             m_date_start = tools.backWorkDays(m_date_start,-1)#加一天
+#             continue
+        
+#         Debt_data = gsh.Debt_index.get_ReportByNumber(m_date_start,stockNum)#get_stock_history.get_stock_Debt(m_date_start)
+#         if Debt_data.empty:
+#             m_date_start = tools.changeDateMonth(m_date_start,3)#加一季
+#             continue
+        
+#         Debt_data.insert(0,'Date',m_date_start)
+#         data_result = pd.concat([data_result,Debt_data])
+        
+#         #data_result = data_result.append({'Date':m_date_start,'資產負債率':Debt_data},ignore_index=True)
+#         m_date_start = tools.changeDateMonth(m_date_start,3)#加一季
+#     data_result.set_index('Date',inplace=True)
+#     return data_result
 #取得各種財報數字篩選
 def get_financial_statement(date,GPM = '0' ,OPR ='0' ,EPS ='0',RPS ='0'):
     resultAllFS1 = []
     resultAllFS2 = []
     resultAllFS3 = []
     this = pd.DataFrame()
-    FS_type = get_stock_history.FS_type.PLA
     volume_date = date
     for i in range(12):
         try:
-            this = get_stock_history.get_allstock_financial_statement(volume_date,FS_type)
+            this = gsh.PLA_RP.get_ALL_Report(volume_date)
             if this.empty:
                 volume_date = tools.changeDateMonth(volume_date,-1)
                 continue
@@ -721,14 +860,12 @@ def get_financial_statement(date,GPM = '0' ,OPR ='0' ,EPS ='0',RPS ='0'):
     this1 = this["毛利率(%)"] > float(GPM)
     this2 = this["營業利益率(%)"] > float(OPR)
     resultAllFS1 = this[this1 & this2]
-            
-    FS_type = get_stock_history.FS_type.BS
-    this = get_stock_history.get_allstock_financial_statement(volume_date,FS_type)
+
+    this = gsh.BS_RP.get_ALL_Report(volume_date)
     this1 = this["每股參考淨值"] > float(RPS)
     resultAllFS2 = this[this1]
 
-    FS_type = get_stock_history.FS_type.CPL
-    this = get_stock_history.get_allstock_financial_statement(volume_date,FS_type)
+    this = gsh.CPL_RP.get_ALL_Report(volume_date)
     this1 = this["基本每股盈餘（元）"] > float(EPS)
     resultAllFS3 = this[this1]
 
@@ -737,89 +874,94 @@ def get_financial_statement(date,GPM = '0' ,OPR ='0' ,EPS ='0',RPS ='0'):
 
     return resultAllFS
 #取得營業利益率成長率資料(與去年同季相比)
-def get_Operating_Margin_Ratio(date_end,date_start,Number):
-    date_end_str = str(date_end.year()) + '-' + str(date_end.month()) + '-' + str(date_end.day())
-    m_date_end = datetime.strptime(date_end_str,"%Y-%m-%d")
+# def get_Operating_Margin_Ratio(date_end,date_start,Number):
+    
+#     mainChart = gsh.All_imge(tools.QtDate2DateTime(date_start),tools.QtDate2DateTime(date_end),gsh.OM_Growth_index)
+#     return mainChart.get_Chart(int(Number))
+    
+#     date_end_str = str(date_end.year()) + '-' + str(date_end.month()) + '-' + str(date_end.day())
+#     m_date_end = datetime.strptime(date_end_str,"%Y-%m-%d")
 
-    date_start_str = str(date_start.year()) + '-' + str(date_start.month()) + '-' + str(date_start.day())
-    m_date_start = datetime.strptime(date_start_str,"%Y-%m-%d")
+#     date_start_str = str(date_start.year()) + '-' + str(date_start.month()) + '-' + str(date_start.day())
+#     m_date_start = datetime.strptime(date_start_str,"%Y-%m-%d")
 
-    m_date_start_day = int(date_start.day())
-    if m_date_start_day > 28:
-        m_date_start_day = 28
-    stockNum = Number
-    data_result = None
-    while (m_date_start <= m_date_end):
-        #週末直接跳過
-        if m_date_start.isoweekday() in [6,7]:
-            print(str(m_date_start) + 'is 星期' + str(m_date_start.isoweekday()))
-            m_date_start = tools.backWorkDays(m_date_start,1)#加一天
-            continue
-        #先看看台積有沒有資料，如果沒有表示這天是非週末假日跳過 
-        if get_stock_history.get_stock_price(2330,m_date_start,get_stock_history.stock_data_kind.AdjClose) == None:
-            print(str(m_date_start) + "這天沒開市")
-            m_date_start = tools.backWorkDays(m_date_start,1)#加一天
-            continue
-        try:
-            Operating_Margin_now = get_stock_history.get_stock_Operating(stockNum,m_date_start)
-            Operating_Margin_old = get_stock_history.get_stock_Operating(stockNum,tools.changeDateMonth(m_date_start,-12))
-        except:
-            print(str(m_date_start) + "營業利益率未出喔")
-            m_date_start = tools.backWorkDays(m_date_start,1)#加一天
-            continue
-        if Operating_Margin_now.empty:
-            print(str(m_date_start) + "營業利益率未出喔")
-            m_date_start = tools.changeDateMonth(m_date_start,3)#加一季
-            continue
-        Operating_Margin_temp = ((Operating_Margin_now['營業利益率(%)'] - Operating_Margin_old['營業利益率(%)'])/Operating_Margin_old['營業利益率(%)']) * 100
-        Operating_Margin_now.insert(0,'營業利益率成長率(%)',Operating_Margin_temp)
-        Operating_Margin_now.insert(0,'Date',m_date_start)
-        data_result = pd.concat([data_result,Operating_Margin_now])
-        m_date_start = tools.changeDateMonth(m_date_start,3)#加一季
-        m_date_start = m_date_start.replace(day = m_date_start_day)
-    data_result.set_index('Date',inplace=True)
-    return data_result
+#     m_date_start_day = int(date_start.day())
+#     if m_date_start_day > 28:
+#         m_date_start_day = 28
+#     stockNum = int(Number)
+#     data_result = None
+#     while (m_date_start <= m_date_end):
+#         #週末直接跳過
+#         if m_date_start.isoweekday() in [6,7]:
+#             print(str(m_date_start) + 'is 星期' + str(m_date_start.isoweekday()))
+#             m_date_start = tools.backWorkDays(m_date_start,1)#加一天
+#             continue
+#         #先看看台積有沒有資料，如果沒有表示這天是非週末假日跳過 
+#         if gsh.get_stock_price(2330,m_date_start,gsh.stock_data_kind.AdjClose) == None:
+#             print(str(m_date_start) + "這天沒開市")
+#             m_date_start = tools.backWorkDays(m_date_start,1)#加一天
+#             continue
+        
+#         Operating_Margin_now = gsh.PLA_RP.get_ReportByNumber(m_date_start,stockNum)
+#         Operating_Margin_old = gsh.PLA_RP.get_ReportByNumber(tools.changeDateMonth(m_date_start,-12),stockNum)
+
+#         if Operating_Margin_now.empty:
+#             m_date_start = tools.changeDateMonth(m_date_start,3)#加一季
+#             continue
+#         Operating_Margin_temp = ((Operating_Margin_now['營業利益率(%)'] - Operating_Margin_old['營業利益率(%)'])/Operating_Margin_old['營業利益率(%)']) * 100
+#         Operating_Margin_now.insert(0,'營業利益率成長率(%)',Operating_Margin_temp)
+#         Operating_Margin_now.insert(0,'Date',m_date_start)
+#         data_result = pd.concat([data_result,Operating_Margin_now])
+#         m_date_start = tools.changeDateMonth(m_date_start,3)#加一季
+#         m_date_start = m_date_start.replace(day = m_date_start_day)
+#     data_result.set_index('Date',inplace=True)
+#     return data_result
 #取得ROE資料
-def get_ROE(date_end,date_start,Number):
-    date_end_str = str(date_end.year()) + '-' + str(date_end.month()) + '-' + str(date_end.day())
-    m_date_end = datetime.strptime(date_end_str,"%Y-%m-%d")
+# def get_ROE_Ratio(date_end,date_start,Number):
+    
+#     mainChart = gsh.All_imge(tools.QtDate2DateTime(date_start),tools.QtDate2DateTime(date_end),gsh.ROE_index)
+#     return mainChart.get_Chart(int(Number))
+    
+#     date_end_str = str(date_end.year()) + '-' + str(date_end.month()) + '-' + str(date_end.day())
+#     m_date_end = datetime.strptime(date_end_str,"%Y-%m-%d")
 
-    date_start_str = str(date_start.year()) + '-' + str(date_start.month()) + '-' + str(date_start.day())
-    m_date_start = datetime.strptime(date_start_str,"%Y-%m-%d")
+#     date_start_str = str(date_start.year()) + '-' + str(date_start.month()) + '-' + str(date_start.day())
+#     m_date_start = datetime.strptime(date_start_str,"%Y-%m-%d")
 
-    m_date_start_day = int(date_start.day())
-    if m_date_start_day > 28:
-        m_date_start_day = 28
-    stockNum = int(Number)
-    data_result = pd.DataFrame(columns = ['Date','ROE'])
-    while (m_date_start <= m_date_end):
-        #週末直接跳過
-        if m_date_start.isoweekday() in [6,7]:
-            print(str(m_date_start) + 'is 星期' + str(m_date_start.isoweekday()))
-            m_date_start = tools.backWorkDays(m_date_start,1)#加一天
-            continue
-        #先看看台積有沒有資料，如果沒有表示這天是非週末假日跳過 
-        if get_stock_history.get_stock_price(2330,m_date_start,get_stock_history.stock_data_kind.AdjClose) == None:
-            print(str(m_date_start) + "這天沒開市")
-            m_date_start = tools.backWorkDays(m_date_start,1)#加一天
-            continue
-        try:
-            BOOK_data = get_stock_history.get_allstock_financial_statement(m_date_start,get_stock_history.FS_type.BS)
-            CPL_data = get_stock_history.get_allstock_financial_statement(m_date_start,get_stock_history.FS_type.CPL)
-        except:
-            print(str(m_date_start) + "營業利益率未出喔")
-            m_date_start = tools.backWorkDays(m_date_start,1)#加一天
-            continue
-        if BOOK_data.empty or CPL_data.empty:
-            break
-        Temp_Book = int(BOOK_data.at[stockNum,'權益總額']) 
-        Temp_CPL = int(CPL_data.at[stockNum,"本期綜合損益總額（稅後）"])
-        Temp_ROE = round((Temp_CPL/Temp_Book),4) * 100
-        data_result = data_result.append({'Date':m_date_start,'ROE':Temp_ROE},ignore_index=True)
-        m_date_start = tools.changeDateMonth(m_date_start,3)#加一季
-        m_date_start = m_date_start.replace(day = m_date_start_day)
-    data_result.set_index('Date',inplace=True)
-    return data_result
+#     m_date_start_day = int(date_start.day())
+#     if m_date_start_day > 28:
+#         m_date_start_day = 28
+#     stockNum = int(Number)
+    
+    
+
+#     data_result = pd.DataFrame(columns = ['Date','ROE'])
+#     while (m_date_start <= m_date_end):
+#         #週末直接跳過
+#         if m_date_start.isoweekday() in [6,7]:
+#             print(str(m_date_start) + 'is 星期' + str(m_date_start.isoweekday()))
+#             m_date_start = tools.backWorkDays(m_date_start,1)#加一天
+#             continue
+#         #先看看台積有沒有資料，如果沒有表示這天是非週末假日跳過 
+#         if gsh.get_stock_price(2330,m_date_start,gsh.stock_data_kind.AdjClose) == None:
+#             print(str(m_date_start) + "這天沒開市")
+#             m_date_start = tools.backWorkDays(m_date_start,1)#加一天
+#             continue
+#         #Temp_Book = get_stock_history.BS_RP.get_ReportByTypeAndNumber(m_date_start,get_stock_history.info.BS_type.type_3,stockNum)
+#         #Temp_CPL = get_stock_history.CPL_RP.get_ReportByTypeAndNumber(m_date_start,get_stock_history.info.CPL_type.type_0,stockNum)
+#         Temp_ROE = gsh.ROE_index.get_ReportByNumber(m_date_start,stockNum)
+#         #if Temp_Book == None or Temp_CPL == None:
+#         if Temp_ROE.empty:
+#             m_date_start = tools.changeDateMonth(m_date_start,3)#加一季
+#             continue
+#         #Temp_ROE = round((Temp_CPL/Temp_Book),4) * 100
+#         #data_result = data_result.append({'Date':m_date_start,'ROE':Temp_ROE},ignore_index=True)
+#         Temp_ROE.insert(0,'Date',m_date_start)
+#         data_result = pd.concat([data_result,Temp_ROE])
+#         m_date_start = tools.changeDateMonth(m_date_start,3)#加一季
+#         m_date_start = m_date_start.replace(day = m_date_start_day)
+#     data_result.set_index('Date',inplace=True)
+#     return data_result
 
 def set_treeView2(model,inputdataFram):
     i = 0
@@ -844,7 +986,7 @@ def set_treeView2(model,inputdataFram):
         except:
             array_Num.append(float(0))
         try:
-            array_Num.append(float(row["殖利率"]))
+            array_Num.append(float(row["Yield"]))
         except:
             array_Num.append(float(0))
        
@@ -876,10 +1018,10 @@ def Update_StockData_threading(str_date):
     lock.acquire()
     for key,value in get_stock_info.ts.codes.items():
         if value.market == "上市" and len(value.code) == 4:
-            if get_stock_history.check_no_use_stock(value.code) == True:
+            if gsh.check_no_use_stock(value.code) == True:
                 print('get_stock_price: ' + str(value.code) + ' in no use')
                 continue
-            m_history = get_stock_history.get_stock_history(value.code,str_date)
+            m_history = gsh.get_stock_history(value.code,str_date)
             print("get " + str(value.code) + " info susess!")
     #存更新日期
     get_stock_info.Update_date = str(datetime.today())[0:10]
@@ -902,9 +1044,11 @@ def Init_mainWindow():#初始化mainwindow
     myshow.button_Operating_Margin_Ratio.clicked.connect(button_Operating_Margin_Ratio_click)
     myshow.button_getROE.clicked.connect(button_ROE_Ratio_click)
     myshow.button_getFreeCF.clicked.connect(button_FreeSCF_click)
-    myshow.button_getSCF.clicked.connect(button_SCF_click)
+    myshow.button_getSCF.clicked.connect(button_OCF_click)
     myshow.button_getICF.clicked.connect(button_ICF_click)
     myshow.button_getPCF.clicked.connect(button_PCF_click)
+    myshow.button_getEPS.clicked.connect(button_EPS_click)
+    myshow.button_getDebtRatio.clicked.connect(button_DebtRatio_click)
     #設定日期
     Date = datetime.strptime(get_stock_info.Update_date[0:10],"%Y-%m-%d")
     date = QtCore.QDate(Date.year,Date.month,Date.day)
@@ -927,6 +1071,7 @@ def Init_pickWindow():#初始化挑股票畫面
     mypick.treeView_pick.setModel(creat_treeView_model(mypick.treeView_pick,pick_titalList))#設定treeView功能
     mypick.button_pick_2.clicked.connect(button_monthRP_Up_click)#設定button功能
     mypick.button_openBackWindow.clicked.connect(button_openBackWindow_click)#設定button功能
+    mypick.button_inputNum.clicked.connect(button_inuptNumber_click)#設定button功能
     mypick.input_EPS.setValue(0)
     mypick.input_GPM.setValue(0)
     mypick.input_OPR.setValue(0)
@@ -950,6 +1095,8 @@ def Init_pickWindow():#初始化挑股票畫面
     mypick.input_PEG_high.setValue(0)
     mypick.input_PEG_low.setValue(0)
     mypick.input_FCF.setValue(0)
+    mypick.input_ROE.setValue(0)
+    mypick.input_EPS_up.setValue(0)
 def Init_backtestWindow():#初始化回測畫面
     mybacktest.button_backtest.clicked.connect(button_backtest_click)#設定button功能
     mybacktest.button_backtest_2.clicked.connect(button_backtest_click2)

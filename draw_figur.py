@@ -1,5 +1,4 @@
 import talib
-from talib import abstract
 import numpy as np
 import matplotlib.pyplot as plt
 import mplfinance as mpf
@@ -55,6 +54,13 @@ def draw_MACD(table):
     PICS.append(mpf.make_addplot(macd,panel = panelCount,ylabel = 'MACD',color='blue'))
     PICS.append(mpf.make_addplot(macdsignal,panel = panelCount,color='red'))
     PICS.append(mpf.make_addplot(macdhist,type = 'bar',panel = panelCount))
+def draw_RP(table,stockNum,columnName,title,ylabel):
+    axx = plt.axes()
+    axx.plot(table[columnName],label = title)
+    plt.xlabel("date")
+    plt.ylabel(ylabel)
+    plt.title(stockNum)
+    plt.show()
 def draw_monthRP(table,stockNum):
     axx = plt.axes()
     axx.plot(table['當月營收'],label = 'monthRP')
@@ -92,7 +98,7 @@ def draw_ROE(table,stockNum):
     plt.show()
 def draw_FreeSCF(table,stockNum):
     axx = plt.axes()
-    axx.plot(table['FreeCF'],label = 'FreeCF')
+    axx.plot(table['FCF'],label = 'FCF')
     plt.xlabel("date")
     plt.ylabel("FreeCF")
     plt.title(stockNum)
@@ -102,6 +108,20 @@ def draw_PCF(table,stockNum):
     axx.plot(table['P/CF'],label = 'P/CF')
     plt.xlabel("date")
     plt.ylabel("P/CF")
+    plt.title(stockNum)
+    plt.show()
+def draw_EPS(table,stockNum):
+    axx = plt.axes()
+    axx.plot(table['EPS'],label = 'EPS')
+    plt.xlabel("date")
+    plt.ylabel("EPS")
+    plt.title(stockNum)
+    plt.show()
+def draw_Debt(table,stockNum):
+    axx = plt.axes()
+    axx.plot(table['Debt'],label = 'Debt')
+    plt.xlabel("date")
+    plt.ylabel("Debt Asset Ratio(%)")
     plt.title(stockNum)
     plt.show()
 def draw_SCF(table,stockNum):
