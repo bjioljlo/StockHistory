@@ -98,7 +98,7 @@ def draw_ROE(table,stockNum):
     plt.show()
 def draw_FreeSCF(table,stockNum):
     axx = plt.axes()
-    axx.plot(table['FreeCF'],label = 'FreeCF')
+    axx.plot(table['FCF'],label = 'FCF')
     plt.xlabel("date")
     plt.ylabel("FreeCF")
     plt.title(stockNum)
@@ -119,9 +119,9 @@ def draw_EPS(table,stockNum):
     plt.show()
 def draw_Debt(table,stockNum):
     axx = plt.axes()
-    axx.plot(table['資產負債率'],label = '資產負債率')
+    axx.plot(table['Debt'],label = 'Debt')
     plt.xlabel("date")
-    plt.ylabel("資產負債率")
+    plt.ylabel("Debt Asset Ratio(%)")
     plt.title(stockNum)
     plt.show()
 def draw_SCF(table,stockNum):

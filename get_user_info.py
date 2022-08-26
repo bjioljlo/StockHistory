@@ -4,7 +4,7 @@ from get_stock_history import get_stock_price,stock_data_kind
 import get_stock_info
 import tools
 import twstock as ts #抓取台灣股票資料套件
-#ts.__update_codes()
+# ts.__update_codes()
 
 class data_user_stock():#手持股票資訊
     def __init__(self,stock_info,amount,price):

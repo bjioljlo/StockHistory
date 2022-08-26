@@ -31,7 +31,12 @@ def changeDateMonth(date:datetime,change_month:int) -> datetime:
         date = datetime(year = date.year + year,month = month,day = check_monthDate(month,date.day))
     else:
         date = datetime(year = date.year,month = temp_month,day = check_monthDate(temp_month,date.day))
-
+    Temp_date = date
+    while date.isoweekday() in [6,7]:
+        if Temp_date.day < 15:
+            date = backWorkDays(date,-1)
+        else:
+            date = backWorkDays(date,1)
     return date
 def smooth_Data(data:pd.DataFrame,everage) -> pd.DataFrame:# data = 資料  everage = 往前多少資料平均
     result = data.rolling(everage,min_periods = everage).mean()
@@ -119,7 +124,7 @@ def CheckFS_season(date):#檢查當季資料出來沒
             return True
         else:
             return False
-    
+
     
     
     

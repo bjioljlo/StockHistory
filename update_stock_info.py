@@ -47,8 +47,8 @@ def setMysqlServer(db_name):
     server_flask = Flask(__name__)#初始化server
     #設定mysql DB
     server_flask.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-    # server_flask.config['SQLALCHEMY_DATABASE_URI'] = "mysql+pymysql://" + "demo" + ":" + "demo123" + "@" + "122.116.102.141" + ":"+ "3307" +"/"+ str(db_name)
-    server_flask.config['SQLALCHEMY_DATABASE_URI'] = "mysql+pymysql://" + "demo" + ":" + "demo123" + "@" + "127.0.0.1" + ":"+ "3306" +"/"+ str(db_name)
+    server_flask.config['SQLALCHEMY_DATABASE_URI'] = "mysql+pymysql://" + "demo" + ":" + "demo123" + "@" + "122.116.102.141" + ":"+ "3307" +"/"+ str(db_name)
+    # server_flask.config['SQLALCHEMY_DATABASE_URI'] = "mysql+pymysql://" + "demo" + ":" + "demo123" + "@" + "127.0.0.1" + ":"+ "3306" +"/"+ str(db_name)
     #連線mysql DB
     MySql_server = SQLAlchemy(server_flask)
     
@@ -56,6 +56,7 @@ def runUpdate():
     print("Update all stocks start!")
     df = pd.DataFrame()
     #end_date = datetime.today() - timedelta(days=1)#設定資料起訖日期
+    ts.__update_codes()
     yf.pdr_override()
     for key,value in ts.codes.items():
         if value.market == "上市" and len(value.code) >= 4 :
@@ -123,8 +124,10 @@ def stopThreadSchedule():
         thread.do_run = False
     print("thread all stop")
 
-def readStockDay(name):
+def readStockDay(name:str):
     dataframe = pd.DataFrame()
+    if name.islower() != True:
+        name = name.lower()
     try:
         dataframe = pd.read_sql(sql = name,con=MySql_server.engine,index_col='Date')
         return dataframe
@@ -132,8 +135,10 @@ def readStockDay(name):
         print('SQL Error {}'.format(e.args))
         return dataframe
 
-def read_Dividend_yield(name):
+def read_Dividend_yield(name:str):
     dataframe = pd.DataFrame()
+    if name.islower() != True:
+        name = name.lower()
     try:
         dataframe = pd.read_sql(sql = name,con=MySql_server.engine,index_col='code')
         return dataframe
@@ -167,7 +172,9 @@ def deleteStockDayTable(name):
     StockDayInfo.__table__ = temp_table
     StockDayInfo.__table__.drop(MySql_server.session.bind)
 
-def saveTable(_name,_df = pd.DataFrame()):
+def saveTable(_name:str,_df = pd.DataFrame()):
+    if _name.islower() != True:
+        _name = _name.lower()
     try:
         _df.to_sql(name=_name,con=MySql_server.engine,if_exists='replace')
         return True
@@ -177,6 +184,8 @@ def saveTable(_name,_df = pd.DataFrame()):
     
 def yf_info(name):
     yf.pdr_override()
+    if name.islower() != True:
+        name = name.lower()
     start_date = datetime(2005,1,1)
     end_date = datetime.today()#設定資料起訖日期
     df = data.get_data_yahoo([name], start_date, end_date,index_col=0)
