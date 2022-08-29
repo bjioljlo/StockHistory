@@ -445,6 +445,8 @@ def button_monthRP_Up_click():#全部篩選
         FCF = mypick.input_FCF.value()
         ROE_up = mypick.input_ROE.value()
         EPS_up = mypick.input_EPS_up.value()
+        SRGR = mypick.input_SRGR.value()
+        MRGR = mypick.input_MRGR.value()
     except:
         print("Get value error")
         return
@@ -489,6 +491,12 @@ def button_monthRP_Up_click():#全部篩選
     mainfun.report = gsh.EPS_index
     EPS_up_data = mainfun.get_Up_Auto(EPS_up)
     
+    mainfun.report = gsh.SR_Growth_index
+    SRGR_data = mainfun.get_Up_Auto(SRGR)
+    
+    mainfun.report = gsh.MR_Growth_index
+    MRGR_data = mainfun.get_Up_Auto(MRGR)
+    
     pick_data = FS_data
     if monthRP_smoothAVG > 0 or monthRP_UpMpnth > 0:            
         pick_data = pd.merge(pick_data,result_data,left_index=True,right_index=True,how='left')
@@ -510,6 +518,12 @@ def button_monthRP_Up_click():#全部篩選
         pick_data = pick_data.dropna(axis=0,how='any')
     if OMGR > 0:
         pick_data = pd.merge(pick_data,OMGR_data,left_index=True,right_index=True,how='left')
+        pick_data = pick_data.dropna(axis=0,how='any')
+    if SRGR > 0:
+        pick_data = pd.merge(pick_data,SRGR_data,left_index=True,right_index=True,how='left')
+        pick_data = pick_data.dropna(axis=0,how='any')
+    if MRGR > 0:
+        pick_data = pd.merge(pick_data,MRGR_data,left_index=True,right_index=True,how='left')
         pick_data = pick_data.dropna(axis=0,how='any')
     if FCF > 0:
         pick_data = pd.merge(pick_data,FCF_data,left_index=True,right_index=True,how='left')
@@ -1131,6 +1145,8 @@ def Init_pickWindow():#初始化挑股票畫面
     mypick.input_FCF.setValue(0)
     mypick.input_ROE.setValue(0)
     mypick.input_EPS_up.setValue(0)
+    mypick.input_SRGR.setValue(0)
+    mypick.input_MRGR.setValue(0)
 def Init_backtestWindow():#初始化回測畫面
     mybacktest.button_backtest.clicked.connect(button_backtest_click)#設定button功能
     mybacktest.button_backtest_2.clicked.connect(button_backtest_click2)
