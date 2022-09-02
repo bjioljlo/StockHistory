@@ -19,7 +19,10 @@ fileName_yield = "yieldInfo"
 fileName_season = "seasonInfo"
 fileName_index = "indexInfo"
 
-no_use_stock = []
+BaseStartDate = datetime.strptime('2005-1-1',"%Y-%m-%d")
+BaseEndDate = datetime.today()
+
+no_use_stock = [2025]
 
 five_word_ETF = ['00692','00878','00646','00881','00733']
 
@@ -27,6 +30,195 @@ Holiday_trigger = False
 
 load_memery = {}
 
+class Stock():
+    @property
+    def number(self):
+        if self._number == None:
+            raise
+        return self._number
+    @number.setter
+    def number(self,number:int):
+        self._number = number
+    def __init__(self, number:int = None) -> None:
+        self._number = number
+    def get_ALL(self):
+        raise NotImplementedError( "{} is virutal! Must be overwrited.".format(sys._getframe().f_code.co_name))   
+    def get_PriceByDate(self,date:datetime):
+        Temp = self.get_ALL()
+        try:
+            Temp_Result = Temp[Temp.index == date]
+            if Temp_Result.empty:
+                raise
+            return Temp_Result
+        except:
+            if Temp.empty:
+                print(''.join([str(date),'的',str(self._number),'price表沒出']))
+            else:
+                print(''.join([str(date),'的',str(self._number),'公司尚未成立']))
+            return pd.DataFrame()   
+class OriginalStock(Stock):
+    def get_PriceByType(self,_type:info.Price_type):
+        Temp = self.get_ALL()
+        try:
+            return Temp[_type.value]
+        except:
+            print(''.join([str(self._number),'的',str(self._number),'price表沒出']))
+            return pd.DataFrame()
+    def get_PriceByDateAndType(self,date:datetime,_type:info.Price_type):
+        Temp = self.get_PriceByType(_type)
+        try:
+            return Temp[date]
+        except:
+            if Temp.empty == False:
+                print(''.join([str(date),'的',str(self._number),'公司尚未成立']))
+            return None
+class Date_Stock(OriginalStock):
+    def get_ALL(self):
+        return get_stock_history(self._number)
+Stock_2330 = Date_Stock(2330)#拿來確認當天是否有開市用
+Stock_main = Date_Stock()
+
+class VirtualStockFuc(Stock):
+    @property
+    def number(self):
+        if self.Stock.number == None:
+            raise
+        return self.Stock.number
+    @number.setter
+    def number(self,number:int):
+        self.Stock.number = number
+    def __init__(self, Stock:Stock) -> None:
+        self.Stock = Stock
+    def get_ALL(self):
+        raise NotImplementedError( "{} is virutal! Must be overwrited.".format(sys._getframe().f_code.co_name))   
+class RangeDate_Stock(VirtualStockFuc):
+    @property
+    def StartDate(self):
+        if self._date == None:
+            self._date = BaseStartDate
+        return self._date
+    @property
+    def EndDate(self):
+        if self._date2 == None:
+            self._date2 = BaseEndDate
+        return self._date2
+    @StartDate.setter
+    def StartDate(self,date:datetime):
+        self._date = date
+    @EndDate.setter
+    def EndDate(self,date:datetime):
+        self._date2 = date
+    def __init__(self, Stock: Stock, startDate:datetime = None, endDate:datetime = None) -> None:
+        super().__init__(Stock)
+        self.StartDate = startDate
+        self.EndDate = endDate
+    def get_ALL(self):
+        Temp = self.Stock.get_ALL()
+        mask1 = Temp.index >= self.StartDate
+        mask2 = Temp.index <= self.EndDate
+        Temp = Temp[(mask1 & mask2)]
+        return Temp
+class SMA_Stock(VirtualStockFuc):
+    @property
+    def AvgDay(self):
+        if self._avgDay == None:
+            raise
+        return self._avgDay
+    @property
+    def PriceType(self):
+        if self._type == None:
+            raise
+        return self._type
+    @AvgDay.setter
+    def AvgDay(self,day:int):
+        self._avgDay = day
+    @PriceType.setter
+    def PriceType(self,_type:info.Price_type):
+        self._type = _type
+    def __init__(self, Stock: Stock, avgDay:int = None, type:info.Price_type = None) -> None:
+        super().__init__(Stock)
+        self.AvgDay = avgDay
+        self.PriceType = type
+    def get_ALL(self):
+        Temp = self.Stock.get_ALL()
+        mclose = talib.SMA(Temp[self.PriceType], self.AvgDay)#不用np.array也可以將均線和蠟燭圖放一起
+        return mclose
+Stock_RangeDate = RangeDate_Stock(Stock_main)
+Stock_SMA = SMA_Stock(Stock_main)
+
+class VirtualStockFilterFuc(Stock):
+    def __init__(self, Stock:Stock) -> None:
+        self._Stock = Stock
+class StockFilter(VirtualStockFilterFuc):
+    def __init__(self, Stock: Stock, Max:int, Min:int , Data:pd.DataFrame, Date:datetime) -> None:
+        super().__init__(Stock)
+        self._max = Max
+        self._min = Min
+        self._data = Data
+        self._date = Date
+    def get_ALL(self):
+        return self.get_Filter(self._max,self._min,self._data,self._date)
+    def get_Filter(self,max,min,data:pd.DataFrame,date:datetime):
+        result_data = data
+        for number,row in data.iterrows():
+            self._Stock.number = int(number)
+            Temp = self._Stock.get_PriceByDate(date)[date]
+            if Temp > max or Temp < min:
+                result_data.drop(index=int(number),inplace=True)
+                print(Temp)
+                print(''.join([str(number),'/////',str(row)]))
+        return result_data
+
+class All_Stock_fuc():
+    @property
+    def number(self):
+        return self._stock._number
+    @number.setter
+    def number(self, number:int):
+        self._stock._number = number
+    def __init__(self, number:int, Stock:OriginalStock) -> None:
+        self._stock = Stock
+        self._stock._number = number
+    def get_DateRange_SMA(self, startDate:datetime, endDate:datetime, avgDay:int, type:info.Price_type):
+        aDateRange = RangeDate_Stock(self._stock,startDate,endDate)
+        aSMA = SMA_Stock(aDateRange,avgDay,type)
+        aSMA.number = self.number
+        return aSMA.get_ALL()
+    def get_RecordHigh(self, endDate:datetime, flashDay:int, recordDays:int, atype:info.Price_type) -> bool:
+        aRange = RangeDate_Stock(self._stock,None,endDate)
+        All_data = aRange.get_ALL().sort_index(ascending=False)
+        for k in range(flashDay):
+            Now_price = All_data.iloc[k][atype]
+            Pass = True
+            for i in range(recordDays):
+                try:
+                    Temp_price = All_data.iloc[k+i+1][atype]
+                except:
+                    return False
+                if Temp_price <= Now_price:
+                    continue
+                else:
+                    Pass = False
+                    break
+            if Pass:
+                return True
+        return False
+class All_Stock_Filters_fuc():
+    @property
+    def Data(self):
+        return self._data
+    @Data.setter
+    def Data(self,data:pd.DataFrame):
+        self._data = data
+    def __init__(self,Date:datetime, Data:pd.DataFrame) -> None:
+        self.Data = Data
+        self._date = Date
+    def get_Filter_SMA(self, Max:int, Min:int, avgMA:int, Type:info.Price_type):
+        aSMA = SMA_Stock(Stock_main,avgMA,Type)
+        aFilter = StockFilter(aSMA,Max,Min,self.Data,self._date)
+        temp = aFilter.get_ALL()
+        return temp
+ 
 class Report():
     def __init__(self,name:str) -> None:
         self._name = name
@@ -86,10 +278,11 @@ class Day_Report(Original):
         return get_allstock_yield(date)
     def Next_date(self,date):
         date = tools.backWorkDays(date,self._Unit)
-        while get_stock_price(2330,date,stock_data_kind.AdjClose) == None:
+        while Stock_2330.get_PriceByDateAndType(date,info.Price_type.AdjClose) == None:
             date = tools.backWorkDays(date,self._Unit)   
         return date
 Yield_RP = Day_Report('yield_RP', 1)
+
 #計算資料
 class Indicator(Original):
     def __init__(self, name: str, Unit: int) -> None:
@@ -194,23 +387,30 @@ class OCFPerShare_Indicator(Indicator):
         table_result[self._name] = table_OCF / table_BS
         return table_result
 class PCF_Indicator(Indicator):
-    def __init__(self, name: str,OCFPerShare:OCFPerShare_Indicator) -> None:
-        super().__init__(name, OCFPerShare._Unit)
+    def __init__(self, name: str,OCFPerShare:OCFPerShare_Indicator,StockPrice:Stock) -> None:
+        super().__init__(name, 1)
         self.OCFPerShare = OCFPerShare
         self._number = None
+        self.StockPrice = StockPrice
     def get_ALL_Report(self, date):
         if self._number == None:
             raise TypeError('please set number! type now:' + self._number)
         table_result = pd.DataFrame()
         table_OCFPerShare = self.OCFPerShare.get_ReportByNumber(date,self._number)
-        stock_price = get_stock_price(self._number,date,stock_data_kind.AdjClose)
         if table_OCFPerShare.empty:
             return pd.DataFrame()
+        self.StockPrice.number = self._number
+        stock_price = self.StockPrice.get_PriceByDateAndType(date,info.Price_type.AdjClose)#get_stock_price(self._number,date,stock_data_kind.AdjClose)
         table_result[self._name] = stock_price/table_OCFPerShare
         return table_result
     def get_ReportByNumber(self, date, number: int) -> pd.Series:
         self._number = number
         return super().get_ReportByNumber(date, number)
+    def Next_date(self,date):#有用到每日的價格所以用天為單位
+        date = tools.backWorkDays(date,self._Unit)
+        while Stock_2330.get_PriceByDateAndType(date,info.Price_type.AdjClose) == None: #get_stock_price(2330,date,stock_data_kind.AdjClose) == None:
+            date = tools.backWorkDays(date,self._Unit)  
+        return date
     @property
     def number(self):
         return self._number
@@ -250,7 +450,7 @@ OCF_index = Original_Indicator('OCF',SCF_RP,info.SCF_type.OCF)#營業活動之�
 ICF_index = Original_Indicator('ICF',SCF_RP,info.SCF_type.ICF)#投資活動之淨現金流入
 OM_index = Original_Indicator('OM',PLA_RP,info.PLA_type.type_2)#營業利益率(%)
 OCFPerShare_index = OCFPerShare_Indicator('OCFPerShare',SCF_RP,BS_RP)#每股營業現金流
-PCF_index = PCF_Indicator('P/CF',OCFPerShare_index)#股價現金流量比率
+PCF_index = PCF_Indicator('P/CF',OCFPerShare_index,Stock_main)#股價現金流量比率
 #新增功能的虛擬類別
 class VirtualReportFunc():
     def __init__(self, Report: Original) -> None:
@@ -430,7 +630,6 @@ class All_imge():
         data_result = pd.DataFrame(columns = ['Date',self._report._name])
         start = self._start
         end = self._end
-        
         while (start <= end):
             temp = self._report.get_ReportByNumber(end,number)
             if temp.empty:
@@ -472,43 +671,61 @@ def check_ETF_stock(number):
             return True
     return False
 
-def get_stock_RecordHight(number,date,flashDay,recordDays):#取得number在flashDay天內天是否在recordDays內創新高
-    All_data = get_stock_history(number,date+timedelta(days=-200),reGetInfo=False,UpdateInfo=False)
-    mask = All_data.index <= date
-    data = All_data[mask]
-    data = data.sort_index(ascending=False)
-    Pass = True
-    for index,row in data.iterrows():
-        Pass = True
-        if check_no_use_stock(number) == True:
-            print('get_stock_price: ' + str(number) + ' in no use')
-            return False
-        Now_day = index
-        Now_price = row['Adj Close']
-        mask = All_data.index <= Now_day
-        data2 = All_data[mask]
-        data2 = data2.sort_index(ascending=False)
-        for i in range(recordDays):
-            try:
-                Temp_price = data2.iloc[i+1]['Adj Close']
-            except:
-                return False
-            if Temp_price <= Now_price:
-                continue
-            else:
-                Pass = False
-                flashDay = flashDay -1
-                if flashDay <= 0:
-                    return False
-                break
-        if Pass:
-            return True
+def get_stock_RecordHight(number,date,flashDay,recordDays):#取得number在flashDay天內天是否在recordDays天內創新高
+    return All_Stock_fuc(number,Stock_main).get_RecordHigh(date,flashDay,recordDays,info.Price_type.High)
+    
+    # All_data = get_stock_history(number,date+timedelta(days=-200),reGetInfo=False,UpdateInfo=False)
+    # mask = All_data.index <= date
+    # data = All_data[mask]
+    # data = All_data.sort_index(ascending=False)
+    # for k in range(flashDay):
+    #     Now_price = All_data.iloc[k][info.Price_type.AdjClose]
+    #     Pass = True
+    #     for i in range(recordDays):
+    #         try:
+    #             Temp_price = All_data.iloc[k+i+1]['Adj Close']
+    #         except:
+    #             return False
+    #         if Temp_price <= Now_price:
+    #             continue
+    #         else:
+    #             Pass = False
+    #             break
+    #     if Pass:
+    #         return True
+    # return False
+    # for index,row in All_data.iterrows():
+    #     Pass = True
+    #     if check_no_use_stock(number) == True:
+    #         print('get_stock_price: ' + str(number) + ' in no use')
+    #         return False
+    #     Now_day = index
+    #     Now_price = row['Adj Close']
+    #     mask = All_data.index <= Now_day
+    #     data2 = All_data[mask]
+    #     data2 = data2.sort_index(ascending=False)
+    #     for i in range(recordDays):
+    #         try:
+    #             Temp_price = data2.iloc[i+1]['Adj Close']
+    #         except:
+    #             return False
+    #         if Temp_price <= Now_price:
+    #             continue
+    #         else:
+    #             Pass = False
+    #             flashDay = flashDay -1
+    #             if flashDay <= 0:
+    #                 return False
+    #             break
+    #     if Pass:
+    #         return True
 def get_stock_MA(number,date,MA_day):#取得某股票某天的均線
-    Temp_MA = 0
-    Temp_date = date
-    Temp_MA_day = MA_day
-    All_data = get_stock_history(number,Temp_date+timedelta(days=-100),reGetInfo=False,UpdateInfo=False)
-    Temp_MA = talib.SMA(All_data['Adj Close'],Temp_MA_day)[Temp_date]
+    # Temp_MA = 0
+    # Temp_MA_day = MA_day
+    # All_data = get_stock_history(number,Temp_date+timedelta(days=-100),reGetInfo=False,UpdateInfo=False)
+    # Temp_MA = talib.SMA(All_data['Adj Close'],Temp_MA_day)[date]
+    Stock_main.number = number
+    Temp_MA = SMA_Stock(Stock_main,MA_day,info.Price_type.Close).get_ALL()[date]
     return Temp_MA
 # def get_stock_yield(number,date):#取得某股票某天的殖利率
 #     data = get_allstock_yield(date)
@@ -545,6 +762,17 @@ def get_stock_MA(number,date,MA_day):#取得某股票某天的均線
 #     Temp_Free = int(Temp_Business+Temp_Invest)
 #     return Temp_Free
 def get_stock_price(number,date,kind,isSMA = False):#取得某股票某天的ＡＤＪ價格
+    Stock_main.number = number
+    if kind == info.Price_type.Close:
+        Temp = Stock_main.get_PriceByDateAndType(date,info.Price_type.Close)
+    elif kind == stock_data_kind.Volume:
+        Stock_SMA.AvgDay = 5
+        Stock_SMA.PriceType = info.Price_type.Volume
+        Temp = Stock_SMA.get_PriceByDate(date)
+        # Temp = Stock_main.get_PriceByDateAndType(date,info.Price_type.Volume)
+    else:
+        Temp = Stock_main.get_PriceByDateAndType(date,kind)
+    return Temp
     global Holiday_trigger
     if check_no_use_stock(number) == True:
         print(''.join(['get_stock_price: ' , str(number) , ' in no use']))
@@ -621,8 +849,10 @@ def get_allstock_monthly_report(start):#爬某月所有股票月營收
             r = requests.get(url, headers = tools.get_random_Header())
             r.encoding = 'big5-hkscs'
             
-            
-            dfs = pd.read_html(StringIO(r.text), encoding='big-5')
+            try:
+                dfs = pd.read_html(StringIO(r.text), encoding='big-5')
+            except:
+                return pd.DataFrame()
             
 
             df = pd.concat([df for df in dfs if df.shape[1] <= 11 and df.shape[1] > 5])
@@ -693,13 +923,13 @@ def get_allstock_yield(start):#爬某天所有股票殖利率
     #去資料庫抓資料
     m_yield = update_stock_info.read_Dividend_yield('dividend_yield_'+ str(start.year) + '_' + str(start.month) + '_' + str(start.day))
 
-    if m_yield.empty == True and get_stock_price(2330,start,stock_data_kind.AdjClose) != None:
+    if m_yield.empty == True and Stock_2330.get_PriceByDateAndType(start,info.Price_type.AdjClose) != None:
         if os.path.isfile(fileName + '.csv') == False:
             url = 'https://www.twse.com.tw/exchangeReport/BWIBBU_d?response=csv&date=' + str(start.year)+str(start.month).zfill(2)+str(start.day).zfill(2)+ '&selectType=ALL'
             response = requests.get(url,tools.get_random_Header())
             save_stock_file(fileName,response,1,2)
             # 偽停頓
-            time.sleep(1)
+            time.sleep(3)
         try:
             m_yield = pd.read_csv(fileName + '.csv')
         except:
@@ -711,7 +941,7 @@ def get_allstock_yield(start):#爬某天所有股票殖利率
         update_stock_info.saveTable('dividend_yield_'+ str(start.year) + '_' + str(start.month) + '_' + str(start.day),m_yield)
     load_memery[fileName] = m_yield
     return m_yield
-def get_stock_history(number,start,reGetInfo = False,UpdateInfo = True) -> pd.DataFrame:#爬某個股票的歷史紀錄
+def get_stock_history(number,start = datetime.strptime('2005-1-1',"%Y-%m-%d"),reGetInfo = False,UpdateInfo = True) -> pd.DataFrame:#爬某個股票的歷史紀錄
     print(''.join(["取得" , str(number) , "的資料從" , str(start) ,"到今天"]))
     start_time = start
     if type(start_time) == str:
@@ -758,7 +988,7 @@ def get_stock_AD_index(date,getNew = False):#取得上漲和下跌家數
     str_date = tools.DateTime2String(time)
     time_yesterday = tools.backWorkDays(time,1)
 
-    while (get_stock_price(2330,time_yesterday,stock_data_kind.AdjClose) == None):
+    while (Stock_2330.get_PriceByDateAndType(time_yesterday,stock_data_kind.AdjClose) == None):
         time_yesterday = tools.backWorkDays(time_yesterday,1)#加一天
     
     str_yesterday = tools.DateTime2String(time_yesterday)
@@ -957,7 +1187,7 @@ def get_ADLs(start_time,end_time):
             now_time = tools.backWorkDays(now_time,-1)#加一天
             continue
         #先看看台積有沒有資料，如果沒有表示這天是非週末假日跳過 
-        if get_stock_price(2330,now_time,stock_data_kind.AdjClose) == None:
+        if Stock_2330.get_PriceByDateAndType(now_time,stock_data_kind.AdjClose) == None:
             print(str(now_time) + "這天沒開市")
             now_time = tools.backWorkDays(now_time,-1)#加一天
             continue
@@ -982,7 +1212,7 @@ def get_ADL(start_time,end_time):
             now_time = tools.backWorkDays(now_time,-1)#加一天
             continue
         #先看看台積有沒有資料，如果沒有表示這天是非週末假日跳過 
-        if get_stock_price(2330,now_time,stock_data_kind.AdjClose) == None:
+        if Stock_2330.get_PriceByDateAndType(now_time,stock_data_kind.AdjClose) == None:
             print(str(now_time) + "這天沒開市")
             now_time = tools.backWorkDays(now_time,-1)#加一天
             continue
@@ -1375,31 +1605,31 @@ def get_price_range(time,high,low,data = pd.DataFrame()):#time = 取得資料的
     print('get_price_rang: end')
     return price_data    
 #取得殖利率篩選 #(股息÷股價) × 100%
-def get_yield_range(time,high,low,data = pd.DataFrame()):#time = 取得資料的時間 high = 殖利率最高值 low = 殖利率最低值
-    print('get_yield_range: start')
-    Result = All_fuc(time,Yield_index).get_Filter_Auto(high,low)
-    print('get_yield_range: end')
-    return Result
-    yield_data_result = pd.DataFrame(columns=['公司代號','殖利率'])
-    if high == low == 0:
-        return yield_data_result
-    if high < 0 or low < 0 or low > high:
-        print("yield range number wrong!")
-        return yield_data_result
-    yield_date = time
-    All_yield = data
-    if type(time) == str:
-        yield_date = datetime.strptime(time,"%Y-%m-%d")
-    yield_data = Yield_RP.get_ALL_Report(yield_date)
-    if All_yield.empty == True:
-        All_yield = yield_data
+# def get_yield_range(time,high,low,data = pd.DataFrame()):#time = 取得資料的時間 high = 殖利率最高值 low = 殖利率最低值
+#     print('get_yield_range: start')
+#     Result = All_fuc(time,Yield_index).get_Filter_Auto(high,low)
+#     print('get_yield_range: end')
+#     return Result
+#     yield_data_result = pd.DataFrame(columns=['公司代號','殖利率'])
+#     if high == low == 0:
+#         return yield_data_result
+#     if high < 0 or low < 0 or low > high:
+#         print("yield range number wrong!")
+#         return yield_data_result
+#     yield_date = time
+#     All_yield = data
+#     if type(time) == str:
+#         yield_date = datetime.strptime(time,"%Y-%m-%d")
+#     yield_data = Yield_RP.get_ALL_Report(yield_date)
+#     if All_yield.empty == True:
+#         All_yield = yield_data
 
-    mask1 = All_yield['殖利率(%)'] >= low
-    mask2 = All_yield['殖利率(%)'] <= high
-    yield_data_result = All_yield[(mask1 & mask2)]
-    yield_data_result.rename(columns={'殖利率(%)':'殖利率'},inplace=True)
-    print('get_yield_range: end')
-    return yield_data_result
+#     mask1 = All_yield['殖利率(%)'] >= low
+#     mask2 = All_yield['殖利率(%)'] <= high
+#     yield_data_result = All_yield[(mask1 & mask2)]
+#     yield_data_result.rename(columns={'殖利率(%)':'殖利率'},inplace=True)
+#     print('get_yield_range: end')
+#     return yield_data_result
 #取得創新高篩選
 def get_RecordHigh_range(time,Day,RecordHighDay,data = pd.DataFrame()):#time = 取得資料的時間 Day = 往前找多少天的創新高 RecordHighDay = 找創新高的區間
     print('get_RecordHigh: start')
@@ -1445,20 +1675,20 @@ def get_volume(volumeNum,date,data = pd.DataFrame(),getMax = False):
 
     for index,row in All_data.iterrows():
         Temp_volume = get_stock_price(str(index),tools.DateTime2String(date),stock_data_kind.Volume,isSMA=True)
-        while (Temp_volume == None):
+        while (Temp_volume[date] == None):
             if check_no_use_stock(index):
                 break
             date = date + timedelta(days=-1)#加一天
             Temp_volume = get_stock_price(str(index),tools.DateTime2String(date),stock_data_kind.Volume,isSMA=True)
-        if Temp_volume != None and Temp_volume >= volumeNum:
+        if Temp_volume[date] != None and Temp_volume[date] >= volumeNum:
             Temp_number = int(index)
-            volume_data = volume_data.append({'code':Temp_number,'volume':Temp_volume},ignore_index=True)
+            volume_data = volume_data.append({'code':Temp_number,'volume':Temp_volume[date]},ignore_index=True)
             if(getMax):
-                if Temp_volume > Temp_volume2:
+                if Temp_volume[date] > Temp_volume2:
                     if(Temp_index != 0):
                         volume_data = volume_data.drop(index = Temp_index)
                     Temp_index = index
-                    Temp_volume2 = Temp_volume
+                    Temp_volume2 = Temp_volume[date]
                 else:
                     volume_data = volume_data.drop(index = index)
             else:

@@ -9,6 +9,7 @@ import sys
 from datetime import datetime,timedelta
 import get_stock_info
 import get_stock_history as gsh
+import Infomation_type as info
 import update_stock_info
 import draw_figur as df
 import pandas as pd
@@ -79,7 +80,7 @@ def check_Volume_isCheck(m_history,stockInfo):
 def check_KD_isCheck(m_history,stockInfo):
     if myshow.check_KD.isChecked():
         df.draw_KD(m_history,stockInfo)
-def check_SMA_isCheck(m_history,stockInfo):
+def check_SMA_isCheck(m_history,stockInfo,startdate):
     if myshow.check_SMA.isChecked() == True:
         input_SMA_list = [myshow.input_SMA1,myshow.input_SMA2,myshow.input_SMA3]
         for i in input_SMA_list:
@@ -137,9 +138,9 @@ def button_moveToInputFromPick_click():
 #第1頁的UI
 def button_getStockHistory():#某股票蠟燭圖
     #存更新日期
-    date = myshow.date_startDate.date()
+    date = tools.QtDate2DateTime(myshow.date_startDate.date())
     end_date = tools.QtDate2DateTime(myshow.date_endDate.date())
-    str_date = str(date.year())+'-'+ str(date.month())+'-'+str(date.day())
+    str_date = tools.DateTime2String(date)
     df.Clear_PICS()
     if myshow.input_stockNumber.toPlainText() == "":
         for key,value in get_stock_info.stock_list.items():
@@ -153,14 +154,13 @@ def button_getStockHistory():#某股票蠟燭圖
         return  
     else:
         stock_number = myshow.input_stockNumber.toPlainText()
-        if myshow.check_UseNewInfo.isChecked():
-            m_history = gsh.get_stock_history(stock_number,str_date,reGetInfo=False)
-        else:
-            m_history = gsh.get_stock_history(stock_number,str_date,reGetInfo=False,UpdateInfo=False)
+        gsh.Stock_RangeDate.number = int(stock_number)
+        gsh.Stock_RangeDate.StartDate = date
+        m_history = gsh.Stock_RangeDate.get_ALL()
         if myshow.check_ADL.isChecked() or myshow.check_ADLs.isChecked():
             mask = m_history.index <= end_date
             m_history = m_history[mask]
-        check_SMA_isCheck(m_history,get_stock_info.Get_stock_info(stock_number))
+        check_SMA_isCheck(m_history,get_stock_info.Get_stock_info(stock_number),date)
         check_Volume_isCheck(m_history,get_stock_info.Get_stock_info(stock_number))  
         check_KD_isCheck(m_history,get_stock_info.Get_stock_info(stock_number))
         check_BollingerBands_isCheck(m_history,get_stock_info.Get_stock_info(stock_number))
@@ -543,7 +543,8 @@ def button_monthRP_Up_click():#全部篩選
         pick_data = tools.MixDataFrames({'pick':pick_data,'recordHigh':record_data})
         pick_data = pick_data.dropna(axis=0,how='any')
     if volum > 0:
-        volume_data =gsh.get_volume(volum * 10000,tools.changeDateMonth(date,0),pick_data,mypick.check_volum_Max.isChecked())
+        volume_data = gsh.All_Stock_Filters_fuc(tools.changeDateMonth(date,0),pick_data).get_Filter_SMA(volum * 100000000,volum * 10000,5,info.Price_type.Volume)
+        # volume_data =gsh.get_volume(volum * 10000,tools.changeDateMonth(date,0),pick_data,mypick.check_volum_Max.isChecked())
         pick_data = tools.MixDataFrames({'pick':pick_data,'volumeData':volume_data})
         pick_data = pick_data.dropna(axis=0,how='any')
     print("總挑選數量:" + str(len(pick_data)))

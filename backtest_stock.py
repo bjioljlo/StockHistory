@@ -71,7 +71,7 @@ def backtest_PERandPBR(mainParament):
             continue
 
         #先看看台積有沒有資料，如果沒有表示這天是非週末假日跳過 
-        if get_stock_history.get_stock_price(2330,userInfo.now_day,get_stock_history.stock_data_kind.AdjClose) == None:
+        if get_stock_history.Stock_2330.get_PriceByDateAndType(userInfo.now_day,get_stock_history.stock_data_kind.AdjClose) == None:
             print(str(userInfo.now_day) + "這天沒開市")
             if userInfo.add_one_day() == False:#加一天
                 break
@@ -149,7 +149,7 @@ def backtest_monthRP_Up(mainParament):
                 break
             continue
         #先看看台積有沒有資料，如果沒有表示這天是非週末假日跳過 
-        if get_stock_history.get_stock_price(2330,userInfo.now_day,get_stock_history.stock_data_kind.AdjClose) == None:
+        if get_stock_history.Stock_2330.get_PriceByDateAndType(userInfo.now_day,get_stock_history.stock_data_kind.AdjClose) == None:
             print(str(userInfo.now_day) + "這天沒開市")
             if userInfo.add_one_day() == False:#加一天
                 break
@@ -224,7 +224,7 @@ def backtest_Regular_quota(mainParament):
                 break
             continue
         #先看看台積有沒有資料，如果沒有表示這天是非週末假日跳過 
-        if get_stock_history.get_stock_price(2330,userInfo.now_day,get_stock_history.stock_data_kind.AdjClose) == None:
+        if get_stock_history.Stock_2330.get_PriceByDateAndType(userInfo.now_day,get_stock_history.stock_data_kind.AdjClose) == None:
             print(str(userInfo.now_day) + "這天沒開市")
             if userInfo.add_one_day() == False:#加一天
                 break
@@ -280,7 +280,7 @@ def backtest_Record_high(mainParament):
                 break
             continue
         #先看看台積有沒有資料，如果沒有表示這天是非週末假日跳過 
-        if get_stock_history.get_stock_price(2330,userInfo.now_day,get_stock_history.stock_data_kind.AdjClose) == None:
+        if get_stock_history.Stock_2330.get_PriceByDateAndType(userInfo.now_day,get_stock_history.stock_data_kind.AdjClose) == None:
             print(str(userInfo.now_day) + "這天沒開市")
             if userInfo.add_one_day() == False:#加一天
                 break
