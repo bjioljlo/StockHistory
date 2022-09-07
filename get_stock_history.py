@@ -55,7 +55,7 @@ class Stock():
                 print(''.join([str(date),'的',str(self._number),'price表沒出']))
             else:
                 print(''.join([str(date),'的',str(self._number),'公司尚未成立']))
-            return pd.DataFrame()   
+            return pd.DataFrame()
 class OriginalStock(Stock):
     def get_PriceByType(self,_type:info.Price_type):
         Temp = self.get_ALL()
@@ -88,6 +88,7 @@ class VirtualStockFuc(Stock):
     def number(self,number:int):
         self.Stock.number = number
     def __init__(self, Stock:Stock) -> None:
+        super().__init__(Stock._number)
         self.Stock = Stock
     def get_ALL(self):
         raise NotImplementedError( "{} is virutal! Must be overwrited.".format(sys._getframe().f_code.co_name))   
@@ -143,56 +144,26 @@ class SMA_Stock(VirtualStockFuc):
         Temp = self.Stock.get_ALL()
         mclose = talib.SMA(Temp[self.PriceType], self.AvgDay)#不用np.array也可以將均線和蠟燭圖放一起
         return mclose
-Stock_RangeDate = RangeDate_Stock(Stock_main)
-Stock_SMA = SMA_Stock(Stock_main)
-
-class VirtualStockFilterFuc(Stock):
-    def __init__(self, Stock:Stock) -> None:
-        self._Stock = Stock
-class StockFilter(VirtualStockFilterFuc):
-    def __init__(self, Stock: Stock, Max:int, Min:int , Data:pd.DataFrame, Date:datetime) -> None:
+class RecordHigh_Stock(VirtualStockFuc):
+    def set_valuse(self,_endDate,_flashDay,_recordDays,_atype):
+        self._endDate = _endDate
+        self._flashDay = _flashDay
+        self._recordDays = _recordDays
+        self._atype = _atype
+    def __init__(self, Stock: Stock, endDate:datetime= None, flashDay:int= None, recordDays:int= None, atype:info.Price_type= None) -> None:
         super().__init__(Stock)
-        self._max = Max
-        self._min = Min
-        self._data = Data
-        self._date = Date
+        self.set_valuse(endDate,flashDay,recordDays,atype)
     def get_ALL(self):
-        return self.get_Filter(self._max,self._min,self._data,self._date)
-    def get_Filter(self,max,min,data:pd.DataFrame,date:datetime):
-        result_data = data
-        for number,row in data.iterrows():
-            self._Stock.number = int(number)
-            Temp = self._Stock.get_PriceByDate(date)[date]
-            if Temp > max or Temp < min:
-                result_data.drop(index=int(number),inplace=True)
-                print(Temp)
-                print(''.join([str(number),'/////',str(row)]))
-        return result_data
-
-class All_Stock_fuc():
-    @property
-    def number(self):
-        return self._stock._number
-    @number.setter
-    def number(self, number:int):
-        self._stock._number = number
-    def __init__(self, number:int, Stock:OriginalStock) -> None:
-        self._stock = Stock
-        self._stock._number = number
-    def get_DateRange_SMA(self, startDate:datetime, endDate:datetime, avgDay:int, type:info.Price_type):
-        aDateRange = RangeDate_Stock(self._stock,startDate,endDate)
-        aSMA = SMA_Stock(aDateRange,avgDay,type)
-        aSMA.number = self.number
-        return aSMA.get_ALL()
-    def get_RecordHigh(self, endDate:datetime, flashDay:int, recordDays:int, atype:info.Price_type) -> bool:
-        aRange = RangeDate_Stock(self._stock,None,endDate)
+        if self._endDate == False or self._flashDay == False or self._recordDays == False or self._atype == False:
+            raise
+        aRange = RangeDate_Stock(self.Stock,None,self._endDate)
         All_data = aRange.get_ALL().sort_index(ascending=False)
-        for k in range(flashDay):
-            Now_price = All_data.iloc[k][atype]
+        for k in range(self._flashDay):
+            Now_price = All_data.iloc[k][self._atype]
             Pass = True
-            for i in range(recordDays):
+            for i in range(self._recordDays):
                 try:
-                    Temp_price = All_data.iloc[k+i+1][atype]
+                    Temp_price = All_data.iloc[k+i+1][self._atype]
                 except:
                     return False
                 if Temp_price <= Now_price:
@@ -202,7 +173,61 @@ class All_Stock_fuc():
                     break
             if Pass:
                 return True
-        return False
+        return False           
+Stock_RangeDate = RangeDate_Stock(Stock_main)
+Stock_SMA = SMA_Stock(Stock_main)
+Stock_RecordHigh = RecordHigh_Stock(Stock_main)
+
+class VirtualStockFilterFuc(Stock):
+    def __init__(self, Stock:Stock, Date:datetime) -> None:
+        super().__init__(Stock._number)
+        self._Stock = Stock
+        self._date = Date
+class StockRecordHigh(VirtualStockFilterFuc):
+    def __init__(self, Stock: RecordHigh_Stock, endDate:datetime, flashDay:int, recordDays:int, data:pd.DataFrame, atype:info.Price_type) -> None:
+        self._Stock = Stock
+        self._Stock._endDate = endDate
+        self._Stock._flashDay = flashDay
+        self._Stock._recordDays = recordDays
+        self._Stock._atype = atype
+        self.__data = data
+    def get_ALL(self):
+        return self.get_FilterRecordHigh(self.__data)
+    def get_FilterRecordHigh(self,data:pd.DataFrame):
+        result_data = data
+        for number,row in data.iterrows():
+            self._Stock.number = int(number)
+            Temp = self._Stock.get_ALL()
+            if Temp == False:
+                result_data.drop(index=int(number),inplace=True)
+                print(''.join([str(number),'/////',str(row)]))
+        return result_data    
+class StockFilter(VirtualStockFilterFuc):
+    def __init__(self, Stock: Stock, Max:int, Min:int , Data:pd.DataFrame, Date:datetime, Type:info.Price_type) -> None:
+        super().__init__(Stock,Date)
+        self.__max = Max
+        self.__min = Min
+        self.__data = Data
+        self._type = Type
+    def get_ALL(self):
+        return self.__get_Filter(self.__max,self.__min,self.__data,self._date,self._type)
+    def __get_Filter(self,max,min,data:pd.DataFrame,date:datetime,atype:info.Price_type):
+        print("{} / {} is Start!".format("StockFilter",sys._getframe().f_code.co_name))
+        result_data = data
+        for number,row in data.iterrows():
+            self._Stock.number = int(number)
+            Temp = self._Stock.get_PriceByDate(date)
+            if Temp.empty:
+                raise
+            if type(Temp) == pd.DataFrame:
+                Temp = Temp[atype][date]
+            if type(Temp) == pd.Series:
+                Temp = Temp[date]
+            if Temp > max or Temp < min:
+                result_data.drop(index=int(number),inplace=True)
+        print("{} / {} is End!".format("StockFilter",sys._getframe().f_code.co_name))
+        return result_data
+            
 class All_Stock_Filters_fuc():
     @property
     def Data(self):
@@ -213,10 +238,18 @@ class All_Stock_Filters_fuc():
     def __init__(self,Date:datetime, Data:pd.DataFrame) -> None:
         self.Data = Data
         self._date = Date
+    def get_Filter(self, Max:int, Min:int, Type:info.Price_type):
+        aFilter = StockFilter(Stock_main,Max,Min,self.Data,self._date,Type)
+        temp = aFilter.get_ALL()
+        return temp
     def get_Filter_SMA(self, Max:int, Min:int, avgMA:int, Type:info.Price_type):
         aSMA = SMA_Stock(Stock_main,avgMA,Type)
-        aFilter = StockFilter(aSMA,Max,Min,self.Data,self._date)
+        aFilter = StockFilter(aSMA,Max,Min,self.Data,self._date,aSMA._type)
         temp = aFilter.get_ALL()
+        return temp
+    def get_Filter_RecordHigh(self, flashDay:int, recordDays:int, atype:info.Price_type):
+        aRH = StockRecordHigh(Stock_RecordHigh,self._date,flashDay,recordDays,self.Data,atype)
+        temp = aRH.get_ALL()
         return temp
  
 class Report():
@@ -672,7 +705,9 @@ def check_ETF_stock(number):
     return False
 
 def get_stock_RecordHight(number,date,flashDay,recordDays):#取得number在flashDay天內天是否在recordDays天內創新高
-    return All_Stock_fuc(number,Stock_main).get_RecordHigh(date,flashDay,recordDays,info.Price_type.High)
+    Stock_RecordHigh.number = number
+    Stock_RecordHigh.set_valuse(date,flashDay,recordDays,info.Price_type.High)
+    return Stock_RecordHigh.get_ALL()
     
     # All_data = get_stock_history(number,date+timedelta(days=-200),reGetInfo=False,UpdateInfo=False)
     # mask = All_data.index <= date
@@ -720,10 +755,6 @@ def get_stock_RecordHight(number,date,flashDay,recordDays):#取得number在flash
     #     if Pass:
     #         return True
 def get_stock_MA(number,date,MA_day):#取得某股票某天的均線
-    # Temp_MA = 0
-    # Temp_MA_day = MA_day
-    # All_data = get_stock_history(number,Temp_date+timedelta(days=-100),reGetInfo=False,UpdateInfo=False)
-    # Temp_MA = talib.SMA(All_data['Adj Close'],Temp_MA_day)[date]
     Stock_main.number = number
     Temp_MA = SMA_Stock(Stock_main,MA_day,info.Price_type.Close).get_ALL()[date]
     return Temp_MA
@@ -824,18 +855,15 @@ def get_stock_price(number,date,kind,isSMA = False):#取得某股票某天的Ａ
 #     df = df[df.index == number]
 #     return df
 def get_allstock_monthly_report(start):#爬某月所有股票月營收
-    # if start.day < 15 :#還沒超過15號，拿前兩個月
-    #     print("get_allstock_monthly_report:未到15號取上個月報表")
-    #     start = tools.changeDateMonth(start,-1)
-    year = start.year
-    m_data = pd.DataFrame()
-    fileName = filePath + '/' + fileName_monthRP + '/' + str(start.year)+'-'+str(start.month)+'monthly_report.csv'
-    if fileName in load_memery:
-        return load_memery[fileName]
-    if start.month == datetime.now().month and start.year == datetime.now().year:
+    print(''.join(["{}:取得".format(sys._getframe().f_code.co_name)]),"月營收的資料:",str(start))
+    if tools.Have_MonthRP(start) == False:
         return pd.DataFrame()
-    #去資料庫抓資料
-    m_data = update_stock_info.read_Dividend_yield('monthly_report_'+ str(start.year) + '_' + str(start.month))
+    m_data = pd.DataFrame()
+    year = start.year
+    file = 'monthly_report_'+ str(start.year) + '_' + str(start.month)
+    fileName = filePath + '/' + fileName_monthRP + '/' + file
+    m_data = load_month_file(fileName,file) #去資料庫抓資料
+    
     if m_data.empty == True:
         if os.path.isfile(fileName) == False:
             # 假如是西元，轉成民國
@@ -879,26 +907,28 @@ def get_allstock_monthly_report(start):#爬某月所有股票月營收
         m_data[["code"]] = m_data[["code"]].astype(int)
         m_data.set_index("code",inplace = True)
         #存到資料庫
-        update_stock_info.saveTable('monthly_report_'+ str(start.year) + '_' + str(start.month),m_data)
+        update_stock_info.saveTable(file,m_data)
     load_memery[fileName] = m_data
     return m_data      
 def get_allstock_financial_statement(start,type):#爬某季所有股票歷史財報
-    print("get_allstock_financial_statement:" + str(type))
+    print(''.join(["{}:取得".format(sys._getframe().f_code.co_name)]),str(type),"的季財報的資料:",str(start))
+    if tools.Have_DayRP(start) == False:
+        return pd.DataFrame()
     season = int(((start.month - 1)/3)+1)
     Temp_data = pd.DataFrame()
     if tools.CheckFS_season(start) == False:
         print('Season rp is no data yet!')
         return pd.DataFrame()
-    fileName = filePath + '/' + fileName_season + '/' + str(start.year)+"-season"+str(season)+"-"+type.value+".csv"
-    if fileName in load_memery:
-        return load_memery[fileName]
-    Temp_data = update_stock_info.read_Dividend_yield(str(start.year)+"-season"+str(season)+"-"+type.value)
+    file = str(start.year) + "-season" + str(season) + "-" + type.value
+    fileName = filePath + '/' + fileName_season + '/' + file
+    Temp_data = load_month_file(fileName,file) #去資料庫抓資料
+
     if Temp_data.empty == True:
         if os.path.isfile(fileName) == True:
             print("已經有" + str(start.month)+ "月財務報告")
         financial_statement(start.year,season,type)
         print("下載" + str(start.month)+ "月財務報告ＯＫ")
-    if Temp_data.empty == True:
+    
         stock = pd.read_csv(fileName)
         #整理一下資料
         stock.rename(columns = {"公司代號":"code"},inplace = True)
@@ -910,18 +940,18 @@ def get_allstock_financial_statement(start,type):#爬某季所有股票歷史財
                 stock["營業活動之淨現金流入（流出）"] = pd.to_numeric(stock["營業活動之淨現金流入（流出）"].str.replace('--', '0'))
             if stock["籌資活動之淨現金流入（流出）"].dtype == object: 
                 stock["籌資活動之淨現金流入（流出）"] = pd.to_numeric(stock["籌資活動之淨現金流入（流出）"].str.replace('--', '0'))
-        update_stock_info.saveTable(str(start.year)+"-season"+str(season)+"-"+type.value,stock)
+        update_stock_info.saveTable(file,stock)
     else:
         stock = Temp_data
     load_memery[fileName] = stock
     return stock
 def get_allstock_yield(start):#爬某天所有股票殖利率
-    fileName = filePath + '/' + fileName_yield + '/' + str(start.year) + '-' + str(start.month) + '-' + str(start.day) + '_Dividend_yield' 
+    print(''.join(["{}:取得".format(sys._getframe().f_code.co_name)]),"殖利率的資料:",str(start))
+    file = 'dividend_yield_'+ str(start.year) + '_' + str(start.month) + '_' + str(start.day)
+    fileName = filePath + '/' + fileName_yield + '/' + file
     m_yield = pd.DataFrame()
-    if fileName in load_memery:
-        return load_memery[fileName]
     #去資料庫抓資料
-    m_yield = update_stock_info.read_Dividend_yield('dividend_yield_'+ str(start.year) + '_' + str(start.month) + '_' + str(start.day))
+    m_yield = load_month_file(fileName,file)
 
     if m_yield.empty == True and Stock_2330.get_PriceByDateAndType(start,info.Price_type.AdjClose) != None:
         if os.path.isfile(fileName + '.csv') == False:
@@ -938,18 +968,17 @@ def get_allstock_yield(start):#爬某天所有股票殖利率
         m_yield.rename(columns = {"證券代號":"code"},inplace = True)
         m_yield.set_index("code",inplace = True)
         #存到資料庫
-        update_stock_info.saveTable('dividend_yield_'+ str(start.year) + '_' + str(start.month) + '_' + str(start.day),m_yield)
+        update_stock_info.saveTable(file,m_yield)
     load_memery[fileName] = m_yield
     return m_yield
 def get_stock_history(number,start = datetime.strptime('2005-1-1',"%Y-%m-%d"),reGetInfo = False,UpdateInfo = True) -> pd.DataFrame:#爬某個股票的歷史紀錄
-    print(''.join(["取得" , str(number) , "的資料從" , str(start) ,"到今天"]))
+    print(''.join(["取得" , str(number) , "的資料從" , str(start) ,"到今天:{}".format(sys._getframe().f_code.co_name)]))
     start_time = start
     if type(start_time) == str:
         start_time  = datetime.strptime(start_time,"%Y-%m-%d")
     if type(number) != str:
         number = str(number)
     data_time = datetime.strptime('2005-1-1',"%Y-%m-%d")
-    now_time = datetime.today()
     result = pd.DataFrame()
 
     if get_stock_info.ts.codes.__contains__(number) == False:
@@ -1150,12 +1179,12 @@ def save_stock_file(fileName,stockData,start_index = 0,end_index = 0):#存下歷
             pos2 = stringText.rindex('\r\n""\r\n')
             f.writelines(stringText[pos + 1:pos2])
 def load_stock_file(fileName,stockName = ''):#讀取歷史資料
-    if fileName in load_memery:
+    if fileName in load_memery:#快取
         return load_memery[fileName]
     df = pd.DataFrame()
-    if stockName != '':
+    if stockName != '':#mysql
         df = update_stock_info.readStockDay(stockName + info.local_type.Taiwan)
-    if df.empty == True:
+    if df.empty == True:#本機端存檔
         try:
             df = pd.read_csv(fileName + '.csv', index_col='Date', parse_dates=['Date'])
         except:
@@ -1171,10 +1200,37 @@ def load_stock_file(fileName,stockName = ''):#讀取歷史資料
     
     load_memery[fileName] = df
     return df
+def load_other_file(fileName,file = ''):#讀取資料
+    if fileName in load_memery:#快取
+        return load_memery[fileName]
+    df = pd.DataFrame()
+    if file != '':#mysql
+        df = update_stock_info.readStockDay(file)
+    if df.empty == True:#本機端存檔
+        try:
+            df = pd.read_csv(fileName + '.csv', index_col='Date', parse_dates=['Date'])
+        except:
+            print("no " + fileName + " csv file")
+    
+    df = df.dropna(how='any',inplace=False)#將某些null欄位去除
+    load_memery[fileName] = df
+    return df
 def delet_stock_file(fileName):#刪除歷史資料
     if os.path.isfile(fileName) == True:
         os.remove(fileName)
-
+def load_month_file(fileName,file = ''):
+    if fileName in load_memery:#快取
+        return load_memery[fileName]
+    df = pd.DataFrame()
+    if file != '':
+        df = update_stock_info.read_Dividend_yield(file)
+    if df.empty:
+        try:
+            df = pd.read_csv(fileName + '.csv', index_col='code', parse_dates=['code'])
+        except:
+            print("no " + fileName + " csv file")
+    load_memery[fileName] = df
+    return df
 #大盤綜合資料-------------   
 #取得騰落進階指標資料
 def get_ADLs(start_time,end_time):
@@ -1944,18 +2000,3 @@ def translate_dataFrame2(response,type,year,season = 1):
 
     return pd.DataFrame(data = data,columns=column)
 
-def load_other_file(fileName,file = ''):
-    if fileName in load_memery:
-        return load_memery[fileName]
-    df = pd.DataFrame()
-    if file != '':
-        df = update_stock_info.readStockDay(file)
-    if df.empty == True:
-        try:
-            df = pd.read_csv(fileName + '.csv', index_col='Date', parse_dates=['Date'])
-        except:
-            print("no " + fileName + " csv file")
-    
-    df = df.dropna(how='any',inplace=False)#將某些null欄位去除
-    load_memery[fileName] = df
-    return df

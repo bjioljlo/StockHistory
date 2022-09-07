@@ -463,8 +463,8 @@ def button_monthRP_Up_click():#全部篩選
 
     FS_data = get_financial_statement(date,GPM,OPR,EPS,RPS)
     
-    mainfun = gsh.All_fuc(tools.changeDateMonth(date,0),gsh.Month_index)
-    result_data = mainfun.get_Smooth_Up_Auto(monthRP_smoothAVG,monthRP_UpMpnth)
+    mainStockfun = gsh.All_Stock_Filters_fuc(date,FS_data)
+    mainfun = gsh.All_fuc(date,gsh.Month_index)
     
     mainfun.report = gsh.PBR_index
     BOOK_data = mainfun.get_Filter_Auto(PBR_high,PBR_low)
@@ -535,16 +535,18 @@ def button_monthRP_Up_click():#全部篩選
         pick_data = pd.merge(pick_data,EPS_up_data,left_index=True,right_index=True,how='left')
         pick_data = pick_data.dropna(axis=0,how='any')
     if price_high > 0 or price_low > 0:
-        price_data = gsh.get_price_range(date,price_high,price_low,pick_data)
+        mainStockfun.Data = pick_data
+        price_data = mainStockfun.get_Filter(price_high,price_low,info.Price_type.Close)
         pick_data = tools.MixDataFrames({'pick':pick_data,'price':price_data})
         pick_data = pick_data.dropna(axis=0,how='any')
     if flash_Day > 0 or record_Day > 0:
-        record_data = gsh.get_RecordHigh_range(date,flash_Day,record_Day,pick_data)
+        mainStockfun.Data = pick_data
+        record_data = mainStockfun.get_Filter_RecordHigh(flash_Day,record_Day,info.Price_type.High)
         pick_data = tools.MixDataFrames({'pick':pick_data,'recordHigh':record_data})
         pick_data = pick_data.dropna(axis=0,how='any')
     if volum > 0:
-        volume_data = gsh.All_Stock_Filters_fuc(tools.changeDateMonth(date,0),pick_data).get_Filter_SMA(volum * 100000000,volum * 10000,5,info.Price_type.Volume)
-        # volume_data =gsh.get_volume(volum * 10000,tools.changeDateMonth(date,0),pick_data,mypick.check_volum_Max.isChecked())
+        mainStockfun.Data = pick_data
+        volume_data = mainStockfun.get_Filter_SMA(volum * 100000000,volum * 10000,5,info.Price_type.Volume)
         pick_data = tools.MixDataFrames({'pick':pick_data,'volumeData':volume_data})
         pick_data = pick_data.dropna(axis=0,how='any')
     print("總挑選數量:" + str(len(pick_data)))
