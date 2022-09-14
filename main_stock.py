@@ -387,6 +387,7 @@ def button_SeasonRevenueGrowth_click():
                'Season Revenue Growth')
 #第2頁的UI
 def button_pick_click():#其他數值篩選
+    return
     volume_date = tools.QtDate2DateTime(myshow.date_endDate.date())
     GPM = mypick.input_GPM.toPlainText()
     OPR = mypick.input_OPR.toPlainText()
@@ -413,10 +414,10 @@ def button_pick_click():#其他數值篩選
     set_treeView2(mypick.treeView_pick.model(),resultAllFS)
 def button_monthRP_Up_click():#全部篩選
     date = tools.QtDate2DateTime(myshow.date_endDate.date())
-    if date.isoweekday() == 6:
-        date = date + timedelta(days=-1)#加一天
+    if date.isoweekday() == 6 or gsh.Stock_2330.get_PriceByDateAndType(date,info.Price_type.AdjClose) == None:
+        date = date + timedelta(days=-1)
     elif date.isoweekday() == 7:
-        date = date + timedelta(days=-2)#加2天
+        date = date + timedelta(days=-2)
     else:
         pass
     try:

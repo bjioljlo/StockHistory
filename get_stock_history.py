@@ -218,7 +218,8 @@ class StockFilter(VirtualStockFilterFuc):
             self._Stock.number = int(number)
             Temp = self._Stock.get_PriceByDate(date)
             if Temp.empty:
-                raise
+                result_data.drop(index=int(number),inplace=True)
+                continue
             if type(Temp) == pd.DataFrame:
                 Temp = Temp[atype][date]
             if type(Temp) == pd.Series:
@@ -680,7 +681,6 @@ class stock_data_kind(Enum):
 
 filePath = os.getcwd()#取得目錄路徑
 
-
 def check_no_use_stock(number):
     try:
         number = int(number)
@@ -792,15 +792,12 @@ def get_stock_MA(number,date,MA_day):#取得某股票某天的均線
 #     Temp_Invest = int(FreeSCF_Margin_temp.at[number,'投資活動之淨現金流入（流出）'])
 #     Temp_Free = int(Temp_Business+Temp_Invest)
 #     return Temp_Free
-def get_stock_price(number,date,kind,isSMA = False):#取得某股票某天的ＡＤＪ價格
+def get_stock_price(number,date,kind):#取得某股票某天的價格
     Stock_main.number = number
-    if kind == info.Price_type.Close:
-        Temp = Stock_main.get_PriceByDateAndType(date,info.Price_type.Close)
-    elif kind == stock_data_kind.Volume:
+    if kind == stock_data_kind.Volume:
         Stock_SMA.AvgDay = 5
         Stock_SMA.PriceType = info.Price_type.Volume
         Temp = Stock_SMA.get_PriceByDate(date)
-        # Temp = Stock_main.get_PriceByDateAndType(date,info.Price_type.Volume)
     else:
         Temp = Stock_main.get_PriceByDateAndType(date,kind)
     return Temp
@@ -865,7 +862,7 @@ def get_allstock_monthly_report(start):#爬某月所有股票月營收
     m_data = load_month_file(fileName,file) #去資料庫抓資料
     
     if m_data.empty == True:
-        if os.path.isfile(fileName) == False:
+        if os.path.isfile(fileName + '.csv') == False:
             # 假如是西元，轉成民國
             if year > 1990:
                 year -= 1911
@@ -924,12 +921,12 @@ def get_allstock_financial_statement(start,type):#爬某季所有股票歷史財
     Temp_data = load_month_file(fileName,file) #去資料庫抓資料
 
     if Temp_data.empty == True:
-        if os.path.isfile(fileName) == True:
+        if os.path.isfile(fileName + '.csv') == True:
             print("已經有" + str(start.month)+ "月財務報告")
         financial_statement(start.year,season,type)
         print("下載" + str(start.month)+ "月財務報告ＯＫ")
     
-        stock = pd.read_csv(fileName)
+        stock = pd.read_csv(fileName + '.csv')
         #整理一下資料
         stock.rename(columns = {"公司代號":"code"},inplace = True)
         stock.set_index("code",inplace = True)
@@ -971,7 +968,7 @@ def get_allstock_yield(start):#爬某天所有股票殖利率
         update_stock_info.saveTable(file,m_yield)
     load_memery[fileName] = m_yield
     return m_yield
-def get_stock_history(number,start = datetime.strptime('2005-1-1',"%Y-%m-%d"),reGetInfo = False,UpdateInfo = True) -> pd.DataFrame:#爬某個股票的歷史紀錄
+def get_stock_history(number,start = datetime.strptime('2005-1-1',"%Y-%m-%d")) -> pd.DataFrame:#爬某個股票的歷史紀錄
     print(''.join(["取得" , str(number) , "的資料從" , str(start) ,"到今天:{}".format(sys._getframe().f_code.co_name)]))
     start_time = start
     if type(start_time) == str:
@@ -987,22 +984,28 @@ def get_stock_history(number,start = datetime.strptime('2005-1-1',"%Y-%m-%d"),re
     if start_time < data_time:
         print('日期請大於西元2000年')
         return
-
-    m_history = load_stock_file(filePath +'/' + fileName_stockInfo  + '/' + str(number) + '_TW.csv',str(number))
+    file = str(number)
+    filename = filePath +'/' + fileName_stockInfo  + '/' + file
+    m_history = load_stock_file(filename,file)
     
     if m_history.empty == True:
-        if os.path.isfile(filePath +'/' + fileName_stockInfo  + '/' + str(number) + '_TW.csv') == False:
-            # 去ＹＦ讀取資料
-            update_stock_info.yf_info(str(number) + info.local_type.Taiwan)
-            # 偽停頓
-            time.sleep(1.5)
-        else:
-            if reGetInfo == True:
-                # 去ＹＦ讀取資料
-                update_stock_info.yf_info(str(number) + info.local_type.Taiwan)
-                # 偽停頓
-                time.sleep(1.5)
-        m_history = load_stock_file(filePath +'/' + fileName_stockInfo  + '/' + str(number) + '_TW.csv',str(number))
+        # 去ＹＦ讀取資料
+        update_stock_info.yf_info(str(number) + info.local_type.Taiwan)
+        # 偽停頓
+        time.sleep(1.5)
+        m_history = load_stock_file(filename,file)
+        # if os.path.isfile(filename + '_TW.csv') == False:
+        #     # 去ＹＦ讀取資料
+        #     update_stock_info.yf_info(str(number) + info.local_type.Taiwan)
+        #     # 偽停頓
+        #     time.sleep(1.5)
+        # else:
+        #     if reGetInfo == True:
+        #         # 去ＹＦ讀取資料
+        #         update_stock_info.yf_info(str(number) + info.local_type.Taiwan)
+        #         # 偽停頓
+        #         time.sleep(1.5)
+        # m_history = load_stock_file(filename,file)
        
     mask = m_history.index >= start_time
     result = m_history[mask]
@@ -1044,7 +1047,7 @@ def get_stock_AD_index(date,getNew = False):#取得上漲和下跌家數
             # if int(value.code) < 9000:
             #     continue
             #====test 測完請拿掉
-            m_history = get_stock_history(value.code,str_yesterday,reGetInfo=False,UpdateInfo=False)['Close']
+            m_history = get_stock_history(value.code,str_yesterday)['Close']
             try:
                 if m_history[str_yesterday] > m_history[str_date]:
                     down = down + 1
@@ -1052,10 +1055,10 @@ def get_stock_AD_index(date,getNew = False):#取得上漲和下跌家數
                     up = up + 1
             except:
                 print("get " + str(value.code) + " info fail!")
-                m_temp = get_stock_history(2330,str_yesterday,reGetInfo=False,UpdateInfo=False)['Close']
+                m_temp = get_stock_history(2330,str_yesterday)['Close']
                 if (m_temp.index == time).__contains__(True) != True:
                     return pd.DataFrame()
-                m_temp = get_stock_history(2330,str_date,reGetInfo=False,UpdateInfo=False)['Close']
+                m_temp = get_stock_history(2330,str_date)['Close']
                 if (m_temp.index == time).__contains__(True) != True:
                     return pd.DataFrame()
     ADindex_result_new = pd.DataFrame({'Date':[time],'上漲':[up],'下跌':[down]}).set_index('Date')
@@ -1730,12 +1733,12 @@ def get_volume(volumeNum,date,data = pd.DataFrame(),getMax = False):
         return volume_data
 
     for index,row in All_data.iterrows():
-        Temp_volume = get_stock_price(str(index),tools.DateTime2String(date),stock_data_kind.Volume,isSMA=True)
+        Temp_volume = get_stock_price(str(index),tools.DateTime2String(date),stock_data_kind.Volume)
         while (Temp_volume[date] == None):
             if check_no_use_stock(index):
                 break
             date = date + timedelta(days=-1)#加一天
-            Temp_volume = get_stock_price(str(index),tools.DateTime2String(date),stock_data_kind.Volume,isSMA=True)
+            Temp_volume = get_stock_price(str(index),tools.DateTime2String(date),stock_data_kind.Volume)
         if Temp_volume[date] != None and Temp_volume[date] >= volumeNum:
             Temp_number = int(index)
             volume_data = volume_data.append({'code':Temp_number,'volume':Temp_volume[date]},ignore_index=True)
@@ -1788,8 +1791,8 @@ def financial_statement(year, season, type):#year = 年 season = 季 type = 財�
         df = translate_dataFrame(response.text)
     else:
         df = translate_dataFrame2(response.text,type,myear,season)
-
-    df.to_csv(filePath + "/" + fileName_season + "/" + str(year)+"-season"+str(season)+"-"+type.value+".csv",index=False)
+    file = str(year) + "-season" + str(season) + "-" + type.value
+    df.to_csv(filePath + "/" + fileName_season + "/" + file + ".csv",index=False)
     # 偽停頓
     time.sleep(5)
 def remove_td(column):
