@@ -33,6 +33,13 @@ class Day_type(StrEnum):
     PER = '本益比'
     PBR = '股價淨值比'
     Yield = '殖利率(%)'
+class Price_type(StrEnum):
+    Open = 'Open'
+    High = 'High'
+    Low = 'Low'
+    Close = 'Close'
+    AdjClose = 'Adj Close'
+    Volume = 'Volume'
 # CPL_type = Enum('_type','本期綜合損益總額（稅後） 基本每股盈餘（元）')
 # BS_type = Enum('_type','資產總額 負債總額 股本 權益總額 每股參考淨值')
 # PLA_type = Enum('_type','營業收入 毛利率(%) 營業利益率(%) 稅前純益率(%) 稅後純益率(%)')

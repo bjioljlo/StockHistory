@@ -174,6 +174,12 @@ class Ui_MainWindow(object):
         self.button_getDebtRatio = QtWidgets.QPushButton(self.frame)
         self.button_getDebtRatio.setGeometry(QtCore.QRect(0, 270, 141, 32))
         self.button_getDebtRatio.setObjectName("button_getDebtRatio")
+        self.button_getSeason_Growth = QtWidgets.QPushButton(self.frame)
+        self.button_getSeason_Growth.setGeometry(QtCore.QRect(0, 300, 141, 32))
+        self.button_getSeason_Growth.setObjectName("button_getSeason_Growth")
+        self.button_getMonth_Growth = QtWidgets.QPushButton(self.centralwidget)
+        self.button_getMonth_Growth.setGeometry(QtCore.QRect(300, 370, 113, 32))
+        self.button_getMonth_Growth.setObjectName("button_getMonth_Growth")
         MainWindow.setCentralWidget(self.centralwidget)
         self.menubar = QtWidgets.QMenuBar(MainWindow)
         self.menubar.setGeometry(QtCore.QRect(0, 0, 576, 22))
@@ -224,5 +230,7 @@ class Ui_MainWindow(object):
         self.label_4.setText(_translate("MainWindow", "季報表紀錄"))
         self.button_getEPS.setText(_translate("MainWindow", "歷史EPS紀錄"))
         self.button_getDebtRatio.setText(_translate("MainWindow", "歷史資產負債率"))
+        self.button_getSeason_Growth.setText(_translate("MainWindow", "季營收成長"))
+        self.button_getMonth_Growth.setText(_translate("MainWindow", "月營收成長"))
 
 

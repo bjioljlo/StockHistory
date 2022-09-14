@@ -1,6 +1,6 @@
 from datetime import timedelta
 import pandas as pd
-from get_stock_history import get_stock_price,stock_data_kind
+from get_stock_history import get_stock_price,stock_data_kind,Stock_main
 import get_stock_info
 import tools
 import twstock as ts #抓取台灣股票資料套件

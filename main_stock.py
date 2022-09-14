@@ -9,6 +9,7 @@ import sys
 from datetime import datetime,timedelta
 import get_stock_info
 import get_stock_history as gsh
+import Infomation_type as info
 import update_stock_info
 import draw_figur as df
 import pandas as pd
@@ -79,7 +80,7 @@ def check_Volume_isCheck(m_history,stockInfo):
 def check_KD_isCheck(m_history,stockInfo):
     if myshow.check_KD.isChecked():
         df.draw_KD(m_history,stockInfo)
-def check_SMA_isCheck(m_history,stockInfo):
+def check_SMA_isCheck(m_history,stockInfo,startdate):
     if myshow.check_SMA.isChecked() == True:
         input_SMA_list = [myshow.input_SMA1,myshow.input_SMA2,myshow.input_SMA3]
         for i in input_SMA_list:
@@ -137,9 +138,9 @@ def button_moveToInputFromPick_click():
 #第1頁的UI
 def button_getStockHistory():#某股票蠟燭圖
     #存更新日期
-    date = myshow.date_startDate.date()
+    date = tools.QtDate2DateTime(myshow.date_startDate.date())
     end_date = tools.QtDate2DateTime(myshow.date_endDate.date())
-    str_date = str(date.year())+'-'+ str(date.month())+'-'+str(date.day())
+    str_date = tools.DateTime2String(date)
     df.Clear_PICS()
     if myshow.input_stockNumber.toPlainText() == "":
         for key,value in get_stock_info.stock_list.items():
@@ -153,14 +154,13 @@ def button_getStockHistory():#某股票蠟燭圖
         return  
     else:
         stock_number = myshow.input_stockNumber.toPlainText()
-        if myshow.check_UseNewInfo.isChecked():
-            m_history = gsh.get_stock_history(stock_number,str_date,reGetInfo=False)
-        else:
-            m_history = gsh.get_stock_history(stock_number,str_date,reGetInfo=False,UpdateInfo=False)
+        gsh.Stock_RangeDate.number = int(stock_number)
+        gsh.Stock_RangeDate.StartDate = date
+        m_history = gsh.Stock_RangeDate.get_ALL()
         if myshow.check_ADL.isChecked() or myshow.check_ADLs.isChecked():
             mask = m_history.index <= end_date
             m_history = m_history[mask]
-        check_SMA_isCheck(m_history,get_stock_info.Get_stock_info(stock_number))
+        check_SMA_isCheck(m_history,get_stock_info.Get_stock_info(stock_number),date)
         check_Volume_isCheck(m_history,get_stock_info.Get_stock_info(stock_number))  
         check_KD_isCheck(m_history,get_stock_info.Get_stock_info(stock_number))
         check_BollingerBands_isCheck(m_history,get_stock_info.Get_stock_info(stock_number))
@@ -353,8 +353,41 @@ def button_DebtRatio_click():#某股票資產負債比率
                main_imge._report._name,
                main_imge._report._name,
                'Debt Asset Ratio')
+def button_MonthRevenueGrowth_click():
+    if(myshow.input_stockNumber.toPlainText() == ''):
+        print('請輸入股票號碼')
+        return
+    if (int(myshow.date_endDate.date().day()) == int(datetime.today().day)):
+        print("今天還沒過完無資資訊")
+        return
+    main_imge = gsh.All_imge(tools.QtDate2DateTime(myshow.date_startDate.date()),
+                                  tools.QtDate2DateTime(myshow.date_endDate.date()),
+                                  gsh.MR_Growth_index)
+    data_result = main_imge.get_Chart(int(myshow.input_stockNumber.toPlainText()))
+    df.draw_RP(data_result,
+               myshow.input_stockNumber.toPlainText(),
+               main_imge._report._name,
+               main_imge._report._name,
+               'Month Revenue Growth')
+def button_SeasonRevenueGrowth_click():
+    if(myshow.input_stockNumber.toPlainText() == ''):
+        print('請輸入股票號碼')
+        return
+    if (int(myshow.date_endDate.date().day()) == int(datetime.today().day)):
+        print("今天還沒過完無資資訊")
+        return
+    main_imge = gsh.All_imge(tools.QtDate2DateTime(myshow.date_startDate.date()),
+                                  tools.QtDate2DateTime(myshow.date_endDate.date()),
+                                  gsh.SR_Growth_index)
+    data_result = main_imge.get_Chart(int(myshow.input_stockNumber.toPlainText()))
+    df.draw_RP(data_result,
+               myshow.input_stockNumber.toPlainText(),
+               main_imge._report._name,
+               main_imge._report._name,
+               'Season Revenue Growth')
 #第2頁的UI
 def button_pick_click():#其他數值篩選
+    return
     volume_date = tools.QtDate2DateTime(myshow.date_endDate.date())
     GPM = mypick.input_GPM.toPlainText()
     OPR = mypick.input_OPR.toPlainText()
@@ -381,10 +414,10 @@ def button_pick_click():#其他數值篩選
     set_treeView2(mypick.treeView_pick.model(),resultAllFS)
 def button_monthRP_Up_click():#全部篩選
     date = tools.QtDate2DateTime(myshow.date_endDate.date())
-    if date.isoweekday() == 6:
-        date = date + timedelta(days=-1)#加一天
+    if date.isoweekday() == 6 or gsh.Stock_2330.get_PriceByDateAndType(date,info.Price_type.AdjClose) == None:
+        date = date + timedelta(days=-1)
     elif date.isoweekday() == 7:
-        date = date + timedelta(days=-2)#加2天
+        date = date + timedelta(days=-2)
     else:
         pass
     try:
@@ -413,6 +446,8 @@ def button_monthRP_Up_click():#全部篩選
         FCF = mypick.input_FCF.value()
         ROE_up = mypick.input_ROE.value()
         EPS_up = mypick.input_EPS_up.value()
+        SRGR = mypick.input_SRGR.value()
+        MRGR = mypick.input_MRGR.value()
     except:
         print("Get value error")
         return
@@ -429,8 +464,8 @@ def button_monthRP_Up_click():#全部篩選
 
     FS_data = get_financial_statement(date,GPM,OPR,EPS,RPS)
     
-    mainfun = gsh.All_fuc(tools.changeDateMonth(date,0),gsh.Month_index)
-    result_data = mainfun.get_Smooth_Up_Auto(monthRP_smoothAVG,monthRP_UpMpnth)
+    mainStockfun = gsh.All_Stock_Filters_fuc(date,FS_data)
+    mainfun = gsh.All_fuc(date,gsh.Month_index)
     
     mainfun.report = gsh.PBR_index
     BOOK_data = mainfun.get_Filter_Auto(PBR_high,PBR_low)
@@ -457,6 +492,12 @@ def button_monthRP_Up_click():#全部篩選
     mainfun.report = gsh.EPS_index
     EPS_up_data = mainfun.get_Up_Auto(EPS_up)
     
+    mainfun.report = gsh.SR_Growth_index
+    SRGR_data = mainfun.get_Up_Auto(SRGR)
+    
+    mainfun.report = gsh.MR_Growth_index
+    MRGR_data = mainfun.get_Up_Auto(MRGR)
+    
     pick_data = FS_data
     if monthRP_smoothAVG > 0 or monthRP_UpMpnth > 0:            
         pick_data = pd.merge(pick_data,result_data,left_index=True,right_index=True,how='left')
@@ -479,6 +520,12 @@ def button_monthRP_Up_click():#全部篩選
     if OMGR > 0:
         pick_data = pd.merge(pick_data,OMGR_data,left_index=True,right_index=True,how='left')
         pick_data = pick_data.dropna(axis=0,how='any')
+    if SRGR > 0:
+        pick_data = pd.merge(pick_data,SRGR_data,left_index=True,right_index=True,how='left')
+        pick_data = pick_data.dropna(axis=0,how='any')
+    if MRGR > 0:
+        pick_data = pd.merge(pick_data,MRGR_data,left_index=True,right_index=True,how='left')
+        pick_data = pick_data.dropna(axis=0,how='any')
     if FCF > 0:
         pick_data = pd.merge(pick_data,FCF_data,left_index=True,right_index=True,how='left')
         pick_data = pick_data.dropna(axis=0,how='any')
@@ -489,15 +536,18 @@ def button_monthRP_Up_click():#全部篩選
         pick_data = pd.merge(pick_data,EPS_up_data,left_index=True,right_index=True,how='left')
         pick_data = pick_data.dropna(axis=0,how='any')
     if price_high > 0 or price_low > 0:
-        price_data = gsh.get_price_range(date,price_high,price_low,pick_data)
+        mainStockfun.Data = pick_data
+        price_data = mainStockfun.get_Filter(price_high,price_low,info.Price_type.Close)
         pick_data = tools.MixDataFrames({'pick':pick_data,'price':price_data})
         pick_data = pick_data.dropna(axis=0,how='any')
     if flash_Day > 0 or record_Day > 0:
-        record_data = gsh.get_RecordHigh_range(date,flash_Day,record_Day,pick_data)
+        mainStockfun.Data = pick_data
+        record_data = mainStockfun.get_Filter_RecordHigh(flash_Day,record_Day,info.Price_type.High)
         pick_data = tools.MixDataFrames({'pick':pick_data,'recordHigh':record_data})
         pick_data = pick_data.dropna(axis=0,how='any')
     if volum > 0:
-        volume_data =gsh.get_volume(volum * 10000,tools.changeDateMonth(date,0),pick_data,mypick.check_volum_Max.isChecked())
+        mainStockfun.Data = pick_data
+        volume_data = mainStockfun.get_Filter_SMA(volum * 100000000,volum * 10000,5,info.Price_type.Volume)
         pick_data = tools.MixDataFrames({'pick':pick_data,'volumeData':volume_data})
         pick_data = pick_data.dropna(axis=0,how='any')
     print("總挑選數量:" + str(len(pick_data)))
@@ -1049,6 +1099,8 @@ def Init_mainWindow():#初始化mainwindow
     myshow.button_getPCF.clicked.connect(button_PCF_click)
     myshow.button_getEPS.clicked.connect(button_EPS_click)
     myshow.button_getDebtRatio.clicked.connect(button_DebtRatio_click)
+    myshow.button_getMonth_Growth.clicked.connect(button_MonthRevenueGrowth_click)
+    myshow.button_getSeason_Growth.clicked.connect(button_SeasonRevenueGrowth_click)
     #設定日期
     Date = datetime.strptime(get_stock_info.Update_date[0:10],"%Y-%m-%d")
     date = QtCore.QDate(Date.year,Date.month,Date.day)
@@ -1097,6 +1149,8 @@ def Init_pickWindow():#初始化挑股票畫面
     mypick.input_FCF.setValue(0)
     mypick.input_ROE.setValue(0)
     mypick.input_EPS_up.setValue(0)
+    mypick.input_SRGR.setValue(0)
+    mypick.input_MRGR.setValue(0)
 def Init_backtestWindow():#初始化回測畫面
     mybacktest.button_backtest.clicked.connect(button_backtest_click)#設定button功能
     mybacktest.button_backtest_2.clicked.connect(button_backtest_click2)
