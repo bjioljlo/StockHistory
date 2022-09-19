@@ -183,6 +183,35 @@ class VirtualStockFilterFuc(Stock):
         super().__init__(Stock._number)
         self._Stock = Stock
         self._date = Date
+class StockPriceBetterMA(VirtualStockFilterFuc):
+    def __init__(self, Stock: SMA_Stock, Data:pd.DataFrame, Date: datetime) -> None:
+        self._Stock = Stock
+        self._date = Date
+        self._data = Data
+    def get_ALL(self):
+        return self.get_FilterBetterMA(self._data)
+    def get_FilterBetterMA(self, data:pd.DataFrame):
+        print("{} / {} is End!".format("StockPriceBetterMA",sys._getframe().f_code.co_name))
+        result_data = data
+        for number,row in data.iterrows():
+            self._Stock.number = int(number)
+            Temp_MA = self._Stock.get_PriceByDate(self._date)
+            Temp = self._Stock.Stock.get_PriceByDate(self._date)
+            if Temp.empty or Temp_MA.empty:
+                result_data.drop(index=int(number),inplace=True)
+                continue
+            if type(Temp) == pd.DataFrame:
+                Temp = Temp[self._Stock._type][self._date]
+            if type(Temp) == pd.Series:
+                Temp = Temp[self._date]
+            if type(Temp_MA) == pd.DataFrame:
+                Temp_MA = Temp_MA[self._Stock._type][self._date]
+            if type(Temp_MA) == pd.Series:
+                Temp_MA = Temp_MA[self._date]
+            if Temp_MA > Temp:
+                result_data.drop(index=int(number),inplace=True)
+        print("{} / {} is End!".format("StockPriceBetterMA",sys._getframe().f_code.co_name))
+        return result_data       
 class StockRecordHigh(VirtualStockFilterFuc):
     def __init__(self, Stock: RecordHigh_Stock, endDate:datetime, flashDay:int, recordDays:int, data:pd.DataFrame, atype:info.Price_type) -> None:
         self._Stock = Stock
@@ -251,6 +280,11 @@ class All_Stock_Filters_fuc():
     def get_Filter_RecordHigh(self, flashDay:int, recordDays:int, atype:info.Price_type):
         aRH = StockRecordHigh(Stock_RecordHigh,self._date,flashDay,recordDays,self.Data,atype)
         temp = aRH.get_ALL()
+        return temp
+    def get_Filter_BetterMA(self, avgMA:int, Type:info.Price_type):
+        aSMA = SMA_Stock(Stock_main,avgMA,Type)
+        aBetterMA = StockPriceBetterMA(aSMA, self.Data, self._date)
+        temp = aBetterMA.get_ALL()
         return temp
  
 class Report():
@@ -1638,6 +1672,14 @@ def get_ROE_range(time,ROE_start,ROE_end,data = pd.DataFrame()):#time = 取得�
 #取得股價篩選
 def get_price_range(time,high,low,data = pd.DataFrame()):#time = 取得資料的時間 high = 最高價 low = 最低價
     print('get_price_rang: start')
+    if high == low == 0:
+        return data
+    if high < low or high < 0 or low < 0:
+        print("price range number wrong!")
+        return data
+    Temp = All_Stock_Filters_fuc(time,data).get_Filter(high,low,info.Price_type.Close)
+    print('get_price_rang: end')
+    return Temp
     price_data = pd.DataFrame(columns=['code','price'])
     if high == low == 0:
         return price_data
@@ -1721,40 +1763,40 @@ def get_RecordHigh_range(time,Day,RecordHighDay,data = pd.DataFrame()):#time = �
     print('RecordHigh: end')
     return RH_result
 #取得交易量篩選
-def get_volume(volumeNum,date,data = pd.DataFrame(),getMax = False):
-    Temp_index = 0
-    Temp_volume2 = 0
-    volume_data = pd.DataFrame(columns=['code','volume'])
-    if volumeNum <= 0:
-        return volume_data
-    All_data = data
-    if All_data.empty == True:
-        print("get_volume:輸入的data是空的")
-        return volume_data
+# def get_volume(volumeNum,date,data = pd.DataFrame(),getMax = False):
+#     Temp_index = 0
+#     Temp_volume2 = 0
+#     volume_data = pd.DataFrame(columns=['code','volume'])
+#     if volumeNum <= 0:
+#         return volume_data
+#     All_data = data
+#     if All_data.empty == True:
+#         print("get_volume:輸入的data是空的")
+#         return volume_data
 
-    for index,row in All_data.iterrows():
-        Temp_volume = get_stock_price(str(index),tools.DateTime2String(date),stock_data_kind.Volume)
-        while (Temp_volume[date] == None):
-            if check_no_use_stock(index):
-                break
-            date = date + timedelta(days=-1)#加一天
-            Temp_volume = get_stock_price(str(index),tools.DateTime2String(date),stock_data_kind.Volume)
-        if Temp_volume[date] != None and Temp_volume[date] >= volumeNum:
-            Temp_number = int(index)
-            volume_data = volume_data.append({'code':Temp_number,'volume':Temp_volume[date]},ignore_index=True)
-            if(getMax):
-                if Temp_volume[date] > Temp_volume2:
-                    if(Temp_index != 0):
-                        volume_data = volume_data.drop(index = Temp_index)
-                    Temp_index = index
-                    Temp_volume2 = Temp_volume[date]
-                else:
-                    volume_data = volume_data.drop(index = index)
-            else:
-                pass
-    volume_data['code'] = volume_data['code'].astype('int')
-    volume_data.set_index('code',inplace=True)
-    return volume_data
+#     for index,row in All_data.iterrows():
+#         Temp_volume = get_stock_price(str(index),tools.DateTime2String(date),stock_data_kind.Volume)
+#         while (Temp_volume[date] == None):
+#             if check_no_use_stock(index):
+#                 break
+#             date = date + timedelta(days=-1)#加一天
+#             Temp_volume = get_stock_price(str(index),tools.DateTime2String(date),stock_data_kind.Volume)
+#         if Temp_volume[date] != None and Temp_volume[date] >= volumeNum:
+#             Temp_number = int(index)
+#             volume_data = volume_data.append({'code':Temp_number,'volume':Temp_volume[date]},ignore_index=True)
+#             if(getMax):
+#                 if Temp_volume[date] > Temp_volume2:
+#                     if(Temp_index != 0):
+#                         volume_data = volume_data.drop(index = Temp_index)
+#                     Temp_index = index
+#                     Temp_volume2 = Temp_volume[date]
+#                 else:
+#                     volume_data = volume_data.drop(index = index)
+#             else:
+#                 pass
+#     volume_data['code'] = volume_data['code'].astype('int')
+#     volume_data.set_index('code',inplace=True)
+#     return volume_data
 
 #--------------------------
 #爬取歷史財報並存檔
@@ -2002,4 +2044,3 @@ def translate_dataFrame2(response,type,year,season = 1):
                         column.append(profitMargin2)
 
     return pd.DataFrame(data = data,columns=column)
-

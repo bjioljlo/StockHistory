@@ -386,32 +386,32 @@ def button_SeasonRevenueGrowth_click():
                main_imge._report._name,
                'Season Revenue Growth')
 #第2頁的UI
-def button_pick_click():#其他數值篩選
-    return
-    volume_date = tools.QtDate2DateTime(myshow.date_endDate.date())
-    GPM = mypick.input_GPM.toPlainText()
-    OPR = mypick.input_OPR.toPlainText()
-    EPS = mypick.input_EPS.toPlainText()
-    RPS = mypick.input_RPS.toPlainText()
+# def button_pick_click():#其他數值篩選
+#     return
+    # volume_date = tools.QtDate2DateTime(myshow.date_endDate.date())
+    # GPM = mypick.input_GPM.toPlainText()
+    # OPR = mypick.input_OPR.toPlainText()
+    # EPS = mypick.input_EPS.toPlainText()
+    # RPS = mypick.input_RPS.toPlainText()
     
-    resultAllFS = pd.DataFrame()
-    resultAllFS = get_financial_statement(volume_date,GPM,OPR,EPS,RPS)
+    # resultAllFS = pd.DataFrame()
+    # resultAllFS = get_financial_statement(volume_date,GPM,OPR,EPS,RPS)
 
-    if volume_date.isoweekday() == 6:
-        volume_date = volume_date + timedelta(days=-1)#加一天
-    elif volume_date.isoweekday() == 7:
-        volume_date = volume_date + timedelta(days=-2)#加2天
-    else:
-        pass
+    # if volume_date.isoweekday() == 6:
+    #     volume_date = volume_date + timedelta(days=-1)#加一天
+    # elif volume_date.isoweekday() == 7:
+    #     volume_date = volume_date + timedelta(days=-2)#加2天
+    # else:
+    #     pass
     
-    price_data = gsh.get_price_range(volume_date,int(mypick.input_price_high.toPlainText()),int(mypick.input_price_low.toPlainText()),resultAllFS)
-    if price_data.empty == False:
-        resultAllFS = tools.MixDataFrames({'pick':resultAllFS,'recordHigh':price_data})
-        resultAllFS = resultAllFS.dropna(axis=0,how='any')
-    resultAllFS = gsh.get_volume(int(mypick.input_volum.toPlainText()),tools.changeDateMonth(volume_date,0),resultAllFS)
+    # price_data = gsh.get_price_range(volume_date,int(mypick.input_price_high.toPlainText()),int(mypick.input_price_low.toPlainText()),resultAllFS)
+    # if price_data.empty == False:
+    #     resultAllFS = tools.MixDataFrames({'pick':resultAllFS,'recordHigh':price_data})
+    #     resultAllFS = resultAllFS.dropna(axis=0,how='any')
+    # resultAllFS = gsh.get_volume(int(mypick.input_volum.toPlainText()),tools.changeDateMonth(volume_date,0),resultAllFS)
 
-    mypick.treeView_pick.setModel(creat_treeView_model(mypick.treeView_pick,pick_titalList))#設定treeView功能
-    set_treeView2(mypick.treeView_pick.model(),resultAllFS)
+    # mypick.treeView_pick.setModel(creat_treeView_model(mypick.treeView_pick,pick_titalList))#設定treeView功能
+    # set_treeView2(mypick.treeView_pick.model(),resultAllFS)
 def button_monthRP_Up_click():#全部篩選
     date = tools.QtDate2DateTime(myshow.date_endDate.date())
     if date.isoweekday() == 6 or gsh.Stock_2330.get_PriceByDateAndType(date,info.Price_type.AdjClose) == None:
@@ -448,6 +448,7 @@ def button_monthRP_Up_click():#全部篩選
         EPS_up = mypick.input_EPS_up.value()
         SRGR = mypick.input_SRGR.value()
         MRGR = mypick.input_MRGR.value()
+        BerMA = mypick.input_BetterMA.value()
     except:
         print("Get value error")
         return
@@ -544,6 +545,11 @@ def button_monthRP_Up_click():#全部篩選
         mainStockfun.Data = pick_data
         record_data = mainStockfun.get_Filter_RecordHigh(flash_Day,record_Day,info.Price_type.High)
         pick_data = tools.MixDataFrames({'pick':pick_data,'recordHigh':record_data})
+        pick_data = pick_data.dropna(axis=0,how='any')
+    if BerMA > 0:
+        mainStockfun.Data = pick_data
+        BerMA_data = mainStockfun.get_Filter_BetterMA(BerMA,info.Price_type.Close)
+        pick_data = tools.MixDataFrames({'pick':pick_data,'BerMA_data':BerMA_data})
         pick_data = pick_data.dropna(axis=0,how='any')
     if volum > 0:
         mainStockfun.Data = pick_data
@@ -1118,7 +1124,6 @@ def Init_mainWindow():#初始化mainwindow
     myshow.input_SMA2.setPlainText("20")
     myshow.input_SMA3.setPlainText("60")
 def Init_pickWindow():#初始化挑股票畫面
-    mypick.button_pick.clicked.connect(button_pick_click)#設定button功能
     mypick.button_moveToInput.clicked.connect(button_moveToInputFromPick_click)#設定button功能
     mypick.treeView_pick.setModel(creat_treeView_model(mypick.treeView_pick,pick_titalList))#設定treeView功能
     mypick.button_pick_2.clicked.connect(button_monthRP_Up_click)#設定button功能
