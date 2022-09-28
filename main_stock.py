@@ -25,7 +25,7 @@ pick_titalList = ["股票號碼","股票名稱","每股參考淨值","基本每�
                 "權益總額","本期綜合損益總額（稅後）","PBR","PER","PEG","ROE","殖利率"]
 lock = threading.Lock()
 
-class BackTestParameter():
+class BackTestParameter(backtest_stock.VirturlBackTestParameter):
     def __init__(self):
         self.date_start = tools.QtDate2DateTime(mybacktest.date_start.date())
         self.date_end = tools.QtDate2DateTime(mybacktest.date_end.date())
@@ -467,6 +467,7 @@ def button_monthRP_Up_click():#全部篩選
     
     mainStockfun = gsh.All_Stock_Filters_fuc(date,FS_data)
     mainfun = gsh.All_fuc(date,gsh.Month_index)
+    result_data = mainfun.get_Smooth_Up_Auto(monthRP_smoothAVG,monthRP_UpMpnth)
     
     mainfun.report = gsh.PBR_index
     BOOK_data = mainfun.get_Filter_Auto(PBR_high,PBR_low)
@@ -538,7 +539,7 @@ def button_monthRP_Up_click():#全部篩選
         pick_data = pick_data.dropna(axis=0,how='any')
     if price_high > 0 or price_low > 0:
         mainStockfun.Data = pick_data
-        price_data = mainStockfun.get_Filter(price_high,price_low,info.Price_type.Close)
+        price_data = mainStockfun.get_Filter('price',price_high,price_low,info.Price_type.Close)
         pick_data = tools.MixDataFrames({'pick':pick_data,'price':price_data})
         pick_data = pick_data.dropna(axis=0,how='any')
     if flash_Day > 0 or record_Day > 0:
@@ -553,7 +554,7 @@ def button_monthRP_Up_click():#全部篩選
         pick_data = pick_data.dropna(axis=0,how='any')
     if volum > 0:
         mainStockfun.Data = pick_data
-        volume_data = mainStockfun.get_Filter_SMA(volum * 100000000,volum * 10000,5,info.Price_type.Volume)
+        volume_data = mainStockfun.get_Filter_SMA('volume',volum * 100000000,volum * 10000,5,info.Price_type.Volume)
         pick_data = tools.MixDataFrames({'pick':pick_data,'volumeData':volume_data})
         pick_data = pick_data.dropna(axis=0,how='any')
     print("總挑選數量:" + str(len(pick_data)))
