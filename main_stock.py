@@ -25,7 +25,7 @@ pick_titalList = ["股票號碼","股票名稱","每股參考淨值","基本每�
                 "權益總額","本期綜合損益總額（稅後）","PBR","PER","PEG","ROE","殖利率"]
 lock = threading.Lock()
 
-class BackTestParameter():
+class BackTestParameter(backtest_stock.VirturlBackTestParameter):
     def __init__(self):
         self.date_start = tools.QtDate2DateTime(mybacktest.date_start.date())
         self.date_end = tools.QtDate2DateTime(mybacktest.date_end.date())
@@ -386,32 +386,32 @@ def button_SeasonRevenueGrowth_click():
                main_imge._report._name,
                'Season Revenue Growth')
 #第2頁的UI
-def button_pick_click():#其他數值篩選
-    return
-    volume_date = tools.QtDate2DateTime(myshow.date_endDate.date())
-    GPM = mypick.input_GPM.toPlainText()
-    OPR = mypick.input_OPR.toPlainText()
-    EPS = mypick.input_EPS.toPlainText()
-    RPS = mypick.input_RPS.toPlainText()
+# def button_pick_click():#其他數值篩選
+#     return
+    # volume_date = tools.QtDate2DateTime(myshow.date_endDate.date())
+    # GPM = mypick.input_GPM.toPlainText()
+    # OPR = mypick.input_OPR.toPlainText()
+    # EPS = mypick.input_EPS.toPlainText()
+    # RPS = mypick.input_RPS.toPlainText()
     
-    resultAllFS = pd.DataFrame()
-    resultAllFS = get_financial_statement(volume_date,GPM,OPR,EPS,RPS)
+    # resultAllFS = pd.DataFrame()
+    # resultAllFS = get_financial_statement(volume_date,GPM,OPR,EPS,RPS)
 
-    if volume_date.isoweekday() == 6:
-        volume_date = volume_date + timedelta(days=-1)#加一天
-    elif volume_date.isoweekday() == 7:
-        volume_date = volume_date + timedelta(days=-2)#加2天
-    else:
-        pass
+    # if volume_date.isoweekday() == 6:
+    #     volume_date = volume_date + timedelta(days=-1)#加一天
+    # elif volume_date.isoweekday() == 7:
+    #     volume_date = volume_date + timedelta(days=-2)#加2天
+    # else:
+    #     pass
     
-    price_data = gsh.get_price_range(volume_date,int(mypick.input_price_high.toPlainText()),int(mypick.input_price_low.toPlainText()),resultAllFS)
-    if price_data.empty == False:
-        resultAllFS = tools.MixDataFrames({'pick':resultAllFS,'recordHigh':price_data})
-        resultAllFS = resultAllFS.dropna(axis=0,how='any')
-    resultAllFS = gsh.get_volume(int(mypick.input_volum.toPlainText()),tools.changeDateMonth(volume_date,0),resultAllFS)
+    # price_data = gsh.get_price_range(volume_date,int(mypick.input_price_high.toPlainText()),int(mypick.input_price_low.toPlainText()),resultAllFS)
+    # if price_data.empty == False:
+    #     resultAllFS = tools.MixDataFrames({'pick':resultAllFS,'recordHigh':price_data})
+    #     resultAllFS = resultAllFS.dropna(axis=0,how='any')
+    # resultAllFS = gsh.get_volume(int(mypick.input_volum.toPlainText()),tools.changeDateMonth(volume_date,0),resultAllFS)
 
-    mypick.treeView_pick.setModel(creat_treeView_model(mypick.treeView_pick,pick_titalList))#設定treeView功能
-    set_treeView2(mypick.treeView_pick.model(),resultAllFS)
+    # mypick.treeView_pick.setModel(creat_treeView_model(mypick.treeView_pick,pick_titalList))#設定treeView功能
+    # set_treeView2(mypick.treeView_pick.model(),resultAllFS)
 def button_monthRP_Up_click():#全部篩選
     date = tools.QtDate2DateTime(myshow.date_endDate.date())
     if date.isoweekday() == 6 or gsh.Stock_2330.get_PriceByDateAndType(date,info.Price_type.AdjClose) == None:
@@ -448,6 +448,7 @@ def button_monthRP_Up_click():#全部篩選
         EPS_up = mypick.input_EPS_up.value()
         SRGR = mypick.input_SRGR.value()
         MRGR = mypick.input_MRGR.value()
+        BerMA = mypick.input_BetterMA.value()
     except:
         print("Get value error")
         return
@@ -466,6 +467,7 @@ def button_monthRP_Up_click():#全部篩選
     
     mainStockfun = gsh.All_Stock_Filters_fuc(date,FS_data)
     mainfun = gsh.All_fuc(date,gsh.Month_index)
+    result_data = mainfun.get_Smooth_Up_Auto(monthRP_smoothAVG,monthRP_UpMpnth)
     
     mainfun.report = gsh.PBR_index
     BOOK_data = mainfun.get_Filter_Auto(PBR_high,PBR_low)
@@ -537,7 +539,7 @@ def button_monthRP_Up_click():#全部篩選
         pick_data = pick_data.dropna(axis=0,how='any')
     if price_high > 0 or price_low > 0:
         mainStockfun.Data = pick_data
-        price_data = mainStockfun.get_Filter(price_high,price_low,info.Price_type.Close)
+        price_data = mainStockfun.get_Filter('price',price_high,price_low,info.Price_type.Close)
         pick_data = tools.MixDataFrames({'pick':pick_data,'price':price_data})
         pick_data = pick_data.dropna(axis=0,how='any')
     if flash_Day > 0 or record_Day > 0:
@@ -545,9 +547,14 @@ def button_monthRP_Up_click():#全部篩選
         record_data = mainStockfun.get_Filter_RecordHigh(flash_Day,record_Day,info.Price_type.High)
         pick_data = tools.MixDataFrames({'pick':pick_data,'recordHigh':record_data})
         pick_data = pick_data.dropna(axis=0,how='any')
+    if BerMA > 0:
+        mainStockfun.Data = pick_data
+        BerMA_data = mainStockfun.get_Filter_BetterMA(BerMA,info.Price_type.Close)
+        pick_data = tools.MixDataFrames({'pick':pick_data,'BerMA_data':BerMA_data})
+        pick_data = pick_data.dropna(axis=0,how='any')
     if volum > 0:
         mainStockfun.Data = pick_data
-        volume_data = mainStockfun.get_Filter_SMA(volum * 100000000,volum * 10000,5,info.Price_type.Volume)
+        volume_data = mainStockfun.get_Filter_SMA('volume',volum * 100000000,volum * 10000,5,info.Price_type.Volume)
         pick_data = tools.MixDataFrames({'pick':pick_data,'volumeData':volume_data})
         pick_data = pick_data.dropna(axis=0,how='any')
     print("總挑選數量:" + str(len(pick_data)))
@@ -1118,7 +1125,6 @@ def Init_mainWindow():#初始化mainwindow
     myshow.input_SMA2.setPlainText("20")
     myshow.input_SMA3.setPlainText("60")
 def Init_pickWindow():#初始化挑股票畫面
-    mypick.button_pick.clicked.connect(button_pick_click)#設定button功能
     mypick.button_moveToInput.clicked.connect(button_moveToInputFromPick_click)#設定button功能
     mypick.treeView_pick.setModel(creat_treeView_model(mypick.treeView_pick,pick_titalList))#設定treeView功能
     mypick.button_pick_2.clicked.connect(button_monthRP_Up_click)#設定button功能
