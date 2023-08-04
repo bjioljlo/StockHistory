@@ -21,20 +21,22 @@ class data_stock_info():#股票資訊結構
 def Add_stock_info(number):#新增追蹤股票
     if stock_list.__contains__(number):
         print("此股票已經在清單中")
-        return
+        return False
     if ts.codes.__contains__(number) == False:
         print("無此檔股票")
-        return
+        return False
     m_stock = ts.codes[number]
     m_info = data_stock_info(m_stock.code,m_stock.name,m_stock.type,m_stock.start,m_stock.market,m_stock.group)
     stock_list[number]  = m_info
     Save_stock_info()
+    return True
 def Delet_stock_info(number):#刪除追蹤股票
     if stock_list.__contains__(number) == False:
         print("此股票已經不在清單中")
-        return
+        return False
     del stock_list[number]
     Save_stock_info()
+    return True
 def Save_stock_info():#存檔追蹤股票
     np.save(Save_name,stock_list)
 def Save_Update_date():#存檔更新日期

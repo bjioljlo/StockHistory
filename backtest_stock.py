@@ -144,8 +144,8 @@ def backtest_PERandPBR(mainParament):
         #更新資訊--------------------------------------
         userInfo.Record_userInfo()
         userInfo.Recod_tradeInfo()
-        Temp_result_pick = Temp_result_pick.append({'date':userInfo.now_day,
-                                                '選股數量':len(Temp_result)},ignore_index = True)
+        Temp_result_pick = pd.concat([Temp_result_pick,{'date':userInfo.now_day,
+                                                '選股數量':len(Temp_result)}],ignore_index = True)
         #加一天----------------------------
         if userInfo.add_one_day() == False:
             break
@@ -219,8 +219,8 @@ def backtest_monthRP_Up(mainParament):
             Temp_change = mainParament.change_days
         userInfo.Record_userInfo()
         userInfo.Recod_tradeInfo()
-        Temp_result_pick = Temp_result_pick.append({'date':userInfo.now_day,
-                                                '選股數量':len(Temp_result)},ignore_index = True)
+        Temp_result_pick = pd.concat([Temp_result_pick,{'date':userInfo.now_day,
+                                                '選股數量':len(Temp_result)}],ignore_index = True)
         #加一天----------------------------
         if userInfo.add_one_day() == False:
             break
@@ -257,8 +257,8 @@ def backtest_Regular_quota(mainParament):
 
         #開始篩選--------------------------------------
         Temp_result = pd.DataFrame()
-        Temp_result = Temp_result.append({'date':userInfo.now_day,
-                                                'number':mainParament.buy_number},ignore_index = True)
+        Temp_result = pd.concat([Temp_result,{'date':userInfo.now_day,
+                                                'number':mainParament.buy_number}],ignore_index = True)
 
         #入場訊號篩選--------------------------------------
         if userInfo.now_day.month != buy_month.month and userInfo.now_day.day >= mainParament.buy_day:
@@ -273,8 +273,8 @@ def backtest_Regular_quota(mainParament):
         if userInfo.start_money > 0:
             userInfo.Record_userInfo()
             userInfo.Recod_tradeInfo()
-        Temp_result_pick = Temp_result_pick.append({'date':userInfo.now_day,
-                                                '選股數量':len(Temp_result)},ignore_index = True)
+        Temp_result_pick = pd.concat([Temp_result_pick,{'date':userInfo.now_day,
+                                                '選股數量':len(Temp_result)}],ignore_index = True)
 
         #加一天----------------------------
         if userInfo.add_one_day() == False:
@@ -370,8 +370,8 @@ def backtest_Record_high(mainParament):
             Temp_reset = mainParament.change_days
         userInfo.Record_userInfo()
         userInfo.Recod_tradeInfo()
-        Temp_result_pick = Temp_result_pick.append({'date':userInfo.now_day,
-                                                '選股數量':len(Temp_result)},ignore_index = True)
+        Temp_result_pick = pd.concat([Temp_result_pick,{'date':userInfo.now_day,
+                                                '選股數量':len(Temp_result)}],ignore_index = True)
         #加一天----------------------------
         if userInfo.add_one_day() == False:
             break
@@ -477,7 +477,7 @@ def backtest_KD_pick(mainParament):
             Temp_buy = pd.DataFrame(columns={'code','volume'})
             for number in buy_numbers:
                 volume = gsh.get_stock_price(number,tools.DateTime2String(userInfo.now_day),gsh.stock_data_kind.Volume)
-                Temp_buy = Temp_buy.append({'code':str(number),'volume':volume},ignore_index = True)
+                Temp_buy = pd.concat([Temp_buy,{'code':str(number),'volume':volume}],ignore_index = True)
             Temp_buy = Temp_buy.sort_values(by='volume', ascending=False).set_index('code')
             buy_all_stock(Temp_buy)
             has_trade = True
@@ -485,13 +485,13 @@ def backtest_KD_pick(mainParament):
         #更新資訊--------------------------------------
         if has_trade:
             if len(buy_numbers) != 0:
-                buy_data = buy_data.append({'Date':index,'code':buy_numbers},ignore_index = True)
+                buy_data = pd.concat([buy_data,{'Date':index,'code':buy_numbers}],ignore_index = True)
             if len(sell_numbers) != 0:
-                sell_data = sell_data.append({'Date':index,'code':sell_numbers},ignore_index = True)
+                sell_data = pd.concat([sell_data,{'Date':index,'code':sell_numbers}],ignore_index = True)
             userInfo.Record_userInfo()
             userInfo.Recod_tradeInfo()
-            Temp_result_pick = Temp_result_pick.append({'date':userInfo.now_day,
-                                                '選股數量':len(buy_numbers)},ignore_index = True)
+            Temp_result_pick = pd.concat([Temp_result_pick,{'date':userInfo.now_day,
+                                                '選股數量':len(buy_numbers)}],ignore_index = True)
     
     buy_data = buy_data.set_index('Date')
     buy_data.to_csv('buy.csv')
@@ -554,8 +554,8 @@ def backtest_PEG_pick_Fast(mainParament):
         if len(userInfo.handle_stock) > 0 or has_trade:
             Record_userInfo()
             Recod_tradeInfo()
-            Temp_result_pick = Temp_result_pick.append({'date':userInfo.now_day,
-                                                '選股數量':len(Temp_buy)},ignore_index = True)
+            Temp_result_pick = pd.concat([Temp_result_pick,{'date':userInfo.now_day,
+                                                '選股數量':len(Temp_buy)}],ignore_index = True)
         #加一天----------------------------
         if userInfo.add_one_day() == False:
             break
@@ -600,8 +600,8 @@ def backtest_Regular_quota_Fast(mainParament:VirturlBackTestParameter):
             #更新資訊--------------------------------------   
             Record_userInfo()
             Recod_tradeInfo()
-            Temp_result_pick = Temp_result_pick.append({'date':userInfo.now_day,
-                                                '選股數量':1},ignore_index = True)
+            Temp_result_pick = pd.concat([Temp_result_pick,{'date':userInfo.now_day,
+                                                '選股數量':1}],ignore_index = True)
         #加一天----------------------------
         if add_one_day() == False:
             break
@@ -693,8 +693,8 @@ def backtest_Record_high_Fast(mainParament):
         if len(userInfo.handle_stock) > 0 or has_trade:
             Record_userInfo()
             Recod_tradeInfo()
-            Temp_result_pick = Temp_result_pick.append({'date':userInfo.now_day,
-                                                '選股數量':len(Temp_result)},ignore_index = True)
+            Temp_result_pick = pd.concat([Temp_result_pick,{'date':userInfo.now_day,
+                                                '選股數量':len(Temp_result)}],ignore_index = True)
         #加一天----------------------------
         if add_one_day() == False:
             break
@@ -780,8 +780,8 @@ def backtest_PERandPBR_Fast(mainParament):
         if len(userInfo.handle_stock) > 0 or has_trade == True:
             userInfo.Record_userInfo()
             userInfo.Recod_tradeInfo()
-            Temp_result_pick = Temp_result_pick.append({'date':userInfo.now_day,
-                                                '選股數量':len(Temp_result)},ignore_index = True)
+            Temp_result_pick = pd.concat([Temp_result_pick,{'date':userInfo.now_day,
+                                                '選股數量':len(Temp_result)}],ignore_index = True)
         #加一天----------------------------
         if add_one_day() == False:
             break
@@ -853,8 +853,8 @@ def backtest_monthRP_Up_Fast(mainParament:VirturlBackTestParameter):
         if has_trade or len(userInfo.handle_stock) > 0:
             userInfo.Record_userInfo()
             userInfo.Recod_tradeInfo()
-            Temp_result_pick = Temp_result_pick.append({'date':userInfo.now_day,
-                                                '選股數量':len(Temp_result)},ignore_index = True)
+            Temp_result_pick = pd.concat([Temp_result_pick,{'date':userInfo.now_day,
+                                                '選股數量':len(Temp_result)}],ignore_index = True)
         #加一天----------------------------
         if add_one_day() == False:
             break
