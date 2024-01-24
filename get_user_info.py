@@ -123,5 +123,3 @@ class data_user_info():#使用者資訊
                                                 '號碼':temp_numbers,
                                                 '數量':temp_amount,
                                                 '均價':temp_price}],ignore_index=True)
-
-

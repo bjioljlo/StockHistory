@@ -130,7 +130,7 @@ def Have_MonthRP(date:datetime):#檢查當下月營收資料
     if date.year == datetime.now().year and int(date.month) == int(changeDateMonth(datetime.today(),-1).month) and (int(datetime.today().day)) < 15 :#還沒超過15號
         return False
     return True
-def Have_DayRP(date:datetime):
+def Have_DayRP(date:datetime):#檢查當下日營收資料
     if date.month >= datetime.now().month and date.year >= datetime.now().year and date.day >= datetime.now().day:
         print(str(date) +'的日期不對，資料未出')
         return False
