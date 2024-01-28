@@ -125,12 +125,12 @@ def CheckFS_season(date):#檢查當季資料出來沒
         else:
             return False
 def Have_MonthRP(date:datetime):#檢查當下月營收資料
-    if date.month == datetime.now().month and date.year == datetime.now().year:
+    if date.month == datetime.now().month and date.year == datetime.now().year:#當月還沒出
         return False
-    if int(date.month) == int(changeDateMonth(datetime.today(),-1).month) and (int(datetime.today().day)) < 15 :#還沒超過15號
+    if date.year == datetime.now().year and int(date.month) == int(changeDateMonth(datetime.today(),-1).month) and (int(datetime.today().day)) < 15 :#還沒超過15號
         return False
     return True
-def Have_DayRP(date:datetime):
+def Have_DayRP(date:datetime):#檢查當下日營收資料
     if date.month >= datetime.now().month and date.year >= datetime.now().year and date.day >= datetime.now().day:
         print(str(date) +'的日期不對，資料未出')
         return False

@@ -232,7 +232,7 @@ class StockRecordHigh(VirtualStockFilterFuc):
                 result_data.drop(index=int(number),inplace=True)
                 print(''.join([str(number),'/////',str(row)]))
             else:
-                result = result.append(pd.DataFrame({'code':number,'RecordHigh':Temp},index=[1]),ignore_index=True)
+                result = pd.concat([result,pd.DataFrame({'code':number,'RecordHigh':Temp},index=[1])],ignore_index=True)
         result.set_index('code',inplace=True)
         return result    
 class StockFilter(VirtualStockFilterFuc):
@@ -262,7 +262,7 @@ class StockFilter(VirtualStockFilterFuc):
             if Temp > max or Temp < min:
                 result_data.drop(index=int(number),inplace=True)
             else:
-                result = result.append(pd.DataFrame({'code':number,name:Temp},index=[1]),ignore_index=True)
+                result = pd.concat([result,pd.DataFrame({'code':number,name:Temp},index=[1])],ignore_index=True)
         print("{} / {} is End!".format("StockFilter",sys._getframe().f_code.co_name))
         result.set_index('code',inplace=True)
         return result
@@ -548,7 +548,7 @@ class ReportAutoTrace(Original):
         while Temp.empty:
             date = self._Report.Next_date(date)
             Temp = self._Report.get_ALL_Report(date)
-            if Timer == 3:
+            if Timer == 4:
                 raise NotImplementedError("ReportAutoTrace error!" + str(type(self._Report)))
             Timer = Timer + 1
         print("{} / {} is End!".format(self._name,sys._getframe().f_code.co_name))
@@ -1109,7 +1109,7 @@ def get_stock_AD_index(date,getNew = False):#取得上漲和下跌家數
                 if (m_temp.index == time).__contains__(True) != True:
                     return pd.DataFrame()
     ADindex_result_new = pd.DataFrame({'Date':[time],'上漲':[up],'下跌':[down]}).set_index('Date')
-    ADindex_result = ADindex_result.append(ADindex_result_new)
+    ADindex_result = pd.concat([ADindex_result,ADindex_result_new])
     ADindex_result = ADindex_result.sort_index()
     update_stock_info.saveTable('ad_index',ADindex_result)
     load_memery[fileName] = ADindex_result
@@ -1302,7 +1302,7 @@ def get_ADLs(start_time,end_time):
             now_time = tools.backWorkDays(now_time,-1)#加一天
             continue
         temp_data = pd.DataFrame({'Date':[now_time],'ADLs':[ADLs_value]}).set_index('Date')
-        data = data.append(temp_data)
+        data = pd.concat([data,temp_data])
         now_time = tools.backWorkDays(now_time,-1)
     return data
 #取得騰落指標資料
@@ -1329,7 +1329,7 @@ def get_ADL(start_time,end_time):
             continue
 
         temp_data = pd.DataFrame({'Date':[now_time],'ADL':[ADL_value]}).set_index('Date')
-        data = data.append(temp_data)
+        data = pd.concat([data,temp_data])
         ADL_yesterday = ADL_value
         now_time = tools.backWorkDays(now_time,-1)
     return data
@@ -1909,7 +1909,7 @@ def translate_dataFrame2(response,type,year,season = 1):
                                 [25,44,45,53,57],
                                 [16,34,35,44,48],
                                 [5,8,9,17,21]])
-    if(year <= 111):
+    if(year <= 112):
         column_pos_array = np.array([[24,42,43,53,57],
                                 [5,8,9,19,23],
                                 [5,8,9,19,23],

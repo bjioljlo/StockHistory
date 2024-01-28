@@ -16,7 +16,7 @@ import pandas as pd
 import tools
 import backtest_stock
 import threading
-
+import telegram_bot
 
 
 main_titalList = ["股票號碼","股票名稱"]
@@ -1208,7 +1208,9 @@ Init_backtestWindow()
 #從這中間加ＵＩ設定---------------
 update_stock_info.RunMysql()
 myshow.show()
-sys.exit(app.exec_())
-
-
-
+try:
+    sys.exit(app.exec_())
+except:#退出時需要清理的方法
+    print('開始清理異步內存')
+    telegram_bot.stop_telegram(telegram_bot.updater)
+    update_stock_info.stopThreadSchedule()

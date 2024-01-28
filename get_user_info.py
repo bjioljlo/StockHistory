@@ -51,7 +51,7 @@ class data_user_info():#使用者資訊
     def get_handle_stock(self):#手中股票總資料
         Temp = pd.DataFrame(columns = ['stock','number'])
         for key,value in self.handle_stock.items():
-            Temp = Temp.append({'stock':key,'number':value.amount},ignore_index=True)
+            Temp = pd.concat([Temp,{'stock':key,'number':value.amount}],ignore_index=True)
             Temp.set_index('stock')
         return Temp
     def get_user_all_asset(self):#總資產
@@ -105,12 +105,12 @@ class data_user_info():#使用者資訊
                 self.handle_stock.pop(number,None)
             return True
     def Record_userInfo(self,data = pd.DataFrame()):
-        self.Temp_result_draw = self.Temp_result_draw.append({'date':self.now_day,
-                                        '資產比例':self.get_user_all_asset()/self.start_money},ignore_index=True)
-        self.Temp_result_All = self.Temp_result_All.append({'date':self.now_day,
+        self.Temp_result_draw = pd.concat([self.Temp_result_draw,{'date':self.now_day,
+                                        '資產比例':self.get_user_all_asset()/self.start_money}],ignore_index=True)
+        self.Temp_result_All = pd.concat([self.Temp_result_All,{'date':self.now_day,
                                                 '股票資產':self.get_user_stock_asset(),
                                                 '剩餘現金':self.now_money,
-                                                '總資產':self.get_user_all_asset()},ignore_index=True)
+                                                '總資產':self.get_user_all_asset()}],ignore_index=True)
     def Recod_tradeInfo(self):
         temp_numbers = ''
         temp_amount = ''
@@ -119,9 +119,7 @@ class data_user_info():#使用者資訊
             temp_amount = temp_amount + str(value.amount) + '/' 
             temp_price = temp_price + str(value.price)+ '/' 
             temp_numbers = temp_numbers + str(key)+ '/' 
-        self.Temp_trade_info = self.Temp_trade_info.append({'date':self.now_day,
+        self.Temp_trade_info = pd.concat([self.Temp_trade_info,{'date':self.now_day,
                                                 '號碼':temp_numbers,
                                                 '數量':temp_amount,
-                                                '均價':temp_price},ignore_index=True)
-
-
+                                                '均價':temp_price}],ignore_index=True)

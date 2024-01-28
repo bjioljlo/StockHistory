@@ -17,32 +17,21 @@ MySql_server = None
 SQL_DataByDay = None
 threads = []
 
-def RunSchedule(func,UpdateTime):
+def __RunSchedule(func,UpdateTime):
     print("RunSchedule at:" + UpdateTime)
     schedule.every().day.at(UpdateTime).do(func)
     if threads.__len__() == 0:
-        temp_thread = threading.Thread(target=ScheduleStart)
+        temp_thread = threading.Thread(target=__ScheduleStart)
         temp_thread.start()
         threads.append(temp_thread)    
 
-def ScheduleStart():
+def __ScheduleStart():
     t = threading.currentThread()
     while getattr(t, "do_run", True):
         schedule.run_pending()
         time.sleep(0.5)
 
-def RunMysql():
-    temp_thread = threading.Thread(target=setMysqlServer,args=["demo"])
-    temp_thread.start()
-    
-def RunScheduleNow():
-    RunSchedule(runUpdate,str(datetime.today().hour).zfill(2)+ ":" + str(datetime.today().minute + 1).zfill(2)+ ":01")
-    # RunSchedule(RunUpdate_sp500,str(datetime.today().hour).zfill(2)+ ":" + str(datetime.today().minute + 1).zfill(2)+ ":05")
-    # RunSchedule(RunUpDate2,str(datetime.today().hour).zfill(2)+ ":" + str(datetime.today().minute + 1).zfill(2)+ ":05")
-    # RunSchedule(runUpdate,"14:01:01")
-    # RunSchedule(RunUpdate_sp500,"04:31:05")
-    # RunSchedule(RunUpDate2,"20:01:05")
-def setMysqlServer(db_name):
+def __setMysqlServer(db_name):
     global MySql_server
     server_flask = Flask(__name__)#初始化server
     #設定mysql DB
@@ -52,7 +41,7 @@ def setMysqlServer(db_name):
     #連線mysql DB
     MySql_server = SQLAlchemy(server_flask)
     
-def runUpdate():
+def __runUpdate():
     print("Update all stocks start!")
     df = pd.DataFrame()
     #end_date = datetime.today() - timedelta(days=1)#設定資料起訖日期
@@ -88,13 +77,13 @@ def runUpdate():
     get_stock_info.Save_Update_date()
     print("Update all stocks end!")
 
-def RunUpdate_sp500():
+def __RunUpdate_sp500():
     print("Update all sp500 stocks start!")
     sp500 = tools.get_SP500_list()
     yf.pdr_override()
     for temp in sp500:
         try:
-            deleteStockDayTable(temp)
+            __deleteStockDayTable(temp)
         except:
             print("SQL No Table:" + str(temp))
             
@@ -110,7 +99,7 @@ def RunUpdate_sp500():
         print("Update stocks " + temp + " OK!")
     print("Update all stocks end!")
     
-def RunUpDate2():
+def __RunUpDate2():
     print("Update stocks other Info start!")
     end_date = datetime(datetime.today().year,datetime.today().month,datetime.today().day)#設定資料起訖日期
     #end_date = datetime(2022,4,28)#設定資料起訖日期
@@ -118,6 +107,32 @@ def RunUpDate2():
     get_stock_history.get_stock_AD_index(end_date,True)#更新騰落
     get_stock_history.load_memery.clear()
     print("Update stocks other Info end!")
+
+def __deleteStockDayTable(name):
+    DynamicBase = declarative_base(class_registry=dict())
+    class StockDayInfo(DynamicBase,MySql_server.Model):
+        __tablename__ = ""
+        Date = MySql_server.Column(MySql_server.DateTime, primary_key=True)
+        Open = MySql_server.Column(MySql_server.Float)
+        High = MySql_server.Column(MySql_server.Float)
+        Low = MySql_server.Column(MySql_server.Float)
+        Close = MySql_server.Column(MySql_server.Float)
+        AdjClose = MySql_server.Column(MySql_server.Float)
+        Volume = MySql_server.Column(MySql_server.Integer)
+        def __init__(self,name,Date,Open,High,Low,Close,AdjClose,Volume):
+            self.__tablename__ = name
+            self.Date = Date
+            self.Open = Open
+            self.High = High
+            self.Low = Low
+            self.Close = Close
+            self.AdjClose = AdjClose
+            self.Volume = Volume
+    
+    temp_table = StockDayInfo.__table__
+    temp_table.name = name
+    StockDayInfo.__table__ = temp_table
+    StockDayInfo.__table__.drop(MySql_server.session.bind)
 
 def stopThreadSchedule():
     for thread in threads:
@@ -146,31 +161,17 @@ def read_Dividend_yield(name:str):
         print('SQL Error {}'.format(e.args))
         return dataframe
  
-def deleteStockDayTable(name):
-    DynamicBase = declarative_base(class_registry=dict())
-    class StockDayInfo(DynamicBase,MySql_server.Model):
-        __tablename__ = ""
-        Date = MySql_server.Column(MySql_server.DateTime, primary_key=True)
-        Open = MySql_server.Column(MySql_server.Float)
-        High = MySql_server.Column(MySql_server.Float)
-        Low = MySql_server.Column(MySql_server.Float)
-        Close = MySql_server.Column(MySql_server.Float)
-        AdjClose = MySql_server.Column(MySql_server.Float)
-        Volume = MySql_server.Column(MySql_server.Integer)
-        def __init__(self,name,Date,Open,High,Low,Close,AdjClose,Volume):
-            self.__tablename__ = name
-            self.Date = Date
-            self.Open = Open
-            self.High = High
-            self.Low = Low
-            self.Close = Close
-            self.AdjClose = AdjClose
-            self.Volume = Volume
-    
-    temp_table = StockDayInfo.__table__
-    temp_table.name = name
-    StockDayInfo.__table__ = temp_table
-    StockDayInfo.__table__.drop(MySql_server.session.bind)
+def RunScheduleNow():
+    __RunSchedule(__runUpdate,str(datetime.today().hour).zfill(2)+ ":" + str(datetime.today().minute + 1).zfill(2)+ ":01")
+    # RunSchedule(RunUpdate_sp500,str(datetime.today().hour).zfill(2)+ ":" + str(datetime.today().minute + 1).zfill(2)+ ":05")
+    # RunSchedule(RunUpDate2,str(datetime.today().hour).zfill(2)+ ":" + str(datetime.today().minute + 1).zfill(2)+ ":05")
+    # RunSchedule(runUpdate,"14:04:01")
+    # RunSchedule(RunUpdate_sp500,"04:31:05")
+    # RunSchedule(RunUpDate2,"20:01:05")
+
+def RunMysql():
+    temp_thread = threading.Thread(target=__setMysqlServer,args=["demo"])
+    temp_thread.start()
 
 def saveTable(_name:str,_df = pd.DataFrame()):
     if _name.islower() != True:
