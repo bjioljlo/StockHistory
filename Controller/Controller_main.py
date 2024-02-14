@@ -13,12 +13,14 @@ import draw_figur as df
 import threading
 from datetime import datetime
 from PyQt5 import QtCore
+from Mediator_Controller import IMediator_Controller, controllers
 
 class Controller_main(TController):
     def __init__(self, _view: IWindow = None, _model: IModel = None) -> None:
         super().__init__(_view, _model)
         self.Init_Window()
         self.lock = threading.Lock()
+        self.mediator:IMediator_Controller = None
     
     def __GetView(self) -> Main_Window:
         return self.View
@@ -66,8 +68,19 @@ class Controller_main(TController):
         UI_form.input_SMA2.setPlainText("20")
         UI_form.input_SMA3.setPlainText("60")
 
+    def GetEndDate(self) -> datetime:
+        endDate = tools.QtDate2DateTime(self.__GetView().GetFormUI().date_endDate.date())
+        return endDate
+    
+    def GetStockNumber(self) -> str:
+        stockNumber = self.__GetView().GetFormUI().input_stockNumber.toPlainText()
+        return stockNumber
+    
+    def SetStockNumber(self, stockNumber:str):
+        self.__GetView().GetFormUI().input_stockNumber.setText(stockNumber)
+
     def button_openPickWindow_click(self):
-        self.Model.GetInteractiveController().ShowWindow()
+        self.mediator.ShowWindow(self, controllers.Pick)
     def button_addStock_click(self):
         stocknum = self.__GetView().GetFormUI().input_stockNumber.toPlainText()
         get_stock_info.Add_stock_info(stocknum)
@@ -87,193 +100,32 @@ class Controller_main(TController):
         except:
             print("")
     def button_monthRP_click(self):#某股票月營收曲線
-        self.__GetModel().monthRP(self.__GetView().GetFormUI().input_stockNumber.toPlainText(),
-                                  self.__GetView().GetFormUI().date_startDate.date(),
-                                  self.__GetView().GetFormUI().date_endDate.date())
-        
+        self.__GetModel().monthRP(self.__GetView().Parament)    
     def button_Dividend_yield_click(self):#某股票殖利率曲線
-        self.__GetModel().Dividend_yield(self.__GetView().GetFormUI().input_stockNumber.toPlainText(),
-                                        self.__GetView().GetFormUI().date_startDate.date(),
-                                        self.__GetView().GetFormUI().date_endDate.date())
-        
+        self.__GetModel().Dividend_yield(self.__GetView().Parament)
     def button_Operating_Margin_click(self):#某股票營業利益率曲線
-        if (self.__GetView().GetFormUI().input_stockNumber.toPlainText() == ''):
-            print('請輸入股票號碼')
-            return
-        if (int(self.__GetView().GetFormUI().date_endDate.date().day()) == int(datetime.today().day)):
-            print("今天還沒過完無資資訊")
-            return
-        main_imge = gsh.All_imge(tools.QtDate2DateTime(self.__GetView().GetFormUI().date_startDate.date()),
-                                    tools.QtDate2DateTime(self.__GetView().GetFormUI().date_endDate.date()),
-                                    gsh.OM_index)
-        data_result = main_imge.get_Chart(int(self.__GetView().GetFormUI().input_stockNumber.toPlainText()))
-        df.draw_RP(data_result,
-                self.__GetView().GetFormUI().input_stockNumber.toPlainText(),
-                main_imge._report._name,
-                main_imge._report._name,
-                'Operating Margin Ratio')
+        self.__GetModel().Operating_Margin(self.__GetView().Parament)   
     def button_Operating_Margin_Ratio_click(self):#某股票營業利益成長率曲線
-        if (self.__GetView().GetFormUI().input_stockNumber.toPlainText() == ''):
-            print('請輸入股票號碼')
-            return
-        if (int(self.__GetView().GetFormUI().date_endDate.date().day()) == int(datetime.today().day)):
-            print("今天還沒過完無資資訊")
-            return
-        main_imge = gsh.All_imge(tools.QtDate2DateTime(self.__GetView().GetFormUI().date_startDate.date()),
-                                    tools.QtDate2DateTime(self.__GetView().GetFormUI().date_endDate.date()),
-                                    gsh.OM_Growth_index)
-        #取得營業利益率成長率資料(與去年同季相比)
-        data_result_up = main_imge.get_Chart(int(self.__GetView().GetFormUI().input_stockNumber.toPlainText()))
-        df.draw_RP(data_result_up,
-                self.__GetView().GetFormUI().input_stockNumber.toPlainText(),
-                main_imge._report._name,
-                main_imge._report._name,
-                'Operating Margin Growth Up (season by season)(%)')
+        self.__GetModel().Operating_Margin_Ratio(self.__GetView().Parament)  
     def button_ROE_Ratio_click(self):#某股票ROE曲線
-        if (self.__GetView().GetFormUI().input_stockNumber.toPlainText() == ''):
-            print('請輸入股票號碼')
-            return
-        if (int(self.__GetView().GetFormUI().date_endDate.date().day()) == int(datetime.today().day)):
-            print("今天還沒過完無資資訊")
-            return
-        #取得ROE資料
-        main_imge = gsh.All_imge(tools.QtDate2DateTime(self.__GetView().GetFormUI().date_startDate.date()),
-                                    tools.QtDate2DateTime(self.__GetView().GetFormUI().date_endDate.date()),
-                                    gsh.ROE_index)
-        data_result_up = main_imge.get_Chart(int(self.__GetView().GetFormUI().input_stockNumber.toPlainText()))
-        df.draw_RP(data_result_up,
-                self.__GetView().GetFormUI().input_stockNumber.toPlainText(),
-                main_imge._report._name,
-                main_imge._report._name,
-                'Return On Equity Ratio(ROE)')
+        self.__GetModel().ROE_Ratio(self.__GetView().Parament)    
     def button_OCF_click(self):#某股票營業現金流
-        if (self.__GetView().GetFormUI().input_stockNumber.toPlainText() == ''):
-            print('請輸入股票號碼')
-            return
-        if (int(self.__GetView().GetFormUI().date_endDate.date().day()) == int(datetime.today().day)):
-            print("今天還沒過完無資資訊")
-            return
-        main_imge = gsh.All_imge(tools.QtDate2DateTime(self.__GetView().GetFormUI().date_startDate.date()),
-                                    tools.QtDate2DateTime(self.__GetView().GetFormUI().date_endDate.date()),
-                                    gsh.OCF_index)
-        data_result = main_imge.get_Chart(int(self.__GetView().GetFormUI().input_stockNumber.toPlainText()))
-        df.draw_RP(data_result,
-                self.__GetView().GetFormUI().input_stockNumber.toPlainText(),
-                main_imge._report._name,
-                main_imge._report._name,
-                'Operating cash flow')
+        self.__GetModel().OCF(self.__GetView().Parament)    
     def button_ICF_click(self):#某股票投資現金流
-        if (self.__GetView().GetFormUI().input_stockNumber.toPlainText() == ''):
-            print('請輸入股票號碼')
-            return
-        if (int(self.__GetView().GetFormUI().date_endDate.date().day()) == int(datetime.today().day)):
-            print("今天還沒過完無資資訊")
-            return
-        main_imge = gsh.All_imge(tools.QtDate2DateTime(self.__GetView().GetFormUI().date_startDate.date()),
-                                    tools.QtDate2DateTime(self.__GetView().GetFormUI().date_endDate.date()),
-                                    gsh.ICF_index)
-        data_result = main_imge.get_Chart(int(self.__GetView().GetFormUI().input_stockNumber.toPlainText()))
-        df.draw_RP(data_result,
-                self.__GetView().GetFormUI().input_stockNumber.toPlainText(),
-                main_imge._report._name,
-                main_imge._report._name,
-                'Investment cash flow')
+        self.__GetModel().ICF(self.__GetView().Parament)    
     def button_FreeSCF_click(self):#某股票自由現金流
-        if (self.__GetView().GetFormUI().input_stockNumber.toPlainText() == ''):
-            print('請輸入股票號碼')
-            return
-        if (int(self.__GetView().GetFormUI().date_endDate.date().day()) == int(datetime.today().day)):
-            print("今天還沒過完無資資訊")
-            return
-        main_imge = gsh.All_imge(tools.QtDate2DateTime(self.__GetView().GetFormUI().date_startDate.date()),
-                                    tools.QtDate2DateTime(self.__GetView().GetFormUI().date_endDate.date()),
-                                    gsh.FreeCF_index)
-        data_result = main_imge.get_Chart(int(self.__GetView().GetFormUI().input_stockNumber.toPlainText()))
-        df.draw_RP(data_result,
-                self.__GetView().GetFormUI().input_stockNumber.toPlainText(),
-                main_imge._report._name,
-                main_imge._report._name,
-                'Free cash flow')
+        self.__GetModel().FreeSCF(self.__GetView().Parament)    
     def button_PCF_click(self):#某股票股價現金流量比
-        if (self.__GetView().GetFormUI().input_stockNumber.toPlainText() == ''):
-            print('請輸入股票號碼')
-            return
-        if (int(self.__GetView().GetFormUI().date_endDate.date().day()) == int(datetime.today().day)):
-            print("今天還沒過完無資資訊")
-            return
-        main_imge = gsh.All_imge(tools.QtDate2DateTime(self.__GetView().GetFormUI().date_startDate.date()),
-                                    tools.QtDate2DateTime(self.__GetView().GetFormUI().date_endDate.date()),
-                                    gsh.PCF_index)
-        data_result = main_imge.get_Chart(int(self.__GetView().GetFormUI().input_stockNumber.toPlainText()))
-        df.draw_RP(data_result,
-                self.__GetView().GetFormUI().input_stockNumber.toPlainText(),
-                main_imge._report._name,
-                main_imge._report._name,
-                'Price to Cash Flow Ratio(P/CF)')
+        self.__GetModel().PCF(self.__GetView().Parament)    
     def button_EPS_click(self):#某股票eps
-        if(self.__GetView().GetFormUI().input_stockNumber.toPlainText() == ''):
-            print('請輸入股票號碼')
-            return
-        if (int(self.__GetView().GetFormUI().date_endDate.date().day()) == int(datetime.today().day)):
-            print("今天還沒過完無資資訊")
-            return
-        main_imge = gsh.All_imge(tools.QtDate2DateTime(self.__GetView().GetFormUI().date_startDate.date()),
-                                    tools.QtDate2DateTime(self.__GetView().GetFormUI().date_endDate.date()),
-                                    gsh.EPS_index)
-        data_result = main_imge.get_Chart(int(self.__GetView().GetFormUI().input_stockNumber.toPlainText()))
-        df.draw_RP(data_result,
-                self.__GetView().GetFormUI().input_stockNumber.toPlainText(),
-                main_imge._report._name,
-                main_imge._report._name,
-                'Earnings Per Share(EPS)')
+        self.__GetModel().EPS(self.__GetView().Parament)     
     def button_DebtRatio_click(self):#某股票資產負債比率
-        if(self.__GetView().GetFormUI().input_stockNumber.toPlainText() == ''):
-            print('請輸入股票號碼')
-            return
-        if (int(self.__GetView().GetFormUI().date_endDate.date().day()) == int(datetime.today().day)):
-            print("今天還沒過完無資資訊")
-            return
-        main_imge = gsh.All_imge(tools.QtDate2DateTime(self.__GetView().GetFormUI().date_startDate.date()),
-                                    tools.QtDate2DateTime(self.__GetView().GetFormUI().date_endDate.date()),
-                                    gsh.Debt_index)
-        data_result = main_imge.get_Chart(int(self.__GetView().GetFormUI().input_stockNumber.toPlainText()))
-        df.draw_RP(data_result,
-                self.__GetView().GetFormUI().input_stockNumber.toPlainText(),
-                main_imge._report._name,
-                main_imge._report._name,
-                'Debt Asset Ratio')
+        self.__GetModel().DebtRatio(self.__GetView().Parament)
     def button_MonthRevenueGrowth_click(self):
-        if(self.__GetView().GetFormUI().input_stockNumber.toPlainText() == ''):
-            print('請輸入股票號碼')
-            return
-        if (int(self.__GetView().GetFormUI().date_endDate.date().day()) == int(datetime.today().day)):
-            print("今天還沒過完無資資訊")
-            return
-        main_imge = gsh.All_imge(tools.QtDate2DateTime(self.__GetView().GetFormUI().date_startDate.date()),
-                                    tools.QtDate2DateTime(self.__GetView().GetFormUI().date_endDate.date()),
-                                    gsh.MR_Growth_index)
-        data_result = main_imge.get_Chart(int(self.__GetView().GetFormUI().input_stockNumber.toPlainText()))
-        df.draw_RP(data_result,
-                self.__GetView().GetFormUI().input_stockNumber.toPlainText(),
-                main_imge._report._name,
-                main_imge._report._name,
-                'Month Revenue Growth')
+        self.__GetModel().MonthRevenueGrowth(self.__GetView().Parament)       
     def button_SeasonRevenueGrowth_click(self):
-        if(self.__GetView().GetFormUI().input_stockNumber.toPlainText() == ''):
-            print('請輸入股票號碼')
-            return
-        if (int(self.__GetView().GetFormUI().date_endDate.date().day()) == int(datetime.today().day)):
-            print("今天還沒過完無資資訊")
-            return
-        main_imge = gsh.All_imge(tools.QtDate2DateTime(self.__GetView().GetFormUI().date_startDate.date()),
-                                    tools.QtDate2DateTime(self.__GetView().GetFormUI().date_endDate.date()),
-                                    gsh.SR_Growth_index)
-        data_result = main_imge.get_Chart(int(self.__GetView().GetFormUI().input_stockNumber.toPlainText()))
-        df.draw_RP(data_result,
-                self.__GetView().GetFormUI().input_stockNumber.toPlainText(),
-                main_imge._report._name,
-                main_imge._report._name,
-                'Season Revenue Growth') 
+        self.__GetModel().SeasonRevenueGrowth(self.__GetView().Parament)
+        
     def button_getStockHistory(self):#某股票蠟燭圖
         #存更新日期
         date = tools.QtDate2DateTime(self.__GetView().GetFormUI().date_startDate.date())

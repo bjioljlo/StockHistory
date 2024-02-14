@@ -678,7 +678,7 @@ class All_fuc():
         aAuto = ReportAutoTrace('auto',aFilter,aFilter._Unit)
         temp = aAuto.get_ALL_Report(self._date)
         return temp
-    def get_Up_Auto(self,upNum):
+    def get_Up_Auto(self,upNum:int):
         aUp = ReportUp('up',upNum,self._report,self._report._Unit)
         aAuto = ReportAutoTrace('auto',aUp,aUp._Report._Unit)
         temp = aAuto.get_ALL_Report(self._date)

@@ -1,6 +1,6 @@
-from datetime import timedelta
+from datetime import timedelta, datetime
 import pandas as pd
-from get_stock_history import get_stock_price,stock_data_kind,Stock_main
+from get_stock_history import get_stock_price,stock_data_kind
 import get_stock_info
 import tools
 import twstock as ts #抓取台灣股票資料套件
@@ -30,13 +30,22 @@ class data_user_info():#使用者資訊
         self.start_money = start_money #起始現金
         self.now_money = start_money #剩餘現金
         self.handle_stock = {}#手持股票
-        self.start_day = start_day #開始日期
-        self.now_day = start_day #現在日期
-        self.end_day = end_day  #結束日期
+        self.start_day:datetime = start_day #開始日期
+        self.now_day:datetime = start_day #現在日期
+        self.end_day:datetime = end_day  #結束日期
 
-        self.Temp_result_draw = pd.DataFrame(columns=['date','資產比例'])
-        self.Temp_result_All = pd.DataFrame(columns=['date','股票資產','剩餘現金','總資產'])
-        self.Temp_trade_info = pd.DataFrame(columns=['date','號碼','數量','均價'])
+        self.Temp_result_draw:pd.DataFrame = pd.DataFrame(columns=['date','資產比例'])
+        self.Temp_result_All:pd.DataFrame = pd.DataFrame(columns=['date','股票資產','剩餘現金','總資產'])
+        self.Temp_trade_info:pd.DataFrame = pd.DataFrame(columns=['date','號碼','數量','均價'])
+
+    def Run_Finish(self):
+        self.Temp_result_All['date'] = pd.to_datetime(self.Temp_result_All['date'])
+        self.Temp_result_draw['date'] = pd.to_datetime(self.Temp_result_draw['date'])
+        self.Temp_trade_info['date'] = pd.to_datetime(self.Temp_trade_info['date'])
+        if self.Temp_result_All.index.name != 'date':
+            self.Temp_result_All = self.Temp_result_All.set_index('date')
+            self.Temp_result_draw = self.Temp_result_draw.set_index('date')
+            self.Temp_trade_info = self.Temp_trade_info.set_index('date')
 
     def add_one_day(self):#過一天
         if self.now_day >= self.end_day:
@@ -105,12 +114,14 @@ class data_user_info():#使用者資訊
                 self.handle_stock.pop(number,None)
             return True
     def Record_userInfo(self,data = pd.DataFrame()):
-        self.Temp_result_draw = pd.concat([self.Temp_result_draw,{'date':self.now_day,
-                                        '資產比例':self.get_user_all_asset()/self.start_money}],ignore_index=True)
-        self.Temp_result_All = pd.concat([self.Temp_result_All,{'date':self.now_day,
-                                                '股票資產':self.get_user_stock_asset(),
-                                                '剩餘現金':self.now_money,
-                                                '總資產':self.get_user_all_asset()}],ignore_index=True)
+        self.Temp_result_draw = self.Temp_result_draw.append({'date':self.now_day,
+                                                            '資產比例':self.get_user_all_asset()/self.start_money},
+                                                            ignore_index=True)
+        self.Temp_result_All = self.Temp_result_All.append({'date':self.now_day,
+                                                            '股票資產':self.get_user_stock_asset(),
+                                                            '剩餘現金':self.now_money,
+                                                            '總資產':self.get_user_all_asset()},
+                                                            ignore_index=True)
     def Recod_tradeInfo(self):
         temp_numbers = ''
         temp_amount = ''
@@ -119,7 +130,8 @@ class data_user_info():#使用者資訊
             temp_amount = temp_amount + str(value.amount) + '/' 
             temp_price = temp_price + str(value.price)+ '/' 
             temp_numbers = temp_numbers + str(key)+ '/' 
-        self.Temp_trade_info = pd.concat([self.Temp_trade_info,{'date':self.now_day,
+        self.Temp_trade_info = self.Temp_trade_info.append({'date':self.now_day,
                                                 '號碼':temp_numbers,
                                                 '數量':temp_amount,
-                                                '均價':temp_price}],ignore_index=True)
+                                                '均價':temp_price}
+                                                ,ignore_index=True)

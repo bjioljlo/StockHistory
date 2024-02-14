@@ -9,6 +9,7 @@ from tools import MixDataFrames,Count_Stock_Amount
 from draw_figur import draw_backtest
 import get_user_info
 import Infomation_type as info
+from IParameter import RecordBackTestParameter
 
 bool_check_monthRP_pick = False
 bool_check_PER_pick = False
@@ -17,32 +18,6 @@ bool_check_pickOneStock = False
 bool_check_price_pick = False
 bool_check_PBR_pick = False
 bool_check_ROE_pick = False
-
-class VirturlBackTestParameter():
-    def __init__(self):
-        self.date_start:datetime = None # tools.QtDate2DateTime(mybacktest.date_start.date())
-        self.date_end:datetime = None # tools.QtDate2DateTime(mybacktest.date_end.date())
-        self.money_start:int = None # int(mybacktest.input_startMoney.toPlainText())
-        self.change_days:int = None # int(mybacktest.input_changeDays.toPlainText())
-        self.smoothAVG:int = None # int(mybacktest.input_monthRP_smoothAVG.toPlainText())
-        self.upMonth:int = None # int(mybacktest.input_monthRP_UpMpnth.toPlainText())
-        self.PER_start:float = None # float(mybacktest.input_PER_start.toPlainText())
-        self.PER_end:float = None # float(mybacktest.input_PER_end.toPlainText())
-        self.volumeAVG:int = None # int(mybacktest.input_volume_money.toPlainText())
-        self.volumeDays:int = None # int(mybacktest.input_volumeAVG_days.toPlainText())
-        self.price_high:int = None # int(mybacktest.input_price_high.toPlainText())
-        self.price_low:int = None # int(mybacktest.input_price_low.toPlainText())
-        self.PBR_end:float = None # float(mybacktest.input_PBR_end.toPlainText())
-        self.PBR_start:float = None # float(mybacktest.input_PBR_start.toPlainText())
-        self.ROE_end:float = None # float(mybacktest.input_ROE_end.toPlainText())
-        self.ROE_start:float = None # float(mybacktest.input_ROE_start.toPlainText())
-        self.Pick_amount:int = None # int(mybacktest.input_StockAmount.toPlainText())
-        self.buy_number:str = None # str(mybacktest.input_stockNumber.toPlainText())
-        self.Dividend_yield_high:float = None # float(mybacktest.input_yield_start.toPlainText())
-        self.Dividend_yield_low:float = None # float(mybacktest.input_yield_end.toPlainText())
-        self.buy_day:int = None # int(mybacktest.input_buyDay.toPlainText())
-        self.Record_high_day:int = None # int(mybacktest.input_RecordHigh.toPlainText())
-
 
 def set_check(monthRP_pick,PER_pick,volume_pick,One_pick,price_pick,PBR_pick,ROE_pick):
     global bool_check_monthRP_pick
@@ -389,7 +364,7 @@ def backtest_Record_high(mainParament):
     Temp_alldata.to_csv('backtestAll.csv')
 #////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 #KD值選股 https://www.finlab.tw/%e7%94%a8kd%e5%80%bc%e9%81%b8%e8%82%a1%ef%bc%9a%e9%82%84%e9%9c%80%e6%90%ad%e9%85%8d%e9%80%99%e4%b8%89%e7%a8%ae%e6%8c%87%e6%a8%99/
-def backtest_KD_pick(mainParament):
+def backtest_KD_pick(mainParament:RecordBackTestParameter):
     userInfo = get_user_info.data_user_info(mainParament.money_start,mainParament.date_start,mainParament.date_end)
     Temp_result_pick = pd.DataFrame(columns=['date','選股數量'])
     Temp_table = gsh.gsh(2330,"2005-01-01",reGetInfo = False,UpdateInfo = False)
@@ -499,6 +474,7 @@ def backtest_KD_pick(mainParament):
     sell_data.to_csv('sell.csv')
     #最後總結算----------------------------
     Temp_result_pick.set_index('date',inplace=True)
+    userInfo.Run_Finish()
     Temp_alldata = tools.MixDataFrames({'draw':userInfo.Temp_result_draw,'pick':Temp_result_pick},'date')
     
     Temp_alldata = tools.MixDataFrames({'all':Temp_alldata,'userinfo':userInfo.Temp_result_All},'date')
@@ -509,7 +485,7 @@ def backtest_KD_pick(mainParament):
     return userInfo.Temp_result_draw.set_index('date')
 
 #PEG選股外加月營收增高 https://www.finlab.tw/finlab-tw-stock-peg-strategy/#PEG_ding_yi 
-def backtest_PEG_pick_Fast(mainParament):
+def backtest_PEG_pick_Fast(mainParament:RecordBackTestParameter):
     userInfo = get_user_info.data_user_info(mainParament.money_start,mainParament.date_start,mainParament.date_end)
     buy_month = mainParament.date_start
     Temp_result_pick = pd.DataFrame(columns=['date','選股數量'])
@@ -563,6 +539,7 @@ def backtest_PEG_pick_Fast(mainParament):
             continue
     #最後總結算----------------------------
     Temp_result_pick.set_index('date',inplace=True)
+    userInfo.Run_Finish()
     Temp_alldata = MixDataFrames({'draw':userInfo.Temp_result_draw,'pick':Temp_result_pick},'date')
     Temp_alldata = MixDataFrames({'all':Temp_alldata,'userinfo':userInfo.Temp_result_All},'date')
     
@@ -571,8 +548,8 @@ def backtest_PEG_pick_Fast(mainParament):
     Temp_alldata.to_csv('backtestAll.csv')
     return userInfo.Temp_result_draw
 
-#定期定額
-def backtest_Regular_quota_Fast(mainParament:VirturlBackTestParameter):
+def backtest_Regular_quota_Fast(mainParament:RecordBackTestParameter):
+    '''定期定額'''
     userInfo = get_user_info.data_user_info(0,mainParament.date_start,mainParament.date_end)
     buy_month = mainParament.date_start
     Temp_result_pick = pd.DataFrame(columns=['date','選股數量'])
@@ -600,14 +577,15 @@ def backtest_Regular_quota_Fast(mainParament:VirturlBackTestParameter):
             #更新資訊--------------------------------------   
             Record_userInfo()
             Recod_tradeInfo()
-            Temp_result_pick = pd.concat([Temp_result_pick,{'date':userInfo.now_day,
-                                                '選股數量':1}],ignore_index = True)
+            Temp_result_pick = Temp_result_pick.append({'date':userInfo.now_day,
+                                                '選股數量':1},ignore_index = True)
         #加一天----------------------------
         if add_one_day() == False:
             break
     
     #最後總結算----------------------------
     Temp_result_pick.set_index('date',inplace=True)
+    userInfo.Run_Finish()
     Temp_alldata = MixDataFrames({'draw':userInfo.Temp_result_draw,'pick':Temp_result_pick},'date')
     Temp_alldata = MixDataFrames({'all':Temp_alldata,'userinfo':userInfo.Temp_result_All},'date')
     
@@ -617,7 +595,7 @@ def backtest_Regular_quota_Fast(mainParament:VirturlBackTestParameter):
     return userInfo.Temp_result_draw
 
 #創新高 https://www.finlab.tw/break-new-high-roe-stock/
-def backtest_Record_high_Fast(mainParament):
+def backtest_Record_high_Fast(mainParament:RecordBackTestParameter):
     Temp_reset = 0#休息日剩餘天數
     userInfo = get_user_info.data_user_info(mainParament.money_start,mainParament.date_start,mainParament.date_end)
     Temp_result_pick = pd.DataFrame(columns=['date','選股數量'])
@@ -693,8 +671,8 @@ def backtest_Record_high_Fast(mainParament):
         if len(userInfo.handle_stock) > 0 or has_trade:
             Record_userInfo()
             Recod_tradeInfo()
-            Temp_result_pick = pd.concat([Temp_result_pick,{'date':userInfo.now_day,
-                                                '選股數量':len(Temp_result)}],ignore_index = True)
+            Temp_result_pick = Temp_result_pick.append({'date':userInfo.now_day,
+                                                '選股數量':len(Temp_result)},ignore_index = True)
         #加一天----------------------------
         if add_one_day() == False:
             break
@@ -703,17 +681,16 @@ def backtest_Record_high_Fast(mainParament):
 
     #最後總結算----------------------------
     Temp_result_pick.set_index('date',inplace=True)
+    userInfo.Run_Finish()
     Temp_alldata = MixDataFrames({'draw':userInfo.Temp_result_draw,'pick':Temp_result_pick},'date')
-    
     Temp_alldata = MixDataFrames({'all':Temp_alldata,'userinfo':userInfo.Temp_result_All},'date')
-    
     userInfo.Temp_result_draw.to_csv('backtestdata.csv')
     userInfo.Temp_trade_info.to_csv('backtesttrade.csv')
     Temp_alldata.to_csv('backtestAll.csv')
     return userInfo.Temp_result_draw
 
 #14年14倍 https://www.finlab.tw/%E6%AF%94%E7%AD%96%E7%95%A5%E7%8B%97%E9%82%84%E8%A6%81%E5%AE%89%E5%85%A8%E7%9A%84%E9%81%B8%E8%82%A1%E7%AD%96%E7%95%A5%EF%BC%81/
-def backtest_PERandPBR_Fast(mainParament):
+def backtest_PERandPBR_Fast(mainParament:RecordBackTestParameter):
     Temp_reset = 0#休息日剩餘天數
     Temp_changeDays = 0#換股剩餘天數
     Temp_result_pick = pd.DataFrame(columns=['date','選股數量'])
@@ -790,6 +767,7 @@ def backtest_PERandPBR_Fast(mainParament):
     
     #最後總結算----------------------------
     Temp_result_pick.set_index('date',inplace=True)
+    userInfo.Run_Finish()
     Temp_alldata = tools.MixDataFrames({'draw':userInfo.Temp_result_draw,'pick':Temp_result_pick},'date')
     
     Temp_alldata = tools.MixDataFrames({'all':Temp_alldata,'userinfo':userInfo.Temp_result_All},'date')
@@ -800,7 +778,7 @@ def backtest_PERandPBR_Fast(mainParament):
     return userInfo.Temp_result_draw
 
 #月營收增高 https://www.finlab.tw/%e4%b8%89%e7%a8%ae%e6%9c%88%e7%87%9f%e6%94%b6%e9%80%b2%e9%9a%8e%e7%9c%8b%e6%b3%95/#ji_ji_xuan_gu_cheng_zhang_fa
-def backtest_monthRP_Up_Fast(mainParament:VirturlBackTestParameter):
+def backtest_monthRP_Up_Fast(mainParament:RecordBackTestParameter):
     Temp_change = 0#換股剩餘天數
     userInfo = get_user_info.data_user_info(mainParament.money_start,mainParament.date_start,mainParament.date_end)
     Temp_result_pick = pd.DataFrame(columns=['date','選股數量'])
@@ -862,6 +840,7 @@ def backtest_monthRP_Up_Fast(mainParament:VirturlBackTestParameter):
             Temp_change = Temp_change - 1
     #最後總結算----------------------------
     Temp_result_pick.set_index('date',inplace=True)
+    userInfo.Run_Finish()
     Temp_alldata = tools.MixDataFrames({'draw':userInfo.Temp_result_draw,'pick':Temp_result_pick},'date')
     
     Temp_alldata = tools.MixDataFrames({'all':Temp_alldata,'userinfo':userInfo.Temp_result_All},'date')

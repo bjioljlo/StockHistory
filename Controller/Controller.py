@@ -4,6 +4,7 @@ import get_stock_info
 from abc import ABC,abstractmethod
 from View.View import IWindow
 from Model.Model import IModel
+from datetime import datetime
 
 main_titalList = ["股票號碼","股票名稱"]
 pick_titalList = ["股票號碼","股票名稱","每股參考淨值","基本每股盈餘（元）",
@@ -17,6 +18,18 @@ class IController(ABC):
     
     @abstractmethod
     def ShowWindow(self):
+        pass
+
+    @abstractmethod
+    def GetEndDate(self) -> datetime:
+        pass
+
+    @abstractmethod
+    def GetStockNumber(self) -> str:
+        pass
+
+    @abstractmethod
+    def SetStockNumber(self, stockNumber:str):
         pass
 
 class TController(IController):
@@ -48,6 +61,19 @@ class TController(IController):
 
     def ShowWindow(self):
         self.GetView().GetFormUI().show()
+
+    @abstractmethod
+    def GetEndDate(self) -> datetime:
+        pass
+
+    @abstractmethod
+    def GetStockNumber(self) -> str:
+        pass
+
+    @abstractmethod
+    def SetStockNumber(self, stockNumber:str):
+        pass
+    
 
 #讓Controller都可以用
 def creat_treeView_model(parent,titalList,IsEmpty = True):

@@ -2,19 +2,22 @@ from Model.Model import IModel
 from View.View import IWindow
 from View.View_backtest import BackTest_Window
 from Controller.Controller import TController
+from Model.Model_backtest import Model_backtest
 from datetime import datetime
 from PyQt5 import QtCore
-import draw_figur as df
-import backtest_stock
-import tools
+from Mediator_Controller import IMediator_Controller
 
 class Controller_backTest(TController):
     def __init__(self, _view: IWindow = None, _model: IModel = None) -> None:
         super().__init__(_view, _model)
         self.Init_Window()
+        self.mediator:IMediator_Controller = None
 
     def __GetView(self) -> BackTest_Window:
         return self.View
+    
+    def __GetModel(self) -> Model_backtest:
+        return self.Model
 
     def Init_Window(self):
         UI_form = self.__GetView().GetFormUI()
@@ -57,92 +60,30 @@ class Controller_backTest(TController):
         UI_form.input_buyDay.setPlainText('15')
         UI_form.input_RecordHigh.setPlainText('60')
 
+    def GetEndDate(self) -> datetime:
+        return super().GetEndDate()
+
+    def GetStockNumber(self) -> str:
+        return super().GetStockNumber()
+    
+    def SetStockNumber(self, stockNumber: str):
+        return super().SetStockNumber(stockNumber)
+
     #第3頁的UI
     def button_backtest_click(self):#月營收回測開始紐
-        UI_form = self.__GetView().GetFormUI()
-        if UI_form.check_monthRP_pick.isChecked() == UI_form.check_PER_pick.isChecked() == UI_form.check_volume_pick.isChecked() == False:
-            print("都沒選是要回測個毛線！")
-            return
-        else:
-            backtest_stock.set_check(self.__GetView().GetFormUI().check_monthRP_pick.isChecked(),
-                UI_form.check_PER_pick.isChecked(),
-                UI_form.check_volume_pick.isChecked(),
-                UI_form.check_pickOneStock.isChecked(),
-                UI_form.check_price_pick.isChecked(),
-                UI_form.check_PBR_pick.isChecked(),
-                UI_form.check_ROE_pick.isChecked())
-        _data = backtest_stock.backtest_monthRP_Up_Fast(BackTestParameter(self.__GetView()))
-        df.draw_backtest(_data)
-    def button_backtest_click2(self):#PER PBR 回測開始紐
-        UI_form = self.__GetView().GetFormUI()
-        backtest_stock.set_check(UI_form.check_monthRP_pick.isChecked(),
-                                    UI_form.check_PER_pick.isChecked(),
-                                    UI_form.check_volume_pick.isChecked(),
-                                    UI_form.check_pickOneStock.isChecked(),
-                                    UI_form.check_price_pick.isChecked(),
-                                    UI_form.check_PBR_pick.isChecked(),
-                                    UI_form.check_ROE_pick.isChecked())
-        _data = backtest_stock.backtest_PERandPBR_Fast(BackTestParameter(self.__GetView()))
-        df.draw_backtest(_data)
-    def button_backtest_click3(self):#定期定額
-        _data = backtest_stock.backtest_Regular_quota_Fast(BackTestParameter(self.__GetView()))
-        df.draw_backtest(_data)
-    def button_backtest_click4(self):#創新高
-        UI_form = self.__GetView().GetFormUI()
-        backtest_stock.set_check(UI_form.check_monthRP_pick.isChecked(),
-                                    UI_form.check_PER_pick.isChecked(),
-                                    UI_form.check_volume_pick.isChecked(),
-                                    UI_form.check_pickOneStock.isChecked(),
-                                    UI_form.check_price_pick.isChecked(),
-                                    UI_form.check_PBR_pick.isChecked(),
-                                    UI_form.check_ROE_pick.isChecked())
-        _data = backtest_stock.backtest_Record_high_Fast(BackTestParameter(self.__GetView()))
-        df.draw_backtest(_data)
-    def button_backtest_click5(self):#KD篩選
-        UI_form = self.__GetView().GetFormUI()
-        backtest_stock.set_check(UI_form.check_monthRP_pick.isChecked(),
-                                    UI_form.check_PER_pick.isChecked(),
-                                    UI_form.check_volume_pick.isChecked(),
-                                    UI_form.check_pickOneStock.isChecked(),
-                                    UI_form.check_price_pick.isChecked(),
-                                    UI_form.check_PBR_pick.isChecked(),
-                                    UI_form.check_ROE_pick.isChecked())
-        _data = backtest_stock.backtest_KD_pick(BackTestParameter(self.__GetView()))
-        df.draw_backtest(_data)
-    def button_backtest_click6(self):#PEG篩選
-        UI_form = self.__GetView().GetFormUI()
-        backtest_stock.set_check(UI_form.check_monthRP_pick.isChecked(),
-                                    UI_form.check_PER_pick.isChecked(),
-                                    UI_form.check_volume_pick.isChecked(),
-                                    UI_form.check_pickOneStock.isChecked(),
-                                    UI_form.check_price_pick.isChecked(),
-                                    UI_form.check_PBR_pick.isChecked(),
-                                    UI_form.check_ROE_pick.isChecked())
-        _data = backtest_stock.backtest_PEG_pick_Fast(BackTestParameter(self.__GetView()))
-        df.draw_backtest(_data)
+        self.__GetModel().backtest(self.__GetView().Parament)
 
-class BackTestParameter(backtest_stock.VirturlBackTestParameter):
-    def __init__(self, _view: BackTest_Window):
-        UI_form = _view.GetFormUI()
-        self.date_start = tools.QtDate2DateTime(UI_form.date_start.date())
-        self.date_end = tools.QtDate2DateTime(UI_form.date_end.date())
-        self.money_start = int(UI_form.input_startMoney.toPlainText())
-        self.change_days = int(UI_form.input_changeDays.toPlainText())
-        self.smoothAVG = int(UI_form.input_monthRP_smoothAVG.toPlainText())
-        self.upMonth = int(UI_form.input_monthRP_UpMpnth.toPlainText())
-        self.PER_start = float(UI_form.input_PER_start.toPlainText())
-        self.PER_end = float(UI_form.input_PER_end.toPlainText())
-        self.volumeAVG = int(UI_form.input_volume_money.toPlainText())
-        self.volumeDays = int(UI_form.input_volumeAVG_days.toPlainText())
-        self.price_high = int(UI_form.input_price_high.toPlainText())
-        self.price_low = int(UI_form.input_price_low.toPlainText())
-        self.PBR_end = float(UI_form.input_PBR_end.toPlainText())
-        self.PBR_start = float(UI_form.input_PBR_start.toPlainText())
-        self.ROE_end = float(UI_form.input_ROE_end.toPlainText())
-        self.ROE_start = float(UI_form.input_ROE_start.toPlainText())
-        self.Pick_amount = int(UI_form.input_StockAmount.toPlainText())
-        self.buy_number = str(UI_form.input_stockNumber.toPlainText())
-        self.Dividend_yield_high = float(UI_form.input_yield_start.toPlainText())
-        self.Dividend_yield_low = float(UI_form.input_yield_end.toPlainText())
-        self.buy_day = int(UI_form.input_buyDay.toPlainText())
-        self.Record_high_day = int(UI_form.input_RecordHigh.toPlainText())
+    def button_backtest_click2(self):#PER PBR 回測開始紐
+        self.__GetModel().backtest2(self.__GetView().Parament)
+
+    def button_backtest_click3(self):#定期定額
+        self.__GetModel().backtest3(self.__GetView().Parament)
+
+    def button_backtest_click4(self):#創新高
+        self.__GetModel().backtest4(self.__GetView().Parament)
+        
+    def button_backtest_click5(self):#KD篩選
+        self.__GetModel().backtest5(self.__GetView().Parament) 
+
+    def button_backtest_click6(self):#PEG篩選
+        self.__GetModel().backtest6(self.__GetView().Parament)
