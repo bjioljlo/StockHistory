@@ -367,7 +367,7 @@ def backtest_Record_high(mainParament):
 def backtest_KD_pick(mainParament:RecordBackTestParameter):
     userInfo = get_user_info.data_user_info(mainParament.money_start,mainParament.date_start,mainParament.date_end)
     Temp_result_pick = pd.DataFrame(columns=['date','選股數量'])
-    Temp_table = gsh.gsh(2330,"2005-01-01",reGetInfo = False,UpdateInfo = False)
+    Temp_table = gsh.get_stock_history(mainParament.buy_number,mainParament.date_start)
     All_stock_signal = dict()
       
     ROE_record_day = datetime.strptime("2000-01-01","%Y-%m-%d")
@@ -465,8 +465,8 @@ def backtest_KD_pick(mainParament:RecordBackTestParameter):
                 sell_data = pd.concat([sell_data,{'Date':index,'code':sell_numbers}],ignore_index = True)
             userInfo.Record_userInfo()
             userInfo.Recod_tradeInfo()
-            Temp_result_pick = pd.concat([Temp_result_pick,{'date':userInfo.now_day,
-                                                '選股數量':len(buy_numbers)}],ignore_index = True)
+            Temp_result_pick = Temp_result_pick.append({'date':userInfo.now_day,
+                                                '選股數量':len(buy_numbers)},ignore_index = True)
     
     buy_data = buy_data.set_index('Date')
     buy_data.to_csv('buy.csv')
@@ -484,8 +484,8 @@ def backtest_KD_pick(mainParament:RecordBackTestParameter):
     Temp_alldata.set_index('date').to_csv('backtestAll.csv')   
     return userInfo.Temp_result_draw.set_index('date')
 
-#PEG選股外加月營收增高 https://www.finlab.tw/finlab-tw-stock-peg-strategy/#PEG_ding_yi 
 def backtest_PEG_pick_Fast(mainParament:RecordBackTestParameter):
+    ''' PEG選股外加月營收增高 https://www.finlab.tw/finlab-tw-stock-peg-strategy/#PEG_ding_yi '''
     userInfo = get_user_info.data_user_info(mainParament.money_start,mainParament.date_start,mainParament.date_end)
     buy_month = mainParament.date_start
     Temp_result_pick = pd.DataFrame(columns=['date','選股數量'])
@@ -530,8 +530,8 @@ def backtest_PEG_pick_Fast(mainParament:RecordBackTestParameter):
         if len(userInfo.handle_stock) > 0 or has_trade:
             Record_userInfo()
             Recod_tradeInfo()
-            Temp_result_pick = pd.concat([Temp_result_pick,{'date':userInfo.now_day,
-                                                '選股數量':len(Temp_buy)}],ignore_index = True)
+            Temp_result_pick = Temp_result_pick.append({'date':userInfo.now_day,
+                                                '選股數量':len(Temp_buy)},ignore_index = True)
         #加一天----------------------------
         if userInfo.add_one_day() == False:
             break
@@ -594,8 +594,8 @@ def backtest_Regular_quota_Fast(mainParament:RecordBackTestParameter):
     Temp_alldata.to_csv('backtestAll.csv')
     return userInfo.Temp_result_draw
 
-#創新高 https://www.finlab.tw/break-new-high-roe-stock/
 def backtest_Record_high_Fast(mainParament:RecordBackTestParameter):
+    '''#創新高 https://www.finlab.tw/break-new-high-roe-stock/'''
     Temp_reset = 0#休息日剩餘天數
     userInfo = get_user_info.data_user_info(mainParament.money_start,mainParament.date_start,mainParament.date_end)
     Temp_result_pick = pd.DataFrame(columns=['date','選股數量'])
@@ -689,8 +689,8 @@ def backtest_Record_high_Fast(mainParament:RecordBackTestParameter):
     Temp_alldata.to_csv('backtestAll.csv')
     return userInfo.Temp_result_draw
 
-#14年14倍 https://www.finlab.tw/%E6%AF%94%E7%AD%96%E7%95%A5%E7%8B%97%E9%82%84%E8%A6%81%E5%AE%89%E5%85%A8%E7%9A%84%E9%81%B8%E8%82%A1%E7%AD%96%E7%95%A5%EF%BC%81/
 def backtest_PERandPBR_Fast(mainParament:RecordBackTestParameter):
+    '''#14年14倍 https://www.finlab.tw/%E6%AF%94%E7%AD%96%E7%95%A5%E7%8B%97%E9%82%84%E8%A6%81%E5%AE%89%E5%85%A8%E7%9A%84%E9%81%B8%E8%82%A1%E7%AD%96%E7%95%A5%EF%BC%81/'''
     Temp_reset = 0#休息日剩餘天數
     Temp_changeDays = 0#換股剩餘天數
     Temp_result_pick = pd.DataFrame(columns=['date','選股數量'])
@@ -757,8 +757,8 @@ def backtest_PERandPBR_Fast(mainParament:RecordBackTestParameter):
         if len(userInfo.handle_stock) > 0 or has_trade == True:
             userInfo.Record_userInfo()
             userInfo.Recod_tradeInfo()
-            Temp_result_pick = pd.concat([Temp_result_pick,{'date':userInfo.now_day,
-                                                '選股數量':len(Temp_result)}],ignore_index = True)
+            Temp_result_pick = Temp_result_pick.append({'date':userInfo.now_day,
+                                                '選股數量':len(Temp_result)},ignore_index = True)
         #加一天----------------------------
         if add_one_day() == False:
             break
@@ -777,8 +777,8 @@ def backtest_PERandPBR_Fast(mainParament:RecordBackTestParameter):
     Temp_alldata.to_csv('backtestAll.csv')
     return userInfo.Temp_result_draw
 
-#月營收增高 https://www.finlab.tw/%e4%b8%89%e7%a8%ae%e6%9c%88%e7%87%9f%e6%94%b6%e9%80%b2%e9%9a%8e%e7%9c%8b%e6%b3%95/#ji_ji_xuan_gu_cheng_zhang_fa
 def backtest_monthRP_Up_Fast(mainParament:RecordBackTestParameter):
+    '''#月營收增高 https://www.finlab.tw/%e4%b8%89%e7%a8%ae%e6%9c%88%e7%87%9f%e6%94%b6%e9%80%b2%e9%9a%8e%e7%9c%8b%e6%b3%95/#ji_ji_xuan_gu_cheng_zhang_fa'''
     Temp_change = 0#換股剩餘天數
     userInfo = get_user_info.data_user_info(mainParament.money_start,mainParament.date_start,mainParament.date_end)
     Temp_result_pick = pd.DataFrame(columns=['date','選股數量'])
@@ -831,8 +831,8 @@ def backtest_monthRP_Up_Fast(mainParament:RecordBackTestParameter):
         if has_trade or len(userInfo.handle_stock) > 0:
             userInfo.Record_userInfo()
             userInfo.Recod_tradeInfo()
-            Temp_result_pick = pd.concat([Temp_result_pick,{'date':userInfo.now_day,
-                                                '選股數量':len(Temp_result)}],ignore_index = True)
+            Temp_result_pick = Temp_result_pick.append({'date':userInfo.now_day,
+                                                '選股數量':len(Temp_result)},ignore_index = True)
         #加一天----------------------------
         if add_one_day() == False:
             break
