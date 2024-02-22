@@ -52,7 +52,7 @@ class Model_main(TModel):
         if (RecordMainParameter.number == None):
             print('請輸入股票號碼')
             return
-        if (int(RecordMainParameter.enddate.day()) == datetime.today().day):
+        if (RecordMainParameter.enddate.day == datetime.today().day):
             print("今天還沒過完無資資訊")
             return
         main_imge = gsh.All_imge(RecordMainParameter.startdate,

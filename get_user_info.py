@@ -1,20 +1,20 @@
 from datetime import timedelta, datetime
 import pandas as pd
+from pandas import DataFrame
 from get_stock_history import get_stock_price,stock_data_kind
-import get_stock_info
+from get_stock_info import data_stock_info
 import tools
 import twstock as ts #抓取台灣股票資料套件
-# ts.__update_codes()
 
 class data_user_stock():#手持股票資訊
-    def __init__(self,stock_info,amount,price):
-        self.stock_info = stock_info
-        self.amount = amount
-        self.price = price
-    def add_amount(self,amount,price):
+    def __init__(self,stock_info: data_stock_info,amount:int,price:float):
+        self.stock_info:data_stock_info = stock_info
+        self.amount:int = amount
+        self.price:float = price
+    def add_amount(self,amount:int,price:float):
         self.price = ((self.price * self.amount) + (price * amount)) / (self.amount + amount)
         self.amount = self.amount + amount
-    def minus_amount(self,amount) -> bool:
+    def minus_amount(self,amount:int) -> bool:
         if self.amount > amount:
             self.amount = self.amount - amount
             return True
@@ -26,9 +26,9 @@ class data_user_stock():#手持股票資訊
 
 class data_user_info():#使用者資訊
     
-    def __init__(self,start_money,start_day,end_day):
-        self.start_money = start_money #起始現金
-        self.now_money = start_money #剩餘現金
+    def __init__(self,start_money:int,start_day:datetime,end_day:datetime):
+        self.start_money:int = start_money #起始現金
+        self.now_money:int = start_money #剩餘現金
         self.handle_stock = {}#手持股票
         self.start_day:datetime = start_day #開始日期
         self.now_day:datetime = start_day #現在日期
@@ -78,12 +78,12 @@ class data_user_info():#使用者資訊
     def sell_all_stock(self):#賣出所有股票
         for key,value in list(self.handle_stock.items()):
             self.sell_stock(key,value.amount)
-    def buy_all_stock(self,data = pd.DataFrame()):#買入所有股票
+    def buy_all_stock(self,data:DataFrame):#買入所有股票
         while len(data) > 0:
             for index,row in data.iterrows():
                 if self.buy_stock(index,1000) == False:
                     data = data.drop(index=index)
-    def buy_stock(self,number,amount):#買股票
+    def buy_stock(self,number:str,amount:int):#買股票
         stock_price = get_stock_price(number,self.now_day,stock_data_kind.AdjClose)
         if stock_price == None:
             print(str(number) + ' no use stock')
@@ -93,14 +93,14 @@ class data_user_info():#使用者資訊
             return False
         else:
             m_stock = ts.codes[str(number)]
-            m_info = get_stock_info.data_stock_info(m_stock.code,m_stock.name,m_stock.type,m_stock.start,m_stock.market,m_stock.group)
+            m_info = data_stock_info(m_stock.code,m_stock.name,m_stock.type,m_stock.start,m_stock.market,m_stock.group)
             if self.handle_stock.__contains__(number) == False:
                 self.handle_stock[number] = data_user_stock(m_info,amount,stock_price)
             else:
                 self.handle_stock[number].add_amount(amount,stock_price)
             self.now_money = self.now_money - tools.Total_with_Handling_fee_and_Tax(stock_price,amount)
             return True
-    def sell_stock(self,number,amount):#賣股票
+    def sell_stock(self,number:str,amount:int):#賣股票
         if self.handle_stock.__contains__(number) == False:
             print('手上無此股票')
             return False    
@@ -113,7 +113,7 @@ class data_user_info():#使用者資訊
             if self.handle_stock[number].minus_amount(amount) == False:
                 self.handle_stock.pop(number,None)
             return True
-    def Record_userInfo(self,data = pd.DataFrame()):
+    def Record_userInfo(self,data:DataFrame):
         self.Temp_result_draw = self.Temp_result_draw.append({'date':self.now_day,
                                                             '資產比例':self.get_user_all_asset()/self.start_money},
                                                             ignore_index=True)

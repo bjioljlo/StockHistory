@@ -13,11 +13,11 @@ import tools
 import get_stock_history,get_stock_info
 import Infomation_type as info
 
-MySql_server = None
+MySql_server:SQLAlchemy = None
 SQL_DataByDay = None
 threads = []
 
-def __RunSchedule(func,UpdateTime):
+def __RunSchedule(func,UpdateTime:str):
     print("RunSchedule at:" + UpdateTime)
     schedule.every().day.at(UpdateTime).do(func)
     if threads.__len__() == 0:
@@ -31,7 +31,7 @@ def __ScheduleStart():
         schedule.run_pending()
         time.sleep(0.5)
 
-def __setMysqlServer(db_name):
+def __setMysqlServer(db_name:str):
     global MySql_server
     server_flask = Flask(__name__)#初始化server
     #設定mysql DB
@@ -45,7 +45,7 @@ def __runUpdate():
     print("Update all stocks start!")
     df = pd.DataFrame()
     #end_date = datetime.today() - timedelta(days=1)#設定資料起訖日期
-    ts.__update_codes()
+    #ts.__update_codes()
     yf.pdr_override()
     for key,value in ts.codes.items():
         if value.market == "上市" and len(value.code) >= 4 :
@@ -183,7 +183,7 @@ def saveTable(_name:str,_df = pd.DataFrame()):
         print('SQL Error {}'.format(e.args))
         return False
     
-def yf_info(name):
+def yf_info(name:str):
     yf.pdr_override()
     if name.islower() != True:
         name = name.lower()
@@ -192,6 +192,6 @@ def yf_info(name):
     df = data.get_data_yahoo([name], start_date, end_date,index_col=0)
     if df.empty:
         print("yahoo no data:" + str(name))
-        return df
-    df.to_sql(name=name,con=MySql_server.engine,if_exists='replace')
-    print("Update stocks " + name + " OK!")
+    else:
+        df.to_sql(name=name,con=MySql_server.engine,if_exists='replace')
+        print("Update stocks " + name + " OK!")

@@ -1,6 +1,7 @@
 import requests
 from datetime import datetime,timedelta
 import pandas as pd
+from pandas import DataFrame
 import talib
 import get_stock_info
 import os
@@ -728,7 +729,7 @@ class stock_data_kind(Enum):
 
 filePath = os.getcwd()#取得目錄路徑
 
-def check_no_use_stock(number):
+def check_no_use_stock(number:str):
     try:
         number = int(number)
     except:
@@ -739,7 +740,7 @@ def check_no_use_stock(number):
             print(str(number))
             return True
     return False
-def check_ETF_stock(number):
+def check_ETF_stock(number:str):
     try:
         number = str(number)
     except:
@@ -751,7 +752,7 @@ def check_ETF_stock(number):
             return True
     return False
 
-def get_stock_RecordHight(number,date,flashDay,recordDays):#取得number在flashDay天內天是否在recordDays天內創新高
+def get_stock_RecordHight(number:str,date:datetime,flashDay:int,recordDays:int):#取得number在flashDay天內天是否在recordDays天內創新高
     Stock_RecordHigh.number = number
     Stock_RecordHigh.set_valuse(date,flashDay,recordDays,info.Price_type.High)
     return Stock_RecordHigh.get_ALL()
@@ -801,7 +802,7 @@ def get_stock_RecordHight(number,date,flashDay,recordDays):#取得number在flash
     #             break
     #     if Pass:
     #         return True
-def get_stock_MA(number,date,MA_day):#取得某股票某天的均線
+def get_stock_MA(number:str,date:datetime,MA_day:int):#取得某股票某天的均線
     Stock_main.number = number
     Temp_MA = SMA_Stock(Stock_main,MA_day,info.Price_type.Close).get_ALL()[date]
     return Temp_MA
@@ -839,7 +840,7 @@ def get_stock_MA(number,date,MA_day):#取得某股票某天的均線
 #     Temp_Invest = int(FreeSCF_Margin_temp.at[number,'投資活動之淨現金流入（流出）'])
 #     Temp_Free = int(Temp_Business+Temp_Invest)
 #     return Temp_Free
-def get_stock_price(number,date,kind):#取得某股票某天的價格
+def get_stock_price(number:str,date:datetime,kind:stock_data_kind):#取得某股票某天的價格
     Stock_main.number = number
     if kind == stock_data_kind.Volume:
         Stock_SMA.AvgDay = 5
@@ -898,7 +899,7 @@ def get_stock_price(number,date,kind):#取得某股票某天的價格
 #         number = int(number)
 #     df = df[df.index == number]
 #     return df
-def get_allstock_monthly_report(start):#爬某月所有股票月營收
+def get_allstock_monthly_report(start:datetime):#爬某月所有股票月營收
     print(''.join(["{}:取得".format(sys._getframe().f_code.co_name)]),"月營收的資料:",str(start))
     if tools.Have_MonthRP(start) == False:
         return pd.DataFrame()
@@ -954,7 +955,7 @@ def get_allstock_monthly_report(start):#爬某月所有股票月營收
         update_stock_info.saveTable(file,m_data)
     load_memery[fileName] = m_data
     return m_data      
-def get_allstock_financial_statement(start,type):#爬某季所有股票歷史財報
+def get_allstock_financial_statement(start:datetime,type:info.FS_type):#爬某季所有股票歷史財報
     print(''.join(["{}:取得".format(sys._getframe().f_code.co_name)]),str(type),"的季財報的資料:",str(start))
     if tools.Have_DayRP(start) == False:
         return pd.DataFrame()
@@ -989,7 +990,7 @@ def get_allstock_financial_statement(start,type):#爬某季所有股票歷史財
         stock = Temp_data
     load_memery[fileName] = stock
     return stock
-def get_allstock_yield(start):#爬某天所有股票殖利率
+def get_allstock_yield(start:datetime):#爬某天所有股票殖利率
     print(''.join(["{}:取得".format(sys._getframe().f_code.co_name)]),"殖利率的資料:",str(start))
     file = 'dividend_yield_'+ str(start.year) + '_' + str(start.month) + '_' + str(start.day)
     fileName = filePath + '/' + fileName_yield + '/' + file
@@ -1015,7 +1016,7 @@ def get_allstock_yield(start):#爬某天所有股票殖利率
         update_stock_info.saveTable(file,m_yield)
     load_memery[fileName] = m_yield
     return m_yield
-def get_stock_history(number,start = datetime.strptime('2005-1-1',"%Y-%m-%d")) -> pd.DataFrame:#爬某個股票的歷史紀錄
+def get_stock_history(number:str,start = datetime.strptime('2005-1-1',"%Y-%m-%d")) -> pd.DataFrame:#爬某個股票的歷史紀錄
     print(''.join(["取得" , str(number) , "的資料從" , str(start) ,"到今天:{}".format(sys._getframe().f_code.co_name)]))
     start_time = start
     if type(start_time) == str:
@@ -1058,7 +1059,7 @@ def get_stock_history(number,start = datetime.strptime('2005-1-1',"%Y-%m-%d")) -
     result = m_history[mask]
     result = result.dropna(axis = 0,how = 'any')
     return result
-def get_stock_AD_index(date,getNew = False):#取得上漲和下跌家數
+def get_stock_AD_index(date:datetime,getNew = False):#取得上漲和下跌家數
     print('get_stock_AD_index')
     ADindex_result = pd.DataFrame(columns=['Date','上漲','下跌']).set_index('Date')
     if type(date) == str:
@@ -1115,13 +1116,13 @@ def get_stock_AD_index(date,getNew = False):#取得上漲和下跌家數
     load_memery[fileName] = ADindex_result
     df = ADindex_result[ADindex_result.index == time]
     return df
-def get_ADL_index(date,ADL_yesterday):#取得騰落數值
+def get_ADL_index(date:datetime,ADL_yesterday:int):#取得騰落數值
     ADL_today = get_stock_AD_index(date)
     if ADL_today.empty == True:
         return None
     ADL_today = ADL_today['上漲'] - ADL_today['下跌']
     return ADL_yesterday + ADL_today[date]
-def get_ADLs_index(date):#取得騰落百分比
+def get_ADLs_index(date:datetime):#取得騰落百分比
     ADLs_today = get_stock_AD_index(date)
     if ADLs_today.empty == True:
         return None
@@ -1215,7 +1216,7 @@ def get_ADLs_index(date):#取得騰落百分比
 #     return pd.DataFrame(Temp_result,columns=['資產負債率'])
 
 #----------------------------
-def save_stock_file(fileName,stockData,start_index = 0,end_index = 0):#存下歷史資料
+def save_stock_file(fileName:str,stockData,start_index:int = 0,end_index:int = 0):#存下歷史資料
     with open(fileName + '.csv', 'w') as f:
         if start_index == end_index == 0:
             f.writelines(stockData.text)
@@ -1228,7 +1229,7 @@ def save_stock_file(fileName,stockData,start_index = 0,end_index = 0):#存下歷
             pos = stringText.index('\n')
             pos2 = stringText.rindex('\r\n""\r\n')
             f.writelines(stringText[pos + 1:pos2])
-def load_stock_file(fileName,stockName = ''):#讀取歷史資料
+def load_stock_file(fileName:str,stockName:str = ''):#讀取歷史資料
     if fileName in load_memery:#快取
         return load_memery[fileName]
     df = pd.DataFrame()
@@ -1250,7 +1251,7 @@ def load_stock_file(fileName,stockName = ''):#讀取歷史資料
     
     load_memery[fileName] = df
     return df
-def load_other_file(fileName,file = ''):#讀取資料
+def load_other_file(fileName:str,file:str = ''):#讀取資料
     if fileName in load_memery:#快取
         return load_memery[fileName]
     df = pd.DataFrame()
@@ -1265,10 +1266,10 @@ def load_other_file(fileName,file = ''):#讀取資料
     df = df.dropna(how='any',inplace=False)#將某些null欄位去除
     load_memery[fileName] = df
     return df
-def delet_stock_file(fileName):#刪除歷史資料
+def delet_stock_file(fileName:str):#刪除歷史資料
     if os.path.isfile(fileName) == True:
         os.remove(fileName)
-def load_month_file(fileName,file = ''):
+def load_month_file(fileName:str,file:str = ''):
     if fileName in load_memery:#快取
         return load_memery[fileName]
     df = pd.DataFrame()
@@ -1283,7 +1284,7 @@ def load_month_file(fileName,file = ''):
     return df
 #大盤綜合資料-------------   
 #取得騰落進階指標資料
-def get_ADLs(start_time,end_time):
+def get_ADLs(start_time:datetime,end_time:datetime):
     now_time = start_time
     data = pd.DataFrame(columns = ['Date','ADLs']).set_index('Date')
     while now_time <= end_time:
@@ -1306,7 +1307,7 @@ def get_ADLs(start_time,end_time):
         now_time = tools.backWorkDays(now_time,-1)
     return data
 #取得騰落指標資料
-def get_ADL(start_time,end_time):
+def get_ADL(start_time:datetime,end_time:datetime):
     ADL_yesterday = 0
     #第一天指標為0
     data = pd.DataFrame(columns = ['Date','ADL']).set_index('Date')
@@ -1336,7 +1337,7 @@ def get_ADL(start_time,end_time):
 
 #個股篩選-------------  
 #取得月營收逐步升高的篩選
-def get_monthRP_up(time,avgNum,upNum):#time = 取得資料的時間 avgNum = 平滑曲線月份 upNum = 連續成長月份
+def get_monthRP_up(time:datetime,avgNum:int,upNum:int):#time = 取得資料的時間 avgNum = 平滑曲線月份 upNum = 連續成長月份
     print('get_monthRP_up: start:'+ str(time) )
     Result = All_fuc(time,Month_index).get_Smooth_Up_Auto(avgNum,upNum)
     print('get_monthRP_up: end' )
@@ -1524,7 +1525,7 @@ def get_monthRP_up(time,avgNum,upNum):#time = 取得資料的時間 avgNum = 平
 #     print('get_ROE_up: end' )
 #     return method2
 #取得本益比篩選 #股價/每股盈餘(EPS)
-def get_PER_range(time,PER_start,PER_end,data = pd.DataFrame()):#time = 取得資料的時間 PER_start = PER最小值 PER_end PER最大值
+def get_PER_range(time:datetime,PER_start,PER_end,data:DataFrame):#time = 取得資料的時間 PER_start = PER最小值 PER_end PER最大值
     print('get_PER_range: start')
     Result = All_fuc(time,PER_index).get_Filter_Auto(PER_start,PER_end)
     print('get_PER_range: end')
@@ -1550,7 +1551,7 @@ def get_PER_range(time,PER_start,PER_end,data = pd.DataFrame()):#time = 取得�
     print('get_PER_range: end')
     return PER_data['PER']
 #取得本益成長比(PEG)篩選
-def get_PEG_range(time,PEG_start,PEG_end,data = pd.DataFrame()):#time = 取得資料的時間 PEG_start = PEG最小值 PEG_end PEG最大值
+def get_PEG_range(time:datetime,PEG_start,PEG_end,data:DataFrame):#time = 取得資料的時間 PEG_start = PEG最小值 PEG_end PEG最大值
     print('get_PEG_range: start')
     Result = All_fuc(time,PEG_index).get_Filter_Auto(PEG_start,PEG_end)
     print('get_PEG_range: end')
@@ -1577,7 +1578,7 @@ def get_PEG_range(time,PEG_start,PEG_end,data = pd.DataFrame()):#time = 取得�
     print('get_PEG_range: end')
     return PEG_data   
 #取得平均日成交金額篩選
-def get_AVG_value(time,volume,days,data = pd.DataFrame()):#time = 取得資料的時間 volume = 平均成交金額 days = 平均天數
+def get_AVG_value(time:datetime,volume:int,days:int,data:DataFrame):#time = 取得資料的時間 volume = 平均成交金額 days = 平均天數
     print('get_AVG_value: start')
     result = All_Stock_Filters_fuc(time,data).get_Filter_SMA('volume',99999999999,volume,days,info.Price_type.Volume)
     print('get_AVG_value: end')
@@ -1621,7 +1622,7 @@ def get_AVG_value(time,volume,days,data = pd.DataFrame()):#time = 取得資料�
     print('get_AVG_value: end')
     return Volume_data
 #取得股價淨值比篩選  #股價/每股淨值 = PBR 
-def get_PBR_range(time,PBR_start,PBR_end,data = pd.DataFrame()):#time = 取得資料的時間 PBR_start = PBR最小值 PBR_end PBR最大值
+def get_PBR_range(time:datetime,PBR_start:float,PBR_end:float,data = pd.DataFrame()):#time = 取得資料的時間 PBR_start = PBR最小值 PBR_end PBR最大值
     print('get_PBR_rang: start')
     Result = All_fuc(time,PBR_index).get_Filter_Auto(PBR_start,PBR_end)
     print('get_PBR_rang: end')
@@ -1648,7 +1649,7 @@ def get_PBR_range(time,PBR_start,PBR_end,data = pd.DataFrame()):#time = 取得�
     print('get_PBR_rang: end')
     return PBR_data['PBR']
 #取得股東權益報酬率 #ROE(股東權益報酬率) = 稅後淨利/股東權益
-def get_ROE_range(time,ROE_start,ROE_end,data = pd.DataFrame()):#time = 取得資料的時間 ROE_start = ROE最小值 ROE_end ROE最大值
+def get_ROE_range(time:datetime,ROE_start,ROE_end,data = pd.DataFrame()):#time = 取得資料的時間 ROE_start = ROE最小值 ROE_end ROE最大值
     print('get_ROE_rang: start')
     Result = All_fuc(time,ROE_index).get_Filter_Auto(ROE_start,ROE_end)
     print('get_ROE_rang: end')
@@ -1686,7 +1687,7 @@ def get_ROE_range(time,ROE_start,ROE_end,data = pd.DataFrame()):#time = 取得�
     print('get_ROE_rang: end')
     return ROE_data
 #取得股價篩選
-def get_price_range(time,high,low,data = pd.DataFrame()):#time = 取得資料的時間 high = 最高價 low = 最低價
+def get_price_range(time:datetime,high:int,low:int,data = pd.DataFrame()):#time = 取得資料的時間 high = 最高價 low = 最低價
     print('get_price_rang: start')
     if high == low == 0:
         return data
@@ -1748,7 +1749,7 @@ def get_price_range(time,high,low,data = pd.DataFrame()):#time = 取得資料的
 #     print('get_yield_range: end')
 #     return yield_data_result
 #取得創新高篩選
-def get_RecordHigh_range(time,Day,RecordHighDay,data = pd.DataFrame()):#time = 取得資料的時間 Day = 往前找多少天的創新高 RecordHighDay = 找創新高的區間
+def get_RecordHigh_range(time:datetime,Day:int,RecordHighDay:int,data = pd.DataFrame()):#time = 取得資料的時間 Day = 往前找多少天的創新高 RecordHighDay = 找創新高的區間
     print('get_RecordHigh: start')
     result = All_Stock_Filters_fuc(time,data).get_Filter_RecordHigh(Day,RecordHighDay,info.Price_type.High)
     print('get_RecordHigh: end')
@@ -1819,7 +1820,7 @@ def get_RecordHigh_range(time,Day,RecordHighDay,data = pd.DataFrame()):#time = �
 
 #--------------------------
 #爬取歷史財報並存檔
-def financial_statement(year, season, type):#year = 年 season = 季 type = 財報種類
+def financial_statement(year:int, season:int, type:info.FS_type):#year = 年 season = 季 type = 財報種類
     myear = year
     if year>= 1000:
         myear -= 1911
