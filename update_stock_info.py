@@ -10,16 +10,17 @@ from pandas_datareader import data
 import yfinance as yf
 from sqlalchemy.ext.declarative import declarative_base
 import tools
-import get_stock_history,get_stock_info
+import get_stock_history
 import Infomation_type as info
+from StockInfos import UserInfoDatas
 
 MySql_server:SQLAlchemy = None
 SQL_DataByDay = None
 threads = []
 
-def __RunSchedule(func,UpdateTime:str):
+def __RunSchedule(func, UpdateTime:str, args:tuple = None):
     print("RunSchedule at:" + UpdateTime)
-    schedule.every().day.at(UpdateTime).do(func)
+    schedule.every().day.at(UpdateTime).do(func,args)
     if threads.__len__() == 0:
         temp_thread = threading.Thread(target=__ScheduleStart)
         temp_thread.start()
@@ -41,7 +42,7 @@ def __setMysqlServer(db_name:str):
     #連線mysql DB
     MySql_server = SQLAlchemy(server_flask)
     
-def __runUpdate():
+def __runUpdate(MainUserInfoDatas: UserInfoDatas):
     print("Update all stocks start!")
     df = pd.DataFrame()
     #end_date = datetime.today() - timedelta(days=1)#設定資料起訖日期
@@ -73,8 +74,7 @@ def __runUpdate():
     #dataframe = pd.read_sql(sql = "2330.TW",con=MySql_server.engine,index_col='Date')
     #print(dataframe)
     #存更新日期
-    get_stock_info.Update_date = str(datetime.today())[0:10]
-    get_stock_info.Save_Update_date()
+    MainUserInfoDatas.UpdateDate = str(datetime.today())[0:10]
     print("Update all stocks end!")
 
 def __RunUpdate_sp500():
@@ -161,8 +161,8 @@ def read_Dividend_yield(name:str):
         print('SQL Error {}'.format(e.args))
         return dataframe
  
-def RunScheduleNow():
-    __RunSchedule(__runUpdate,str(datetime.today().hour).zfill(2)+ ":" + str(datetime.today().minute + 1).zfill(2)+ ":01")
+def RunScheduleNow(MainUserInfoDatas: UserInfoDatas):
+    __RunSchedule(__runUpdate,str(datetime.today().hour).zfill(2)+ ":" + str(datetime.today().minute + 1).zfill(2)+ ":01", MainUserInfoDatas)
     # RunSchedule(RunUpdate_sp500,str(datetime.today().hour).zfill(2)+ ":" + str(datetime.today().minute + 1).zfill(2)+ ":05")
     # RunSchedule(RunUpDate2,str(datetime.today().hour).zfill(2)+ ":" + str(datetime.today().minute + 1).zfill(2)+ ":05")
     # RunSchedule(runUpdate,"14:04:01")

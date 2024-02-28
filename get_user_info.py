@@ -2,13 +2,13 @@ from datetime import timedelta, datetime
 import pandas as pd
 from pandas import DataFrame
 from get_stock_history import get_stock_price,stock_data_kind
-from get_stock_info import data_stock_info
+from StockInfos import StockInfoData
 import tools
 import twstock as ts #抓取台灣股票資料套件
 
 class data_user_stock():#手持股票資訊
-    def __init__(self,stock_info: data_stock_info,amount:int,price:float):
-        self.stock_info:data_stock_info = stock_info
+    def __init__(self,stock_info: StockInfoData,amount:int,price:float):
+        self.stock_info:StockInfoData = stock_info
         self.amount:int = amount
         self.price:float = price
     def add_amount(self,amount:int,price:float):
@@ -24,8 +24,7 @@ class data_user_stock():#手持股票資訊
         return False
         
 
-class data_user_info():#使用者資訊
-    
+class data_user_info():#使用者資訊 
     def __init__(self,start_money:int,start_day:datetime,end_day:datetime):
         self.start_money:int = start_money #起始現金
         self.now_money:int = start_money #剩餘現金
@@ -93,7 +92,7 @@ class data_user_info():#使用者資訊
             return False
         else:
             m_stock = ts.codes[str(number)]
-            m_info = data_stock_info(m_stock.code,m_stock.name,m_stock.type,m_stock.start,m_stock.market,m_stock.group)
+            m_info = StockInfoData(m_stock.code,m_stock.name,m_stock.type,m_stock.start,m_stock.market,m_stock.group)
             if self.handle_stock.__contains__(number) == False:
                 self.handle_stock[number] = data_user_stock(m_info,amount,stock_price)
             else:

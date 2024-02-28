@@ -6,11 +6,14 @@ import get_stock_history as gsh
 import tools
 import draw_figur as df
 from IParameter import RecordMainParameter
+from StockInfos import UserInfoDatas
 
 class Model_main(TModel):
     def __init__(self, _interactiveController: IController):
         super().__init__()
-        self._InteractiveController = _interactiveController
+        self._InteractiveController:IController = _interactiveController
+        self._MainUserInfoData:UserInfoDatas = UserInfoDatas('stock_info_list.npy', 'Update_date.npy')
+        self._MainUserInfoData._Show_all_stock_info()
     
     @property
     def InteractiveController(self):
@@ -20,6 +23,12 @@ class Model_main(TModel):
     @InteractiveController.setter
     def InteractiveController(self,_interactiveController:IController):
         self._InteractiveController = _interactiveController
+
+    @property
+    def MainUserInfoData(self):
+        if self._MainUserInfoData == None:
+            raise
+        return self._MainUserInfoData
 
     def GetInteractiveController(self) -> IController:
         return self.InteractiveController

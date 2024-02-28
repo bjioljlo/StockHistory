@@ -5,7 +5,7 @@ from Model.Model_main import Model_main
 from Model.Model import IModel
 from View.View import IWindow
 
-import get_stock_info   
+import StockInfos as MainUserDataInfo  
 import get_stock_history as gsh
 import update_stock_info
 import tools
@@ -14,6 +14,7 @@ import threading
 from datetime import datetime
 from PyQt5 import QtCore
 from Mediator_Controller import IMediator_Controller, controllers
+import telegram_bot
 
 class Controller_main(TController):
     def __init__(self, _view: IWindow = None, _model: IModel = None) -> None:
@@ -21,7 +22,15 @@ class Controller_main(TController):
         self.Init_Window()
         self.lock = threading.Lock()
         self.mediator:IMediator_Controller = None
+        self._telegram:telegram_bot = telegram_bot
+        self._telegram.MainUserInfoData = self.__GetModel().MainUserInfoData
     
+    @property
+    def telegram(self):
+        if self._telegram is None:
+            raise
+        return self._telegram
+
     def __GetView(self) -> Main_Window:
         return self.View
     
@@ -32,13 +41,13 @@ class Controller_main(TController):
         UI_form = self.__GetView().GetFormUI()
         UI_form.button_addStock.clicked.connect(self.button_addStock_click)#設定button功能
         UI_form.button_deletStock.clicked.connect(self.button_deletStock_click)#設定button功能
-        UI_form.treeView.setModel(Controller.creat_treeView_model(UI_form.treeView,Controller.main_titalList,False))#設定treeView功能
+        UI_form.treeView.setModel(Controller.creat_treeView_model(UI_form.treeView,Controller.main_titalList,self.__GetModel().MainUserInfoData))#設定treeView功能
         UI_form.button_moveToInput.clicked.connect(self.button_moveToInput_click)#設定button功能
         UI_form.button_getStockHistory.clicked.connect(self.button_getStockHistory)#設定button功能
         UI_form.button_openPickWindow.clicked.connect(self.button_openPickWindow_click)#設定button功能
         UI_form.button_getMonthRP.clicked.connect(self.button_monthRP_click)#設定button功能
         UI_form.button_getDividend_yield.clicked.connect(self.button_Dividend_yield_click)#設定button功能
-        UI_form.button_runSchedule.clicked.connect(update_stock_info.RunScheduleNow)#設定button功能
+        UI_form.button_runSchedule.clicked.connect(lambda:update_stock_info.RunScheduleNow(self.__GetModel().MainUserInfoData))#設定button功能
         UI_form.button_stopSchedule.clicked.connect(update_stock_info.stopThreadSchedule)#設定button功能
         UI_form.button_getOperating_Margin.clicked.connect(self.button_Operating_Margin_click)#設定button功能
         UI_form.button_Operating_Margin_Ratio.clicked.connect(self.button_Operating_Margin_Ratio_click)
@@ -52,7 +61,7 @@ class Controller_main(TController):
         UI_form.button_getMonth_Growth.clicked.connect(self.button_MonthRevenueGrowth_click)
         UI_form.button_getSeason_Growth.clicked.connect(self.button_SeasonRevenueGrowth_click)
         # #設定日期
-        Date = datetime.strptime(get_stock_info.Update_date[0:10],"%Y-%m-%d")
+        Date = datetime.strptime(self.__GetModel().MainUserInfoData.UpdateDate[0:10],"%Y-%m-%d")
         date = QtCore.QDate(Date.year,Date.month,Date.day)
         today = QtCore.QDate(datetime.today().year,datetime.today().month,datetime.today().day)
         UI_form.date_startDate.setMaximumDate(today)
@@ -83,13 +92,13 @@ class Controller_main(TController):
         self.mediator.ShowWindow(self, controllers.Pick)
     def button_addStock_click(self):
         stocknum = self.__GetView().GetFormUI().input_stockNumber.toPlainText()
-        get_stock_info.Add_stock_info(stocknum)
-        self.__GetView().GetFormUI().treeView.setModel(Controller.creat_treeView_model(self.__GetView().GetFormUI().treeView,Controller.main_titalList,False))#設定treeView功能
+        self.__GetModel().MainUserInfoData.AddStockInfo(stocknum)
+        self.__GetView().GetFormUI().treeView.setModel(Controller.creat_treeView_model(self.__GetView().GetFormUI().treeView,Controller.main_titalList,self.__GetModel().MainUserInfoData))#設定treeView功能
     def button_deletStock_click(self):
         UI_form = self.__GetView().GetFormUI()
         stocknum = UI_form.input_stockNumber.toPlainText()
-        get_stock_info.Delet_stock_info(stocknum)
-        UI_form.treeView.setModel(Controller.creat_treeView_model(UI_form.treeView,Controller.main_titalList,False))#設定treeView功能
+        self.__GetModel().MainUserInfoData.DeletStockInfo(stocknum)
+        UI_form.treeView.setModel(Controller.creat_treeView_model(UI_form.treeView,Controller.main_titalList,self.__GetModel().MainUserInfoData))#設定treeView功能
     def button_moveToInput_click(self):
         Index = self.__GetView().GetFormUI().treeView.currentIndex()
         mModel = self.__GetView().GetFormUI().treeView.model()
@@ -133,7 +142,7 @@ class Controller_main(TController):
         str_date = tools.DateTime2String(date)
         df.Clear_PICS()
         if self.__GetView().GetFormUI().input_stockNumber.toPlainText() == "":
-            for key,value in get_stock_info.stock_list.items():
+            for key,value in self.__GetModel().MainUserInfoData.StockList.items():
                 m_history = gsh.get_stock_history(key,str_date)
             return
         elif self.__GetView().GetFormUI().input_stockNumber.toPlainText() == "Update":
@@ -150,19 +159,19 @@ class Controller_main(TController):
             if self.__GetView().GetFormUI().check_ADL.isChecked() or self.__GetView().GetFormUI().check_ADLs.isChecked():
                 mask = m_history.index <= end_date
                 m_history = m_history[mask]
-            self.check_SMA_isCheck(m_history,get_stock_info.Get_stock_info(stock_number),date)
-            self.check_Volume_isCheck(m_history,get_stock_info.Get_stock_info(stock_number))  
-            self.check_KD_isCheck(m_history,get_stock_info.Get_stock_info(stock_number))
-            self.check_BollingerBands_isCheck(m_history,get_stock_info.Get_stock_info(stock_number))
-            self.check_RSI_isCheck(m_history,get_stock_info.Get_stock_info(stock_number))
+            self.check_SMA_isCheck(m_history,self.__GetModel().MainUserInfoData.GetStockInfo(stock_number),date)
+            self.check_Volume_isCheck(m_history,self.__GetModel().MainUserInfoData.GetStockInfo(stock_number))  
+            self.check_KD_isCheck(m_history,self.__GetModel().MainUserInfoData.GetStockInfo(stock_number))
+            self.check_BollingerBands_isCheck(m_history,self.__GetModel().MainUserInfoData.GetStockInfo(stock_number))
+            self.check_RSI_isCheck(m_history,self.__GetModel().MainUserInfoData.GetStockInfo(stock_number))
             self.Check_ADL_isCheck()
             self.Check_ADLs_isCheck()
             self.Check_MACD_isCheck(m_history)
-            self.check_price_isCheck(m_history,get_stock_info.Get_stock_info(stock_number))#壹定要在最後面檢查 
+            self.check_price_isCheck(m_history,self.__GetModel().MainUserInfoData.GetStockInfo(stock_number))#壹定要在最後面檢查 
     #異步更新所有台股資料
     def Update_StockData_threading(self,str_date):
         self.lock.acquire()
-        for key,value in get_stock_info.ts.codes.items():
+        for key,value in MainUserDataInfo.ts.codes.items():
             if value.market == "上市" and len(value.code) == 4:
                 if gsh.check_no_use_stock(value.code) == True:
                     print('get_stock_price: ' + str(value.code) + ' in no use')
@@ -170,8 +179,7 @@ class Controller_main(TController):
                 m_history = gsh.get_stock_history(value.code,str_date)
                 print("get " + str(value.code) + " info susess!")
         #存更新日期
-        get_stock_info.Update_date = str(datetime.today())[0:10]
-        get_stock_info.Save_Update_date()    
+        self.__GetModel().MainUserInfoData.UpdateDate = str(datetime.today())[0:10]   
         self.lock.acquire()
     def check_SMA_isCheck(self,m_history,stockInfo,startdate):
         if self.__GetView().GetFormUI().check_SMA.isChecked() == True:

@@ -1,6 +1,6 @@
 from PyQt5.QtGui import QStandardItemModel
 from PyQt5.QtCore import Qt
-import get_stock_info  
+from StockInfos import UserInfoDatas
 from abc import ABC,abstractmethod
 from View.View import IWindow
 from Model.Model import IModel
@@ -76,12 +76,12 @@ class TController(IController):
     
 
 #讓Controller都可以用
-def creat_treeView_model(parent,titalList,IsEmpty = True):
+def creat_treeView_model(parent,titalList,UserInfoData:UserInfoDatas = None):
     model = QStandardItemModel(0,titalList.__len__(),parent)
     for i in range(0,titalList.__len__()):
         model.setHeaderData(i,Qt.Horizontal,titalList[i])
-    if IsEmpty == False:
-        set_treeView(model,get_stock_info.stock_list)
+    if UserInfoData is not None:
+        set_treeView(model,UserInfoData.StockList)
     return model
 def set_treeView2(model,inputdataFram):
     i = 0

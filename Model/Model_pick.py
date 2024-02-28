@@ -6,6 +6,7 @@ import get_stock_history as gsh
 import Infomation_type as info
 from IParameter import RecordPickParameter
 import pandas as pd
+from StockInfos import PickInfoDatas
 
 class Model_pick(TModel):
     def __init__(self,_interactiveController: IController):
@@ -23,7 +24,7 @@ class Model_pick(TModel):
 
     def GetInteractiveController(self) -> IController:
         return self.InteractiveController
-    
+
     #全部篩選
     def monthRP_Up(self, RecordPickParameter: RecordPickParameter, endDate: datetime) -> pd.DataFrame:
         date = endDate#tools.QtDate2DateTime(self.Controller_main.View.FormUI.date_endDate.date())

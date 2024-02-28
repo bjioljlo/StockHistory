@@ -1,6 +1,5 @@
 from PyQt5 import QtWidgets
 import sys
-import telegram_bot
 
 import update_stock_info
 from Mediator_Controller import Mediator_Controller
@@ -44,5 +43,6 @@ try:
     sys.exit(app.exec_())
 except:#退出時需要清理的方法
     print('開始清理異步內存')
-    telegram_bot.stop_telegram(telegram_bot.updater)
+    controller_main.telegram.stop_telegram(controller_main.telegram.updater)
+    #telegram_bot.stop_telegram(telegram_bot.updater)
     update_stock_info.stopThreadSchedule()

@@ -2,11 +2,12 @@ from datetime import datetime
 from telegram.ext import Updater,CommandHandler,ConversationHandler,Filters,MessageHandler
 from telegram import ReplyKeyboardMarkup, Update
 import telegram.ext
-import get_stock_info
+import StockInfos as MainUserDataInfo
 import twstock as ts
 import get_stock_history as gsh
 import tools
 import Infomation_type as info
+from StockInfos import UserInfoDatas
 
 updater = Updater(
     token='5725776094:AAHg3YJU6893cTHEq0Wdw7t9BpAeIcKh_L4',use_context=True
@@ -18,6 +19,8 @@ dispatcher = updater.dispatcher
 markup = ReplyKeyboardMarkup(replay_keyboard)
 
 CHOOSING, COMFIRM_STOCK, TYPING_CHOICE, COMFIRM_SEARCH_STOCK, TYPING_SEARCH_CHOICE = range(5)
+
+MainUserInfoData:UserInfoDatas = None
 
 def stop_telegram(updater:Updater):
     updater.stop()  # 停止推送任務
@@ -33,7 +36,7 @@ def wrong_command(update, context):
                              reply_markup=markup)
     return CHOOSING
 def check_stock_list(update, context):
-    List = get_stock_info.stock_list
+    List = MainUserInfoData.StockList
     MSG = '你目前追蹤的標的如下：'
     for value in List.values():
         MSG = MSG + '\r\n{} {}'.format(value.number,value.name)
@@ -84,7 +87,7 @@ def search_check_and_store(update:Update, context):
     return COMFIRM_SEARCH_STOCK
 def stock_added(update:Update, context):
     Msg = update.message.text
-    List = get_stock_info.stock_list
+    List = MainUserInfoData.StockList
     if List.__contains__(Msg):
         context.bot.send_message(chat_id=update.effective_chat.id, 
                                  text='''
@@ -92,7 +95,7 @@ def stock_added(update:Update, context):
                                  '''.format(Msg, '\r\n'.join(List)),
                                  reply_markup=markup)
         return CHOOSING
-    if get_stock_info.Add_stock_info(Msg):
+    if MainUserInfoData.AddStockInfo(Msg):
         context.bot.send_message(chat_id=update.effective_chat.id, 
                                 text='''
                                 已經成功加入 {} 到追蹤清單囉！\r\n請選擇你想查詢的服務🦉
@@ -108,7 +111,7 @@ def stock_added(update:Update, context):
         return CHOOSING
 def stock_remove(update:Update, context):
     Msg = update.message.text[1:].upper()
-    List = get_stock_info.stock_list
+    List = MainUserInfoData.StockList
     if List.__contains__(Msg) == False:
         MSG = '你已經沒有追蹤 {} 囉！\r\n你追蹤的標的如下：'.format(Msg)
         for value in List.values():
@@ -117,7 +120,7 @@ def stock_remove(update:Update, context):
                                 text=MSG,
                                 reply_markup=markup)
         return CHOOSING
-    if get_stock_info.Delet_stock_info(Msg):
+    if MainUserInfoData.DeletStockInfo(Msg):
         context.bot.send_message(chat_id=update.effective_chat.id, 
                                 text='''
                                 已經成功刪除 {} 到追蹤清單囉！\r\n請選擇你想查詢的服務🦉
@@ -134,7 +137,7 @@ def stock_remove(update:Update, context):
 def stock_searched(update:Update, context):
     Msg = update.message.text
     stock_number = int(Msg)
-    stock_info = get_stock_info.ts.codes[Msg]
+    stock_info = MainUserDataInfo.ts.codes[Msg]
     date = tools.DateTime2String(datetime.today())
     gsh.Stock_main.number = int(stock_number)
     # gsh.Stock_main.StartDate = tools.backWorkDays(datetime.today(),1)

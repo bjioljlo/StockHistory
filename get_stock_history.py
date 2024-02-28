@@ -3,7 +3,7 @@ from datetime import datetime,timedelta
 import pandas as pd
 from pandas import DataFrame
 import talib
-import get_stock_info
+import StockInfos
 import os
 import numpy as np
 from io import StringIO
@@ -13,6 +13,7 @@ import tools
 import update_stock_info
 import Infomation_type as info
 import sys
+from abc import ABC, abstractmethod
 
 fileName_monthRP = "monthRP"
 fileName_stockInfo = "stockInfo"
@@ -31,7 +32,11 @@ Holiday_trigger = False
 
 load_memery = {}
 
-class Stock():
+class IStock(ABC):
+    @abstractmethod
+    def get_ALL(self) -> DataFrame:
+        pass    
+class TStock(IStock):
     @property
     def number(self):
         if self._number == None:
@@ -42,7 +47,8 @@ class Stock():
         self._number = number
     def __init__(self, number:int = None) -> None:
         self._number = number
-    def get_ALL(self):
+    @abstractmethod
+    def get_ALL(self) -> DataFrame:
         raise NotImplementedError( "{} is virutal! Must be overwrited.".format(sys._getframe().f_code.co_name))   
     def get_PriceByDate(self,date:datetime):
         Temp = self.get_ALL()
@@ -57,7 +63,10 @@ class Stock():
             else:
                 print(''.join([str(date),'的',str(self._number),'公司尚未成立']))
             return pd.DataFrame()
-class OriginalStock(Stock):
+class OriginalStock(TStock):
+    @abstractmethod
+    def get_ALL(self) -> DataFrame:
+        raise NotImplementedError( "{} is virutal! Must be overwrited.".format(sys._getframe().f_code.co_name))
     def get_PriceByType(self,_type:info.Price_type):
         Temp = self.get_ALL()
         try:
@@ -74,12 +83,12 @@ class OriginalStock(Stock):
                 print(''.join([str(date),'的',str(self._number),'公司尚未成立']))
             return None
 class Date_Stock(OriginalStock):
-    def get_ALL(self):
-        return get_stock_history(self._number)
+    def get_ALL(self) -> DataFrame:
+        return get_stock_history(str(self._number))
 Stock_2330 = Date_Stock(2330)#拿來確認當天是否有開市用
 Stock_main = Date_Stock()
 
-class VirtualStockFuc(Stock):
+class VirtualStockFuc(TStock):
     @property
     def number(self):
         if self.Stock.number == None:
@@ -88,7 +97,7 @@ class VirtualStockFuc(Stock):
     @number.setter
     def number(self,number:int):
         self.Stock.number = number
-    def __init__(self, Stock:Stock) -> None:
+    def __init__(self, Stock:TStock) -> None:
         super().__init__(Stock._number)
         self.Stock = Stock
     def get_ALL(self):
@@ -110,7 +119,7 @@ class RangeDate_Stock(VirtualStockFuc):
     @EndDate.setter
     def EndDate(self,date:datetime):
         self._date2 = date
-    def __init__(self, Stock: Stock, startDate:datetime = None, endDate:datetime = None) -> None:
+    def __init__(self, Stock: TStock, startDate:datetime = None, endDate:datetime = None) -> None:
         super().__init__(Stock)
         self.StartDate = startDate
         self.EndDate = endDate
@@ -137,7 +146,7 @@ class SMA_Stock(VirtualStockFuc):
     @PriceType.setter
     def PriceType(self,_type:info.Price_type):
         self._type = _type
-    def __init__(self, Stock: Stock, avgDay:int = None, type:info.Price_type = None) -> None:
+    def __init__(self, Stock: TStock, avgDay:int = None, type:info.Price_type = None) -> None:
         super().__init__(Stock)
         self.AvgDay = avgDay
         self.PriceType = type
@@ -151,7 +160,7 @@ class RecordHigh_Stock(VirtualStockFuc):
         self._flashDay = _flashDay
         self._recordDays = _recordDays
         self._atype = _atype
-    def __init__(self, Stock: Stock, endDate:datetime= None, flashDay:int= None, recordDays:int= None, atype:info.Price_type= None) -> None:
+    def __init__(self, Stock: TStock, endDate:datetime= None, flashDay:int= None, recordDays:int= None, atype:info.Price_type= None) -> None:
         super().__init__(Stock)
         self.set_valuse(endDate,flashDay,recordDays,atype)
     def get_ALL(self):
@@ -179,8 +188,8 @@ Stock_RangeDate = RangeDate_Stock(Stock_main)
 Stock_SMA = SMA_Stock(Stock_main)
 Stock_RecordHigh = RecordHigh_Stock(Stock_main)
 
-class VirtualStockFilterFuc(Stock):
-    def __init__(self, Stock:Stock, Date:datetime) -> None:
+class VirtualStockFilterFuc(TStock):
+    def __init__(self, Stock:TStock, Date:datetime) -> None:
         super().__init__(Stock._number)
         self._Stock = Stock
         self._date = Date
@@ -237,7 +246,7 @@ class StockRecordHigh(VirtualStockFilterFuc):
         result.set_index('code',inplace=True)
         return result    
 class StockFilter(VirtualStockFilterFuc):
-    def __init__(self, Stock: Stock, Name:str, Max:int, Min:int , Data:pd.DataFrame, Date:datetime, Type:info.Price_type) -> None:
+    def __init__(self, Stock: TStock, Name:str, Max:int, Min:int , Data:pd.DataFrame, Date:datetime, Type:info.Price_type) -> None:
         super().__init__(Stock,Date)
         self.__max = Max
         self.__min = Min
@@ -465,7 +474,7 @@ class OCFPerShare_Indicator(Indicator):
         table_result[self._name] = table_OCF / table_BS
         return table_result
 class PCF_Indicator(Indicator):
-    def __init__(self, name: str,OCFPerShare:OCFPerShare_Indicator,StockPrice:Stock) -> None:
+    def __init__(self, name: str,OCFPerShare:OCFPerShare_Indicator,StockPrice:TStock) -> None:
         super().__init__(name, 1)
         self.OCFPerShare = OCFPerShare
         self._number = None
@@ -1026,7 +1035,7 @@ def get_stock_history(number:str,start = datetime.strptime('2005-1-1',"%Y-%m-%d"
     data_time = datetime.strptime('2005-1-1',"%Y-%m-%d")
     result = pd.DataFrame()
 
-    if get_stock_info.ts.codes.__contains__(number) == False:
+    if StockInfos.ts.codes.__contains__(number) == False:
         print("無此檔股票")
         return result
     if start_time < data_time:
@@ -1035,26 +1044,12 @@ def get_stock_history(number:str,start = datetime.strptime('2005-1-1',"%Y-%m-%d"
     file = str(number)
     filename = filePath +'/' + fileName_stockInfo  + '/' + file
     m_history = load_stock_file(filename,file)
-    
     if m_history.empty == True:
         # 去ＹＦ讀取資料
         update_stock_info.yf_info(str(number) + info.local_type.Taiwan)
         # 偽停頓
         time.sleep(1.5)
-        m_history = load_stock_file(filename,file)
-        # if os.path.isfile(filename + '_TW.csv') == False:
-        #     # 去ＹＦ讀取資料
-        #     update_stock_info.yf_info(str(number) + info.local_type.Taiwan)
-        #     # 偽停頓
-        #     time.sleep(1.5)
-        # else:
-        #     if reGetInfo == True:
-        #         # 去ＹＦ讀取資料
-        #         update_stock_info.yf_info(str(number) + info.local_type.Taiwan)
-        #         # 偽停頓
-        #         time.sleep(1.5)
-        # m_history = load_stock_file(filename,file)
-       
+        m_history = load_stock_file(filename,file)       
     mask = m_history.index >= start_time
     result = m_history[mask]
     result = result.dropna(axis = 0,how = 'any')
@@ -1086,15 +1081,11 @@ def get_stock_AD_index(date:datetime,getNew = False):#取得上漲和下跌家�
     down = 0
     if ADindex_result.empty == False and (ADindex_result.index == time).__contains__(True):
         return ADindex_result[ADindex_result.index == time]
-    for key,value in get_stock_info.ts.codes.items():
+    for key,value in StockInfos.ts.codes.items():
         if value.market == "上市" and len(value.code) == 4 and value.type == "股票":
             if check_no_use_stock(value.code) == True:
                 print('get_stock_price: ' + str(value.code) + ' in no use')
                 continue
-            #====test 測完請拿掉
-            # if int(value.code) < 9000:
-            #     continue
-            #====test 測完請拿掉
             m_history = get_stock_history(value.code,str_yesterday)['Close']
             try:
                 if m_history[str_yesterday] > m_history[str_date]:
@@ -1103,10 +1094,10 @@ def get_stock_AD_index(date:datetime,getNew = False):#取得上漲和下跌家�
                     up = up + 1
             except:
                 print("get " + str(value.code) + " info fail!")
-                m_temp = get_stock_history(2330,str_yesterday)['Close']
+                m_temp = get_stock_history('2330',str_yesterday)['Close']
                 if (m_temp.index == time).__contains__(True) != True:
                     return pd.DataFrame()
-                m_temp = get_stock_history(2330,str_date)['Close']
+                m_temp = get_stock_history('2330',str_date)['Close']
                 if (m_temp.index == time).__contains__(True) != True:
                     return pd.DataFrame()
     ADindex_result_new = pd.DataFrame({'Date':[time],'上漲':[up],'下跌':[down]}).set_index('Date')
@@ -1769,7 +1760,7 @@ def get_RecordHigh_range(time:datetime,Day:int,RecordHighDay:int,data = pd.DataF
     if All_data.empty == True:
         return RH_result
     for index,row in All_data.iterrows():
-        if get_stock_info.ts.codes.__contains__(str(index)) == False:
+        if StockInfos.ts.codes.__contains__(str(index)) == False:
             print(''.join([str(index),":無此檔股票"]))
             continue 
         if get_stock_RecordHight(index,RH_date,Day,RecordHighDay) == True:
