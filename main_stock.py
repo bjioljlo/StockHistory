@@ -16,11 +16,6 @@ from Controller.Controller_main import Controller_main
 from Controller.Controller_pick import Controller_pick
 from Controller.Controller_backTest import Controller_backTest
 
-main_titalList = ["股票號碼","股票名稱"]
-pick_titalList = ["股票號碼","股票名稱","每股參考淨值","基本每股盈餘（元）",
-                "毛利率(%)","營業利益率(%)","資產總額","負債總額","股本",
-                "權益總額","本期綜合損益總額（稅後）","PBR","PER","PEG","ROE","殖利率"]
-
 app = QtWidgets.QApplication(sys.argv)
 # 初始化controller
 controller_backtest = Controller_backTest(BackTest_Window(MyBacktestWindow()), Model_backtest())
@@ -44,5 +39,4 @@ try:
 except:#退出時需要清理的方法
     print('開始清理異步內存')
     controller_main.telegram.stop_telegram(controller_main.telegram.updater)
-    #telegram_bot.stop_telegram(telegram_bot.updater)
     update_stock_info.stopThreadSchedule()

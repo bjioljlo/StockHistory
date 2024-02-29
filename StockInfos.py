@@ -29,7 +29,12 @@ class TStockInfoDatas(IStockInfoDatas):
     def __init__(self) -> None:
         super(TStockInfoDatas,self).__init__()
         self._Stock_list:dict = {}
-
+    @property
+    def Stock_list(self):
+        if self._Stock_list == None:
+            raise
+        return self._Stock_list
+    
     def _Show_all_stock_info(self):
         '''顯示所有追蹤股票'''
         if len(self._Stock_list) == 0:
