@@ -89,6 +89,7 @@ Stock_2330 = Date_Stock(2330)#拿來確認當天是否有開市用
 Stock_main = Date_Stock()
 
 class VirtualStockFuc(TStock):
+    '''需要輸入TStock類別'''
     @property
     def number(self):
         if self.Stock.number == None:
@@ -305,12 +306,19 @@ class All_Stock_Filters_fuc():
         aBetterMA = StockPriceBetterMA(aSMA, self.Data, self._date)
         temp = aBetterMA.get_ALL()
         return temp
- 
-class Report():
-    def __init__(self,name:str) -> None:
+
+#直接資料(指標) 
+class IReport(ABC):
+    @abstractmethod
+    def get_ALL_Report(self,date) -> DataFrame:
+        raise NotImplementedError( "{} is virutal! Must be overwrited.".format(sys._getframe().f_code.co_name))           
+class TReport(IReport):
+    def __init__(self, name: str , Unit:int) -> None:
         self._name = name
-    def get_ALL_Report(self,date):
-        raise NotImplementedError( "{} is virutal! Must be overwrited.".format(sys._getframe().f_code.co_name))
+        self._Unit = Unit
+    @abstractmethod
+    def get_ALL_Report(self,date)-> DataFrame:
+        raise NotImplementedError( "{} is virutal! Must be overwrited.".format(sys._getframe().f_code.co_name))  
     def get_ReportByNumber(self,date,number:int) -> pd.Series:
         Temp = self.get_ALL_Report(date)
         try:
@@ -323,12 +331,7 @@ class Report():
                 print(''.join([str(date),'的',self._name,'表沒出']))
             else:
                 print(''.join([str(date),'的',str(number),'公司尚未成立']))
-            return pd.DataFrame()    
-#直接資料     
-class Original(Report):
-    def __init__(self, name: str , Unit:int) -> None:
-        super().__init__(name)
-        self._Unit = Unit
+            return pd.DataFrame()  
     def get_ReportByType(self,date,_type:info.StrEnum) -> pd.Series:
         Temp = self.get_ALL_Report(date)
         try:
@@ -346,21 +349,21 @@ class Original(Report):
             return None
     def Next_date(self,date):
         return tools.changeDateMonth(date,-self._Unit)
-class Season_Report(Original):
-    def __init__(self, _FS_type:info.FS_type, name: str, Unit: int) -> None:
+class Season_Report(TReport):
+    def __init__(self, _FS_type:info.FS_type, name: str, Unit: int):
         super().__init__(name, Unit)
         self._FS_type = _FS_type
-    def get_ALL_Report(self,date):
+    def get_ALL_Report(self,date)-> DataFrame:
         return get_allstock_financial_statement(date,self._FS_type)
 CPL_RP = Season_Report(info.FS_type.CPL,info.FS_type.CPL.value,3)
 BS_RP = Season_Report(info.FS_type.BS,info.FS_type.BS.value,3)
 PLA_RP = Season_Report(info.FS_type.PLA,info.FS_type.PLA.value,3)
 SCF_RP = Season_Report(info.FS_type.SCF,info.FS_type.SCF.value,3)
-class Month_Report(Original):
+class Month_Report(TReport):
     def get_ALL_Report(self, date):
         return get_allstock_monthly_report(date)
 Month_RP = Month_Report('month_RP', 1)#月營收
-class Day_Report(Original):
+class Day_Report(TReport):
     def get_ALL_Report(self, date):
         return get_allstock_yield(date)
     def Next_date(self,date):
@@ -370,8 +373,8 @@ class Day_Report(Original):
         return date
 Yield_RP = Day_Report('yield_RP', 1)
 
-#計算資料
-class Indicator(Original):
+#計算資料(指標)
+class Indicator(TReport):
     def __init__(self, name: str, Unit: int) -> None:
         super().__init__(name, Unit)
 class ROE_Indicator(Indicator):
@@ -505,7 +508,7 @@ class PCF_Indicator(Indicator):
     def number(self,number:int):
         self._number = number
 class Original_Indicator(Indicator):
-    def __init__(self, name: str, Report:Original, type:info.StrEnum) -> None:
+    def __init__(self, name: str, Report:TReport, type:info.StrEnum) -> None:
         super().__init__(name,Report._Unit)
         self._Report = Report
         self._type = type
@@ -540,11 +543,11 @@ OCFPerShare_index = OCFPerShare_Indicator('OCFPerShare',SCF_RP,BS_RP)#每股營�
 PCF_index = PCF_Indicator('P/CF',OCFPerShare_index,Stock_main)#股價現金流量比率
 #新增功能的虛擬類別
 class VirtualReportFunc():
-    def __init__(self, Report: Original) -> None:
+    def __init__(self, Report: TReport) -> None:
         self._Report = Report
         self._name = Report._name
 #自動找最近資料功能
-class ReportAutoTrace(Original):
+class ReportAutoTrace(TReport):
     def __init__(self, name: str, Report:Indicator, Unit: int) -> None:
         super().__init__(name, Unit)
         self._Report = Report
@@ -564,7 +567,7 @@ class ReportAutoTrace(Original):
         print("{} / {} is End!".format(self._name,sys._getframe().f_code.co_name))
         return Temp
 #數值篩選功能
-class ReportFilter(Original):
+class ReportFilter(TReport):
     def __init__(self, name: str, Report:Indicator, Unit: int, big:float, small:float) -> None:
         super().__init__(name, Unit)
         self._big = big
@@ -590,7 +593,7 @@ class ReportFilter(Original):
         print("{} / {} is End!".format(self._name,sys._getframe().f_code.co_name))
         return Temp
 #增高篩選功能
-class ReportUp(Original):
+class ReportUp(TReport):
     def __init__(self, name: str, upNum:int, Report:Indicator, Unit: int) -> None:
         super().__init__(name, Unit)
         self._upNum = upNum
@@ -623,7 +626,7 @@ class ReportUp(Original):
         print("{} / {} is End!".format(self._name,sys._getframe().f_code.co_name))
         return method2
 #平滑數據
-class ReportSmooth(Original):
+class ReportSmooth(TReport):
     def __init__(self, name: str, avgNum:int, Report:Indicator, Unit: int) -> None:
         super().__init__(name, Unit)
         self.avgNum = avgNum
@@ -656,8 +659,11 @@ class ReportSmooth(Original):
         table_result[self._name] = method2
         print("{} / {} is End!".format(self._name,sys._getframe().f_code.co_name))
         return table_result
-#增加篩選器在這邊加
+
 class All_fuc():
+    '''增加篩選器在這邊加
+        所有要輸入Indicator就可以加進來
+    '''
     def __init__(self, date:datetime, Report:Indicator) -> None:
         self._date = date
         self._report = Report
@@ -693,8 +699,9 @@ class All_fuc():
         aAuto = ReportAutoTrace('auto',aUp,aUp._Report._Unit)
         temp = aAuto.get_ALL_Report(self._date)
         return temp
-#取得各種數值圖表
+
 class All_imge():
+    '''取得各種數值圖表'''
     def __init__(self,start:datetime,end:datetime,report:Indicator) -> None:
         self._start = start
         self._end = end
@@ -738,7 +745,7 @@ class stock_data_kind(Enum):
 
 filePath = os.getcwd()#取得目錄路徑
 
-def check_no_use_stock(number:str):
+def check_no_use_stock(number:str) ->bool:
     try:
         number = int(number)
     except:
@@ -749,7 +756,7 @@ def check_no_use_stock(number:str):
             print(str(number))
             return True
     return False
-def check_ETF_stock(number:str):
+def check_ETF_stock(number:str) ->bool:
     try:
         number = str(number)
     except:
@@ -1808,9 +1815,28 @@ def get_RecordHigh_range(time:datetime,Day:int,RecordHighDay:int,data = pd.DataF
 #     volume_data['code'] = volume_data['code'].astype('int')
 #     volume_data.set_index('code',inplace=True)
 #     return volume_data
+def AvgStockPrice(date,vData = pd.DataFrame()):
+    '''平均股價'''
+    All_price = 0 #
+    Count = 0
+    Result_avg_price = 0
+    if(vData.empty == True):
+        return 0,0
+    for value in range(0,len(vData)):
+        Nnumber = str(vData.iloc[value].name)
+        Temp_stock_price = get_stock_price(Nnumber,tools.DateTime2String(date),
+                                                            stock_data_kind.AdjClose)
+        if Temp_stock_price != None:
+            All_price = All_price + Temp_stock_price
+            Count = Count + 1
+    if All_price == 0 or Count == 0:
+        return 0,0
+    Result_avg_price = All_price / Count
+    return Result_avg_price, Count
 
-#--------------------------
-#爬取歷史財報並存檔
+
+#-------------------------
+#-爬取歷史財報並存檔
 def financial_statement(year:int, season:int, type:info.FS_type):#year = 年 season = 季 type = 財報種類
     myear = year
     if year>= 1000:

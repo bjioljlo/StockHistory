@@ -3,7 +3,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import mplfinance as mpf
 import tools
-from StockInfos import StockInfoData
+from StockInfoData import StockInfoData
 from pandas import DataFrame
 
 show_volume = False
@@ -14,7 +14,7 @@ panelCount = 0
 def draw_stock(table:DataFrame,stockInfo: StockInfoData):#table = 表 stockInfo = 股票資訊結構
     mc = mpf.make_marketcolors(up = 'r',down = 'g',edge = '',wick = 'inherit',volume = 'inherit')
     s = mpf.make_mpf_style(base_mpf_style = 'charles',marketcolors = mc)
-    mpf.plot(table,type = "candle",volume=show_volume,style = s,addplot = PICS,figsize=(13,7),title = stockInfo.number)
+    mpf.plot(table,type = "candle",volume=show_volume,style = s,addplot = PICS,figsize=(13,7),title = str(stockInfo.number))
 def draw_SMA(table:DataFrame,day:int,stockInfo: StockInfoData):#table = 表 day = 幾日均線 stockInfo = 股票資訊結構
     mclose = talib.SMA(np.array(table['Close']), day)#用np.array才可以將均線和蠟燭圖放一起
     PICS.append(mpf.make_addplot(mclose,panel = 0))

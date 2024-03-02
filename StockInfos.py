@@ -2,11 +2,15 @@ import os #讀取路徑套件
 import twstock as ts #抓取台灣股票資料套件  
 import numpy as np
 from datetime import datetime
-from abc import ABC, abstractmethod
+from abc import ABC, abstractmethod, abstractproperty
 from StockInfoData import StockInfoData
 
 class IStockInfoDatas(ABC):
     '''存檔資訊'''
+    @property
+    @abstractproperty
+    def StockList(self) -> dict[str, StockInfoData]:
+        pass
     @abstractmethod
     def AddStockInfo(number:str):
         '''新增股票'''
@@ -28,9 +32,9 @@ class TStockInfoDatas(IStockInfoDatas):
     '''存檔資訊實作'''
     def __init__(self) -> None:
         super(TStockInfoDatas,self).__init__()
-        self._Stock_list:dict = {}
+        self._Stock_list:dict[str, StockInfoData] = {}
     @property
-    def Stock_list(self):
+    def StockList(self) -> dict[str, StockInfoData]:
         if self._Stock_list == None:
             raise
         return self._Stock_list
@@ -85,13 +89,8 @@ class UserInfoDatas(TStockInfoDatas):
         self._Save_name:str = Save_name
         self._Update_date_name:str = Update_date_name
         self._Update_date:str = self._Load_Update_date()
-        self._Stock_list:dict = self._Load_stock_info()
+        self._Stock_list = self._Load_stock_info()
 
-    @property
-    def StockList(self):
-        if self._Stock_list == None:
-            raise
-        return self._Stock_list
     @property
     def UpdateDate(self):
         if self._Update_date == None:
@@ -117,7 +116,7 @@ class UserInfoDatas(TStockInfoDatas):
     def _Save_stock_info(self):
         '''存檔追蹤股票'''
         np.save(self._Save_name,self._Stock_list)
-    def _Load_stock_info(self) -> dict:
+    def _Load_stock_info(self) -> dict[str, StockInfoData]:
         '''讀取追蹤股票'''
         if os.path.isfile(self._FilePath + '/' + self._Save_name):
             m_stock_list = np.load(self._Save_name,None,True).item()
