@@ -8,6 +8,8 @@ MySql_server = None
 threads = []
 Season_RP_time_month =  [5 ,8 ,11,3 ]
 Season_RP_time_day =    [15,31,14,31]
+no_use_stock = [2025]
+five_word_ETF = ['00692','00878','00646','00881','00733']
 
 def changeDateMonth(date:datetime,change_month:int) -> datetime:
     temp_month = date.month + change_month
@@ -136,3 +138,25 @@ def Have_DayRP(date:datetime):#檢查當下日營收資料
         print(str(date) +'的日期不對，資料未出')
         return False
     return True
+def check_no_use_stock(number:str) ->bool:
+    try:
+        number = int(number)
+    except:
+        print("check_no_use_stock error:" + number)
+        return False
+    for num in range(0,no_use_stock.__len__()):
+        if(int(number) == no_use_stock[num]):
+            print(str(number))
+            return True
+    return False
+def check_ETF_stock(number:str) ->bool:
+    try:
+        number = str(number)
+    except:
+        print("check_ETF_stock error:" + number)
+        return False
+    for num in range(0,five_word_ETF.__len__()):
+        if(str(number) == five_word_ETF[num]):
+            print(str(number))
+            return True
+    return False

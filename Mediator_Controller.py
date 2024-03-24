@@ -29,6 +29,7 @@ class IMediator_Controller(ABC):
         pass
 
 class Mediator_Controller(IMediator_Controller):
+    '''controller的中介者'''
     def __init__(self) -> None:
         self._main_controller:IController = None
         self._pick_controller:IController = None

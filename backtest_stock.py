@@ -3,12 +3,13 @@ import numpy as np
 from datetime import datetime,timedelta
 #from backtesting import Backtest, Strategy #引入回測和交易策略功能
 import talib as talib
-import get_stock_history as gsh
+from GetExternalData import TGetExternalData 
+import GetStockData
 import tools
 from tools import MixDataFrames,Count_Stock_Amount
-from draw_figur import draw_backtest
 from StockInfosInBackTest import StockInfoDatasInBackTestPriceByToday
 import Infomation_type as info
+from Infomation_type import stock_data_kind
 from IParameter import RecordBackTestParameter
 from StockInfoData import BaseInfoData
 
@@ -40,7 +41,7 @@ def backtest_KD_pick(mainParament:RecordBackTestParameter):
     '''KD值選股 https://www.finlab.tw/%e7%94%a8kd%e5%80%bc%e9%81%b8%e8%82%a1%ef%bc%9a%e9%82%84%e9%9c%80%e6%90%ad%e9%85%8d%e9%80%99%e4%b8%89%e7%a8%ae%e6%8c%87%e6%a8%99/'''
     userInfo = StockInfoDatasInBackTestPriceByToday(BaseInfoData(mainParament.money_start,mainParament.date_start,mainParament.date_end))
     Temp_result_pick = pd.DataFrame(columns=['date','選股數量'])
-    Temp_table = gsh.get_stock_history(mainParament.buy_number,mainParament.date_start)
+    Temp_table = TGetExternalData().get_stock_history(mainParament.buy_number,mainParament.date_start)
     All_stock_signal = dict()
       
     ROE_record_day = datetime.strptime("2000-01-01","%Y-%m-%d")
@@ -49,7 +50,7 @@ def backtest_KD_pick(mainParament:RecordBackTestParameter):
     ROE_data = {}
     add_one_day = userInfo.AddOneDay
     changeDateMonth = tools.changeDateMonth
-    get_ROE_range = gsh.get_ROE_range
+    get_ROE_range = GetStockData.get_ROE_range
     MixDataFrames = tools.MixDataFrames
     sell_stock = userInfo.SellStock
     buy_all_stock = userInfo.BuyAllStock
@@ -80,12 +81,12 @@ def backtest_KD_pick(mainParament:RecordBackTestParameter):
             ROE_data = ROE_data_mask[ROE_data_mask]
             
             for key,value in ROE_data.iteritems():#先算出股票的買賣訊號
-                if gsh.check_no_use_stock(key) == True:
+                if tools.check_no_use_stock(key) == True:
                     print('get_stock_price: ' + str(key) + ' in no use')
                     continue
                 if All_stock_signal.__contains__(key):
                     continue
-                table = gsh.gsh(key,"2005-01-01",reGetInfo = False,UpdateInfo = False)
+                table = TGetExternalData().get_stock_history(key,"2005-01-01")
                 table_K,table_D = talib.STOCH(table['High'],table['Low'],table['Close'],fastk_period=50, slowk_period=20, slowk_matype=0, slowd_period=20, slowd_matype=0)
                 table_sma10 = talib.SMA(np.array(table['Close']), 10)
                 table_sma240 = talib.SMA(np.array(table['Close']), 240)
@@ -124,7 +125,7 @@ def backtest_KD_pick(mainParament:RecordBackTestParameter):
         if len(buy_numbers) > 0 :
             Temp_buy = pd.DataFrame(columns={'code','volume'})
             for number in buy_numbers:
-                volume = gsh.get_stock_price(number,tools.DateTime2String(userInfo.BaseInfoData.now_day),gsh.stock_data_kind.Volume)
+                volume = GetStockData.get_stock_price(number,tools.DateTime2String(userInfo.BaseInfoData.now_day),stock_data_kind.Volume)
                 Temp_buy = pd.concat([Temp_buy,{'code':str(number),'volume':volume}],ignore_index = True)
             Temp_buy = Temp_buy.sort_values(by='volume', ascending=False).set_index('code')
             buy_all_stock(Temp_buy)
@@ -161,7 +162,7 @@ def backtest_PEG_pick_Fast(mainParament:RecordBackTestParameter):
     userInfo = StockInfoDatasInBackTestPriceByToday(BaseInfoData(mainParament.money_start,mainParament.date_start,mainParament.date_end))
     buy_month = mainParament.date_start
     Temp_result_pick = pd.DataFrame(columns=['date','選股數量'])
-    All_data = gsh.get_stock_history(mainParament.buy_number,mainParament.date_start)
+    All_data = TGetExternalData().get_stock_history(mainParament.buy_number,mainParament.date_start)
     add_one_day = userInfo.AddOneDay
     Record_userInfo = userInfo.RecordUserInfo
     Recod_tradeInfo = userInfo.RecodTradeInfo
@@ -177,7 +178,7 @@ def backtest_PEG_pick_Fast(mainParament:RecordBackTestParameter):
         if len(userInfo.HandleStock) > 0:
             Temp_data = userInfo.HandleStock
             for key,value in list(Temp_data.items()):
-                if gsh.get_stock_price(key,userInfo.BaseInfoData.now_day,info.Price_type.Close) < gsh.get_stock_MA(key,userInfo.BaseInfoData.now_day,20):
+                if GetStockData.get_stock_price(key,userInfo.BaseInfoData.now_day,info.Price_type.Close) < GetStockData.get_stock_MA(key,userInfo.BaseInfoData.now_day,20):
                     sell_stock(key,value.Amount)
                     has_trade = True
         #開始篩選--------------------------------------
@@ -188,8 +189,8 @@ def backtest_PEG_pick_Fast(mainParament:RecordBackTestParameter):
                 
                 Temp_result0 = {}
                 if bool_check_monthRP_pick:
-                    Temp_result0['month'] = gsh.get_monthRP_up(userInfo.BaseInfoData.now_day,mainParament.smoothAVG,mainParament.upMonth)
-                    Temp_result0['PEG'] = gsh.get_PEG_range(userInfo.BaseInfoData.now_day,0.66,1)
+                    Temp_result0['month'] = GetStockData.get_monthRP_up(userInfo.BaseInfoData.now_day,mainParament.smoothAVG,mainParament.upMonth)
+                    Temp_result0['PEG'] = GetStockData.get_PEG_range(userInfo.BaseInfoData.now_day,0.66,1)
                     Temp_result0['result'] = MixDataFrames(Temp_result0)
                 Temp_buy = Temp_result0['result']
                 if Temp_buy.empty == False:
@@ -226,7 +227,7 @@ def backtest_Regular_quota_Fast(mainParament:RecordBackTestParameter):
     buy_month = mainParament.date_start
     Temp_result_pick = pd.DataFrame(columns=['date','選股數量'])
     
-    All_data = gsh.get_stock_history(mainParament.buy_number,mainParament.date_start)
+    All_data = TGetExternalData().get_stock_history(mainParament.buy_number,mainParament.date_start)
     add_one_day = userInfo.AddOneDay
     Record_userInfo = userInfo.RecordUserInfo
     Recod_tradeInfo = userInfo.RecodTradeInfo
@@ -271,7 +272,7 @@ def backtest_Record_high_Fast(mainParament:RecordBackTestParameter):
     Temp_reset = 0#休息日剩餘天數
     userInfo = StockInfoDatasInBackTestPriceByToday(BaseInfoData(mainParament.money_start,mainParament.date_start,mainParament.date_end))
     Temp_result_pick = pd.DataFrame(columns=['date','選股數量'])
-    All_data = gsh.get_stock_history(mainParament.buy_number,mainParament.date_start)
+    All_data = TGetExternalData().get_stock_history(mainParament.buy_number,mainParament.date_start)
     add_one_day = userInfo.AddOneDay
     Record_userInfo = userInfo.RecordUserInfo
     Recod_tradeInfo = userInfo.RecodTradeInfo
@@ -287,7 +288,7 @@ def backtest_Record_high_Fast(mainParament:RecordBackTestParameter):
         if len(userInfo.HandleStock) > 0:
             Temp_data = userInfo.HandleStock
             for key,value in list(Temp_data.items()):
-                if gsh.get_stock_price(key,userInfo.BaseInfoData.now_day,gsh.stock_data_kind.AdjClose) < gsh.get_stock_MA(key,userInfo.BaseInfoData.now_day,20):
+                if TGetExternalData().get_stock_price(key,userInfo.BaseInfoData.now_day,stock_data_kind.AdjClose) < GetStockData.get_stock_MA(key,userInfo.BaseInfoData.now_day,20):
                     sell_stock(key,value.Amount)
                     has_trade = True
         #開始篩選--------------------------------------
@@ -295,11 +296,11 @@ def backtest_Record_high_Fast(mainParament:RecordBackTestParameter):
         Temp_result0 = {}
         if Temp_reset <= 0:
             if bool_check_ROE_pick:
-                Temp_result0['ROE'] = gsh.get_ROE_range(userInfo.BaseInfoData.now_day,mainParament.ROE_end,mainParament.ROE_start)
+                Temp_result0['ROE'] = GetStockData.get_ROE_range(userInfo.BaseInfoData.now_day,mainParament.ROE_end,mainParament.ROE_start)
             if bool_check_ROE_pick:
-                Temp_result0['ROE_last_seson'] = gsh.get_ROE_range(userInfo.BaseInfoData.now_day - timedelta(weeks = 12),10000,1)
+                Temp_result0['ROE_last_seson'] = GetStockData.get_ROE_range(userInfo.BaseInfoData.now_day - timedelta(weeks = 12),10000,1)
             if bool_check_PBR_pick:
-                Temp_result0['PBR'] = gsh.get_PBR_range(userInfo.BaseInfoData.now_day,mainParament.PBR_end,mainParament.PBR_start)
+                Temp_result0['PBR'] = GetStockData.get_PBR_range(userInfo.BaseInfoData.now_day,mainParament.PBR_end,mainParament.PBR_start)
             Temp_result = MixDataFrames(Temp_result0)
             
         #入場訊號篩選--------------------------------------
@@ -307,10 +308,10 @@ def backtest_Record_high_Fast(mainParament:RecordBackTestParameter):
             Temp_buy0 = {'result':Temp_result}
             Temp_buy0['result']['point'] = (Temp_result['ROE'] / Temp_result['ROE_R']) / Temp_result['PBR']
             if bool_check_price_pick:
-                Temp_buy0['price'] = gsh.get_price_range(userInfo.BaseInfoData.now_day,mainParament.price_high,mainParament.price_low,Temp_result)
+                Temp_buy0['price'] = GetStockData.All_Stock_Filters_fuc(userInfo.BaseInfoData.now_day,Temp_result).get_Filter('price',mainParament.price_high,mainParament.price_low,info.Price_type.Close)
                 Temp_buy0['result'] = MixDataFrames(Temp_buy0)
             if bool_check_volume_pick:
-                Temp_buy0['volume'] = gsh.get_AVG_value(userInfo.BaseInfoData.now_day,mainParament.volumeAVG,mainParament.volumeDays,Temp_result)
+                Temp_buy0['volume'] = GetStockData.get_AVG_value(userInfo.BaseInfoData.now_day,mainParament.volumeAVG,mainParament.volumeDays,Temp_result)
                 Temp_buy0['result'] = MixDataFrames(Temp_buy0)
 
             Temp_buy = MixDataFrames(Temp_buy0)
@@ -318,7 +319,8 @@ def backtest_Record_high_Fast(mainParament:RecordBackTestParameter):
             Temp_buy = Temp_buy.sort_values(by='point', ascending=False)
             
             Temp_buy1 = {'result':Temp_buy}
-            Temp_buy1['high'] = gsh.get_RecordHigh_range(userInfo.BaseInfoData.now_day,mainParament.change_days,mainParament.Record_high_day,Temp_buy)
+            #Temp_buy1['high'] = gsh.get_RecordHigh_range(userInfo.BaseInfoData.now_day,mainParament.change_days,mainParament.Record_high_day,Temp_buy)
+            Temp_buy1['high'] = GetStockData.All_Stock_Filters_fuc(userInfo.BaseInfoData.now_day,Temp_buy).get_Filter_RecordHigh(mainParament.change_days,mainParament.Record_high_day,info.Price_type.High)
             Temp_buy = MixDataFrames(Temp_buy1)
 
             if Temp_buy.empty == False:
@@ -358,7 +360,7 @@ def backtest_PERandPBR_Fast(mainParament:RecordBackTestParameter):
 
     userInfo = StockInfoDatasInBackTestPriceByToday(BaseInfoData(mainParament.money_start,mainParament.date_start,mainParament.date_end))
 
-    All_data = gsh.get_stock_history(mainParament.buy_number,mainParament.date_start)
+    All_data = TGetExternalData().get_stock_history(mainParament.buy_number,mainParament.date_start)
     
     add_one_day = userInfo.AddOneDay
     sell_all_stock = userInfo.SellAllStock
@@ -382,9 +384,9 @@ def backtest_PERandPBR_Fast(mainParament:RecordBackTestParameter):
         Temp_result0 = {}
         Temp_result = pd.DataFrame()
         if bool_check_PER_pick:#PER pick
-            Temp_result0['PER'] = gsh.get_PER_range(userInfo.BaseInfoData.now_day,mainParament.PER_end,mainParament.PER_start)
+            Temp_result0['PER'] = GetStockData.get_PER_range(userInfo.BaseInfoData.now_day,mainParament.PER_end,mainParament.PER_start)
         if bool_check_PBR_pick:#PBR pick    
-            Temp_result0['PBR'] = gsh.get_PBR_range(userInfo.BaseInfoData.now_day,mainParament.PBR_end,mainParament.PBR_start)
+            Temp_result0['PBR'] = GetStockData.get_PBR_range(userInfo.BaseInfoData.now_day,mainParament.PBR_end,mainParament.PBR_start)
         Temp_result = tools.MixDataFrames(Temp_result0)
 
         #出場訊號篩選--------------------------------------
@@ -401,10 +403,10 @@ def backtest_PERandPBR_Fast(mainParament:RecordBackTestParameter):
         if len(Temp_result) >= mainParament.Pick_amount and Temp_reset == 0 and len(userInfo.HandleStock) == 0:
             Temp_buy0 = {'result':Temp_result}
             if bool_check_price_pick:
-                Temp_buy0['price'] = gsh.get_price_range(userInfo.BaseInfoData.now_day,mainParament.price_high,mainParament.price_low,Temp_result)
+                Temp_buy0['price'] = GetStockData.All_Stock_Filters_fuc(userInfo.BaseInfoData.now_day,Temp_result).get_Filter('price',mainParament.price_high,mainParament.price_low,info.Price_type.Close)
                 Temp_buy0['price'] = Temp_buy0['price'].sort_values(by='price', ascending=False)
             if bool_check_volume_pick:
-                Temp_buy0['volume'] = gsh.get_AVG_value(userInfo.BaseInfoData.now_day,mainParament.volumeAVG,mainParament.volumeDays,Temp_result)
+                Temp_buy0['volume'] = GetStockData.get_AVG_value(userInfo.BaseInfoData.now_day,mainParament.volumeAVG,mainParament.volumeDays,Temp_result)
                 Temp_buy0['volume'] = Temp_buy0['volume'].sort_values(by='volume', ascending=False)
             Temp_buy = tools.MixDataFrames(Temp_buy0)
             if Temp_buy0.__contains__('price') and Temp_buy0['price'].empty == False:
@@ -443,7 +445,7 @@ def backtest_monthRP_Up_Fast(mainParament:RecordBackTestParameter):
     Temp_change = 0 #換股剩餘天數
     userInfo = StockInfoDatasInBackTestPriceByToday(BaseInfoData(mainParament.money_start,mainParament.date_start,mainParament.date_end))
     Temp_result_pick = pd.DataFrame(columns=['date','選股數量'])
-    All_data = gsh.get_stock_history(mainParament.buy_number,mainParament.date_start)
+    All_data = TGetExternalData().get_stock_history(mainParament.buy_number,mainParament.date_start)
     add_one_day = userInfo.AddOneDay
     sell_all_stock = userInfo.SellAllStock
     buy_all_stock = userInfo.BuyAllStock
@@ -462,22 +464,22 @@ def backtest_monthRP_Up_Fast(mainParament:RecordBackTestParameter):
         Temp_result = pd.DataFrame()
         if Temp_change <= 0:
             if bool_check_monthRP_pick:#月營收升高篩選(月為單位)
-                Temp_result0['month'] = gsh.get_monthRP_up(userInfo.BaseInfoData.now_day,mainParament.smoothAVG,mainParament.upMonth)
+                Temp_result0['month'] = GetStockData.get_monthRP_up(userInfo.BaseInfoData.now_day,mainParament.smoothAVG,mainParament.upMonth)
             if bool_check_ROE_pick:#ROE
-                Temp_result0['ROE'] = gsh.get_ROE_range(userInfo.BaseInfoData.now_day,mainParament.ROE_start,mainParament.ROE_end)
+                Temp_result0['ROE'] = GetStockData.get_ROE_range(userInfo.BaseInfoData.now_day,mainParament.ROE_start,mainParament.ROE_end)
             if bool_check_PBR_pick:#PBR
-                Temp_result0['PBR'] = gsh.get_PBR_range(userInfo.BaseInfoData.now_day,mainParament.PBR_start,mainParament.PBR_end)
+                Temp_result0['PBR'] = GetStockData.get_PBR_range(userInfo.BaseInfoData.now_day,mainParament.PBR_start,mainParament.PBR_end)
             if bool_check_PER_pick:#PER
-                Temp_result0['PER'] = gsh.get_PER_range(userInfo.BaseInfoData.now_day,mainParament.PER_start,mainParament.PER_end)
+                Temp_result0['PER'] = GetStockData.get_PER_range(userInfo.BaseInfoData.now_day,mainParament.PER_start,mainParament.PER_end)
             Temp_result = tools.MixDataFrames(Temp_result0)
         #入場訊號篩選--------------------------------------
         if Temp_change <= 0 and len(userInfo.HandleStock) <= 0 and len(Temp_result) > mainParament.Pick_amount:
             Temp_buy0 = {'result':Temp_result}
             if bool_check_price_pick:
-                Temp_buy0['price'] = gsh.get_price_range(userInfo.BaseInfoData.now_day,mainParament.price_high,mainParament.price_low,Temp_result)
+                Temp_buy0['price'] = GetStockData.All_Stock_Filters_fuc(userInfo.BaseInfoData.now_day,Temp_result).get_Filter('price',mainParament.price_high,mainParament.price_low,info.Price_type.Close)
                 Temp_buy0['price'] = Temp_buy0['price'].sort_values(by='price', ascending=False)
             if bool_check_volume_pick:
-                Temp_buy0['volume'] = gsh.get_AVG_value(userInfo.BaseInfoData.now_day,mainParament.volumeAVG,mainParament.volumeDays,Temp_result)
+                Temp_buy0['volume'] = GetStockData.get_AVG_value(userInfo.BaseInfoData.now_day,mainParament.volumeAVG,mainParament.volumeDays,Temp_result)
                 Temp_buy0['volume'] = Temp_buy0['volume'].sort_values(by='volume', ascending=False)
             Temp_buy = tools.MixDataFrames(Temp_buy0)
             if Temp_buy0.__contains__('price') and Temp_buy0['price'].empty == False:

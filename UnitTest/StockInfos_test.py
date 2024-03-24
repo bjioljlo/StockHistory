@@ -1,6 +1,5 @@
 import unittest
 from StockInfos import PickInfoDatas
-from StockInfoData import StockInfoData
 
 class PickInfoDatas_test(unittest.TestCase):
     def setUp(self) -> None:

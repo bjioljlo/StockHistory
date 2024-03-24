@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timedelta
 import threading
 import schedule
 import time
@@ -10,9 +10,10 @@ from pandas_datareader import data
 import yfinance as yf
 from sqlalchemy.ext.declarative import declarative_base
 import tools
-import get_stock_history
+import GetStockData
 import Infomation_type as info
 from StockInfos import UserInfoDatas
+import ReadLoadSystem as RLsys
 
 MySql_server:SQLAlchemy = None
 SQL_DataByDay = None
@@ -45,12 +46,12 @@ def __setMysqlServer(db_name:str):
 def __runUpdate(MainUserInfoDatas: UserInfoDatas):
     print("Update all stocks start!")
     df = pd.DataFrame()
-    #end_date = datetime.today() - timedelta(days=1)#設定資料起訖日期
-    #ts.__update_codes()
+    end_date = datetime.today() - timedelta(days=1)#設定資料起訖日期
+    # ts.__update_codes()
     yf.pdr_override()
     for key,value in ts.codes.items():
         if value.market == "上市" and len(value.code) >= 4 :
-            if len(value.code) >= 5 and get_stock_history.check_ETF_stock(value.code) == False:
+            if len(value.code) >= 5 and tools.check_ETF_stock(value.code) == False:
                 continue
         #    if int(value.code) < 9000:
         #        continue
@@ -68,7 +69,7 @@ def __runUpdate(MainUserInfoDatas: UserInfoDatas):
                 print("yahoo no data:" + str(value.code + info.local_type.Taiwan))
                 continue
             df.to_sql(name=value.code + info.local_type.Taiwan,con=MySql_server.engine,if_exists='replace')
-            get_stock_history.load_memery[value.code + info.local_type.Taiwan] = df
+            RLsys.load_memery[value.code + info.local_type.Taiwan] = df
             print("Update stocks " + value.code + info.local_type.Taiwan + " OK!")
     
     #dataframe = pd.read_sql(sql = "2330.TW",con=MySql_server.engine,index_col='Date')
@@ -104,8 +105,8 @@ def __RunUpDate2():
     end_date = datetime(datetime.today().year,datetime.today().month,datetime.today().day)#設定資料起訖日期
     #end_date = datetime(2022,4,28)#設定資料起訖日期
     #get_stock_history.get_allstock_yield(end_date)#順便更新台灣殖利率
-    get_stock_history.get_stock_AD_index(end_date,True)#更新騰落
-    get_stock_history.load_memery.clear()
+    GetStockData.get_stock_AD_index(end_date,True)#更新騰落
+    RLsys.load_memery.clear()
     print("Update stocks other Info end!")
 
 def __deleteStockDayTable(name):

@@ -1,6 +1,6 @@
 from View.View import TWindow 
 from PyQt5 import QtWidgets
-from UI_main import Ui_MainWindow
+from UI.UI_main import Ui_MainWindow
 from IParameter import RecordMainParameter
 import tools
 

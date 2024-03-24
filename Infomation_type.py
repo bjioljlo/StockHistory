@@ -50,3 +50,7 @@ class Price_type(StrEnum):
 class local_type():
     Taiwan = '.tw'
     USA = ''
+
+class stock_data_kind(Enum):
+    AdjClose = 'Adj Close'
+    Volume = 'Volume'

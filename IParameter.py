@@ -8,6 +8,7 @@ class IParameter(ABC):
         pass
 
 class RecordMainParameter(IParameter):
+    '''主頁面'''
     def __init__(self) -> None:
         super().__init__()
         self.number:int = None
@@ -15,6 +16,7 @@ class RecordMainParameter(IParameter):
         self.enddate: datetime = None
     
 class RecordPickParameter(IParameter):
+    '''選取頁面'''
     def __init__(self) -> None:
         super().__init__()
         self.GPM:float = None
@@ -47,6 +49,7 @@ class RecordPickParameter(IParameter):
         self.BetterMA :int = None
 
 class RecordBackTestParameter(IParameter):
+    '''回測頁面'''
     def __init__(self) -> None:
         super().__init__()    
         self.check_monthRP_pick:bool = None

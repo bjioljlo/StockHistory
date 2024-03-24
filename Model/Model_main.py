@@ -2,7 +2,7 @@ from Controller.Controller import IController
 from Model.Model import TModel
 
 from datetime import datetime
-import get_stock_history as gsh
+import GetStockData
 import tools
 import draw_figur as df
 from IParameter import RecordMainParameter
@@ -47,9 +47,9 @@ class Model_main(TModel):
         if RecordMainParameter.enddate.month == tools.changeDateMonth(datetime.today(),-1).month and datetime.today().day < 15 :
             print("還沒15號沒有上個月的資料")
             return
-        main_imge = gsh.All_imge(RecordMainParameter.startdate,
+        main_imge = GetStockData.All_imge(RecordMainParameter.startdate,
                                     RecordMainParameter.enddate,
-                                    gsh.Month_index)
+                                    GetStockData.Month_index)
         data_result = main_imge.get_Chart(RecordMainParameter.number)
         df.draw_RP(data_result,
                 RecordMainParameter.number,
@@ -64,9 +64,9 @@ class Model_main(TModel):
         if (RecordMainParameter.enddate.day == datetime.today().day):
             print("今天還沒過完無資資訊")
             return
-        main_imge = gsh.All_imge(RecordMainParameter.startdate,
+        main_imge = GetStockData.All_imge(RecordMainParameter.startdate,
                                     RecordMainParameter.enddate,
-                                    gsh.Yield_index)
+                                    GetStockData.Yield_index)
         data_result = main_imge.get_Chart(RecordMainParameter.number)
         df.draw_RP(data_result,
                 RecordMainParameter.number,
@@ -81,9 +81,9 @@ class Model_main(TModel):
         if (RecordMainParameter.enddate.day == datetime.today().day):
             print("今天還沒過完無資資訊")
             return
-        main_imge = gsh.All_imge(RecordMainParameter.startdate,
+        main_imge = GetStockData.All_imge(RecordMainParameter.startdate,
                                     RecordMainParameter.enddate,
-                                    gsh.OM_index)
+                                    GetStockData.OM_index)
         data_result = main_imge.get_Chart(RecordMainParameter.number)
         df.draw_RP(data_result,
                 RecordMainParameter.number,
@@ -98,9 +98,9 @@ class Model_main(TModel):
         if (RecordMainParameter.enddate.day == datetime.today().day):
             print("今天還沒過完無資資訊")
             return
-        main_imge = gsh.All_imge(RecordMainParameter.startdate,
+        main_imge = GetStockData.All_imge(RecordMainParameter.startdate,
                                     RecordMainParameter.enddate,
-                                    gsh.OM_Growth_index)
+                                    GetStockData.OM_Growth_index)
         #取得營業利益率成長率資料(與去年同季相比)
         data_result_up = main_imge.get_Chart(RecordMainParameter.number)
         df.draw_RP(data_result_up,
@@ -117,9 +117,9 @@ class Model_main(TModel):
             print("今天還沒過完無資資訊")
             return
         #取得ROE資料
-        main_imge = gsh.All_imge(RecordMainParameter.startdate,
+        main_imge = GetStockData.All_imge(RecordMainParameter.startdate,
                                     RecordMainParameter.enddate,
-                                    gsh.ROE_index)
+                                    GetStockData.ROE_index)
         data_result_up = main_imge.get_Chart(RecordMainParameter.number)
         df.draw_RP(data_result_up,
                 RecordMainParameter.number,
@@ -134,9 +134,9 @@ class Model_main(TModel):
         if (RecordMainParameter.enddate.day == datetime.today().day):
             print("今天還沒過完無資資訊")
             return
-        main_imge = gsh.All_imge(RecordMainParameter.startdate,
+        main_imge = GetStockData.All_imge(RecordMainParameter.startdate,
                                     RecordMainParameter.enddate,
-                                    gsh.OCF_index)
+                                    GetStockData.OCF_index)
         data_result = main_imge.get_Chart(RecordMainParameter.number)
         df.draw_RP(data_result,
                 RecordMainParameter.number,
@@ -151,9 +151,9 @@ class Model_main(TModel):
         if (RecordMainParameter.enddate.day == datetime.today().day):
             print("今天還沒過完無資資訊")
             return
-        main_imge = gsh.All_imge(RecordMainParameter.startdate,
+        main_imge = GetStockData.All_imge(RecordMainParameter.startdate,
                                     RecordMainParameter.enddate,
-                                    gsh.ICF_index)
+                                    GetStockData.ICF_index)
         data_result = main_imge.get_Chart(RecordMainParameter.number)
         df.draw_RP(data_result,
                 RecordMainParameter.number,
@@ -168,9 +168,9 @@ class Model_main(TModel):
         if (RecordMainParameter.enddate.day == datetime.today().day):
             print("今天還沒過完無資資訊")
             return
-        main_imge = gsh.All_imge(RecordMainParameter.startdate,
+        main_imge = GetStockData.All_imge(RecordMainParameter.startdate,
                                     RecordMainParameter.enddate,
-                                    gsh.FreeCF_index)
+                                    GetStockData.FreeCF_index)
         data_result = main_imge.get_Chart(RecordMainParameter.number)
         df.draw_RP(data_result,
                 RecordMainParameter.number,
@@ -185,9 +185,9 @@ class Model_main(TModel):
         if (RecordMainParameter.enddate.day == datetime.today().day):
             print("今天還沒過完無資資訊")
             return
-        main_imge = gsh.All_imge(RecordMainParameter.startdate,
+        main_imge = GetStockData.All_imge(RecordMainParameter.startdate,
                                     RecordMainParameter.enddate,
-                                    gsh.PCF_index)
+                                    GetStockData.PCF_index)
         data_result = main_imge.get_Chart(RecordMainParameter.number)
         df.draw_RP(data_result,
                 RecordMainParameter.number,
@@ -202,9 +202,9 @@ class Model_main(TModel):
         if (RecordMainParameter.enddate.day == datetime.today().day):
             print("今天還沒過完無資資訊")
             return
-        main_imge = gsh.All_imge(RecordMainParameter.startdate,
+        main_imge = GetStockData.All_imge(RecordMainParameter.startdate,
                                     RecordMainParameter.enddate,
-                                    gsh.EPS_index)
+                                    GetStockData.EPS_index)
         data_result = main_imge.get_Chart(RecordMainParameter.number)
         df.draw_RP(data_result,
                 RecordMainParameter.number,
@@ -219,15 +219,43 @@ class Model_main(TModel):
         if (RecordMainParameter.enddate.day == datetime.today().day):
             print("今天還沒過完無資資訊")
             return
-        main_imge = gsh.All_imge(RecordMainParameter.startdate,
+        main_imge = GetStockData.All_imge(RecordMainParameter.startdate,
                                     RecordMainParameter.enddate,
-                                    gsh.Debt_index)
+                                    GetStockData.Debt_index)
         data_result = main_imge.get_Chart(RecordMainParameter.number)
         df.draw_RP(data_result,
                 RecordMainParameter.number,
                 main_imge._report._name,
                 main_imge._report._name,
-                'Debt Asset Ratio')
+                'Debt Asset Ratio') 
+    def ADL(self, RecordMainParameter: RecordMainParameter):
+        """騰落指標"""
+        if (RecordMainParameter.enddate.day == datetime.today().day):
+            print("今天還沒過完無資資訊")
+            return
+        main_imge = GetStockData.All_imge(RecordMainParameter.startdate,
+                                    RecordMainParameter.enddate,
+                                    GetStockData.ADL_index)
+        data_result = main_imge.get_Chart()
+        df.draw_RP(data_result,
+                0,
+                main_imge._report._name,
+                main_imge._report._name,
+                'ADL')
+    def ADLs(self, RecordMainParameter: RecordMainParameter):
+        """騰落比例指標"""
+        if (RecordMainParameter.enddate.day == datetime.today().day):
+            print("今天還沒過完無資資訊")
+            return
+        main_imge = GetStockData.All_imge(RecordMainParameter.startdate,
+                                    RecordMainParameter.enddate,
+                                    GetStockData.ADLs_index)
+        data_result = main_imge.get_Chart()
+        df.draw_RP(data_result,
+                0,
+                main_imge._report._name,
+                main_imge._report._name,
+                'ADL')
     def MonthRevenueGrowth(self, RecordMainParameter: RecordMainParameter):
         if(RecordMainParameter.number == None):
             print('請輸入股票號碼')
@@ -235,9 +263,9 @@ class Model_main(TModel):
         if (RecordMainParameter.enddate.day == datetime.today().day):
             print("今天還沒過完無資資訊")
             return
-        main_imge = gsh.All_imge(RecordMainParameter.startdate,
+        main_imge = GetStockData.All_imge(RecordMainParameter.startdate,
                                     RecordMainParameter.enddate,
-                                    gsh.MR_Growth_index)
+                                    GetStockData.MR_Growth_index)
         data_result = main_imge.get_Chart(RecordMainParameter.number)
         df.draw_RP(data_result,
                 RecordMainParameter.number,
@@ -251,9 +279,9 @@ class Model_main(TModel):
         if (RecordMainParameter.enddate.day == datetime.today().day):
             print("今天還沒過完無資資訊")
             return
-        main_imge = gsh.All_imge(RecordMainParameter.startdate,
+        main_imge = GetStockData.All_imge(RecordMainParameter.startdate,
                                     RecordMainParameter.enddate,
-                                    gsh.SR_Growth_index)
+                                    GetStockData.SR_Growth_index)
         data_result = main_imge.get_Chart(RecordMainParameter.number)
         df.draw_RP(data_result,
                 RecordMainParameter.number,

@@ -6,7 +6,8 @@ from Model.Model import IModel
 from View.View import IWindow
 
 import StockInfos as MainUserDataInfo  
-import get_stock_history as gsh
+from GetExternalData import TGetExternalData
+from GetStockData import Stock_RangeDate
 import update_stock_info
 import tools
 import draw_figur as df
@@ -143,7 +144,7 @@ class Controller_main(TController):
         df.Clear_PICS()
         if self.__GetView().GetFormUI().input_stockNumber.toPlainText() == "":
             for key,value in self.__GetModel().MainUserInfoData.StockList.items():
-                m_history = gsh.get_stock_history(key,str_date)
+                m_history = TGetExternalData().get_stock_history(key,str_date)
             return
         elif self.__GetView().GetFormUI().input_stockNumber.toPlainText() == "Update":
             str_date = [str_date]
@@ -153,9 +154,9 @@ class Controller_main(TController):
             return  
         else:
             stock_number = self.__GetView().GetFormUI().input_stockNumber.toPlainText()
-            gsh.Stock_RangeDate.number = int(stock_number)
-            gsh.Stock_RangeDate.StartDate = date
-            m_history = gsh.Stock_RangeDate.get_ALL()
+            Stock_RangeDate.number = int(stock_number)
+            Stock_RangeDate.StartDate = date
+            m_history = Stock_RangeDate.get_ALL()
             if self.__GetView().GetFormUI().check_ADL.isChecked() or self.__GetView().GetFormUI().check_ADLs.isChecked():
                 mask = m_history.index <= end_date
                 m_history = m_history[mask]
@@ -173,10 +174,10 @@ class Controller_main(TController):
         self.lock.acquire()
         for key,value in MainUserDataInfo.ts.codes.items():
             if value.market == "上市" and len(value.code) == 4:
-                if gsh.check_no_use_stock(value.code) == True:
+                if tools.check_no_use_stock(value.code) == True:
                     print('get_stock_price: ' + str(value.code) + ' in no use')
                     continue
-                m_history = gsh.get_stock_history(value.code,str_date)
+                m_history = TGetExternalData().get_stock_history(value.code,str_date)
                 print("get " + str(value.code) + " info susess!")
         #存更新日期
         self.__GetModel().MainUserInfoData.UpdateDate = str(datetime.today())[0:10]   
@@ -209,11 +210,13 @@ class Controller_main(TController):
             df.draw_RSI(m_history,stockInfo)
     def Check_ADL_isCheck(self):
         if self.__GetView().GetFormUI().check_ADL.isChecked() == True:
-            Data_ADL = gsh.get_ADL(tools.QtDate2DateTime(self.__GetView().GetFormUI().date_startDate.date()),tools.QtDate2DateTime(self.__GetView().GetFormUI().date_endDate.date()))
-            df.draw_ADL(Data_ADL)
+            # Data_ADL = gsh.get_ADL(tools.QtDate2DateTime(self.__GetView().GetFormUI().date_startDate.date()),tools.QtDate2DateTime(self.__GetView().GetFormUI().date_endDate.date()))
+            self.__GetModel().ADL(self.__GetView().Parament)
+            #df.draw_ADL(Data_ADL)
     def Check_ADLs_isCheck(self):
         if self.__GetView().GetFormUI().check_ADLs.isChecked() == True:
-            Data_ADLs = gsh.get_ADLs(tools.QtDate2DateTime(self.__GetView().GetFormUI().date_startDate.date()),tools.QtDate2DateTime(self.__GetView().GetFormUI().date_endDate.date()))
+            # Data_ADLs = gsh.get_ADLs(tools.QtDate2DateTime(self.__GetView().GetFormUI().date_startDate.date()),tools.QtDate2DateTime(self.__GetView().GetFormUI().date_endDate.date()))        
+            Data_ADLs = self.__GetModel().ADLs(self.__GetView().Parament)
             df.draw_ADLs(Data_ADLs)
     def Check_MACD_isCheck(self,m_history):
         if self.__GetView().GetFormUI().check_MACD.isChecked() == True:

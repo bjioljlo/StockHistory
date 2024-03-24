@@ -1,7 +1,8 @@
-from datetime import timedelta, datetime
+from datetime import timedelta
 import pandas as pd
 from pandas import DataFrame
-from get_stock_history import get_stock_price,stock_data_kind
+from GetStockData import get_stock_price
+from Infomation_type import stock_data_kind
 from StockInfoData import StockInfoData, BaseInfoData, StockInfoCurrentData
 from StockInfoDataInHand import IStockInfoDataInHand, StockInfoDataInHandWithWeightedAverage
 import tools

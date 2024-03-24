@@ -4,7 +4,7 @@ from telegram import ReplyKeyboardMarkup, Update
 import telegram.ext
 import StockInfos as MainUserDataInfo
 import twstock as ts
-import get_stock_history as gsh
+import GetStockData as GetStockData
 import tools
 import Infomation_type as info
 from StockInfos import UserInfoDatas
@@ -139,13 +139,13 @@ def stock_searched(update:Update, context):
     stock_number = int(Msg)
     stock_info = MainUserDataInfo.ts.codes[Msg]
     date = tools.DateTime2String(datetime.today())
-    gsh.Stock_main.number = int(stock_number)
+    GetStockData.OriginalStocStock_main.number = int(stock_number)
     # gsh.Stock_main.StartDate = tools.backWorkDays(datetime.today(),1)
-    Open = gsh.Stock_main.get_PriceByDateAndType(tools.backWorkDays(date,0),info.Price_type.Open)
-    High = gsh.Stock_main.get_PriceByDateAndType(tools.backWorkDays(date,0),info.Price_type.High)
-    Low = gsh.Stock_main.get_PriceByDateAndType(tools.backWorkDays(date,0),info.Price_type.Low)
-    Close = gsh.Stock_main.get_PriceByDateAndType(tools.backWorkDays(date,0),info.Price_type.Close)
-    Volume = gsh.Stock_main.get_PriceByDateAndType(tools.backWorkDays(date,0),info.Price_type.Volume)
+    Open = GetStockData.OriginalStocStock_main.get_PriceByDateAndType(tools.backWorkDays(date,0),info.Price_type.Open)
+    High = GetStockData.OriginalStocStock_main.get_PriceByDateAndType(tools.backWorkDays(date,0),info.Price_type.High)
+    Low = GetStockData.OriginalStocStock_main.get_PriceByDateAndType(tools.backWorkDays(date,0),info.Price_type.Low)
+    Close = GetStockData.OriginalStocStock_main.get_PriceByDateAndType(tools.backWorkDays(date,0),info.Price_type.Close)
+    Volume = GetStockData.OriginalStocStock_main.get_PriceByDateAndType(tools.backWorkDays(date,0),info.Price_type.Volume)
     context.bot.send_message(chat_id=update.effective_chat.id, 
                                 text='''
                                 {} {} \r\n OPEN: {} \r\n HIGH: {} \r\n LOW: {} \r\n CLOSE: {} \r\n VOLUME: {}

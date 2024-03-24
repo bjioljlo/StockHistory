@@ -2,11 +2,11 @@ from Controller.Controller import IController
 from Model.Model import TModel
 import tools
 from datetime import timedelta,datetime
-import get_stock_history as gsh
+import GetStockData as GetStockData
 import Infomation_type as info
 from IParameter import RecordPickParameter
 import pandas as pd
-from StockInfos import PickInfoDatas
+from StockHistory import OriginalStockByYahoo
 
 class Model_pick(TModel):
     def __init__(self,_interactiveController: IController):
@@ -28,7 +28,7 @@ class Model_pick(TModel):
     #全部篩選
     def monthRP_Up(self, RecordPickParameter: RecordPickParameter, endDate: datetime) -> pd.DataFrame:
         date = endDate#tools.QtDate2DateTime(self.Controller_main.View.FormUI.date_endDate.date())
-        if date.isoweekday() == 6 or gsh.Stock_2330.get_PriceByDateAndType(date,info.Price_type.AdjClose) == None:
+        if date.isoweekday() == 6 or OriginalStockByYahoo(2330).get_PriceByDateAndType(date,info.Price_type.AdjClose) == None:
             date = date + timedelta(days=-1)
         elif date.isoweekday() == 7:
             date = date + timedelta(days=-2)
@@ -79,39 +79,39 @@ class Model_pick(TModel):
 
         FS_data = self.get_financial_statement(date,GPM,OPR,EPS,RPS)
         
-        mainStockfun = gsh.All_Stock_Filters_fuc(date,FS_data)
-        mainfun = gsh.All_fuc(date,gsh.Month_index)
+        mainStockfun = GetStockData.All_Stock_Filters_fuc(date,FS_data)
+        mainfun = GetStockData.All_fuc(date,GetStockData.Month_index)
         result_data = mainfun.get_Smooth_Up_Auto(monthRP_smoothAVG,monthRP_UpMpnth)
         
-        mainfun.report = gsh.PBR_index
+        mainfun.report = GetStockData.PBR_index
         BOOK_data = mainfun.get_Filter_Auto(PBR_high,PBR_low)
         
-        mainfun.report = gsh.PER_index
+        mainfun.report = GetStockData.PER_index
         PER_data = mainfun.get_Filter_Auto(PER_high,PER_low)
         
-        mainfun.report = gsh.ROE_index
+        mainfun.report = GetStockData.ROE_index
         ROE_data = mainfun.get_Filter_Auto(ROE_high,ROE_low)
         ROE_Up_data = mainfun.get_Up_Auto(ROE_up)
         
-        mainfun.report = gsh.Yield_index
+        mainfun.report = GetStockData.Yield_index
         yield_data = mainfun.get_Filter_Auto(yiled_high,yiled_low)
         
-        mainfun.report = gsh.OM_Growth_index
+        mainfun.report = GetStockData.OM_Growth_index
         OMGR_data = mainfun.get_Up_Auto(OMGR)
         
-        mainfun.report = gsh.PEG_index
+        mainfun.report = GetStockData.PEG_index
         PEG_data = mainfun.get_Filter_Auto(PEG_high,PEG_low)
         
-        mainfun.report = gsh.FreeCF_index
+        mainfun.report = GetStockData.FreeCF_index
         FCF_data = mainfun.get_Up_Auto(FCF)
         
-        mainfun.report = gsh.EPS_index
+        mainfun.report = GetStockData.EPS_index
         EPS_up_data = mainfun.get_Up_Auto(EPS_up)
         
-        mainfun.report = gsh.SR_Growth_index
+        mainfun.report = GetStockData.SR_Growth_index
         SRGR_data = mainfun.get_Up_Auto(SRGR)
         
-        mainfun.report = gsh.MR_Growth_index
+        mainfun.report = GetStockData.MR_Growth_index
         MRGR_data = mainfun.get_Up_Auto(MRGR)
         
         pick_data = FS_data
@@ -183,7 +183,7 @@ class Model_pick(TModel):
         volume_date = date
         for i in range(12):
             try:
-                this = gsh.PLA_RP.get_ALL_Report(volume_date)
+                this = GetStockData.PLA_RP.get_ALL_Report(volume_date)
                 if this.empty:
                     volume_date = tools.changeDateMonth(volume_date,-1)
                     continue
@@ -197,11 +197,11 @@ class Model_pick(TModel):
         this2 = this["營業利益率(%)"] > float(OPR)
         resultAllFS1 = this[this1 & this2]
 
-        this = gsh.BS_RP.get_ALL_Report(volume_date)
+        this = GetStockData.BS_RP.get_ALL_Report(volume_date)
         this1 = this["每股參考淨值"] > float(RPS)
         resultAllFS2 = this[this1]
 
-        this = gsh.CPL_RP.get_ALL_Report(volume_date)
+        this = GetStockData.CPL_RP.get_ALL_Report(volume_date)
         this1 = this["基本每股盈餘（元）"] > float(EPS)
         resultAllFS3 = this[this1]
 

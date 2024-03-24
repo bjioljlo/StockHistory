@@ -1,6 +1,6 @@
 from View.View import TWindow 
 from PyQt5 import QtWidgets
-from UI_pick import Ui_MainWindow2
+from UI.UI_pick import Ui_MainWindow2
 from IParameter import IParameter
 
 class Pick_Window(TWindow):
