@@ -237,6 +237,7 @@ class Model_main(TModel):
                                     RecordMainParameter.enddate,
                                     GetStockData.ADL_index)
         data_result = main_imge.get_Chart()
+        return data_result
         df.draw_RP(data_result,
                 0,
                 main_imge._report._name,
@@ -255,7 +256,7 @@ class Model_main(TModel):
                 0,
                 main_imge._report._name,
                 main_imge._report._name,
-                'ADL')
+                'ADLs')
     def MonthRevenueGrowth(self, RecordMainParameter: RecordMainParameter):
         if(RecordMainParameter.number == None):
             print('請輸入股票號碼')

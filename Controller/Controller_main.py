@@ -61,6 +61,7 @@ class Controller_main(TController):
         UI_form.button_getDebtRatio.clicked.connect(self.button_DebtRatio_click)
         UI_form.button_getMonth_Growth.clicked.connect(self.button_MonthRevenueGrowth_click)
         UI_form.button_getSeason_Growth.clicked.connect(self.button_SeasonRevenueGrowth_click)
+        UI_form.button_getADLs.clicked.connect(self.button_ADLs_click)
         # #設定日期
         Date = datetime.strptime(self.__GetModel().MainUserInfoData.UpdateDate[0:10],"%Y-%m-%d")
         date = QtCore.QDate(Date.year,Date.month,Date.day)
@@ -135,6 +136,8 @@ class Controller_main(TController):
         self.__GetModel().MonthRevenueGrowth(self.__GetView().Parament)       
     def button_SeasonRevenueGrowth_click(self):
         self.__GetModel().SeasonRevenueGrowth(self.__GetView().Parament)
+    def button_ADLs_click(self):
+        self.__GetModel().ADLs(self.__GetView().Parament)    
         
     def button_getStockHistory(self):#某股票蠟燭圖
         #存更新日期
@@ -210,14 +213,11 @@ class Controller_main(TController):
             df.draw_RSI(m_history,stockInfo)
     def Check_ADL_isCheck(self):
         if self.__GetView().GetFormUI().check_ADL.isChecked() == True:
-            # Data_ADL = gsh.get_ADL(tools.QtDate2DateTime(self.__GetView().GetFormUI().date_startDate.date()),tools.QtDate2DateTime(self.__GetView().GetFormUI().date_endDate.date()))
-            self.__GetModel().ADL(self.__GetView().Parament)
-            #df.draw_ADL(Data_ADL)
+            Data_ADL = self.__GetModel().ADL(self.__GetView().Parament)
+            df.draw_ADL(Data_ADL)
     def Check_ADLs_isCheck(self):
-        if self.__GetView().GetFormUI().check_ADLs.isChecked() == True:
-            # Data_ADLs = gsh.get_ADLs(tools.QtDate2DateTime(self.__GetView().GetFormUI().date_startDate.date()),tools.QtDate2DateTime(self.__GetView().GetFormUI().date_endDate.date()))        
-            Data_ADLs = self.__GetModel().ADLs(self.__GetView().Parament)
-            df.draw_ADLs(Data_ADLs)
+        if self.__GetView().GetFormUI().check_ADLs.isChecked() == True:        
+            self.__GetModel().ADLs(self.__GetView().Parament)
     def Check_MACD_isCheck(self,m_history):
         if self.__GetView().GetFormUI().check_MACD.isChecked() == True:
             df.draw_MACD(m_history)

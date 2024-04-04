@@ -223,8 +223,6 @@ class TGetExternalData(IGetExternalData):
         if ADindex_result.empty == False and (ADindex_result.index == time).__contains__(True):
             return ADindex_result[ADindex_result.index == time]
         for key,value in StockInfos.ts.codes.items():
-            if value.code == "1312":
-                break
             if value.market == "上市" and len(value.code) == 4 and value.type == "股票":
                 if tools.check_no_use_stock(value.code) == True:
                     print('get_stock_price: ' + str(value.code) + ' in no use')

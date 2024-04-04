@@ -41,7 +41,9 @@ def draw_RSI(table:DataFrame,stockInfo: StockInfoData):#table = 表 stockInfo = 
     panelCount = panelCount + 1
     PICS.append(mpf.make_addplot(mRSI,panel = panelCount,ylabel = "RSI"))
 def draw_ADL(table:DataFrame):
-    PICS.append(mpf.make_addplot(table,panel = 0,color='blue',ylabel = "ADL"))
+    global panelCount
+    panelCount = panelCount + 1
+    PICS.append(mpf.make_addplot(table,panel = panelCount,color='blue',ylabel = "ADL"))
 def draw_ADLs(table:DataFrame):
     global panelCount
     panelCount = panelCount + 1

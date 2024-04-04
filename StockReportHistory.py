@@ -3,8 +3,10 @@ from abc import ABC, abstractmethod
 from pandas import DataFrame, Series
 import Infomation_type as info
 import tools
+import pandas
 from StockHistory import OriginalStock
 from GetExternalData import TGetExternalData
+from datetime import datetime
 
 class IReport(ABC):
     '''指標歷史資料'''
@@ -69,7 +71,7 @@ class Day_Report(TReport):
         return self._main_GetExternalData.get_allstock_yield(date)
     def Next_date(self,date):
         date = tools.backWorkDays(date,self._Unit)
-        while self._main_GetExternalData.get_stock_history('2330', date).empty == True:
+        while (date not in self._main_GetExternalData.get_stock_history('2330').index):
             date = tools.backWorkDays(date,self._Unit)   
         return date
 class ADL_Report(TReport):
@@ -78,7 +80,7 @@ class ADL_Report(TReport):
         return self._main_GetExternalData.get_stock_AD_index(date)
     def Next_date(self,date):
         date = tools.backWorkDays(date,self._Unit)
-        while self._main_GetExternalData.get_stock_history('2330', date).empty == True:
+        while (date not in self._main_GetExternalData.get_stock_history('2330').index):
             date = tools.backWorkDays(date,self._Unit)   
         return date
 
@@ -248,12 +250,20 @@ class ADL_Indicator(Indicator):
     def __init__(self, name: str, AD_RP:ADL_Report) -> None:
         super().__init__(name, AD_RP._Unit)
         self._AD_RP = AD_RP
+        self._endDay:datetime = datetime.strptime('2023-9-25',"%Y-%m-%d")
     def get_ALL_Report(self, date):
-        data_result = DataFrame()
+        data_result = DataFrame(columns=['Date',self._name]).set_index('Date')
+        ADL_yesterday:int
         ADL_now = self._AD_RP.get_ALL_Report(date)
-        if ADL_now.empty :
-            return DataFrame()
-        data_result[self._name] = (ADL_now['上漲'] - ADL_now['下跌'])
+        if ADL_now.empty == True:
+            return data_result
+        if date == self._endDay:
+            Temp = (ADL_now['上漲'][date] - ADL_now['下跌'][date])
+            data_result = pandas.concat([data_result, DataFrame({'Date': [date], self._name:[Temp]}).set_index('Date')])
+        else:
+            ADL_yesterday = ADL_Indicator(self._name, self._AD_RP).get_ALL_Report(self.Next_date(date))[self._name][self.Next_date(date)]
+            Temp = ADL_yesterday + (ADL_now['上漲'][date] - ADL_now['下跌'][date])
+            data_result = pandas.concat([data_result, DataFrame({'Date': [date], self._name:[Temp]}).set_index('Date')])
         return data_result
     def Next_date(self, date):
         return self._AD_RP.Next_date(date)

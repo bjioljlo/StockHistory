@@ -10,10 +10,11 @@ from pandas_datareader import data
 import yfinance as yf
 from sqlalchemy.ext.declarative import declarative_base
 import tools
-import GetStockData
 import Infomation_type as info
 from StockInfos import UserInfoDatas
 import ReadLoadSystem as RLsys
+from GetExternalData import TGetExternalData 
+import os
 
 MySql_server:SQLAlchemy = None
 SQL_DataByDay = None
@@ -69,13 +70,14 @@ def __runUpdate(MainUserInfoDatas: UserInfoDatas):
                 print("yahoo no data:" + str(value.code + info.local_type.Taiwan))
                 continue
             df.to_sql(name=value.code + info.local_type.Taiwan,con=MySql_server.engine,if_exists='replace')
-            RLsys.load_memery[value.code + info.local_type.Taiwan] = df
+            RLsys.load_memery[os.getcwd() +'/' + 'stockInfo'  + '/' + value.code] = df
             print("Update stocks " + value.code + info.local_type.Taiwan + " OK!")
     
     #dataframe = pd.read_sql(sql = "2330.TW",con=MySql_server.engine,index_col='Date')
     #print(dataframe)
     #存更新日期
     MainUserInfoDatas.UpdateDate = str(datetime.today())[0:10]
+    __RunUpDate2()
     print("Update all stocks end!")
 
 def __RunUpdate_sp500():
@@ -105,8 +107,8 @@ def __RunUpDate2():
     end_date = datetime(datetime.today().year,datetime.today().month,datetime.today().day)#設定資料起訖日期
     #end_date = datetime(2022,4,28)#設定資料起訖日期
     #get_stock_history.get_allstock_yield(end_date)#順便更新台灣殖利率
-    GetStockData.get_stock_AD_index(end_date,True)#更新騰落
-    RLsys.load_memery.clear()
+    TGetExternalData().get_stock_AD_index(end_date)#更新騰落
+    # RLsys.load_memery.clear()
     print("Update stocks other Info end!")
 
 def __deleteStockDayTable(name):

@@ -2,12 +2,11 @@
 
 # Form implementation generated from reading ui file 'UI_main.ui'
 #
-# Created by: PyQt5 UI code generator 5.12.1
+# Created by: PyQt5 UI code generator 5.9.2
 #
 # WARNING! All changes made in this file will be lost!
 
 from PyQt5 import QtCore, QtGui, QtWidgets
-
 
 class Ui_MainWindow(object):
     def setupUi(self, MainWindow):
@@ -178,11 +177,14 @@ class Ui_MainWindow(object):
         self.button_getSeason_Growth.setGeometry(QtCore.QRect(0, 300, 141, 32))
         self.button_getSeason_Growth.setObjectName("button_getSeason_Growth")
         self.button_getMonth_Growth = QtWidgets.QPushButton(self.centralwidget)
-        self.button_getMonth_Growth.setGeometry(QtCore.QRect(300, 370, 113, 32))
+        self.button_getMonth_Growth.setGeometry(QtCore.QRect(300, 370, 113, 31))
         self.button_getMonth_Growth.setObjectName("button_getMonth_Growth")
+        self.button_getADLs = QtWidgets.QPushButton(self.centralwidget)
+        self.button_getADLs.setGeometry(QtCore.QRect(300, 400, 113, 32))
+        self.button_getADLs.setObjectName("button_getADLs")
         MainWindow.setCentralWidget(self.centralwidget)
         self.menubar = QtWidgets.QMenuBar(MainWindow)
-        self.menubar.setGeometry(QtCore.QRect(0, 0, 576, 22))
+        self.menubar.setGeometry(QtCore.QRect(0, 0, 576, 21))
         self.menubar.setObjectName("menubar")
         MainWindow.setMenuBar(self.menubar)
         self.statusbar = QtWidgets.QStatusBar(MainWindow)
@@ -232,5 +234,5 @@ class Ui_MainWindow(object):
         self.button_getDebtRatio.setText(_translate("MainWindow", "歷史資產負債率"))
         self.button_getSeason_Growth.setText(_translate("MainWindow", "季營收成長"))
         self.button_getMonth_Growth.setText(_translate("MainWindow", "月營收成長"))
-
+        self.button_getADLs.setText(_translate("MainWindow", "歷史騰落數值"))
 

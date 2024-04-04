@@ -8,6 +8,7 @@ from StockHistory import OriginalStockByYahoo, RangeDate_Stock, SMA_Stock, Recor
 from StockReportHistory import Indicator, ROE_Indicator,FreeCF_Indicator,Debt_Indicator,OM_Growth_Indicator,MR_Growth_Indicator,SR_Growth_Indicator,PEG_Indicator,Original_Indicator,OCFPerShare_Indicator,PCF_Indicator, ADL_Indicator, ADLs_Indicator
 from StockReportHistory import TReport, Season_Report, Month_Report, Day_Report, ADL_Report
 from Infomation_type import stock_data_kind
+from GetExternalData import TGetExternalData
 
 OriginalStocStock_2330 = OriginalStockByYahoo(2330)
 OriginalStocStock_main = OriginalStockByYahoo()
@@ -155,10 +156,7 @@ class ReportUp(TReport):
             if temp_data.empty:
                 return pd.DataFrame()
             data['%d-%d-1'%(date.year, date.month)] = temp_data
-            if self._Report != Yield_RP:
-                date = tools.changeDateMonth(date,-self._Report._Unit)
-            else:
-                date = tools.backWorkDays(date,-self._Report._Unit)
+            date = self._Report.Next_date(date)
             need_num = need_num - 1
         result = pd.DataFrame({k:result[self._Report._name] for k,result in data.items()}).transpose()
         result.index = pd.to_datetime(result.index)
@@ -189,10 +187,7 @@ class ReportSmooth(TReport):
             if temp_data.empty:
                 return pd.DataFrame()
             data['%d-%d-1'%(date.year, date.month)] = temp_data
-            if self._Report != Yield_RP:
-                date = tools.changeDateMonth(date,-self._Report._Unit)
-            else:
-                date = tools.backWorkDays(date,-self._Report._Unit)
+            date = self._Report.Next_date(date)
             need_num = need_num - 1
         result = pd.DataFrame({k:result[self._Report._name] for k,result in data.items()}).transpose()
         result.index = pd.to_datetime(result.index)
@@ -252,6 +247,7 @@ class All_imge():
         self._start = start
         self._end = end
         self._report = report
+        self._main_GetExternalData = TGetExternalData()
     @property
     def start(self):
         return self._start
@@ -278,6 +274,9 @@ class All_imge():
         start = self._start
         end = self._end
         while (start <= end):
+            if(end not in self._main_GetExternalData.get_stock_history('2330').index):
+                end = self._report.Next_date(end)
+                continue
             if (self._report._name == 'ADL') or (self._report._name == 'ADLs'):
                 temp = self._report.get_ALL_Report(end)
             else:
