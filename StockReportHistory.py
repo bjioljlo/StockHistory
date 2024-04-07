@@ -2,7 +2,7 @@ import sys
 from abc import ABC, abstractmethod
 from pandas import DataFrame, Series
 import Infomation_type as info
-import tools
+import Tools
 import pandas
 from StockHistory import OriginalStock
 from GetExternalData import TGetExternalData
@@ -51,7 +51,7 @@ class TReport(IReport):
                 print(''.join([str(date),'的',str(number),'公司尚未成立']))
             return None
     def Next_date(self,date):
-        return tools.changeDateMonth(date,-self._Unit)
+        return Tools.changeDateMonth(date,-self._Unit)
 class Season_Report(TReport):
     '''以季為單位的指標歷史資料'''
     def __init__(self, _FS_type:info.FS_type, name: str, Unit: int):
@@ -70,18 +70,18 @@ class Day_Report(TReport):
     def get_ALL_Report(self, date):
         return self._main_GetExternalData.get_allstock_yield(date)
     def Next_date(self,date):
-        date = tools.backWorkDays(date,self._Unit)
+        date = Tools.backWorkDays(date,self._Unit)
         while (date not in self._main_GetExternalData.get_stock_history('2330').index):
-            date = tools.backWorkDays(date,self._Unit)   
+            date = Tools.backWorkDays(date,self._Unit)   
         return date
 class ADL_Report(TReport):
     '''以日為單位的騰落指標歷史資料(AD)'''
     def get_ALL_Report(self, date):
         return self._main_GetExternalData.get_stock_AD_index(date)
     def Next_date(self,date):
-        date = tools.backWorkDays(date,self._Unit)
+        date = Tools.backWorkDays(date,self._Unit)
         while (date not in self._main_GetExternalData.get_stock_history('2330').index):
-            date = tools.backWorkDays(date,self._Unit)   
+            date = Tools.backWorkDays(date,self._Unit)   
         return date
 
 class Indicator(TReport):
@@ -136,7 +136,7 @@ class MR_Growth_Indicator(Indicator):
     def get_ALL_Report(self, date):
         data_result = DataFrame()
         MR_now = self.monthRP.get_ReportByType(date,info.Month_type.MR)
-        MR_old = self.monthRP.get_ReportByType(tools.changeDateMonth(date,-12),info.Month_type.MR)
+        MR_old = self.monthRP.get_ReportByType(Tools.changeDateMonth(date,-12),info.Month_type.MR)
         if MR_now.empty or MR_old.empty:
             return DataFrame()
         data_result[self._name] = ((MR_now - MR_old)/MR_old) * 100
@@ -149,7 +149,7 @@ class SR_Growth_Indicator(Indicator):
     def get_ALL_Report(self, date):
         data_result = DataFrame()
         SR_now = self.PLA_RP.get_ReportByType(date,info.PLA_type.type_0)
-        SR_old = self.PLA_RP.get_ReportByType(tools.changeDateMonth(date,-12),info.PLA_type.type_0)
+        SR_old = self.PLA_RP.get_ReportByType(Tools.changeDateMonth(date,-12),info.PLA_type.type_0)
         if SR_now.empty or SR_old.empty:
             return DataFrame()
         data_result[self._name] = ((SR_now - SR_old)/SR_old) * 100
@@ -162,7 +162,7 @@ class OM_Growth_Indicator(Indicator):
     def get_ALL_Report(self, date) -> DataFrame:
         data_result = DataFrame()
         OM_now = self.PLA.get_ReportByType(date,info.PLA_type.type_2) 
-        OM_old = self.PLA.get_ReportByType(tools.changeDateMonth(date,-12),info.PLA_type.type_2)
+        OM_old = self.PLA.get_ReportByType(Tools.changeDateMonth(date,-12),info.PLA_type.type_2)
         if OM_now.empty or OM_old.empty:
             return DataFrame()
         data_result[self._name] = ((OM_now - OM_old)/OM_old) * 100
@@ -217,9 +217,9 @@ class PCF_Indicator(Indicator):
         self._number = number
         return super().get_ReportByNumber(date, number)
     def Next_date(self,date):#有用到每日的價格所以用天為單位
-        date = tools.backWorkDays(date,self._Unit)
+        date = Tools.backWorkDays(date,self._Unit)
         while (date not in self._main_GetExternalData.get_stock_history('2330',date).index): #get_stock_price(2330,date,stock_data_kind.AdjClose) == None:
-            date = tools.backWorkDays(date,self._Unit)  
+            date = Tools.backWorkDays(date,self._Unit)  
         return date
     @property
     def number(self):

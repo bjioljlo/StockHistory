@@ -1,7 +1,7 @@
 from datetime import datetime
 import pandas as pd
 from pandas import DataFrame
-import tools
+import Tools
 import Infomation_type as info
 import sys
 from StockHistory import OriginalStockByYahoo, RangeDate_Stock, SMA_Stock, RecordHigh_Stock, StockFilter, StockRecordHigh, StockPriceBetterMA
@@ -375,7 +375,7 @@ def AvgStockPrice(date,vData = pd.DataFrame()):
         return 0,0
     for value in range(0,len(vData)):
         Nnumber = str(vData.iloc[value].name)
-        Temp_stock_price = get_stock_price(Nnumber,tools.DateTime2String(date),
+        Temp_stock_price = get_stock_price(Nnumber,Tools.DateTime2String(date),
                                                             stock_data_kind.AdjClose)
         if Temp_stock_price != None:
             All_price = All_price + Temp_stock_price

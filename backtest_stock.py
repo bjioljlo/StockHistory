@@ -5,8 +5,8 @@ from datetime import datetime,timedelta
 import talib as talib
 from GetExternalData import TGetExternalData 
 import GetStockData
-import tools
-from tools import MixDataFrames,Count_Stock_Amount
+import Tools
+from Tools import MixDataFrames,Count_Stock_Amount
 from StockInfosInBackTest import StockInfoDatasInBackTestPriceByToday
 import Infomation_type as info
 from Infomation_type import stock_data_kind
@@ -49,9 +49,9 @@ def backtest_KD_pick(mainParament:RecordBackTestParameter):
     sell_data = pd.DataFrame(columns = ['Date','code']).set_index('Date')
     ROE_data = {}
     add_one_day = userInfo.AddOneDay
-    changeDateMonth = tools.changeDateMonth
+    changeDateMonth = Tools.changeDateMonth
     get_ROE_range = GetStockData.get_ROE_range
-    MixDataFrames = tools.MixDataFrames
+    MixDataFrames = Tools.MixDataFrames
     sell_stock = userInfo.SellStock
     buy_all_stock = userInfo.BuyAllStock
     for index,row in Temp_table.iterrows():
@@ -81,7 +81,7 @@ def backtest_KD_pick(mainParament:RecordBackTestParameter):
             ROE_data = ROE_data_mask[ROE_data_mask]
             
             for key,value in ROE_data.iteritems():#先算出股票的買賣訊號
-                if tools.check_no_use_stock(key) == True:
+                if Tools.check_no_use_stock(key) == True:
                     print('get_stock_price: ' + str(key) + ' in no use')
                     continue
                 if All_stock_signal.__contains__(key):
@@ -125,7 +125,7 @@ def backtest_KD_pick(mainParament:RecordBackTestParameter):
         if len(buy_numbers) > 0 :
             Temp_buy = pd.DataFrame(columns={'code','volume'})
             for number in buy_numbers:
-                volume = GetStockData.get_stock_price(number,tools.DateTime2String(userInfo.BaseInfoData.now_day),stock_data_kind.Volume)
+                volume = GetStockData.get_stock_price(number,Tools.DateTime2String(userInfo.BaseInfoData.now_day),stock_data_kind.Volume)
                 Temp_buy = pd.concat([Temp_buy,{'code':str(number),'volume':volume}],ignore_index = True)
             Temp_buy = Temp_buy.sort_values(by='volume', ascending=False).set_index('code')
             buy_all_stock(Temp_buy)
@@ -149,9 +149,9 @@ def backtest_KD_pick(mainParament:RecordBackTestParameter):
     #最後總結算----------------------------
     Temp_result_pick.set_index('date',inplace=True)
     userInfo.RunFinish()
-    Temp_alldata = tools.MixDataFrames({'draw':userInfo._TempResultDraw,'pick':Temp_result_pick},'date')
+    Temp_alldata = Tools.MixDataFrames({'draw':userInfo._TempResultDraw,'pick':Temp_result_pick},'date')
     
-    Temp_alldata = tools.MixDataFrames({'all':Temp_alldata,'userinfo':userInfo._TempResultAll},'date')
+    Temp_alldata = Tools.MixDataFrames({'all':Temp_alldata,'userinfo':userInfo._TempResultAll},'date')
     
     userInfo._TempResultDraw.set_index('date').to_csv('backtestdata.csv')
     userInfo._TempTradeInfo.set_index('date').to_csv('backtesttrade.csv')
@@ -387,7 +387,7 @@ def backtest_PERandPBR_Fast(mainParament:RecordBackTestParameter):
             Temp_result0['PER'] = GetStockData.get_PER_range(userInfo.BaseInfoData.now_day,mainParament.PER_end,mainParament.PER_start)
         if bool_check_PBR_pick:#PBR pick    
             Temp_result0['PBR'] = GetStockData.get_PBR_range(userInfo.BaseInfoData.now_day,mainParament.PBR_end,mainParament.PBR_start)
-        Temp_result = tools.MixDataFrames(Temp_result0)
+        Temp_result = Tools.MixDataFrames(Temp_result0)
 
         #出場訊號篩選--------------------------------------
         if len(Temp_result) < mainParament.Pick_amount and len(userInfo.HandleStock) > 0:
@@ -408,7 +408,7 @@ def backtest_PERandPBR_Fast(mainParament:RecordBackTestParameter):
             if bool_check_volume_pick:
                 Temp_buy0['volume'] = GetStockData.get_AVG_value(userInfo.BaseInfoData.now_day,mainParament.volumeAVG,mainParament.volumeDays,Temp_result)
                 Temp_buy0['volume'] = Temp_buy0['volume'].sort_values(by='volume', ascending=False)
-            Temp_buy = tools.MixDataFrames(Temp_buy0)
+            Temp_buy = Tools.MixDataFrames(Temp_buy0)
             if Temp_buy0.__contains__('price') and Temp_buy0['price'].empty == False:
                 Temp_buy = Temp_buy.sort_values(by='price', ascending=False)
             if Temp_buy0.__contains__('volume') and Temp_buy0['volume'].empty == False:
@@ -432,9 +432,9 @@ def backtest_PERandPBR_Fast(mainParament:RecordBackTestParameter):
     #最後總結算----------------------------
     Temp_result_pick.set_index('date',inplace=True)
     userInfo.RunFinish()
-    Temp_alldata = tools.MixDataFrames({'draw':userInfo._TempResultDraw,'pick':Temp_result_pick},'date')
+    Temp_alldata = Tools.MixDataFrames({'draw':userInfo._TempResultDraw,'pick':Temp_result_pick},'date')
     
-    Temp_alldata = tools.MixDataFrames({'all':Temp_alldata,'userinfo':userInfo._TempResultAll},'date')
+    Temp_alldata = Tools.MixDataFrames({'all':Temp_alldata,'userinfo':userInfo._TempResultAll},'date')
     
     userInfo._TempResultDraw.to_csv('backtestdata.csv')
     userInfo._TempTradeInfo.to_csv('backtesttrade.csv')
@@ -471,7 +471,7 @@ def backtest_monthRP_Up_Fast(mainParament:RecordBackTestParameter):
                 Temp_result0['PBR'] = GetStockData.get_PBR_range(userInfo.BaseInfoData.now_day,mainParament.PBR_start,mainParament.PBR_end)
             if bool_check_PER_pick:#PER
                 Temp_result0['PER'] = GetStockData.get_PER_range(userInfo.BaseInfoData.now_day,mainParament.PER_start,mainParament.PER_end)
-            Temp_result = tools.MixDataFrames(Temp_result0)
+            Temp_result = Tools.MixDataFrames(Temp_result0)
         #入場訊號篩選--------------------------------------
         if Temp_change <= 0 and len(userInfo.HandleStock) <= 0 and len(Temp_result) > mainParament.Pick_amount:
             Temp_buy0 = {'result':Temp_result}
@@ -481,7 +481,7 @@ def backtest_monthRP_Up_Fast(mainParament:RecordBackTestParameter):
             if bool_check_volume_pick:
                 Temp_buy0['volume'] = GetStockData.get_AVG_value(userInfo.BaseInfoData.now_day,mainParament.volumeAVG,mainParament.volumeDays,Temp_result)
                 Temp_buy0['volume'] = Temp_buy0['volume'].sort_values(by='volume', ascending=False)
-            Temp_buy = tools.MixDataFrames(Temp_buy0)
+            Temp_buy = Tools.MixDataFrames(Temp_buy0)
             if Temp_buy0.__contains__('price') and Temp_buy0['price'].empty == False:
                Temp_buy = Temp_buy.sort_values(by='price', ascending=False)
             if Temp_buy0.__contains__('volume') and Temp_buy0['volume'].empty == False:
@@ -505,9 +505,9 @@ def backtest_monthRP_Up_Fast(mainParament:RecordBackTestParameter):
     #最後總結算----------------------------
     Temp_result_pick.set_index('date',inplace=True)
     userInfo.RunFinish()
-    Temp_alldata = tools.MixDataFrames({'draw':userInfo._TempResultDraw,'pick':Temp_result_pick},'date')
+    Temp_alldata = Tools.MixDataFrames({'draw':userInfo._TempResultDraw,'pick':Temp_result_pick},'date')
     
-    Temp_alldata = tools.MixDataFrames({'all':Temp_alldata,'userinfo':userInfo._TempResultAll},'date')
+    Temp_alldata = Tools.MixDataFrames({'all':Temp_alldata,'userinfo':userInfo._TempResultAll},'date')
     
     userInfo._TempResultDraw.to_csv('backtestdata.csv')
     userInfo._TempTradeInfo.to_csv('backtesttrade.csv')

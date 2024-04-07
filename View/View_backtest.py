@@ -2,7 +2,7 @@ from View.View import TWindow
 from PyQt5 import QtWidgets
 from UI.UI_backtest import Ui_MainWindow3
 from IParameter import RecordBackTestParameter
-import tools
+import Tools
 
 class BackTest_Window(TWindow):
     def __init__(self, Ui_Window:Ui_MainWindow3):
@@ -28,8 +28,8 @@ class BackTestParameter(RecordBackTestParameter):
             self.check_price_pick:bool = bool(UI_form.check_price_pick.isChecked())
             self.check_PBR_pick:bool = bool(UI_form.check_PBR_pick.isChecked())
             self.check_ROE_pick:bool = bool(UI_form.check_ROE_pick.isChecked())
-            self.date_start = tools.QtDate2DateTime(UI_form.date_start.date())
-            self.date_end = tools.QtDate2DateTime(UI_form.date_end.date())
+            self.date_start = Tools.QtDate2DateTime(UI_form.date_start.date())
+            self.date_end = Tools.QtDate2DateTime(UI_form.date_end.date())
             self.money_start = int(UI_form.input_startMoney.toPlainText())
             self.change_days = int(UI_form.input_changeDays.toPlainText())
             self.smoothAVG = int(UI_form.input_monthRP_smoothAVG.toPlainText())

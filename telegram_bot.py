@@ -5,7 +5,7 @@ import telegram.ext
 import StockInfos as MainUserDataInfo
 import twstock as ts
 import GetStockData as GetStockData
-import tools
+import Tools
 import Infomation_type as info
 from StockInfos import UserInfoDatas
 
@@ -138,14 +138,14 @@ def stock_searched(update:Update, context):
     Msg = update.message.text
     stock_number = int(Msg)
     stock_info = MainUserDataInfo.ts.codes[Msg]
-    date = tools.DateTime2String(datetime.today())
+    date = Tools.DateTime2String(datetime.today())
     GetStockData.OriginalStocStock_main.number = int(stock_number)
-    # gsh.Stock_main.StartDate = tools.backWorkDays(datetime.today(),1)
-    Open = GetStockData.OriginalStocStock_main.get_PriceByDateAndType(tools.backWorkDays(date,0),info.Price_type.Open)
-    High = GetStockData.OriginalStocStock_main.get_PriceByDateAndType(tools.backWorkDays(date,0),info.Price_type.High)
-    Low = GetStockData.OriginalStocStock_main.get_PriceByDateAndType(tools.backWorkDays(date,0),info.Price_type.Low)
-    Close = GetStockData.OriginalStocStock_main.get_PriceByDateAndType(tools.backWorkDays(date,0),info.Price_type.Close)
-    Volume = GetStockData.OriginalStocStock_main.get_PriceByDateAndType(tools.backWorkDays(date,0),info.Price_type.Volume)
+    # gsh.Stock_main.StartDate = Tools.backWorkDays(datetime.today(),1)
+    Open = GetStockData.OriginalStocStock_main.get_PriceByDateAndType(Tools.backWorkDays(date,0),info.Price_type.Open)
+    High = GetStockData.OriginalStocStock_main.get_PriceByDateAndType(Tools.backWorkDays(date,0),info.Price_type.High)
+    Low = GetStockData.OriginalStocStock_main.get_PriceByDateAndType(Tools.backWorkDays(date,0),info.Price_type.Low)
+    Close = GetStockData.OriginalStocStock_main.get_PriceByDateAndType(Tools.backWorkDays(date,0),info.Price_type.Close)
+    Volume = GetStockData.OriginalStocStock_main.get_PriceByDateAndType(Tools.backWorkDays(date,0),info.Price_type.Volume)
     context.bot.send_message(chat_id=update.effective_chat.id, 
                                 text='''
                                 {} {} \r\n OPEN: {} \r\n HIGH: {} \r\n LOW: {} \r\n CLOSE: {} \r\n VOLUME: {}

@@ -1,6 +1,6 @@
 from Controller.Controller import IController
 from Model.Model import TModel
-import tools
+import Tools
 from datetime import timedelta,datetime
 import GetStockData as GetStockData
 import Infomation_type as info
@@ -27,7 +27,7 @@ class Model_pick(TModel):
 
     #全部篩選
     def monthRP_Up(self, RecordPickParameter: RecordPickParameter, endDate: datetime) -> pd.DataFrame:
-        date = endDate#tools.QtDate2DateTime(self.Controller_main.View.FormUI.date_endDate.date())
+        date = endDate#Tools.QtDate2DateTime(self.Controller_main.View.FormUI.date_endDate.date())
         if date.isoweekday() == 6 or OriginalStockByYahoo(2330).get_PriceByDateAndType(date,info.Price_type.AdjClose) == None:
             date = date + timedelta(days=-1)
         elif date.isoweekday() == 7:
@@ -154,22 +154,22 @@ class Model_pick(TModel):
         if price_high > 0 or price_low > 0:
             mainStockfun.Data = pick_data
             price_data = mainStockfun.get_Filter('price',price_high,price_low,info.Price_type.Close)
-            pick_data = tools.MixDataFrames({'pick':pick_data,'price':price_data})
+            pick_data = Tools.MixDataFrames({'pick':pick_data,'price':price_data})
             pick_data = pick_data.dropna(axis=0,how='any')
         if flash_Day > 0 or record_Day > 0:
             mainStockfun.Data = pick_data
             record_data = mainStockfun.get_Filter_RecordHigh(flash_Day,record_Day,info.Price_type.High)
-            pick_data = tools.MixDataFrames({'pick':pick_data,'recordHigh':record_data})
+            pick_data = Tools.MixDataFrames({'pick':pick_data,'recordHigh':record_data})
             pick_data = pick_data.dropna(axis=0,how='any')
         if BerMA > 0:
             mainStockfun.Data = pick_data
             BerMA_data = mainStockfun.get_Filter_BetterMA(BerMA,info.Price_type.Close)
-            pick_data = tools.MixDataFrames({'pick':pick_data,'BerMA_data':BerMA_data})
+            pick_data = Tools.MixDataFrames({'pick':pick_data,'BerMA_data':BerMA_data})
             pick_data = pick_data.dropna(axis=0,how='any')
         if volum > 0:
             mainStockfun.Data = pick_data
             volume_data = mainStockfun.get_Filter_SMA('volume',volum * 100000000,volum * 10000,5,info.Price_type.Volume)
-            pick_data = tools.MixDataFrames({'pick':pick_data,'volumeData':volume_data})
+            pick_data = Tools.MixDataFrames({'pick':pick_data,'volumeData':volume_data})
             pick_data = pick_data.dropna(axis=0,how='any')
         print("總挑選數量:" + str(len(pick_data)))
         return pick_data
@@ -185,13 +185,13 @@ class Model_pick(TModel):
             try:
                 this = GetStockData.PLA_RP.get_ALL_Report(volume_date)
                 if this.empty:
-                    volume_date = tools.changeDateMonth(volume_date,-1)
+                    volume_date = Tools.changeDateMonth(volume_date,-1)
                     continue
                 print(str(volume_date.month)+ "月財務報告ＯＫ")
                 break
             except:
                 print(str(volume_date.month)+ "月財務報告未出跳下一個月")
-                volume_date = tools.changeDateMonth(volume_date,-1)
+                volume_date = Tools.changeDateMonth(volume_date,-1)
                 continue
         this1 = this["毛利率(%)"] > float(GPM)
         this2 = this["營業利益率(%)"] > float(OPR)
@@ -205,7 +205,7 @@ class Model_pick(TModel):
         this1 = this["基本每股盈餘（元）"] > float(EPS)
         resultAllFS3 = this[this1]
 
-        resultAllFS_temp = tools.MixDataFrames({'resultAllFS1':resultAllFS1,'resultAllFS2':resultAllFS2})
-        resultAllFS = tools.MixDataFrames({'resultAllFS3':resultAllFS3,'resultAllFS_temp':resultAllFS_temp})
+        resultAllFS_temp = Tools.MixDataFrames({'resultAllFS1':resultAllFS1,'resultAllFS2':resultAllFS2})
+        resultAllFS = Tools.MixDataFrames({'resultAllFS3':resultAllFS3,'resultAllFS_temp':resultAllFS_temp})
 
         return resultAllFS

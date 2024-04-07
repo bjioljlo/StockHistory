@@ -24,7 +24,7 @@ class Controller_pick(TController):
         UI_form.button_openBackWindow.clicked.connect(self.button_openBackWindow_click)#設定button功能
         UI_form.button_moveToInput.clicked.connect(self.button_moveToInputFromPick_click)#設定button功能
         UI_form.button_pick_2.clicked.connect(self.button_monthRP_Up_click)#設定button功能
-        UI_form.treeView_pick.setModel(Controller.creat_treeView_model(UI_form.treeView_pick,Controller.pick_titalList))#設定treeView功能
+        UI_form.treeView_pick.setModel(Controller.creat_treeView_model(UI_form.treeView_pick,Controller.PICK__TITALLIST))#設定treeView功能
         UI_form.button_inputNum.clicked.connect(self.button_inuptNumber_click)#設定button功能
         UI_form.input_EPS.setValue(0)
         UI_form.input_GPM.setValue(0)
@@ -80,7 +80,7 @@ class Controller_pick(TController):
         UI_form = self.__GetView().GetFormUI()
         endDate = self.mediator.GetEndDate(self, controllers.Main)
         pick_data = self.__GetModel().monthRP_Up(self.__GetView().Parament, endDate)
-        UI_form.treeView_pick.setModel(Controller.creat_treeView_model(UI_form.treeView_pick,Controller.pick_titalList))#設定treeView功能
+        UI_form.treeView_pick.setModel(Controller.creat_treeView_model(UI_form.treeView_pick,Controller.PICK__TITALLIST))#設定treeView功能
         Controller.set_treeView2(UI_form.treeView_pick.model(),pick_data)
         
     def button_inuptNumber_click(self):# 帶入數值

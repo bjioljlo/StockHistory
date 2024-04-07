@@ -6,13 +6,12 @@ import os
 import numpy as np
 from io import StringIO
 import time
-import tools
+import Tools
 import update_stock_info
 import Infomation_type as info
 import sys
 from abc import ABC , abstractmethod
 import ReadLoadSystem as RLsys
-import tools
 
 class IGetExternalData(ABC):
     @abstractmethod
@@ -47,11 +46,11 @@ class TGetExternalData(IGetExternalData):
     def get_allstock_financial_statement(self,start:datetime,type:info.FS_type):
         '''#爬某季所有股票歷史財報'''
         print(''.join(["{}:取得".format(sys._getframe().f_code.co_name)]),str(type),"的季財報的資料:",str(start))
-        if tools.Have_DayRP(start) == False:
+        if Tools.Have_DayRP(start) == False:
             return pd.DataFrame()
         season = int(((start.month - 1)/3)+1)
         Temp_data = pd.DataFrame()
-        if tools.CheckFS_season(start) == False:
+        if Tools.CheckFS_season(start) == False:
             print('Season rp is no data yet!')
             return pd.DataFrame()
         file = str(start.year) + "-season" + str(season) + "-" + type.value
@@ -83,7 +82,7 @@ class TGetExternalData(IGetExternalData):
     def get_allstock_monthly_report(self,start:datetime):
         '''爬某月所有股票月營收'''
         print(''.join(["{}:取得".format(sys._getframe().f_code.co_name)]),"月營收的資料:",str(start))
-        if tools.Have_MonthRP(start) == False:
+        if Tools.Have_MonthRP(start) == False:
             return pd.DataFrame()
         m_data = pd.DataFrame()
         year = start.year
@@ -101,7 +100,7 @@ class TGetExternalData(IGetExternalData):
                     url = 'https://mops.twse.com.tw/nas/t21/sii/t21sc03_'+str(year)+'_'+str(start.month)+'.html'
                 
                 # 下載該年月的網站，並用pandas轉換成 dataframe
-                r = requests.get(url, headers = tools.get_random_Header())
+                r = requests.get(url, headers = Tools.get_random_Header())
                 r.encoding = 'big5-hkscs'
                 
                 try:
@@ -149,7 +148,7 @@ class TGetExternalData(IGetExternalData):
         if m_yield.empty == True and (start in self.get_stock_history('2330', start)) :
             if os.path.isfile(fileName + '.csv') == False:
                 url = 'https://www.twse.com.tw/exchangeReport/BWIBBU_d?response=csv&date=' + str(start.year)+str(start.month).zfill(2)+str(start.day).zfill(2)+ '&selectType=ALL'
-                response = requests.get(url,tools.get_random_Header())
+                response = requests.get(url,Tools.get_random_Header())
                 RLsys.save_stock_file(fileName,response,1,2)
                 # 偽停頓
                 time.sleep(3)
@@ -201,13 +200,13 @@ class TGetExternalData(IGetExternalData):
         if type(date) == str:
             date = datetime.strptime(date,"%Y-%m-%d")
         time = date 
-        str_date = tools.DateTime2String(time)
-        time_yesterday = tools.backWorkDays(time,1)
+        str_date = Tools.DateTime2String(time)
+        time_yesterday = Tools.backWorkDays(time,1)
 
         while (self.get_stock_history('2330',time_yesterday)['Close'].empty == True):
-            time_yesterday = tools.backWorkDays(time_yesterday,1)#加一天
+            time_yesterday = Tools.backWorkDays(time_yesterday,1)#加一天
         
-        str_yesterday = tools.DateTime2String(time_yesterday)
+        str_yesterday = Tools.DateTime2String(time_yesterday)
         fileName = self.filePath +'/' + self.fileName_index + '/' + 'AD_index'
         
         ADindex_result = RLsys.load_other_file(fileName,'AD_index')
@@ -224,7 +223,7 @@ class TGetExternalData(IGetExternalData):
             return ADindex_result[ADindex_result.index == time]
         for key,value in StockInfos.ts.codes.items():
             if value.market == "上市" and len(value.code) == 4 and value.type == "股票":
-                if tools.check_no_use_stock(value.code) == True:
+                if Tools.check_no_use_stock(value.code) == True:
                     print('get_stock_price: ' + str(value.code) + ' in no use')
                     continue
                 m_history = self.get_stock_history(value.code,str_yesterday)['Close']
@@ -482,7 +481,7 @@ class TGetExternalData(IGetExternalData):
             'year': myear,
             'season': season,
         }
-        response = requests.post(url,form_data,headers = tools.get_random_Header())
+        response = requests.post(url,form_data,headers = Tools.get_random_Header())
         #response.encoding = 'utf8'
 
         if type == info.FS_type.PLA:

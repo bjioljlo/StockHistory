@@ -3,7 +3,7 @@ from Model.Model import TModel
 
 from datetime import datetime
 import GetStockData
-import tools
+import Tools
 import draw_figur as df
 from IParameter import RecordMainParameter
 from StockInfos import UserInfoDatas
@@ -44,7 +44,7 @@ class Model_main(TModel):
         if (RecordMainParameter.enddate.month == datetime.today().month):
             print("本月還沒過完無資資訊")
             return
-        if RecordMainParameter.enddate.month == tools.changeDateMonth(datetime.today(),-1).month and datetime.today().day < 15 :
+        if RecordMainParameter.enddate.month == Tools.changeDateMonth(datetime.today(),-1).month and datetime.today().day < 15 :
             print("還沒15號沒有上個月的資料")
             return
         main_imge = GetStockData.All_imge(RecordMainParameter.startdate,

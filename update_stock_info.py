@@ -9,7 +9,7 @@ import twstock as ts
 from pandas_datareader import data
 import yfinance as yf
 from sqlalchemy.ext.declarative import declarative_base
-import tools
+import Tools
 import Infomation_type as info
 from StockInfos import UserInfoDatas
 import ReadLoadSystem as RLsys
@@ -17,7 +17,6 @@ from GetExternalData import TGetExternalData
 import os
 
 MySql_server:SQLAlchemy = None
-SQL_DataByDay = None
 threads = []
 
 def __RunSchedule(func, UpdateTime:str, args:tuple = None):
@@ -52,7 +51,7 @@ def __runUpdate(MainUserInfoDatas: UserInfoDatas):
     yf.pdr_override()
     for key,value in ts.codes.items():
         if value.market == "上市" and len(value.code) >= 4 :
-            if len(value.code) >= 5 and tools.check_ETF_stock(value.code) == False:
+            if len(value.code) >= 5 and Tools.check_ETF_stock(value.code) == False:
                 continue
         #    if int(value.code) < 9000:
         #        continue
@@ -82,7 +81,7 @@ def __runUpdate(MainUserInfoDatas: UserInfoDatas):
 
 def __RunUpdate_sp500():
     print("Update all sp500 stocks start!")
-    sp500 = tools.get_SP500_list()
+    sp500 = Tools.get_SP500_list()
     yf.pdr_override()
     for temp in sp500:
         try:

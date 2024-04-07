@@ -2,7 +2,7 @@ import talib
 import numpy as np
 import matplotlib.pyplot as plt
 import mplfinance as mpf
-import tools
+import Tools
 from StockInfoData import StockInfoData
 from pandas import DataFrame
 
@@ -47,8 +47,8 @@ def draw_ADL(table:DataFrame):
 def draw_ADLs(table:DataFrame):
     global panelCount
     panelCount = panelCount + 1
-    table_fast = tools.smooth_Data(table,10)
-    table_slow = tools.smooth_Data(table,30)
+    table_fast = Tools.smooth_Data(table,10)
+    table_slow = Tools.smooth_Data(table,30)
     PICS.append(mpf.make_addplot(table_fast,panel = panelCount,color='red'))
     PICS.append(mpf.make_addplot(table_slow,panel = panelCount,color='blue',ylabel = "ADLs"))
 def draw_MACD(table:DataFrame):

@@ -2,7 +2,7 @@ from View.View import TWindow
 from PyQt5 import QtWidgets
 from UI.UI_main import Ui_MainWindow
 from IParameter import RecordMainParameter
-import tools
+import Tools
 
 
 
@@ -24,8 +24,8 @@ class MainParameter(RecordMainParameter):
         super().__init__()
         try:
             self.number = int(_view.GetFormUI().input_stockNumber.toPlainText())
-            self.startdate = tools.QtDate2DateTime(_view.GetFormUI().date_startDate.date())
-            self.enddate = tools.QtDate2DateTime(_view.GetFormUI().date_endDate.date())
+            self.startdate = Tools.QtDate2DateTime(_view.GetFormUI().date_startDate.date())
+            self.enddate = Tools.QtDate2DateTime(_view.GetFormUI().date_endDate.date())
         except ValueError as e:
             print("ValueError:", e)
 

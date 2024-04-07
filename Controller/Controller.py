@@ -6,8 +6,8 @@ from View.View import IWindow
 from Model.Model import IModel
 from datetime import datetime
 
-main_titalList = ["股票號碼","股票名稱"]
-pick_titalList = ["股票號碼","股票名稱","每股參考淨值","基本每股盈餘（元）",
+MAIN_TITALLIST = ["股票號碼","股票名稱"]
+PICK__TITALLIST = ["股票號碼","股票名稱","每股參考淨值","基本每股盈餘（元）",
                 "毛利率(%)","營業利益率(%)","資產總額","負債總額","股本",
                 "權益總額","本期綜合損益總額（稅後）","PBR","PER","PEG","ROE","殖利率"]
 

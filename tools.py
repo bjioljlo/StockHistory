@@ -4,12 +4,10 @@ import random
 import pandas as pd
 import requests
 
-MySql_server = None
-threads = []
-Season_RP_time_month =  [5 ,8 ,11,3 ]
-Season_RP_time_day =    [15,31,14,31]
-no_use_stock = [2025]
-five_word_ETF = ['00692','00878','00646','00881','00733']
+SEASON_RP_TIME_MONTH =  [5 ,8 ,11,3 ]
+SEASON_RP_TIME_DAY =    [15,31,14,31]
+NO_USE_STOCK = [2025]
+FIVE_WORD_ETF = ['00692','00878','00646','00881','00733']
 
 def changeDateMonth(date:datetime,change_month:int) -> datetime:
     temp_month = date.month + change_month
@@ -83,7 +81,10 @@ def MixDataFrames(DataFrames = {},index = 'code') -> pd.DataFrame:#合併報表
             result_data = value
             first = False
         else:
-            result_data = pd.merge(result_data,value,on=index,how='inner',suffixes=['', "_R"])
+            try:
+                result_data = pd.merge(result_data,value,on=index,how='inner',suffixes=['', "_R"])
+            except:
+                print("Merge Error")
     return result_data
 def get_random_Header():#取得隨機header
     headers_site = [ 'Mozilla/5.0 (Windows; U; Windows NT 5.1; it; rv:1.8.1.11) Gecko/20071127 Firefox/2.0.0.11',
@@ -118,12 +119,12 @@ def CheckFS_season(date):#檢查當季資料出來沒
     season = int(((date.month - 1)/3)+1)
     year = int(date.year)
     if season == 4:
-        if datetime.today() > datetime(year+1,Season_RP_time_month[season-1],Season_RP_time_day[season-1]):
+        if datetime.today() > datetime(year+1,SEASON_RP_TIME_MONTH[season-1],SEASON_RP_TIME_DAY[season-1]):
             return True
         else:
             return False
     else:
-        if datetime.today() > datetime(year,Season_RP_time_month[season-1],Season_RP_time_day[season-1]):
+        if datetime.today() > datetime(year,SEASON_RP_TIME_MONTH[season-1],SEASON_RP_TIME_DAY[season-1]):
             return True
         else:
             return False
@@ -144,8 +145,8 @@ def check_no_use_stock(number:str) ->bool:
     except:
         print("check_no_use_stock error:" + number)
         return False
-    for num in range(0,no_use_stock.__len__()):
-        if(int(number) == no_use_stock[num]):
+    for num in range(0,NO_USE_STOCK.__len__()):
+        if(int(number) == NO_USE_STOCK[num]):
             print(str(number))
             return True
     return False
@@ -155,8 +156,8 @@ def check_ETF_stock(number:str) ->bool:
     except:
         print("check_ETF_stock error:" + number)
         return False
-    for num in range(0,five_word_ETF.__len__()):
-        if(str(number) == five_word_ETF[num]):
+    for num in range(0,FIVE_WORD_ETF.__len__()):
+        if(str(number) == FIVE_WORD_ETF[num]):
             print(str(number))
             return True
     return False

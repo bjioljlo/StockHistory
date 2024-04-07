@@ -5,7 +5,7 @@ from GetStockData import get_stock_price
 from Infomation_type import stock_data_kind
 from StockInfoData import StockInfoData, BaseInfoData, StockInfoCurrentData
 from StockInfoDataInHand import IStockInfoDataInHand, StockInfoDataInHandWithWeightedAverage
-import tools
+import Tools
 import twstock as ts #抓取台灣股票資料套件
 from abc import ABC, abstractmethod, abstractproperty
 
@@ -98,7 +98,7 @@ class StockInfoDatasInBackTestPriceByToday(TStockInfoDatasInBackTest):
             return False
         else:
             stock_price = get_stock_price(number,self._BaseInfoData.now_day,stock_data_kind.AdjClose)
-            self._BaseInfoData.now_money = self._BaseInfoData.now_money + tools.Total_with_Handling_fee_and_Tax(stock_price,amount,False)
+            self._BaseInfoData.now_money = self._BaseInfoData.now_money + Tools.Total_with_Handling_fee_and_Tax(stock_price,amount,False)
             if self._HandleStock[number].MinusAmount(amount) == False:
                 self._HandleStock.pop(number,None)
             return True
@@ -108,7 +108,7 @@ class StockInfoDatasInBackTestPriceByToday(TStockInfoDatasInBackTest):
         if stock_price == None:
             print(str(number) + ' no use stock')
             return False
-        elif tools.Total_with_Handling_fee_and_Tax(stock_price,amount) > self._BaseInfoData.now_money:
+        elif Tools.Total_with_Handling_fee_and_Tax(stock_price,amount) > self._BaseInfoData.now_money:
             print('錢不夠：')
             return False
         else:
@@ -118,7 +118,7 @@ class StockInfoDatasInBackTestPriceByToday(TStockInfoDatasInBackTest):
                 self._HandleStock[number] = StockInfoDataInHandWithWeightedAverage(StockInfoCurrentData(m_info,amount,stock_price))
             else:
                 self._HandleStock[number].AddAmount(amount,stock_price)
-            self._BaseInfoData.now_money = self._BaseInfoData.now_money - tools.Total_with_Handling_fee_and_Tax(stock_price,amount)
+            self._BaseInfoData.now_money = self._BaseInfoData.now_money - Tools.Total_with_Handling_fee_and_Tax(stock_price,amount)
             return True
     def RunFinish(self):
         '''完成結果'''

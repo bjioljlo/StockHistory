@@ -9,7 +9,7 @@ import StockInfos as MainUserDataInfo
 from GetExternalData import TGetExternalData
 from GetStockData import Stock_RangeDate
 import update_stock_info
-import tools
+import Tools
 import draw_figur as df
 import threading
 from datetime import datetime
@@ -42,7 +42,7 @@ class Controller_main(TController):
         UI_form = self.__GetView().GetFormUI()
         UI_form.button_addStock.clicked.connect(self.button_addStock_click)#設定button功能
         UI_form.button_deletStock.clicked.connect(self.button_deletStock_click)#設定button功能
-        UI_form.treeView.setModel(Controller.creat_treeView_model(UI_form.treeView,Controller.main_titalList,self.__GetModel().MainUserInfoData))#設定treeView功能
+        UI_form.treeView.setModel(Controller.creat_treeView_model(UI_form.treeView,Controller.MAIN_TITALLIST,self.__GetModel().MainUserInfoData))#設定treeView功能
         UI_form.button_moveToInput.clicked.connect(self.button_moveToInput_click)#設定button功能
         UI_form.button_getStockHistory.clicked.connect(self.button_getStockHistory)#設定button功能
         UI_form.button_openPickWindow.clicked.connect(self.button_openPickWindow_click)#設定button功能
@@ -68,9 +68,9 @@ class Controller_main(TController):
         today = QtCore.QDate(datetime.today().year,datetime.today().month,datetime.today().day)
         UI_form.date_startDate.setMaximumDate(today)
         UI_form.date_startDate.setMinimumDate(QtCore.QDate(2000,1,1))
-        enddate = tools.changeDateMonth(tools.QtDate2DateTime(date),-6)
-        yesterday = tools.backWorkDays(datetime.today(),1)
-        end_yesterday = tools.changeDateMonth(yesterday,-6)
+        enddate = Tools.changeDateMonth(Tools.QtDate2DateTime(date),-6)
+        yesterday = Tools.backWorkDays(datetime.today(),1)
+        end_yesterday = Tools.changeDateMonth(yesterday,-6)
         UI_form.date_startDate.setDate(QtCore.QDate((end_yesterday.year),(end_yesterday.month),(end_yesterday.day)))
         UI_form.date_endDate.setMaximumDate(today)
         UI_form.date_endDate.setMinimumDate(QtCore.QDate(2001,1,1))
@@ -80,7 +80,7 @@ class Controller_main(TController):
         UI_form.input_SMA3.setPlainText("60")
 
     def GetEndDate(self) -> datetime:
-        endDate = tools.QtDate2DateTime(self.__GetView().GetFormUI().date_endDate.date())
+        endDate = Tools.QtDate2DateTime(self.__GetView().GetFormUI().date_endDate.date())
         return endDate
     
     def GetStockNumber(self) -> str:
@@ -95,12 +95,12 @@ class Controller_main(TController):
     def button_addStock_click(self):
         stocknum = self.__GetView().GetFormUI().input_stockNumber.toPlainText()
         self.__GetModel().MainUserInfoData.AddStockInfo(stocknum)
-        self.__GetView().GetFormUI().treeView.setModel(Controller.creat_treeView_model(self.__GetView().GetFormUI().treeView,Controller.main_titalList,self.__GetModel().MainUserInfoData))#設定treeView功能
+        self.__GetView().GetFormUI().treeView.setModel(Controller.creat_treeView_model(self.__GetView().GetFormUI().treeView,Controller.MAIN_TITALLIST,self.__GetModel().MainUserInfoData))#設定treeView功能
     def button_deletStock_click(self):
         UI_form = self.__GetView().GetFormUI()
         stocknum = UI_form.input_stockNumber.toPlainText()
         self.__GetModel().MainUserInfoData.DeletStockInfo(stocknum)
-        UI_form.treeView.setModel(Controller.creat_treeView_model(UI_form.treeView,Controller.main_titalList,self.__GetModel().MainUserInfoData))#設定treeView功能
+        UI_form.treeView.setModel(Controller.creat_treeView_model(UI_form.treeView,Controller.MAIN_TITALLIST,self.__GetModel().MainUserInfoData))#設定treeView功能
     def button_moveToInput_click(self):
         Index = self.__GetView().GetFormUI().treeView.currentIndex()
         mModel = self.__GetView().GetFormUI().treeView.model()
@@ -141,9 +141,9 @@ class Controller_main(TController):
         
     def button_getStockHistory(self):#某股票蠟燭圖
         #存更新日期
-        date = tools.QtDate2DateTime(self.__GetView().GetFormUI().date_startDate.date())
-        end_date = tools.QtDate2DateTime(self.__GetView().GetFormUI().date_endDate.date())
-        str_date = tools.DateTime2String(date)
+        date = Tools.QtDate2DateTime(self.__GetView().GetFormUI().date_startDate.date())
+        end_date = Tools.QtDate2DateTime(self.__GetView().GetFormUI().date_endDate.date())
+        str_date = Tools.DateTime2String(date)
         df.Clear_PICS()
         if self.__GetView().GetFormUI().input_stockNumber.toPlainText() == "":
             for key,value in self.__GetModel().MainUserInfoData.StockList.items():
@@ -177,7 +177,7 @@ class Controller_main(TController):
         self.lock.acquire()
         for key,value in MainUserDataInfo.ts.codes.items():
             if value.market == "上市" and len(value.code) == 4:
-                if tools.check_no_use_stock(value.code) == True:
+                if Tools.check_no_use_stock(value.code) == True:
                     print('get_stock_price: ' + str(value.code) + ' in no use')
                     continue
                 m_history = TGetExternalData().get_stock_history(value.code,str_date)
