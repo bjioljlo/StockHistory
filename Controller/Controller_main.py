@@ -195,6 +195,9 @@ class Controller_main(TController):
         if type(stockInfo) == str:
             print("請先存檔!")
             return
+        if stockInfo is None:
+            print("請先存檔!")
+            return
         if self.__GetView().GetFormUI().check_stock.isChecked():
             df.draw_stock(m_history,stockInfo)
         else:
