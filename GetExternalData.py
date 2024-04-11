@@ -203,7 +203,7 @@ class TGetExternalData(IGetExternalData):
         str_date = Tools.DateTime2String(time)
         time_yesterday = Tools.backWorkDays(time,1)
 
-        while (self.get_stock_history('2330',time_yesterday)['Close'].empty == True):
+        while (time_yesterday not in self.get_stock_history('2330',time_yesterday).index):
             time_yesterday = Tools.backWorkDays(time_yesterday,1)#加一天
         
         str_yesterday = Tools.DateTime2String(time_yesterday)
