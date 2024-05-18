@@ -22,9 +22,6 @@ class Model_pick(TModel):
     def InteractiveController(self,_interactiveController:IController):
         self._InteractiveController = _interactiveController
 
-    def GetInteractiveController(self) -> IController:
-        return self.InteractiveController
-
     #全部篩選
     def monthRP_Up(self, RecordPickParameter: RecordPickParameter, endDate: datetime) -> pd.DataFrame:
         date = endDate#Tools.QtDate2DateTime(self.Controller_main.View.FormUI.date_endDate.date())
@@ -206,6 +203,6 @@ class Model_pick(TModel):
         resultAllFS3 = this[this1]
 
         resultAllFS_temp = Tools.MixDataFrames({'resultAllFS1':resultAllFS1,'resultAllFS2':resultAllFS2})
-        resultAllFS = Tools.MixDataFrames({'resultAllFS3':resultAllFS3,'resultAllFS_temp':resultAllFS_temp})
+        resultAllFS = Tools.MixDataFrames({'resultAllFS_temp':resultAllFS_temp, 'resultAllFS3':resultAllFS3})
 
         return resultAllFS

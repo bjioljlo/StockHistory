@@ -9,7 +9,6 @@ class TModel(IModel):
     def __init__(self):
         super(TModel,self).__init__()
 
-    @abstractmethod
     def GetInteractiveController(self):
         pass
     

@@ -113,6 +113,7 @@ class TGetExternalData(IGetExternalData):
                 
                 if 'levels' in dir(df.columns):
                     df.columns = df.columns.get_level_values(1)
+                    df = df.rename(columns={'公司 代號':'公司代號'})
                 else:
                     df = df[list(range(0,10))]
                     column_index = df.index[(df[0] == '公司代號')][0]
@@ -301,7 +302,7 @@ class TGetExternalData(IGetExternalData):
                                     [25,44,45,53,57],
                                     [16,34,35,44,48],
                                     [5,8,9,17,21]])
-        if(year <= 112):
+        if(year <= 113):
             column_pos_array = np.array([[24,42,43,53,57],
                                     [5,8,9,19,23],
                                     [5,8,9,19,23],

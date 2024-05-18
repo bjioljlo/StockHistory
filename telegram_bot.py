@@ -1,6 +1,6 @@
 from datetime import datetime
-from telegram.ext import Updater,CommandHandler,ConversationHandler,Filters,MessageHandler
-from telegram import ReplyKeyboardMarkup, Update
+from telegram.ext import Updater,CommandHandler,ConversationHandler,filters,MessageHandler
+from telegram import ReplyKeyboardMarkup, Update, Bot
 import telegram.ext
 import StockInfos as MainUserDataInfo
 import twstock as ts
@@ -8,9 +8,18 @@ import GetStockData as GetStockData
 import Tools
 import Infomation_type as info
 from StockInfos import UserInfoDatas
+import asyncio
+
+async def main():
+    global bot
+    bot = Bot('5725776094:AAHg3YJU6893cTHEq0Wdw7t9BpAeIcKh_L4')
+    async with bot:
+        print(await bot.get_me())
+
+asyncio.run(main())
 
 updater = Updater(
-    token='5725776094:AAHg3YJU6893cTHEq0Wdw7t9BpAeIcKh_L4',use_context=True
+    '5725776094:AAHg3YJU6893cTHEq0Wdw7t9BpAeIcKh_L4',use_context=True
 )
 replay_keyboard = [['輸入/移除追蹤股票','追蹤清單'],['輸入查詢股票'],['結束']]
 
@@ -168,34 +177,34 @@ test_handler = CommandHandler('test',test)
 conv_handler = ConversationHandler(
     entry_points=[test_handler],
     states={
-        CHOOSING:[  MessageHandler(Filters.regex('^'+ replay_keyboard[0][0] +'$') & ~(Filters.command | Filters.regex('^'+ replay_keyboard[2][0] +'$')),
+        CHOOSING:[  MessageHandler(filters.regex('^'+ replay_keyboard[0][0] +'$') & ~(filters.command | filters.regex('^'+ replay_keyboard[2][0] +'$')),
                                         input_stock),
-                    MessageHandler(Filters.regex('^'+ replay_keyboard[1][0] +'$') & ~(Filters.command | Filters.regex('^'+ replay_keyboard[2][0] +'$')),
+                    MessageHandler(filters.regex('^'+ replay_keyboard[1][0] +'$') & ~(filters.command | filters.regex('^'+ replay_keyboard[2][0] +'$')),
                                         input_search_stock),
-                    MessageHandler(Filters.regex('^'+ replay_keyboard[0][1] +'$') & ~(Filters.command | Filters.regex('^'+ replay_keyboard[2][0] +'$')),
+                    MessageHandler(filters.regex('^'+ replay_keyboard[0][1] +'$') & ~(filters.command | filters.regex('^'+ replay_keyboard[2][0] +'$')),
                                         check_stock_list),
-                    MessageHandler(~(Filters.command | Filters.regex('^'+ replay_keyboard[2][0] +'$')),
+                    MessageHandler(~(filters.command | filters.regex('^'+ replay_keyboard[2][0] +'$')),
                                         test)],
-        TYPING_CHOICE:[ MessageHandler(Filters.regex('^[A-z0-9]*$') & ~(Filters.command | Filters.regex('^[qQ]$')),
+        TYPING_CHOICE:[ MessageHandler(filters.regex('^[A-z0-9]*$') & ~(filters.command | filters.regex('^[qQ]$')),
                                 check_and_store),
-                        MessageHandler(Filters.regex('^-[A-z0-9]*$') & ~(Filters.command | Filters.regex('^[qQ]$')),
+                        MessageHandler(filters.regex('^-[A-z0-9]*$') & ~(filters.command | filters.regex('^[qQ]$')),
                                stock_remove),
-                        MessageHandler(Filters.regex('^q$') & ~(Filters.command),
+                        MessageHandler(filters.regex('^q$') & ~(filters.command),
                                test)],
-        COMFIRM_STOCK:[ MessageHandler(Filters.regex('^[qQ]$') & ~(Filters.command),
+        COMFIRM_STOCK:[ MessageHandler(filters.regex('^[qQ]$') & ~(filters.command),
                                 test),
-                        MessageHandler(Filters.text & ~(Filters.command | Filters.regex('^[qQ]$')),
+                        MessageHandler(filters.text & ~(filters.command | filters.regex('^[qQ]$')),
                                stock_added)],
-        TYPING_SEARCH_CHOICE:[  MessageHandler(Filters.regex('^[A-z0-9]*$') & ~(Filters.command | Filters.regex('^[qQ]$')),
+        TYPING_SEARCH_CHOICE:[  MessageHandler(filters.regex('^[A-z0-9]*$') & ~(filters.command | filters.regex('^[qQ]$')),
                                 search_check_and_store),
-                                MessageHandler(Filters.regex('^q$') & ~(Filters.command),
+                                MessageHandler(filters.regex('^q$') & ~(filters.command),
                                test)],
-        COMFIRM_SEARCH_STOCK:[  MessageHandler(Filters.regex('^[qQ]$') & ~(Filters.command),
+        COMFIRM_SEARCH_STOCK:[  MessageHandler(filters.regex('^[qQ]$') & ~(filters.command),
                                 test),
-                                MessageHandler(Filters.text & ~(Filters.command | Filters.regex('^[qQ]$')),
+                                MessageHandler(filters.text & ~(filters.command | filters.regex('^[qQ]$')),
                                stock_searched)]
             },
-    fallbacks=[MessageHandler(Filters.regex('^結束$'),done)]
+    fallbacks=[MessageHandler(filters.regex('^結束$'),done)]
     )
 dispatcher.add_handler(conv_handler)# 新增推送任務
 # 固定時間推送訊息

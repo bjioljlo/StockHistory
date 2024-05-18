@@ -15,7 +15,7 @@ import threading
 from datetime import datetime
 from PyQt5 import QtCore
 from Mediator_Controller import IMediator_Controller, controllers
-import telegram_bot
+# TODO telegram 要重新寫新版改太多了....telegram_bot
 
 class Controller_main(TController):
     def __init__(self, _view: IWindow = None, _model: IModel = None) -> None:
@@ -23,14 +23,14 @@ class Controller_main(TController):
         self.Init_Window()
         self.lock = threading.Lock()
         self.mediator:IMediator_Controller = None
-        self._telegram:telegram_bot = telegram_bot
-        self._telegram.MainUserInfoData = self.__GetModel().MainUserInfoData
+        # self._telegram:telegram_bot = telegram_bot
+        # self._telegram.MainUserInfoData = self.__GetModel().MainUserInfoData
     
-    @property
-    def telegram(self):
-        if self._telegram is None:
-            raise
-        return self._telegram
+    # @property
+    # def telegram(self):
+    #     if self._telegram is None:
+    #         raise
+    #     return self._telegram
 
     def __GetView(self) -> Main_Window:
         return self.View

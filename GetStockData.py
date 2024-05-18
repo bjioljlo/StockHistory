@@ -143,6 +143,7 @@ class ReportUp(TReport):
         self._upNum = upNum
         self._Report = Report
         self._Unit = Unit
+        self._name = self._Report._name + '_' + self._name
     def get_ALL_Report(self, date):
         return self.get_up(date,self._upNum)
     def get_up(self,date,upNum):
@@ -150,6 +151,7 @@ class ReportUp(TReport):
         if type(self._Report) == ReportAutoTrace:
             raise NotImplementedError("ReportType error!" + str(type(self._Report)))
         data = {}
+        table_result = pd.DataFrame()
         need_num = upNum + 1
         while need_num > 0 :
             temp_data = self._Report.get_ALL_Report(date)
@@ -164,8 +166,9 @@ class ReportUp(TReport):
         method2 = (result > result.shift()).iloc[-upNum:].sum()
         method2 = method2[method2 >= upNum]
         method2 = pd.DataFrame(method2)
+        table_result[self._name] = method2
         print("{} / {} is End!".format(self._name,sys._getframe().f_code.co_name))
-        return method2
+        return table_result
 #平滑數據
 class ReportSmooth(TReport):
     def __init__(self, name: str, avgNum:int, Report:Indicator, Unit: int) -> None:
@@ -173,6 +176,7 @@ class ReportSmooth(TReport):
         self.avgNum = avgNum
         self._Report = Report
         self._Unit = Unit
+        self._name = self._Report._name + '_' + self._name
     def get_ALL_Report(self, date):
         return self.get_Smooth(date,self.avgNum)
     def get_Smooth(self, date, avgNum):

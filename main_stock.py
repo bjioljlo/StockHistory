@@ -38,5 +38,5 @@ try:
     sys.exit(app.exec_())
 except:#退出時需要清理的方法
     print('開始清理異步內存')
-    controller_main.telegram.stop_telegram(controller_main.telegram.updater)
+    # controller_main.telegram.stop_telegram(controller_main.telegram.updater)
     update_stock_info.stopThreadSchedule()

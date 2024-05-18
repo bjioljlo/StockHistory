@@ -1,11 +1,10 @@
-
 from datetime import datetime,timedelta
 import random
 import pandas as pd
 import requests
 
-SEASON_RP_TIME_MONTH =  [5 ,8 ,11,3 ]
-SEASON_RP_TIME_DAY =    [15,31,14,31]
+SEASON_RP_TIME_MONTH = [5 ,8 ,11,3 ]
+SEASON_RP_TIME_DAY = [15,31,14,31]
 NO_USE_STOCK = [2025]
 FIVE_WORD_ETF = ['00692','00878','00646','00881','00733']
 

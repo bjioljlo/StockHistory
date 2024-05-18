@@ -1,6 +1,5 @@
 from Controller.Controller import IController
 from Model.Model import TModel
-
 from datetime import datetime
 import GetStockData
 import Tools
@@ -29,9 +28,6 @@ class Model_main(TModel):
         if self._MainUserInfoData == None:
             raise
         return self._MainUserInfoData
-
-    def GetInteractiveController(self) -> IController:
-        return self.InteractiveController
     
     def monthRP(self, RecordMainParameter: RecordMainParameter):
         """某股票月營收曲線"""

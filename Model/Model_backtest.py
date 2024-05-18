@@ -7,9 +7,6 @@ class Model_backtest(TModel):
     def __init__(self):
         super().__init__()
     
-    def GetInteractiveController(self):
-        return super().GetInteractiveController()
-    
     def Set_BackTestCheck(self, _recordBackTestParameter: RecordBackTestParameter):
         backtest_stock.set_check(_recordBackTestParameter.check_monthRP_pick,
                                 _recordBackTestParameter.check_PER_pick,

@@ -85,8 +85,9 @@ def creat_treeView_model(parent,titalList,UserInfoData:UserInfoDatas = None):
     return model
 def set_treeView2(model,inputdataFram):
     i = 0
+    array_Num = []
     for index,row in inputdataFram.iterrows():
-        array_Num = [row['每股參考淨值'],row["基本每股盈餘（元）"],
+        array_Num = [row["每股參考淨值"],row["基本每股盈餘（元）"],
                 row["毛利率(%)"],row["營業利益率(%)"],row["資產總額"],row["負債總額"],row["股本"],
                 row["權益總額"],row["本期綜合損益總額（稅後）"]]#,row["PBR"],row["PER"],row["ROE"]]
         try:

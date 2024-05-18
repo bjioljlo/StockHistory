@@ -217,7 +217,7 @@ class StockRecordHigh(VirtualStockFilterFuc):
         return self.get_FilterRecordHigh(self.__data)
     def get_FilterRecordHigh(self,data:DataFrame):
         result_data = data
-        result = DataFrame(columns={'code','RecordHigh'})
+        result = DataFrame(columns=['code','RecordHigh'])
         for number,row in data.iterrows():
             self._Stock.number = int(number)
             Temp = self._Stock.get_ALL()
@@ -242,7 +242,7 @@ class StockFilter(VirtualStockFilterFuc):
     def __get_Filter(self,name,max,min,data:DataFrame,date:datetime,atype:info.Price_type):
         print("{} / {} is Start!".format("StockFilter",sys._getframe().f_code.co_name))
         result_data = data
-        result = DataFrame(columns={'code',name})
+        result = DataFrame(columns=['code',name])
         for number,row in data.iterrows():
             self._Stock.number = int(number)
             Temp = self._Stock.get_PriceByDate(date)
@@ -261,4 +261,3 @@ class StockFilter(VirtualStockFilterFuc):
         result.set_index('code',inplace=True)
         return result
     
-
