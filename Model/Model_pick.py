@@ -4,7 +4,7 @@ import Tools
 from datetime import timedelta,datetime
 import GetStockData as GetStockData
 import Infomation_type as info
-from IParameter import RecordPickParameter
+from Parameter import RecordPickParameter
 import pandas as pd
 from StockHistory import OriginalStockByYahoo
 

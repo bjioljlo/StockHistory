@@ -1,6 +1,6 @@
 from PyQt5 import QtWidgets
 from abc import ABC, abstractmethod
-import IParameter
+import Parameter
 
 class IWindow(ABC):
     @abstractmethod
@@ -14,7 +14,7 @@ class TWindow(IWindow):
 
     @property
     def Parament(self):
-        self._Parament = IParameter(self)
+        self._Parament = Parameter(self)
         return self._Parament
 
     @abstractmethod

@@ -8,7 +8,6 @@ from View.View import IWindow
 import StockInfos as MainUserDataInfo  
 from GetExternalData import TGetExternalData
 from GetStockData import Stock_RangeDate
-import update_stock_info
 import Tools
 import draw_figur as df
 import threading
@@ -48,8 +47,8 @@ class Controller_main(TController):
         UI_form.button_openPickWindow.clicked.connect(self.button_openPickWindow_click)#設定button功能
         UI_form.button_getMonthRP.clicked.connect(self.button_monthRP_click)#設定button功能
         UI_form.button_getDividend_yield.clicked.connect(self.button_Dividend_yield_click)#設定button功能
-        UI_form.button_runSchedule.clicked.connect(lambda:update_stock_info.RunScheduleNow(self.__GetModel().MainUserInfoData))#設定button功能
-        UI_form.button_stopSchedule.clicked.connect(update_stock_info.stopThreadSchedule)#設定button功能
+        UI_form.button_runSchedule.clicked.connect(self.button_RunSchedule_click)#設定button功能
+        UI_form.button_stopSchedule.clicked.connect(self.button_StopThreadSchedule_click)#設定button功能
         UI_form.button_getOperating_Margin.clicked.connect(self.button_Operating_Margin_click)#設定button功能
         UI_form.button_Operating_Margin_Ratio.clicked.connect(self.button_Operating_Margin_Ratio_click)
         UI_form.button_getROE.clicked.connect(self.button_ROE_Ratio_click)
@@ -138,6 +137,10 @@ class Controller_main(TController):
         self.__GetModel().SeasonRevenueGrowth(self.__GetView().Parament)
     def button_ADLs_click(self):
         self.__GetModel().ADLs(self.__GetView().Parament)    
+    def button_RunSchedule_click(self):
+        self.__GetModel().RunSchedule()
+    def button_StopThreadSchedule_click(self):
+        self.__GetModel().StopThreadSchedule()
         
     def button_getStockHistory(self):#某股票蠟燭圖
         #存更新日期

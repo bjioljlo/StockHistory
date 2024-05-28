@@ -1,7 +1,10 @@
 from PyQt5 import QtWidgets
 import sys
+import Globals
 
-import update_stock_info
+from ScheduleService import ScheduleService
+from SqlService import SqlService
+from ReadLoadSystem import ReadLoadSystem
 from Mediator_Controller import Mediator_Controller
 
 from View.View_main import Main_Window, MyWindow
@@ -17,10 +20,16 @@ from Controller.Controller_pick import Controller_pick
 from Controller.Controller_backTest import Controller_backTest
 
 app = QtWidgets.QApplication(sys.argv)
+Globals.MYSQL = SqlService()
+MYSQL = SqlService()
+Globals.MYSQL.RunMysql()
+
+Globals.READLOAD = ReadLoadSystem()
+Schedule = ScheduleService(Globals.MYSQL, Globals.READLOAD)
 # 初始化controller
 controller_backtest = Controller_backTest(BackTest_Window(MyBacktestWindow()), Model_backtest())
 controller_pick = Controller_pick(Pick_Window(MyPickWindow()), Model_pick(controller_backtest))
-controller_main = Controller_main(Main_Window(MyWindow()), Model_main(controller_pick))
+controller_main = Controller_main(Main_Window(MyWindow()), Model_main(controller_pick, Schedule))
 # 初始化中介者
 mediator_controller = Mediator_Controller()
 mediator_controller._main_controller = controller_main
@@ -33,10 +42,10 @@ controller_backtest.mediator = mediator_controller
 
 controller_main.View.GetFormUI().show()
 
-update_stock_info.RunMysql()
+
 try:
     sys.exit(app.exec_())
 except:#退出時需要清理的方法
     print('開始清理異步內存')
     # controller_main.telegram.stop_telegram(controller_main.telegram.updater)
-    update_stock_info.stopThreadSchedule()
+    Schedule.StopThreadSchedule()

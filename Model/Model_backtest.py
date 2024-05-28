@@ -1,5 +1,5 @@
 from Model.Model import TModel
-from IParameter import RecordBackTestParameter
+from Parameter import RecordBackTestParameter
 import backtest_stock
 import draw_figur as df
 

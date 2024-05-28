@@ -10,7 +10,7 @@ from Tools import MixDataFrames,Count_Stock_Amount
 from StockInfosInBackTest import StockInfoDatasInBackTestPriceByToday
 import Infomation_type as info
 from Infomation_type import stock_data_kind
-from IParameter import RecordBackTestParameter
+from Parameter import RecordBackTestParameter
 from StockInfoData import BaseInfoData
 
 bool_check_monthRP_pick = False

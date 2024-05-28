@@ -3,15 +3,14 @@ from datetime import datetime
 import pandas as pd
 import StockInfos
 import os
+import Globals
 import numpy as np
 from io import StringIO
 import time
 import Tools
-import update_stock_info
 import Infomation_type as info
 import sys
 from abc import ABC , abstractmethod
-import ReadLoadSystem as RLsys
 
 class IGetExternalData(ABC):
     @abstractmethod
@@ -55,7 +54,7 @@ class TGetExternalData(IGetExternalData):
             return pd.DataFrame()
         file = str(start.year) + "-season" + str(season) + "-" + type.value
         fileName = self.filePath + '/' + self.fileName_season + '/' + file
-        Temp_data = RLsys.load_month_file(fileName,file) #去資料庫抓資料
+        Temp_data = Globals.READLOAD.load_month_file(fileName,file) #去資料庫抓資料
 
         if Temp_data.empty == True:
             if os.path.isfile(fileName + '.csv') == True:
@@ -74,10 +73,10 @@ class TGetExternalData(IGetExternalData):
                     stock["營業活動之淨現金流入（流出）"] = pd.to_numeric(stock["營業活動之淨現金流入（流出）"].str.replace('--', '0'))
                 if stock["籌資活動之淨現金流入（流出）"].dtype == object: 
                     stock["籌資活動之淨現金流入（流出）"] = pd.to_numeric(stock["籌資活動之淨現金流入（流出）"].str.replace('--', '0'))
-            update_stock_info.saveTable(file,stock)
+            Globals.MYSQL.saveTable(file,stock)
         else:
             stock = Temp_data
-        RLsys.load_memery[fileName] = stock
+        Globals.READLOAD.Memery[fileName] = stock
         return stock
     def get_allstock_monthly_report(self,start:datetime):
         '''爬某月所有股票月營收'''
@@ -88,7 +87,7 @@ class TGetExternalData(IGetExternalData):
         year = start.year
         file = 'monthly_report_'+ str(start.year) + '_' + str(start.month)
         fileName = self.filePath + '/' + self.fileName_monthRP + '/' + file
-        m_data = RLsys.load_month_file(fileName,file) #去資料庫抓資料
+        m_data = Globals.READLOAD.load_month_file(fileName,file) #去資料庫抓資料
         
         if m_data.empty == True:
             if os.path.isfile(fileName + '.csv') == False:
@@ -134,8 +133,8 @@ class TGetExternalData(IGetExternalData):
             m_data[["code"]] = m_data[["code"]].astype(int)
             m_data.set_index("code",inplace = True)
             #存到資料庫
-            update_stock_info.saveTable(file,m_data)
-        RLsys.load_memery[fileName] = m_data
+            Globals.MYSQL.saveTable(file,m_data)
+        Globals.READLOAD.Memery[fileName] = m_data
         return m_data  
     def get_allstock_yield(self,start:datetime):
         '''#爬某天所有股票殖利率'''
@@ -144,13 +143,13 @@ class TGetExternalData(IGetExternalData):
         fileName = self.filePath + '/' + self.fileName_yield + '/' + file
         m_yield = pd.DataFrame()
         #去資料庫抓資料
-        m_yield = RLsys.load_month_file(fileName,file)
+        m_yield = Globals.READLOAD.load_month_file(fileName,file)
 
         if m_yield.empty == True and (start in self.get_stock_history('2330', start)) :
             if os.path.isfile(fileName + '.csv') == False:
                 url = 'https://www.twse.com.tw/exchangeReport/BWIBBU_d?response=csv&date=' + str(start.year)+str(start.month).zfill(2)+str(start.day).zfill(2)+ '&selectType=ALL'
                 response = requests.get(url,Tools.get_random_Header())
-                RLsys.save_stock_file(fileName,response,1,2)
+                Globals.READLOAD.save_stock_file(fileName,response,1,2)
                 # 偽停頓
                 time.sleep(3)
             try:
@@ -161,8 +160,8 @@ class TGetExternalData(IGetExternalData):
             m_yield.rename(columns = {"證券代號":"code"},inplace = True)
             m_yield.set_index("code",inplace = True)
             #存到資料庫
-            update_stock_info.saveTable(file,m_yield)
-        RLsys.load_memery[fileName] = m_yield
+            Globals.MYSQL.saveTable(file,m_yield)
+        Globals.READLOAD.Memery[fileName] = m_yield
         return m_yield
     def get_stock_history(self,number:str,start = datetime.strptime('2005-1-1',"%Y-%m-%d")) -> pd.DataFrame:
         '''#爬某個股票的歷史紀錄'''
@@ -183,13 +182,13 @@ class TGetExternalData(IGetExternalData):
             return result
         file = str(number)
         filename = self.filePath +'/' + self.fileName_stockInfo  + '/' + file
-        m_history = RLsys.load_stock_file(filename,file)
+        m_history = Globals.READLOAD.load_stock_file(filename,file)
         if m_history.empty == True:
             # 去ＹＦ讀取資料
-            update_stock_info.yf_info(str(number) + info.local_type.Taiwan)
+            Globals.MYSQL.yfInfo(str(number) + info.local_type.Taiwan)
             # 偽停頓
             time.sleep(1.5)
-            m_history = RLsys.load_stock_file(filename,file)       
+            m_history = Globals.READLOAD.load_stock_file(filename,file)       
         mask = m_history.index >= start_time
         result = m_history[mask]
         result = result.dropna(axis = 0,how = 'any')
@@ -210,11 +209,11 @@ class TGetExternalData(IGetExternalData):
         str_yesterday = Tools.DateTime2String(time_yesterday)
         fileName = self.filePath +'/' + self.fileName_index + '/' + 'AD_index'
         
-        ADindex_result = RLsys.load_other_file(fileName,'AD_index')
+        ADindex_result = Globals.READLOAD.load_other_file(fileName,'AD_index')
         if ADindex_result.empty == True:
             if os.path.isfile(fileName + '.csv') == True:
                 ADindex_result = pd.read_csv(fileName + '.csv', index_col='Date', parse_dates=['Date'])
-                RLsys.load_memery[fileName] = ADindex_result
+                Globals.READLOAD.Memery[fileName] = ADindex_result
             else:
                 print('no AD_index csv file')
                 
@@ -244,8 +243,8 @@ class TGetExternalData(IGetExternalData):
         ADindex_result_new = pd.DataFrame({'Date':[time],'上漲':[up],'下跌':[down]}).set_index('Date')
         ADindex_result = pd.concat([ADindex_result,ADindex_result_new])
         ADindex_result = ADindex_result.sort_index()
-        update_stock_info.saveTable('ad_index',ADindex_result)
-        RLsys.load_memery[fileName] = ADindex_result
+        Globals.MYSQL.saveTable('ad_index',ADindex_result)
+        Globals.READLOAD.Memery[fileName] = ADindex_result
         df = ADindex_result[ADindex_result.index == time]
         return df
         

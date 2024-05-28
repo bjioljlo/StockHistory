@@ -4,15 +4,17 @@ from datetime import datetime
 import GetStockData
 import Tools
 import draw_figur as df
-from IParameter import RecordMainParameter
+from Parameter import RecordMainParameter
 from StockInfos import UserInfoDatas
+from ScheduleService import ScheduleService
 
 class Model_main(TModel):
-    def __init__(self, _interactiveController: IController):
+    def __init__(self, _interactiveController: IController, _scheduleService: ScheduleService):
         super().__init__()
         self._InteractiveController:IController = _interactiveController
         self._MainUserInfoData:UserInfoDatas = UserInfoDatas('stock_info_list.npy', 'Update_date.npy')
         self._MainUserInfoData._Show_all_stock_info()
+        self._ScheduleService:ScheduleService = _scheduleService
     
     @property
     def InteractiveController(self):
@@ -285,3 +287,9 @@ class Model_main(TModel):
                 main_imge._report._name,
                 main_imge._report._name,
                 'Season Revenue Growth') 
+        
+    def RunSchedule(self):
+        self._ScheduleService.RunScheduleNow(self.MainUserInfoData)
+            
+    def StopThreadSchedule(self):
+        self._ScheduleService.StopThreadSchedule()

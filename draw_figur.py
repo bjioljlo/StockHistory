@@ -84,6 +84,3 @@ def Clear_PICS():
     PICS = []
     panelCount = 0
     show_volume = False
-    
-    
-

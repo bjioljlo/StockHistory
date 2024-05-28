@@ -164,5 +164,4 @@ class StockInfoDatasInBackTestPriceByToday(TStockInfoDatasInBackTest):
                                                                         '數量':[temp_amount],
                                                                         '均價':[temp_price]})],
                                                                         ignore_index=True)
-        
-    
+  
