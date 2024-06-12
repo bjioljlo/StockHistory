@@ -6,7 +6,7 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>695</width>
+    <width>694</width>
     <height>712</height>
    </rect>
   </property>
@@ -160,6 +160,29 @@
       </property>
       <property name="maximum">
        <double>999.990000000000009</double>
+      </property>
+     </widget>
+     <widget class="QLabel" name="label_38">
+      <property name="geometry">
+       <rect>
+        <x>70</x>
+        <y>90</y>
+        <width>41</width>
+        <height>21</height>
+       </rect>
+      </property>
+      <property name="text">
+       <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;&lt;span style=&quot; font-size:10pt;&quot;&gt;種類&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+      </property>
+     </widget>
+     <widget class="QComboBox" name="input_kind">
+      <property name="geometry">
+       <rect>
+        <x>120</x>
+        <y>90</y>
+        <width>121</width>
+        <height>22</height>
+       </rect>
       </property>
      </widget>
     </widget>
@@ -1232,8 +1255,8 @@
     <rect>
      <x>0</x>
      <y>0</y>
-     <width>695</width>
-     <height>22</height>
+     <width>694</width>
+     <height>21</height>
     </rect>
    </property>
   </widget>

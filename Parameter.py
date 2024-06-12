@@ -47,6 +47,8 @@ class RecordPickParameter(IParameter):
         self.monthRP_smoothAVG :int = None
         self.EPS_up :int = None
         self.BetterMA :int = None
+        self.Kind :int = None
+        
 
 class RecordBackTestParameter(IParameter):
     '''回測頁面'''

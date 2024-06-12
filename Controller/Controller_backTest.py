@@ -5,7 +5,7 @@ from Controller.Controller import TController
 from Model.Model_backtest import Model_backtest
 from datetime import datetime
 from PyQt5 import QtCore
-from Mediator_Controller import IMediator_Controller
+from MediatorController import IMediator_Controller
 
 class Controller_backTest(TController):
     def __init__(self, _view: IWindow = None, _model: IModel = None) -> None:

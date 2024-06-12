@@ -2,7 +2,7 @@ from datetime import timedelta
 import pandas as pd
 from pandas import DataFrame
 from GetStockData import get_stock_price
-from Infomation_type import stock_data_kind
+from InfomationType import stock_data_kind
 from StockInfoData import StockInfoData, BaseInfoData, StockInfoCurrentData
 from StockInfoDataInHand import IStockInfoDataInHand, StockInfoDataInHandWithWeightedAverage
 import Tools
@@ -122,9 +122,9 @@ class StockInfoDatasInBackTestPriceByToday(TStockInfoDatasInBackTest):
             return True
     def RunFinish(self):
         '''完成結果'''
-        self._TempResultAll['date'] = pd.to_datetime(self._TempResultAll['date'])
-        self._TempResultDraw['date'] = pd.to_datetime(self._TempResultDraw['date'])
-        self._TempTradeInfo['date'] = pd.to_datetime(self._TempTradeInfo['date'])
+        # self._TempResultAll['date'] = pd.to_datetime(self._TempResultAll['date'])
+        # self._TempResultDraw['date'] = pd.to_datetime(self._TempResultDraw['date'])
+        # self._TempTradeInfo['date'] = pd.to_datetime(self._TempTradeInfo['date'])
         if self._TempResultAll.index.name != 'date':
             self._TempResultAll = self._TempResultAll.set_index('date')
             self._TempResultDraw = self._TempResultDraw.set_index('date')

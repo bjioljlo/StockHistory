@@ -47,7 +47,9 @@ class PickParameter(IParameter):
             self.MRGR = int(_view.GetFormUI().input_MRGR.value())
             self.monthRP_smoothAVG = int(_view.GetFormUI().input_monthRP_smoothAVG.value())
             self.EPS_up = int(_view.GetFormUI().input_EPS_up.value())
+            self.Kind = int(_view.GetFormUI().input_kind.currentIndex())
             self.BetterMA = int(_view.GetFormUI().input_BetterMA.value())
+            
         except ValueError as e:
             print("ValueError:", e)
 

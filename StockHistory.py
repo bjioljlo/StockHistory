@@ -2,9 +2,10 @@ import sys
 from abc import ABC, abstractmethod
 from pandas import DataFrame, concat, Series
 from datetime import datetime
-import Infomation_type as info
+import InfomationType as info
 import talib
 from GetExternalData import TGetExternalData
+import twstock
 
 
 class IStock(ABC):
@@ -260,4 +261,24 @@ class StockFilter(VirtualStockFilterFuc):
         print("{} / {} is End!".format("StockFilter",sys._getframe().f_code.co_name))
         result.set_index('code',inplace=True)
         return result
-    
+class StockFilterInfo(VirtualStockFilterFuc):
+    '''對輸入股票的歷史資料 篩選出產業別'''
+    def __init__(self, Stock: TStock, Data: DataFrame, Date: datetime, GrouopName: str) -> None:
+        super().__init__(Stock, Date)
+        self._groupName = GrouopName   
+        self.__data = Data 
+    def get_ALL(self):
+        return self.__get_Filter(self.__data, self._date, self._groupName)
+    def __get_Filter(self, data: DataFrame, date:datetime, groupName:str):
+        print("{} / {} is Start!".format("StockFilterInfo",sys._getframe().f_code.co_name))
+        result_data = data
+        for number,row in data.iterrows():
+            self._Stock.number = int(number) 
+            Temp = self._Stock.get_ALL()
+            if Temp.empty:
+                result_data.drop(index=int(number),inplace=True)
+                continue
+            if twstock.codes[str(self._Stock.number)].group != groupName:
+                result_data.drop(index=int(number),inplace=True)
+        print("{} / {} is End!".format("StockFilterInfo",sys._getframe().f_code.co_name))
+        return result_data 

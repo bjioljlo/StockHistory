@@ -2,12 +2,12 @@ from datetime import datetime
 import pandas as pd
 from pandas import DataFrame
 import Tools
-import Infomation_type as info
+import InfomationType as info
 import sys
-from StockHistory import OriginalStockByYahoo, RangeDate_Stock, SMA_Stock, RecordHigh_Stock, StockFilter, StockRecordHigh, StockPriceBetterMA
+from StockHistory import OriginalStockByYahoo, RangeDate_Stock, SMA_Stock, RecordHigh_Stock, StockFilter, StockRecordHigh, StockPriceBetterMA, StockFilterInfo
 from StockReportHistory import Indicator, ROE_Indicator,FreeCF_Indicator,Debt_Indicator,OM_Growth_Indicator,MR_Growth_Indicator,SR_Growth_Indicator,PEG_Indicator,Original_Indicator,OCFPerShare_Indicator,PCF_Indicator, ADL_Indicator, ADLs_Indicator
 from StockReportHistory import TReport, Season_Report, Month_Report, Day_Report, ADL_Report
-from Infomation_type import stock_data_kind
+from InfomationType import stock_data_kind
 from GetExternalData import TGetExternalData
 
 OriginalStocStock_2330 = OriginalStockByYahoo(2330)
@@ -37,6 +37,15 @@ class All_Stock_Filters_fuc():
             print("price range number wrong!" + "Max:" + Max + " min:" + Min)
             return self._date
         aFilter = StockFilter(OriginalStocStock_main,Name,Max,Min,self.Data,self._date,Type)
+        temp = aFilter.get_ALL()
+        print('get_price_rang: end')
+        return temp
+    def get_FilterInfo(self, groupName:str):
+        print('get_GroupInfo: start')
+        if (groupName is None) or (groupName == ""):
+            print("GroupInfo Name wrong!" + " Input:" + groupName)
+            return self._date
+        aFilter = StockFilterInfo(OriginalStocStock_main,self.Data,self._date, groupName)
         temp = aFilter.get_ALL()
         print('get_price_rang: end')
         return temp
@@ -317,14 +326,14 @@ def get_monthRP_up(time:datetime,avgNum:int,upNum:int):#time = 取得資料的�
     return Result
     
 #取得本益比篩選 #股價/每股盈餘(EPS)
-def get_PER_range(time:datetime,PER_start,PER_end,data:DataFrame):#time = 取得資料的時間 PER_start = PER最小值 PER_end PER最大值
+def get_PER_range(time:datetime,PER_start,PER_end):#time = 取得資料的時間 PER_start = PER最小值 PER_end PER最大值
     print('get_PER_range: start')
     Result = All_fuc(time,PER_index).get_Filter_Auto(PER_start,PER_end)
     print('get_PER_range: end')
     return Result
     
 #取得本益成長比(PEG)篩選
-def get_PEG_range(time:datetime,PEG_start,PEG_end,data:DataFrame):#time = 取得資料的時間 PEG_start = PEG最小值 PEG_end PEG最大值
+def get_PEG_range(time:datetime,PEG_start,PEG_end):#time = 取得資料的時間 PEG_start = PEG最小值 PEG_end PEG最大值
     print('get_PEG_range: start')
     Result = All_fuc(time,PEG_index).get_Filter_Auto(PEG_start,PEG_end)
     print('get_PEG_range: end')

@@ -5,7 +5,7 @@ import Globals
 from ScheduleService import ScheduleService
 from SqlService import SqlService
 from ReadLoadSystem import ReadLoadSystem
-from Mediator_Controller import Mediator_Controller
+from MediatorController import Mediator_Controller
 
 from View.View_main import Main_Window, MyWindow
 from View.View_pick import Pick_Window, MyPickWindow
@@ -19,10 +19,12 @@ from Controller.Controller_main import Controller_main
 from Controller.Controller_pick import Controller_pick
 from Controller.Controller_backTest import Controller_backTest
 
+from DrawFigur import DrawFigur
+
 app = QtWidgets.QApplication(sys.argv)
 Globals.MYSQL = SqlService()
-MYSQL = SqlService()
 Globals.MYSQL.RunMysql()
+Globals.DRAWFIGUR = DrawFigur()
 
 Globals.READLOAD = ReadLoadSystem()
 Schedule = ScheduleService(Globals.MYSQL, Globals.READLOAD)

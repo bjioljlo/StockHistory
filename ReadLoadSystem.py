@@ -1,7 +1,7 @@
 from pandas import DataFrame
 import pandas as pd
 import os
-import Infomation_type as info
+import InfomationType as info
 import Globals
 
 class ReadLoadSystem():

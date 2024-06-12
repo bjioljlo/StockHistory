@@ -3,7 +3,8 @@ from Model.Model import TModel
 from datetime import datetime
 import GetStockData
 import Tools
-import draw_figur as df
+import Globals
+from DrawFigur import DrawFigur
 from Parameter import RecordMainParameter
 from StockInfos import UserInfoDatas
 from ScheduleService import ScheduleService
@@ -15,6 +16,7 @@ class Model_main(TModel):
         self._MainUserInfoData:UserInfoDatas = UserInfoDatas('stock_info_list.npy', 'Update_date.npy')
         self._MainUserInfoData._Show_all_stock_info()
         self._ScheduleService:ScheduleService = _scheduleService
+        self.df:DrawFigur = Globals.DRAWFIGUR
     
     @property
     def InteractiveController(self):
@@ -49,7 +51,7 @@ class Model_main(TModel):
                                     RecordMainParameter.enddate,
                                     GetStockData.Month_index)
         data_result = main_imge.get_Chart(RecordMainParameter.number)
-        df.draw_RP(data_result,
+        self.df.draw_RP(data_result,
                 RecordMainParameter.number,
                 main_imge._report._name,
                 main_imge._report._name,
@@ -66,7 +68,7 @@ class Model_main(TModel):
                                     RecordMainParameter.enddate,
                                     GetStockData.Yield_index)
         data_result = main_imge.get_Chart(RecordMainParameter.number)
-        df.draw_RP(data_result,
+        self.df.draw_RP(data_result,
                 RecordMainParameter.number,
                 main_imge._report._name,
                 main_imge._report._name,
@@ -83,7 +85,7 @@ class Model_main(TModel):
                                     RecordMainParameter.enddate,
                                     GetStockData.OM_index)
         data_result = main_imge.get_Chart(RecordMainParameter.number)
-        df.draw_RP(data_result,
+        self.df.draw_RP(data_result,
                 RecordMainParameter.number,
                 main_imge._report._name,
                 main_imge._report._name,
@@ -101,7 +103,7 @@ class Model_main(TModel):
                                     GetStockData.OM_Growth_index)
         #取得營業利益率成長率資料(與去年同季相比)
         data_result_up = main_imge.get_Chart(RecordMainParameter.number)
-        df.draw_RP(data_result_up,
+        self.df.draw_RP(data_result_up,
                 RecordMainParameter.number,
                 main_imge._report._name,
                 main_imge._report._name,
@@ -119,7 +121,7 @@ class Model_main(TModel):
                                     RecordMainParameter.enddate,
                                     GetStockData.ROE_index)
         data_result_up = main_imge.get_Chart(RecordMainParameter.number)
-        df.draw_RP(data_result_up,
+        self.df.draw_RP(data_result_up,
                 RecordMainParameter.number,
                 main_imge._report._name,
                 main_imge._report._name,
@@ -136,7 +138,7 @@ class Model_main(TModel):
                                     RecordMainParameter.enddate,
                                     GetStockData.OCF_index)
         data_result = main_imge.get_Chart(RecordMainParameter.number)
-        df.draw_RP(data_result,
+        self.df.draw_RP(data_result,
                 RecordMainParameter.number,
                 main_imge._report._name,
                 main_imge._report._name,
@@ -153,7 +155,7 @@ class Model_main(TModel):
                                     RecordMainParameter.enddate,
                                     GetStockData.ICF_index)
         data_result = main_imge.get_Chart(RecordMainParameter.number)
-        df.draw_RP(data_result,
+        self.df.draw_RP(data_result,
                 RecordMainParameter.number,
                 main_imge._report._name,
                 main_imge._report._name,
@@ -170,7 +172,7 @@ class Model_main(TModel):
                                     RecordMainParameter.enddate,
                                     GetStockData.FreeCF_index)
         data_result = main_imge.get_Chart(RecordMainParameter.number)
-        df.draw_RP(data_result,
+        self.df.draw_RP(data_result,
                 RecordMainParameter.number,
                 main_imge._report._name,
                 main_imge._report._name,
@@ -187,7 +189,7 @@ class Model_main(TModel):
                                     RecordMainParameter.enddate,
                                     GetStockData.PCF_index)
         data_result = main_imge.get_Chart(RecordMainParameter.number)
-        df.draw_RP(data_result,
+        self.df.draw_RP(data_result,
                 RecordMainParameter.number,
                 main_imge._report._name,
                 main_imge._report._name,
@@ -204,7 +206,7 @@ class Model_main(TModel):
                                     RecordMainParameter.enddate,
                                     GetStockData.EPS_index)
         data_result = main_imge.get_Chart(RecordMainParameter.number)
-        df.draw_RP(data_result,
+        self.df.draw_RP(data_result,
                 RecordMainParameter.number,
                 main_imge._report._name,
                 main_imge._report._name,
@@ -221,7 +223,7 @@ class Model_main(TModel):
                                     RecordMainParameter.enddate,
                                     GetStockData.Debt_index)
         data_result = main_imge.get_Chart(RecordMainParameter.number)
-        df.draw_RP(data_result,
+        self.df.draw_RP(data_result,
                 RecordMainParameter.number,
                 main_imge._report._name,
                 main_imge._report._name,
@@ -236,7 +238,7 @@ class Model_main(TModel):
                                     GetStockData.ADL_index)
         data_result = main_imge.get_Chart()
         return data_result
-        df.draw_RP(data_result,
+        self.df.draw_RP(data_result,
                 0,
                 main_imge._report._name,
                 main_imge._report._name,
@@ -250,7 +252,7 @@ class Model_main(TModel):
                                     RecordMainParameter.enddate,
                                     GetStockData.ADLs_index)
         data_result = main_imge.get_Chart()
-        df.draw_RP(data_result,
+        self.df.draw_RP(data_result,
                 0,
                 main_imge._report._name,
                 main_imge._report._name,
@@ -266,7 +268,7 @@ class Model_main(TModel):
                                     RecordMainParameter.enddate,
                                     GetStockData.MR_Growth_index)
         data_result = main_imge.get_Chart(RecordMainParameter.number)
-        df.draw_RP(data_result,
+        self.df.draw_RP(data_result,
                 RecordMainParameter.number,
                 main_imge._report._name,
                 main_imge._report._name,
@@ -282,7 +284,7 @@ class Model_main(TModel):
                                     RecordMainParameter.enddate,
                                     GetStockData.SR_Growth_index)
         data_result = main_imge.get_Chart(RecordMainParameter.number)
-        df.draw_RP(data_result,
+        self.df.draw_RP(data_result,
                 RecordMainParameter.number,
                 main_imge._report._name,
                 main_imge._report._name,

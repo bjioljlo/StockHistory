@@ -1,7 +1,7 @@
 import sys
 from abc import ABC, abstractmethod
 from pandas import DataFrame, Series
-import Infomation_type as info
+import InfomationType as info
 import Tools
 import pandas
 from StockHistory import OriginalStock

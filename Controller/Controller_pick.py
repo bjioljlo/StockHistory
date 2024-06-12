@@ -4,7 +4,7 @@ from View.View import IWindow
 from View.View_pick import Pick_Window
 import Controller.Controller as Controller
 from Model.Model_pick import Model_pick
-from Mediator_Controller import IMediator_Controller, controllers
+from MediatorController import IMediator_Controller, controllers
 from datetime import datetime
 
 class Controller_pick(TController):
@@ -53,6 +53,8 @@ class Controller_pick(TController):
         UI_form.input_EPS_up.setValue(0)
         UI_form.input_SRGR.setValue(0)
         UI_form.input_MRGR.setValue(0)
+        UI_form.input_kind.addItem('無')
+        UI_form.input_kind.addItems(self.__GetModel().Groups)
 
     def GetEndDate(self) -> datetime:
         return super().GetEndDate()

@@ -1,13 +1,13 @@
 from datetime import datetime, timedelta
 import threading
 import pandas as pd
-import twstock as ts
+import twstock #抓取台灣股票資料套件
 from pandas_datareader import data
 import yfinance as yf
 from sqlalchemy.ext.declarative import declarative_base
 import os
 import Tools
-import Infomation_type as info
+import InfomationType as info
 from StockInfos import UserInfoDatas
 from GetExternalData import TGetExternalData
 import Globals
@@ -28,9 +28,9 @@ class UpdateStockService():
         print("Update all stocks start!")
         df = pd.DataFrame()
         end_date = datetime.today() - timedelta(days=1)#設定資料起訖日期
-        # ts.__update_codes()
+        # twstock.__update_codes()
         yf.pdr_override()
-        for key,value in ts.codes.items():
+        for key,value in twstock.codes.items():
             if not self.isUpdating: 
                 print("Update stocks "  + value.code + info.local_type.Taiwan + " be Stop")
                 return

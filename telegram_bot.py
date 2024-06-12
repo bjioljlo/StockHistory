@@ -6,7 +6,7 @@ import StockInfos as MainUserDataInfo
 import twstock as ts
 import GetStockData as GetStockData
 import Tools
-import Infomation_type as info
+import InfomationType as info
 from StockInfos import UserInfoDatas
 import asyncio
 

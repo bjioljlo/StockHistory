@@ -8,7 +8,7 @@ import numpy as np
 from io import StringIO
 import time
 import Tools
-import Infomation_type as info
+import InfomationType as info
 import sys
 from abc import ABC , abstractmethod
 

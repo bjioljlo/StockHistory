@@ -3,16 +3,24 @@ from Model.Model import TModel
 import Tools
 from datetime import timedelta,datetime
 import GetStockData as GetStockData
-import Infomation_type as info
+import InfomationType as info
 from Parameter import RecordPickParameter
 import pandas as pd
 from StockHistory import OriginalStockByYahoo
+import twstock
 
 class Model_pick(TModel):
     def __init__(self,_interactiveController: IController):
         super().__init__()
         self._InteractiveController = _interactiveController
+        self._Groups:list[str] = None
+        self._setGroups()
 
+    @property
+    def Groups(self) -> list[str]:
+        if self._Groups == None:
+            raise
+        return self._Groups
     @property
     def InteractiveController(self):
         if self._InteractiveController == None:
@@ -22,15 +30,18 @@ class Model_pick(TModel):
     def InteractiveController(self,_interactiveController:IController):
         self._InteractiveController = _interactiveController
 
+    def _setGroups(self):
+        self._Groups = []
+        for key,value in twstock.codes.items():
+            if (value.group != '') and (not value.group in self._Groups):
+                self._Groups.append(value.group)
+                
+    
     #全部篩選
     def monthRP_Up(self, RecordPickParameter: RecordPickParameter, endDate: datetime) -> pd.DataFrame:
-        date = endDate#Tools.QtDate2DateTime(self.Controller_main.View.FormUI.date_endDate.date())
-        if date.isoweekday() == 6 or OriginalStockByYahoo(2330).get_PriceByDateAndType(date,info.Price_type.AdjClose) == None:
+        date = endDate
+        while OriginalStockByYahoo(2330).get_PriceByDateAndType(date,info.Price_type.AdjClose) is None:
             date = date + timedelta(days=-1)
-        elif date.isoweekday() == 7:
-            date = date + timedelta(days=-2)
-        else:
-            pass
         try:
             GPM = RecordPickParameter.GPM
             OPR = RecordPickParameter.OPR
@@ -60,6 +71,7 @@ class Model_pick(TModel):
             SRGR = RecordPickParameter.SRGR
             MRGR = RecordPickParameter.MRGR
             BerMA = RecordPickParameter.BetterMA
+            Kind = RecordPickParameter.Kind
         except:
             print("Get value error")
             return
@@ -167,6 +179,11 @@ class Model_pick(TModel):
             mainStockfun.Data = pick_data
             volume_data = mainStockfun.get_Filter_SMA('volume',volum * 100000000,volum * 10000,5,info.Price_type.Volume)
             pick_data = Tools.MixDataFrames({'pick':pick_data,'volumeData':volume_data})
+            pick_data = pick_data.dropna(axis=0,how='any')
+        if Kind > 0:
+            mainStockfun.Data = pick_data
+            group_data = mainStockfun.get_FilterInfo(self.Groups[Kind-1])
+            pick_data = Tools.MixDataFrames({'pick':pick_data,'InfoData':group_data})
             pick_data = pick_data.dropna(axis=0,how='any')
         print("總挑選數量:" + str(len(pick_data)))
         return pick_data

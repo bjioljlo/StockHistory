@@ -9,11 +9,12 @@ import StockInfos as MainUserDataInfo
 from GetExternalData import TGetExternalData
 from GetStockData import Stock_RangeDate
 import Tools
-import draw_figur as df
+import Globals
+from DrawFigur import DrawFigur
 import threading
 from datetime import datetime
 from PyQt5 import QtCore
-from Mediator_Controller import IMediator_Controller, controllers
+from MediatorController import IMediator_Controller, controllers
 # TODO telegram 要重新寫新版改太多了....telegram_bot
 
 class Controller_main(TController):
@@ -22,6 +23,7 @@ class Controller_main(TController):
         self.Init_Window()
         self.lock = threading.Lock()
         self.mediator:IMediator_Controller = None
+        self.df:DrawFigur = Globals.DRAWFIGUR
         # self._telegram:telegram_bot = telegram_bot
         # self._telegram.MainUserInfoData = self.__GetModel().MainUserInfoData
     
@@ -147,7 +149,7 @@ class Controller_main(TController):
         date = Tools.QtDate2DateTime(self.__GetView().GetFormUI().date_startDate.date())
         end_date = Tools.QtDate2DateTime(self.__GetView().GetFormUI().date_endDate.date())
         str_date = Tools.DateTime2String(date)
-        df.Clear_PICS()
+        self.df.Clear_PICS()
         if self.__GetView().GetFormUI().input_stockNumber.toPlainText() == "":
             for key,value in self.__GetModel().MainUserInfoData.StockList.items():
                 m_history = TGetExternalData().get_stock_history(key,str_date)
@@ -193,7 +195,7 @@ class Controller_main(TController):
             input_SMA_list = [self.__GetView().GetFormUI().input_SMA1,self.__GetView().GetFormUI().input_SMA2,self.__GetView().GetFormUI().input_SMA3]
             for i in input_SMA_list:
                 if i.toPlainText() != "":
-                    df.draw_SMA(m_history,int(i.toPlainText()),stockInfo)
+                    self.df.draw_SMA(m_history,int(i.toPlainText()),stockInfo)
     def check_price_isCheck(self,m_history,stockInfo):
         if type(stockInfo) == str:
             print("請先存檔!")
@@ -202,28 +204,28 @@ class Controller_main(TController):
             print("請先存檔!")
             return
         if self.__GetView().GetFormUI().check_stock.isChecked():
-            df.draw_stock(m_history,stockInfo)
+            self.df.draw_stock(m_history,stockInfo)
         else:
-            df.draw_stock(m_history,stockInfo)
+            self.df.draw_stock(m_history,stockInfo)
     def check_Volume_isCheck(self,m_history,stockInfo):
         if self.__GetView().GetFormUI().check_volume.isChecked():
-            df.draw_Volume(m_history,stockInfo)
+            self.df.draw_Volume(m_history,stockInfo)
     def check_KD_isCheck(self,m_history,stockInfo):
         if self.__GetView().GetFormUI().check_KD.isChecked():
-            df.draw_KD(m_history,stockInfo)
+            self.df.draw_KD(m_history,stockInfo)
     def check_BollingerBands_isCheck(self,m_history,stockInfo):
         if self.__GetView().GetFormUI().check_BollingerBands.isChecked() == True:
-            df.draw_BollingerBands(m_history,12,stockInfo)
+            self.df.draw_BollingerBands(m_history,12,stockInfo)
     def check_RSI_isCheck(self,m_history,stockInfo):
         if self.__GetView().GetFormUI().check_RSI.isChecked() == True:
-            df.draw_RSI(m_history,stockInfo)
+            self.df.draw_RSI(m_history,stockInfo)
     def Check_ADL_isCheck(self):
         if self.__GetView().GetFormUI().check_ADL.isChecked() == True:
             Data_ADL = self.__GetModel().ADL(self.__GetView().Parament)
-            df.draw_ADL(Data_ADL)
+            self.df.draw_ADL(Data_ADL)
     def Check_ADLs_isCheck(self):
         if self.__GetView().GetFormUI().check_ADLs.isChecked() == True:        
             self.__GetModel().ADLs(self.__GetView().Parament)
     def Check_MACD_isCheck(self,m_history):
         if self.__GetView().GetFormUI().check_MACD.isChecked() == True:
-            df.draw_MACD(m_history)
+            self.df.draw_MACD(m_history)
