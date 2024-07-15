@@ -188,7 +188,8 @@ class TGetExternalData(IGetExternalData):
             Globals.MYSQL.yfInfo(str(number) + info.local_type.Taiwan)
             # 偽停頓
             time.sleep(1.5)
-            m_history = Globals.READLOAD.load_stock_file(filename,file)       
+            m_history = Globals.READLOAD.load_stock_file(filename,file)     
+            Globals.MONGO.saveTable(str(number) + info.local_type.Taiwan, m_history)
         mask = m_history.index >= start_time
         result = m_history[mask]
         result = result.dropna(axis = 0,how = 'any')

@@ -6,6 +6,7 @@ from ScheduleService import ScheduleService
 from SqlService import SqlService
 from ReadLoadSystem import ReadLoadSystem
 from MediatorController import Mediator_Controller
+from MongoService import MongoService
 
 from View.View_main import Main_Window, MyWindow
 from View.View_pick import Pick_Window, MyPickWindow
@@ -25,6 +26,8 @@ app = QtWidgets.QApplication(sys.argv)
 Globals.MYSQL = SqlService()
 Globals.MYSQL.RunMysql()
 Globals.DRAWFIGUR = DrawFigur()
+Globals.MONGO = MongoService()
+Globals.MONGO.RunMongoDB()
 
 Globals.READLOAD = ReadLoadSystem()
 Schedule = ScheduleService(Globals.MYSQL, Globals.READLOAD)
