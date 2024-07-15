@@ -15,7 +15,7 @@ import Globals
 class UpdateStockService():
     def __init__(self) -> None:
         self.threads = []
-        self.isUpdating:bool = False  
+        self.isUpdating:bool = False
         
     def UpdateAllStocksHandle(self, MainUserInfoDatas: UserInfoDatas):
         temp_thread = threading.Thread(target=self.__runUpdate, args=[MainUserInfoDatas,])
@@ -28,7 +28,6 @@ class UpdateStockService():
         print("Update all stocks start!")
         df = pd.DataFrame()
         end_date = datetime.today() - timedelta(days=1)#設定資料起訖日期
-        # twstock.__update_codes()
         yf.pdr_override()
         for key,value in twstock.codes.items():
             if not self.isUpdating: 

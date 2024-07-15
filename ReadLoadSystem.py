@@ -12,7 +12,7 @@ class ReadLoadSystem():
     def Memery(self) -> dict:
         return self.load_memery
     
-    def save_stock_file(fileName:str,stockData,start_index:int = 0,end_index:int = 0):
+    def save_stock_file(self, fileName:str, stockData, start_index:int = 0, end_index:int = 0):
         '''#存下歷史資料'''
         with open(fileName + '.csv', 'w') as f:
             if start_index == end_index == 0:
@@ -66,7 +66,7 @@ class ReadLoadSystem():
         df = df.dropna(how='any',inplace=False)#將某些null欄位去除
         self.load_memery[fileName] = df
         return df
-    def delet_stock_file(fileName:str):
+    def delet_stock_file(self, fileName:str):
         '''#刪除歷史資料'''
         if os.path.isfile(fileName) == True:
             os.remove(fileName)

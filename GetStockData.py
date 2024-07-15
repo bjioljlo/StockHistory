@@ -115,7 +115,7 @@ class ReportAutoTrace(TReport):
             date = self._Report.Next_date(date)
             Temp = self._Report.get_ALL_Report(date)
             if Timer == 4:
-                raise NotImplementedError("ReportAutoTrace error!" + str(type(self._Report)))
+                raise NotImplementedError("ReportAutoTrace error!" + str(type(self._Report)) + "its too many times!")
             Timer = Timer + 1
         print("{} / {} is End!".format(self._name,sys._getframe().f_code.co_name))
         return Temp

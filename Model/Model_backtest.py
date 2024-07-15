@@ -24,6 +24,9 @@ class Model_backtest(TModel):
         if _recordBackTestParameter.check_monthRP_pick == _recordBackTestParameter.check_PER_pick == _recordBackTestParameter.check_volume_pick == False:
             print("都沒選是要回測個毛線！")
             return
+        elif _recordBackTestParameter.volumeDays < 2:
+            print("測均線給1天是怎樣!")
+            return
         else:
             self.Set_BackTestCheck(_recordBackTestParameter)
         _data = self.backtestFunc.backtest_monthRP_Up_Fast(_recordBackTestParameter)
