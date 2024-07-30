@@ -1,7 +1,7 @@
 from Controller.Controller import IController
 from Model.Model import TModel
 from datetime import datetime
-import GetStockData
+import FilterService.GetStockData as GetStockData
 import Tools
 import Globals
 from DrawFigur import DrawFigur

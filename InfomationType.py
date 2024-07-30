@@ -5,7 +5,6 @@ class FS_type(Enum):
     BS = 'balance-sheet' #'資產負債彙總表'
     PLA = 'profit-and-loss-analysis-summary'  #'營益分析彙總表'
     SCF = 'statement-of-cash-flows' #現金流量表
-
 class StrEnum(str, Enum):
     pass
 class CPL_type(StrEnum):
@@ -40,17 +39,9 @@ class Price_type(StrEnum):
     Close = 'Close'
     AdjClose = 'Adj Close'
     Volume = 'Volume'
-# CPL_type = Enum('_type','本期綜合損益總額（稅後） 基本每股盈餘（元）')
-# BS_type = Enum('_type','資產總額 負債總額 股本 權益總額 每股參考淨值')
-# PLA_type = Enum('_type','營業收入 毛利率(%) 營業利益率(%) 稅前純益率(%) 稅後純益率(%)')
-# SCF_type = Enum('_type','營業活動之淨現金流入（流出） 投資活動之淨現金流入（流出） 籌資活動之淨現金流入（流出）')
-# Month_type = Enum('_type','當月營收')
-# Day_type = Enum('_type','本益比 股價淨值比 殖利率(%)')
-
 class local_type():
     Taiwan = '.tw'
     USA = ''
-
 class stock_data_kind(Enum):
     AdjClose = 'Adj Close'
     Volume = 'Volume'

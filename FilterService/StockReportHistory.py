@@ -4,7 +4,7 @@ from pandas import DataFrame, Series
 import InfomationType as info
 import Tools
 import pandas
-from StockHistory import OriginalStock
+from FilterService.StockHistory import OriginalStock
 from GetExternalData import TGetExternalData
 from datetime import datetime
 

@@ -1,22 +1,22 @@
 from datetime import timedelta
 import pandas as pd
 from pandas import DataFrame
-from GetStockData import get_stock_price
+from FilterService.GetStockData import get_stock_price
 from InfomationType import stock_data_kind
 from StockInfoData import StockInfoData, BaseInfoData, StockInfoCurrentData
-from StockInfoDataInHand import IStockInfoDataInHand, StockInfoDataInHandWithWeightedAverage
+from BackTestService.StockInfoDataInHand import IStockInfoDataInHand, StockInfoDataInHandWithWeightedAverage
 import Tools
 import twstock as ts #抓取台灣股票資料套件
 from abc import ABC, abstractmethod, abstractproperty
 
 class IStockInfoDatasInBackTest(ABC):
     '''回測資訊'''
-    @abstractproperty
     @property
+    @abstractmethod
     def BaseInfoData(self)-> BaseInfoData:
         pass
-    @abstractproperty
     @property
+    @abstractmethod
     def HandleStock(self)-> dict[str, IStockInfoDataInHand]:
         pass
     @abstractmethod
@@ -87,7 +87,7 @@ class StockInfoDatasInBackTestPriceByToday(TStockInfoDatasInBackTest):
         super().__init__(_baseInfoData)
         self._TempResultDraw:DataFrame = DataFrame(columns=['date','資產比例'])
         self._TempResultAll:DataFrame = DataFrame(columns=['date','股票資產','剩餘現金','總資產'])
-        self._TempTradeInfo:DataFrame = DataFrame(columns=['date','號碼','數量','均價'])        
+        self._TempTradeInfo:DataFrame = DataFrame(columns=['date','號碼','數量','均價'])
     def SellStock(self,number:str,amount:int) -> bool:
         '''賣某張股票'''
         if self._HandleStock.__contains__(number) == False:

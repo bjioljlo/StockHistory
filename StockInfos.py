@@ -8,7 +8,7 @@ from StockInfoData import StockInfoData
 class IStockInfoDatas(ABC):
     '''存檔資訊'''
     @property
-    @abstractproperty
+    @abstractmethod
     def StockList(self) -> dict[str, StockInfoData]:
         pass
     @abstractmethod

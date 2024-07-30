@@ -4,10 +4,10 @@ from datetime import datetime,timedelta
 #from backtesting import Backtest, Strategy #引入回測和交易策略功能
 import talib
 from GetExternalData import TGetExternalData 
-import GetStockData
+import FilterService.GetStockData as GetStockData
 import Tools
 from Tools import MixDataFrames,Count_Stock_Amount
-from StockInfosInBackTest import StockInfoDatasInBackTestPriceByToday
+from BackTestService.StockInfosInBackTest import StockInfoDatasInBackTestPriceByToday
 import InfomationType as info
 from InfomationType import stock_data_kind
 from Parameter import RecordBackTestParameter

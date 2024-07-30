@@ -7,7 +7,7 @@ from View.View import IWindow
 
 import StockInfos as MainUserDataInfo  
 from GetExternalData import TGetExternalData
-from GetStockData import Stock_RangeDate
+from FilterService.GetStockData import Stock_RangeDate
 import Tools
 import Globals
 from DrawFigur import DrawFigur

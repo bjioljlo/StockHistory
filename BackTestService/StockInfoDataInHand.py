@@ -4,11 +4,11 @@ from abc import ABC, abstractmethod, abstractproperty
 class IStockInfoDataInHand(ABC):
     '''手持股票資訊'''
     @property
-    @abstractproperty
+    @abstractmethod
     def Price(self) -> float:
         pass
     @property
-    @abstractproperty
+    @abstractmethod
     def Amount(self) -> int:
         pass
     @abstractmethod
@@ -60,3 +60,6 @@ class StockInfoDataInHandWithWeightedAverage(TStockInfoDataInHand):
         '''買入(會和之前加權平均)'''
         self._StockInfoCurData.price = ((self._StockInfoCurData.price * self._StockInfoCurData.amount) + (price * amount)) / (self._StockInfoCurData.amount + amount)
         self._StockInfoCurData.amount = self._StockInfoCurData.amount + amount
+        
+
+    

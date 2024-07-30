@@ -46,6 +46,7 @@ class UpdateStockService():
                 with Globals.MYSQL.server_flask.app_context():
                     df.to_sql(name=value.code + info.local_type.Taiwan,con=Globals.MYSQL.MySql_server.engine,if_exists='replace')
                 Globals.READLOAD.load_memery[os.getcwd() +'/' + 'stockInfo'  + '/' + value.code] = df
+                Globals.MONGO.saveTable(str(value.code) + info.local_type.Taiwan, df)  
                 print("Update stocks " + value.code + info.local_type.Taiwan + " OK!") 
         
         #存更新日期

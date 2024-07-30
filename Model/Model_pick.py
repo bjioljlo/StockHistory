@@ -2,11 +2,11 @@ from Controller.Controller import IController
 from Model.Model import TModel
 import Tools
 from datetime import timedelta,datetime
-import GetStockData as GetStockData
+import FilterService.GetStockData as GetStockData
 import InfomationType as info
 from Parameter import RecordPickParameter
 import pandas as pd
-from StockHistory import OriginalStockByYahoo
+from FilterService.StockHistory import OriginalStockByYahoo
 import twstock
 
 class Model_pick(TModel):
