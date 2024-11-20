@@ -6,7 +6,7 @@ from Model.Model import IModel
 from View.View import IWindow
 
 import StockInfos as MainUserDataInfo  
-from GetExternalData import TGetExternalData
+from GetExternalDataService import TGetExternalData
 from FilterService.GetStockData import Stock_RangeDate
 import Tools
 import Globals

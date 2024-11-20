@@ -1,3 +1,6 @@
+"""
+一些方便的轉換式
+"""
 from datetime import datetime,timedelta
 import random
 import pandas as pd

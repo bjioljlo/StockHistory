@@ -3,7 +3,6 @@ import datetime
 import Tools
 from PyQt5 import QtCore
 from unittest.mock import Mock
-from mock import patch
 from datetime import datetime
 from freezegun import freeze_time
 
@@ -16,6 +15,11 @@ class tools_test(unittest.TestCase):
         input_number = 1
         result = Tools.changeDateMonth(input_date, input_number)
         self.assertEqual(result , datetime(2024,2,1))
+    def test_changeDateMonthEdge(self):
+        input_date = datetime(2024,3,1)
+        input_number = -3
+        result = Tools.changeDateMonth(input_date, input_number)
+        self.assertEqual(result , datetime(2023,12,1))
     def test_QtDate2DateTime(self):
         input_date = QtCore.QDate(2024,2,1)
         result = Tools.QtDate2DateTime(input_date)

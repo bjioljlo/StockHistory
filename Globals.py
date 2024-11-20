@@ -1,3 +1,6 @@
+"""
+全域的service
+"""
 from SqlService import SqlService
 from ReadLoadSystem import ReadLoadSystem
 from DrawFigur import DrawFigur

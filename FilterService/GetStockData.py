@@ -8,7 +8,7 @@ from FilterService.StockHistory import OriginalStockByYahoo, RangeDate_Stock, SM
 from FilterService.StockReportHistory import Indicator, ROE_Indicator,FreeCF_Indicator,Debt_Indicator,OM_Growth_Indicator,MR_Growth_Indicator,SR_Growth_Indicator,PEG_Indicator,Original_Indicator,OCFPerShare_Indicator,PCF_Indicator, ADL_Indicator, ADLs_Indicator
 from FilterService.StockReportHistory import TReport, Season_Report, Month_Report, Day_Report, ADL_Report
 from InfomationType import stock_data_kind
-from GetExternalData import TGetExternalData
+from GetExternalDataService import ExternalDataFactory, ExternalDataTypeEnum
 
 OriginalStocStock_2330 = OriginalStockByYahoo(2330)
 OriginalStocStock_main = OriginalStockByYahoo()
@@ -16,7 +16,7 @@ OriginalStocStock_main = OriginalStockByYahoo()
 Stock_RangeDate = RangeDate_Stock(OriginalStocStock_main)
 Stock_SMA = SMA_Stock(OriginalStocStock_main)
 Stock_RecordHigh = RecordHigh_Stock(OriginalStocStock_main)
-            
+
 class All_Stock_Filters_fuc():
     '''增加篩選器在這邊加
         所有要輸入TStock類就可以加進來
@@ -66,14 +66,18 @@ class All_Stock_Filters_fuc():
         temp = aBetterMA.get_ALL()
         return temp
 
-CPL_RP = Season_Report(info.FS_type.CPL,info.FS_type.CPL.value,3)
-BS_RP = Season_Report(info.FS_type.BS,info.FS_type.BS.value,3)
-PLA_RP = Season_Report(info.FS_type.PLA,info.FS_type.PLA.value,3)
-SCF_RP = Season_Report(info.FS_type.SCF,info.FS_type.SCF.value,3)
+# TODO : 這裡要加入factory 來產生不同狀態的報告 EX.unittest
+GetExternal = ExternalDataFactory.Get_instance()
+#GetExternal = ExternalDataFactory.Get_instance(ExternalDataTypeEnum.Test)  
 
-Month_RP = Month_Report('month_RP', 1)#月營收
-Yield_RP = Day_Report('yield_RP', 1)
-ADL_RP = ADL_Report('aDL_RP', 1)
+CPL_RP = Season_Report(info.FS_type.CPL.value, 3, GetExternal,info.FS_type.CPL)
+BS_RP = Season_Report(info.FS_type.BS.value, 3, GetExternal, info.FS_type.BS)
+PLA_RP = Season_Report(info.FS_type.PLA.value, 3, GetExternal, info.FS_type.PLA)
+SCF_RP = Season_Report(info.FS_type.SCF.value, 3, GetExternal, info.FS_type.SCF)
+
+Month_RP = Month_Report('month_RP', 1, GetExternal)#月營收
+Yield_RP = Day_Report('yield_RP', 1, GetExternal)
+ADL_RP = ADL_Report('aDL_RP', 1, GetExternal)
 
 ROE_index = ROE_Indicator('ROE',CPL_RP,BS_RP)
 FreeCF_index = FreeCF_Indicator('FreeCF',SCF_RP)
@@ -260,7 +264,7 @@ class All_imge():
         self._start = start
         self._end = end
         self._report = report
-        self._main_GetExternalData = TGetExternalData()
+        self._main_GetExternalData = ExternalDataFactory.Get_instance()
     @property
     def start(self):
         return self._start
@@ -324,42 +328,42 @@ def get_monthRP_up(time:datetime,avgNum:int,upNum:int):#time = 取得資料的�
     Result = All_fuc(time,Month_index).get_Smooth_Up_Auto(avgNum,upNum)
     print('get_monthRP_up: end' )
     return Result
-    
+
 #取得本益比篩選 #股價/每股盈餘(EPS)
 def get_PER_range(time:datetime,PER_start,PER_end):#time = 取得資料的時間 PER_start = PER最小值 PER_end PER最大值
     print('get_PER_range: start')
     Result = All_fuc(time,PER_index).get_Filter_Auto(PER_start,PER_end)
     print('get_PER_range: end')
     return Result
-    
+
 #取得本益成長比(PEG)篩選
 def get_PEG_range(time:datetime,PEG_start,PEG_end):#time = 取得資料的時間 PEG_start = PEG最小值 PEG_end PEG最大值
     print('get_PEG_range: start')
     Result = All_fuc(time,PEG_index).get_Filter_Auto(PEG_start,PEG_end)
     print('get_PEG_range: end')
     return Result
-   
+
 #取得平均日成交金額篩選
 def get_AVG_value(time:datetime,volume:int,days:int,data:DataFrame):#time = 取得資料的時間 volume = 平均成交金額 days = 平均天數
     print('get_AVG_value: start')
     result = All_Stock_Filters_fuc(time,data).get_Filter_SMA('volume',99999999999,volume,days,info.Price_type.Volume)
     print('get_AVG_value: end')
     return result
-    
+
 #取得股價淨值比篩選  #股價/每股淨值 = PBR 
 def get_PBR_range(time:datetime,PBR_start:float,PBR_end:float,data = pd.DataFrame()):#time = 取得資料的時間 PBR_start = PBR最小值 PBR_end PBR最大值
     print('get_PBR_rang: start')
     Result = All_fuc(time,PBR_index).get_Filter_Auto(PBR_start,PBR_end)
     print('get_PBR_rang: end')
     return Result
-    
+
 #取得股東權益報酬率 #ROE(股東權益報酬率) = 稅後淨利/股東權益
 def get_ROE_range(time:datetime,ROE_start,ROE_end,data = pd.DataFrame()):#time = 取得資料的時間 ROE_start = ROE最小值 ROE_end ROE最大值
     print('get_ROE_rang: start')
     Result = All_fuc(time,ROE_index).get_Filter_Auto(ROE_start,ROE_end)
     print('get_ROE_rang: end')
     return Result
-    
+
 #取得股價篩選
 def get_price_range(time:datetime,high:int,low:int,data = pd.DataFrame()):#time = 取得資料的時間 high = 最高價 low = 最低價
     print('get_price_rang: start')
@@ -371,14 +375,14 @@ def get_price_range(time:datetime,high:int,low:int,data = pd.DataFrame()):#time 
     Temp = All_Stock_Filters_fuc(time,data).get_Filter('price',high,low,info.Price_type.Close)
     print('get_price_rang: end')
     return Temp
-    
+
 #取得創新高篩選
 def get_RecordHigh_range(time:datetime,Day:int,RecordHighDay:int,data = pd.DataFrame()):#time = 取得資料的時間 Day = 往前找多少天的創新高 RecordHighDay = 找創新高的區間
     print('get_RecordHigh: start')
     result = All_Stock_Filters_fuc(time,data).get_Filter_RecordHigh(Day,RecordHighDay,info.Price_type.High)
     print('get_RecordHigh: end')
     return result
-    
+
 def AvgStockPrice(date,vData = pd.DataFrame()):
     '''平均vData股價'''
     All_price = 0 #

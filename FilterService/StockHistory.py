@@ -4,7 +4,7 @@ from pandas import DataFrame, concat, Series
 from datetime import datetime
 import InfomationType as info
 import talib
-from GetExternalData import TGetExternalData
+from GetExternalDataService import ExternalDataFactory, ExternalDataTypeEnum
 import twstock
 
 
@@ -56,7 +56,7 @@ class OriginalStock(TStock):
     def get_PriceByDateAndType(self,date:datetime,_type:info.Price_type):
         Temp = self.get_PriceByType(_type)
         try:
-            return Temp[date]
+            return float(Temp[date])
         except:
             if Temp.empty == False:
                 print(''.join([str(date),'的',str(self._number),'公司尚未成立']))
@@ -64,9 +64,13 @@ class OriginalStock(TStock):
 class OriginalStockByYahoo(OriginalStock):
     '''股票一般未處理歷史資料(Yahoo資料)'''
     def get_ALL(self) -> DataFrame:
-        main_GetExternalData = TGetExternalData()
+        main_GetExternalData = ExternalDataFactory.Get_instance()
         return main_GetExternalData.get_stock_history(str(self._number))
-
+class OriginalStockTest(OriginalStock):
+    '''unitTest 用的股票歷史資料其他請勿使用'''
+    def get_ALL(self) -> DataFrame:
+        main_GetExternalData = ExternalDataFactory.Get_instance(ExternalDataTypeEnum.Test)
+        return main_GetExternalData.get_stock_history(str(self._number))
 class VirtualStockFuc(TStock):
     '''對輸入的資訊做處理'''
     @property

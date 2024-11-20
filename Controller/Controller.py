@@ -110,9 +110,6 @@ def set_treeView2(model,inputdataFram):
             array_Num.append(float(row["Yield"]))
         except:
             array_Num.append(float(0))
-       
-            
-        
         add_stock_List(model,index,row['公司名稱'],i,array_Num)
         i = i + 1
 def set_treeView(model,inputList):

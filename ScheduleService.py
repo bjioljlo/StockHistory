@@ -11,7 +11,7 @@ class ScheduleService():
     def __init__(self, sql: SqlService, readLoad: ReadLoadSystem) -> None:
         self.updateStockService:UpdateStockService = UpdateStockService()
         self.threads = []
-   
+
     def RunScheduleNow(self, MainUserInfoDatas: UserInfoDatas):
         self.__RunSchedule(self.updateStockService.UpdateAllStocksHandle,str(datetime.today().hour).zfill(2)+ ":" + str(datetime.today().minute + 1).zfill(2)+ ":01", MainUserInfoDatas)
     

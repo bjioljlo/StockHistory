@@ -1,15 +1,16 @@
 from datetime import timedelta
 import pandas as pd
 from pandas import DataFrame
-from FilterService.GetStockData import get_stock_price
+from FilterService.StockHistory import OriginalStock
 from InfomationType import stock_data_kind
-from StockInfoData import StockInfoData, BaseInfoData, StockInfoCurrentData
-from BackTestService.StockInfoDataInHand import IStockInfoDataInHand, StockInfoDataInHandWithWeightedAverage
+from StockInfoData import BaseInfoData
+from BackTestService.StockInfoDataInHand import IStockInfoDataInHand
+import BackTestService.StockInfoDataInHand as StockInfoDataInHand
 import Tools
 import twstock as ts #抓取台灣股票資料套件
-from abc import ABC, abstractmethod, abstractproperty
+from abc import ABC, abstractmethod
 
-class IStockInfoDatasInBackTest(ABC):
+class IBackTestInfoData(ABC):
     '''回測資訊'''
     @property
     @abstractmethod
@@ -32,17 +33,19 @@ class IStockInfoDatasInBackTest(ABC):
     def BuyStock(self,number:str,amount:int) -> bool:
         pass
 
-class TStockInfoDatasInBackTest(IStockInfoDatasInBackTest):
+class TBackTestInfoData(IBackTestInfoData):
     '''回測資訊實作'''
-    def __init__(self, _baseInfoData:BaseInfoData) -> None:
-        super(TStockInfoDatasInBackTest,self).__init__()
+    def __init__(self, _baseInfoData:BaseInfoData,  _getStockPrice: OriginalStock) -> None:
+        super(TBackTestInfoData,self).__init__()
         self._BaseInfoData:BaseInfoData = _baseInfoData
         self._HandleStock:dict[str, IStockInfoDataInHand] = {}#手持股票
+        self._GetStockPrice:OriginalStock = _getStockPrice
     def _GetUserStockAsset(self) -> int:
         '''股票資產'''
         Temp_money = 0
         for key,value in self._HandleStock.items():
-            Temp = get_stock_price(key,self._BaseInfoData.now_day,stock_data_kind.AdjClose)
+            self._GetStockPrice.number = key
+            Temp = self._GetStockPrice.get_PriceByDateAndType(self._BaseInfoData.now_day,stock_data_kind.AdjClose)
             if Temp == None:
                 print('no stock price:' + str(key))
                 continue
@@ -81,10 +84,10 @@ class TStockInfoDatasInBackTest(IStockInfoDatasInBackTest):
                 if self.BuyStock(index,1000) == False:
                     data = data.drop(index=index)
 
-class StockInfoDatasInBackTestPriceByToday(TStockInfoDatasInBackTest):
+class BackTestInfoDataPriceByToday(TBackTestInfoData):
     '''回測資訊(當天價格)'''
-    def __init__(self, _baseInfoData: BaseInfoData) -> None:
-        super().__init__(_baseInfoData)
+    def __init__(self, _baseInfoData: BaseInfoData, _getStockPrice: OriginalStock) -> None:
+        super().__init__(_baseInfoData, _getStockPrice)
         self._TempResultDraw:DataFrame = DataFrame(columns=['date','資產比例'])
         self._TempResultAll:DataFrame = DataFrame(columns=['date','股票資產','剩餘現金','總資產'])
         self._TempTradeInfo:DataFrame = DataFrame(columns=['date','號碼','數量','均價'])
@@ -97,14 +100,16 @@ class StockInfoDatasInBackTestPriceByToday(TStockInfoDatasInBackTest):
             print('股票'+ number +'數量不足:' + amount)
             return False
         else:
-            stock_price = get_stock_price(number,self._BaseInfoData.now_day,stock_data_kind.AdjClose)
+            self._GetStockPrice.number = number
+            stock_price = self._GetStockPrice.get_PriceByDateAndType(self._BaseInfoData.now_day, stock_data_kind.AdjClose)
             self._BaseInfoData.now_money = self._BaseInfoData.now_money + Tools.Total_with_Handling_fee_and_Tax(stock_price,amount,False)
             if self._HandleStock[number].MinusAmount(amount) == False:
                 self._HandleStock.pop(number,None)
             return True
     def BuyStock(self,number:str,amount:int) -> bool:
         '''買股票'''
-        stock_price = get_stock_price(number,self._BaseInfoData.now_day,stock_data_kind.AdjClose)
+        self._GetStockPrice.number = number
+        stock_price = self._GetStockPrice.get_PriceByDateAndType(self._BaseInfoData.now_day, stock_data_kind.AdjClose)
         if stock_price == None:
             print(str(number) + ' no use stock')
             return False
@@ -112,19 +117,13 @@ class StockInfoDatasInBackTestPriceByToday(TStockInfoDatasInBackTest):
             print('錢不夠：')
             return False
         else:
-            m_stock = ts.codes[str(number)]
-            m_info = StockInfoData(m_stock.code,m_stock.name,m_stock.type,m_stock.start,m_stock.market,m_stock.group)
             if self._HandleStock.__contains__(number) == False:
-                self._HandleStock[number] = StockInfoDataInHandWithWeightedAverage(StockInfoCurrentData(m_info,amount,stock_price))
-            else:
-                self._HandleStock[number].AddAmount(amount,stock_price)
+                self._HandleStock[number] = StockInfoDataInHand.StockInfoDataInHandFactory(number)
+            self._HandleStock[number].AddAmount(amount,stock_price)
             self._BaseInfoData.now_money = self._BaseInfoData.now_money - Tools.Total_with_Handling_fee_and_Tax(stock_price,amount)
             return True
     def RunFinish(self):
         '''完成結果'''
-        # self._TempResultAll['date'] = pd.to_datetime(self._TempResultAll['date'])
-        # self._TempResultDraw['date'] = pd.to_datetime(self._TempResultDraw['date'])
-        # self._TempTradeInfo['date'] = pd.to_datetime(self._TempTradeInfo['date'])
         if self._TempResultAll.index.name != 'date':
             self._TempResultAll = self._TempResultAll.set_index('date')
             self._TempResultDraw = self._TempResultDraw.set_index('date')
@@ -164,4 +163,3 @@ class StockInfoDatasInBackTestPriceByToday(TStockInfoDatasInBackTest):
                                                                         '數量':[temp_amount],
                                                                         '均價':[temp_price]})],
                                                                         ignore_index=True)
-  

@@ -1,5 +1,6 @@
-from StockInfoData import StockInfoCurrentData
-from abc import ABC, abstractmethod, abstractproperty
+from StockInfoData import StockInfoData, StockInfoCurrentData
+from abc import ABC, abstractmethod
+import twstock as ts #抓取台灣股票資料套件
 
 class IStockInfoDataInHand(ABC):
     '''手持股票資訊'''
@@ -51,15 +52,15 @@ class TStockInfoDataInHand(IStockInfoDataInHand):
             print(str(self._StockInfoCurData.stock_info.name) + '數量不足!')
         self._StockInfoCurData.amount = 0
         return False
-    
+
 class StockInfoDataInHandWithWeightedAverage(TStockInfoDataInHand):
     '''手持股票資訊(買入用加權平均)'''
-    def __init__(self, stock_info: StockInfoCurrentData):
-        super().__init__(stock_info)
     def AddAmount(self,amount:int,price:float):
         '''買入(會和之前加權平均)'''
         self._StockInfoCurData.price = ((self._StockInfoCurData.price * self._StockInfoCurData.amount) + (price * amount)) / (self._StockInfoCurData.amount + amount)
         self._StockInfoCurData.amount = self._StockInfoCurData.amount + amount
-        
 
-    
+def  StockInfoDataInHandFactory(number:str) -> IStockInfoDataInHand:
+    m_stock = ts.codes[str(number)]
+    m_info = StockInfoData(m_stock.code,m_stock.name,m_stock.type,m_stock.start,m_stock.market,m_stock.group)
+    return StockInfoDataInHandWithWeightedAverage(StockInfoCurrentData(m_info, 0, 0))

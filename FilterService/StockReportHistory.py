@@ -5,7 +5,7 @@ import InfomationType as info
 import Tools
 import pandas
 from FilterService.StockHistory import OriginalStock
-from GetExternalData import TGetExternalData
+from GetExternalDataService import IGetExternalData
 from datetime import datetime
 
 class IReport(ABC):
@@ -18,7 +18,10 @@ class TReport(IReport):
     def __init__(self, name: str , Unit:int) -> None:
         self._name = name
         self._Unit = Unit
-        self._main_GetExternalData = TGetExternalData()
+    @property
+    def name(self) -> str:
+        return self._name
+    
     @abstractmethod
     def get_ALL_Report(self,date)-> DataFrame:
         raise NotImplementedError( "{} is virutal! Must be overwrited.".format(sys._getframe().f_code.co_name))  
@@ -52,20 +55,25 @@ class TReport(IReport):
             return None
     def Next_date(self,date):
         return Tools.changeDateMonth(date,-self._Unit)
-class Season_Report(TReport):
-    '''以季為單位的指標歷史資料'''
-    def __init__(self, _FS_type:info.FS_type, name: str, Unit: int):
+class AllStockReport(TReport):
+    '''指標歷史資料'''
+    def __init__(self, name: str, Unit: int, GetExternal: IGetExternalData) -> None:
         super().__init__(name, Unit)
+        self._main_GetExternalData = GetExternal
+class Season_Report(AllStockReport):
+    '''以季為單位的指標歷史資料'''
+    def __init__(self, name: str, Unit: int, GetExternal: IGetExternalData, _FS_type:info.FS_type):
+        super().__init__(name, Unit, GetExternal)
         self._FS_type = _FS_type
     def get_ALL_Report(self,date)-> DataFrame:
-        main_GetExternalData = TGetExternalData()
-        return main_GetExternalData.get_allstock_financial_statement(date,self._FS_type)
-class Month_Report(TReport):
+        return self._main_GetExternalData.get_allstock_financial_statement(date,self._FS_type)
+def GetSeasonReportFactory(self, _FS_type:info.FS_type, _GetExternal: IGetExternalData) -> Season_Report:
+    return Season_Report(_FS_type.value, 3, _GetExternal, _FS_type) 
+class Month_Report(AllStockReport):
     '''以月為單位的指標歷史資料'''
     def get_ALL_Report(self, date):
-        main_GetExternalData = TGetExternalData()
-        return main_GetExternalData.get_allstock_monthly_report(date)
-class Day_Report(TReport):
+        return self._main_GetExternalData.get_allstock_monthly_report(date)
+class Day_Report(AllStockReport):
     '''以日為單位的指標歷史資料'''
     def get_ALL_Report(self, date):
         return self._main_GetExternalData.get_allstock_yield(date)
@@ -74,7 +82,7 @@ class Day_Report(TReport):
         while (date not in self._main_GetExternalData.get_stock_history('2330').index):
             date = Tools.backWorkDays(date,self._Unit)   
         return date
-class ADL_Report(TReport):
+class ADL_Report(AllStockReport):
     '''以日為單位的騰落指標歷史資料(AD)'''
     def get_ALL_Report(self, date):
         return self._main_GetExternalData.get_stock_AD_index(date)
@@ -281,4 +289,3 @@ class ADLs_Indicator(Indicator):
         return data_result
     def Next_date(self, date):
         return self._AD_RP.Next_date(date)
-

@@ -17,6 +17,12 @@ class StockInfoCurrentData():
         self.amount:int = amount
         self.price:float = price
 
+class StockInfoSignalData():
+    '''篩選股票資訊結構'''
+    def __init__(self,stock_info: StockInfoData, singnal):
+        self.stock_info:StockInfoData = stock_info
+        self.singnal = singnal
+
 class BaseInfoData():
     '''基本資料結構''' 
     def __init__(self,start_money:int,start_day:datetime,end_day:datetime):
@@ -25,3 +31,4 @@ class BaseInfoData():
         self.start_day:datetime = start_day #開始日期
         self.now_day:datetime = start_day #現在日期
         self.end_day:datetime = end_day  #結束日期
+        

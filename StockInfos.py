@@ -1,8 +1,11 @@
+"""
+系統的存檔資訊
+"""
 import os #讀取路徑套件
 import twstock as ts #抓取台灣股票資料套件  
 import numpy as np
 from datetime import datetime
-from abc import ABC, abstractmethod, abstractproperty
+from abc import ABC, abstractmethod
 from StockInfoData import StockInfoData
 
 class IStockInfoDatas(ABC):
@@ -132,7 +135,7 @@ class UserInfoDatas(TStockInfoDatas):
     def DeletStockInfo(self, number: str):
         Result = super().DeletStockInfo(number)
         if Result:
-           self._Save_stock_info() 
+            self._Save_stock_info() 
         return Result
     def CleanData(self):
         super().CleanData()

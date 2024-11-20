@@ -11,7 +11,11 @@ import Tools
 import InfomationType as info
 import sys
 from abc import ABC , abstractmethod
+from enum import Enum
 
+class ExternalDataTypeEnum(Enum):
+    Normal = 0,
+    Test = 1
 class IGetExternalData(ABC):
     @abstractmethod
     def get_allstock_financial_statement(self, start:datetime,type:info.FS_type):
@@ -59,7 +63,7 @@ class TGetExternalData(IGetExternalData):
         if Temp_data.empty == True:
             if os.path.isfile(fileName + '.csv') == True:
                 print("已經有" + str(start.month)+ "月財務報告")
-            self.financial_statement(start.year,season,type)
+            self._financial_statement(start.year,season,type)
             print("下載" + str(start.month)+ "月財務報告ＯＫ")
         
             stock = pd.read_csv(fileName + '.csv')
@@ -145,7 +149,7 @@ class TGetExternalData(IGetExternalData):
         #去資料庫抓資料
         m_yield = Globals.READLOAD.load_month_file(fileName,file)
 
-        if m_yield.empty == True and (start in self.get_stock_history('2330', start)) :
+        if m_yield.empty == True and (self.get_stock_history('2330', start)['Volume'][Tools.DateTime2String(start)] > 0) :
             if os.path.isfile(fileName + '.csv') == False:
                 url = 'https://www.twse.com.tw/exchangeReport/BWIBBU_d?response=csv&date=' + str(start.year)+str(start.month).zfill(2)+str(start.day).zfill(2)+ '&selectType=ALL'
                 response = requests.get(url,Tools.get_random_Header())
@@ -248,12 +252,11 @@ class TGetExternalData(IGetExternalData):
         Globals.READLOAD.Memery[fileName] = ADindex_result
         df = ADindex_result[ADindex_result.index == time]
         return df
-        
-    def remove_td(self,column):
+    def _remove_td(self,column):
         remove_one = column.split('<')
         remove_two = remove_one[0].split('>')
         return remove_two[1].replace(",","")
-    def translate_dataFrame(self,response):
+    def _translate_dataFrame(self,response):
         table_array = response.split('<table')
         tr_array = table_array[1].split('<tr')
         
@@ -263,13 +266,13 @@ class TGetExternalData(IGetExternalData):
         for i in range(len(tr_array)):
             td_array = tr_array[i].split('<td')
             if(len(td_array)>1):
-                code = self.remove_td(td_array[1])
-                name = self.remove_td(td_array[2])
-                revenue = self.remove_td(td_array[3])
-                profitRatio = self.remove_td(td_array[4])
-                profitMargin = self.remove_td(td_array[5])
-                preTaxIncomeMargin = self.remove_td(td_array[6])
-                afterTaxIncomeMargin = self.remove_td(td_array[7])
+                code = self._remove_td(td_array[1])
+                name = self._remove_td(td_array[2])
+                revenue = self._remove_td(td_array[3])
+                profitRatio = self._remove_td(td_array[4])
+                profitMargin = self._remove_td(td_array[5])
+                preTaxIncomeMargin = self._remove_td(td_array[6])
+                afterTaxIncomeMargin = self._remove_td(td_array[7])
                 if(revenue == '&nbsp;'):
                     continue
                 if(revenue == ''):
@@ -288,7 +291,7 @@ class TGetExternalData(IGetExternalData):
                     column.append(preTaxIncomeMargin)
                     column.append(afterTaxIncomeMargin)
         return pd.DataFrame(data = data,columns=column)
-    def translate_dataFrame2(self,response,type,year,season = 1):
+    def _translate_dataFrame2(self,response,type,year,season = 1):
         table_array = response.split('<table')
         tr_array_array = [table_array[2].split('<tr'),
                     table_array[3].split('<tr'),
@@ -423,16 +426,16 @@ class TGetExternalData(IGetExternalData):
                     td_array = tr_array[i].split('<td')
 
                 if(len(td_array)>1):
-                    code = self.remove_td(td_array[1])
-                    name = self.remove_td(td_array[2])
-                    revenue = self.remove_td(td_array[column_pos_array[k][0]])
-                    profitRatio = self.remove_td(td_array[column_pos_array[k][1]])
+                    code = self._remove_td(td_array[1])
+                    name = self._remove_td(td_array[2])
+                    revenue = self._remove_td(td_array[column_pos_array[k][0]])
+                    profitRatio = self._remove_td(td_array[column_pos_array[k][1]])
                     if (type == info.FS_type.BS):
-                        profitMargin = self.remove_td(td_array[column_pos_array[k][2]])
-                        preTaxIncomeMargin = self.remove_td(td_array[column_pos_array[k][3]])
-                        afterTaxIncomeMargin = self.remove_td(td_array[column_pos_array[k][4]])
+                        profitMargin = self._remove_td(td_array[column_pos_array[k][2]])
+                        preTaxIncomeMargin = self._remove_td(td_array[column_pos_array[k][3]])
+                        afterTaxIncomeMargin = self._remove_td(td_array[column_pos_array[k][4]])
                     if (type == info.FS_type.SCF):
-                        profitMargin2 = self.remove_td(td_array[column_pos_array[k][2]])
+                        profitMargin2 = self._remove_td(td_array[column_pos_array[k][2]])
                     if(i > 1):
                         if name == '公司名稱':
                             continue
@@ -456,7 +459,7 @@ class TGetExternalData(IGetExternalData):
                             column.append(profitMargin2)
 
         return pd.DataFrame(data = data,columns=column)
-    def financial_statement(self,year:int, season:int, type:info.FS_type):#year = 年 season = 季 type = 財報種類
+    def _financial_statement(self,year:int, season:int, type:info.FS_type):#year = 年 season = 季 type = 財報種類
         myear = year
         if year>= 1000:
             myear -= 1911
@@ -486,10 +489,134 @@ class TGetExternalData(IGetExternalData):
         #response.encoding = 'utf8'
 
         if type == info.FS_type.PLA:
-            df = self.translate_dataFrame(response.text)
+            df = self._translate_dataFrame(response.text)
         else:
-            df = self.translate_dataFrame2(response.text,type,myear,season)
+            df = self._translate_dataFrame2(response.text,type,myear,season)
         file = str(year) + "-season" + str(season) + "-" + type.value
         df.to_csv(self.filePath + "/" + self.fileName_season + "/" + file + ".csv",index=False)
         # 偽停頓
         time.sleep(5)
+class GetExternalDataTest(TGetExternalData):
+    '''測試用爬取股票財務報告 請勿在別的地方使用'''
+    # TODO : 要完成其他測試用的GET方法
+    def get_allstock_monthly_report(self, start: datetime):
+        try:
+            return super().get_allstock_monthly_report(start)
+        except:
+            print(''.join(["{}:取得".format(sys._getframe().f_code.co_name)]),"月營收的資料:",str(start))
+            if Tools.Have_MonthRP(start) == False:
+                return pd.DataFrame()
+            m_data = pd.DataFrame()
+            year = start.year
+            file = 'monthly_report_'+ str(start.year) + '_' + str(start.month)
+            fileName = self.filePath + '/' + self.fileName_monthRP + '/' + file
+            
+            if m_data.empty == True:
+                if os.path.isfile(fileName + '.csv') == False:
+                    # 假如是西元，轉成民國
+                    if year > 1990:
+                        year -= 1911
+                    url = 'https://mops.twse.com.tw/nas/t21/sii/t21sc03_'+str(year)+'_'+str(start.month)+'_0.html'
+                    if year <= 98:
+                        url = 'https://mops.twse.com.tw/nas/t21/sii/t21sc03_'+str(year)+'_'+str(start.month)+'.html'
+                    
+                    # 下載該年月的網站，並用pandas轉換成 dataframe
+                    r = requests.get(url, headers = Tools.get_random_Header())
+                    r.encoding = 'big5-hkscs'
+                    
+                    try:
+                        dfs = pd.read_html(StringIO(r.text), encoding='big-5')
+                    except:
+                        return pd.DataFrame()
+                    
+
+                    df = pd.concat([df for df in dfs if df.shape[1] <= 11 and df.shape[1] > 5])
+                    
+                    if 'levels' in dir(df.columns):
+                        df.columns = df.columns.get_level_values(1)
+                        df = df.rename(columns={'公司 代號':'公司代號'})
+                    else:
+                        df = df[list(range(0,10))]
+                        column_index = df.index[(df[0] == '公司代號')][0]
+                        df.columns = df.iloc[column_index]
+                    
+                    df['當月營收'] = pd.to_numeric(df['當月營收'], 'coerce')
+                    df = df[~df['當月營收'].isnull()]
+                    df = df[df['公司代號'] != '合計']
+                    
+                    df.to_csv(fileName,index = False)
+                    # 偽停頓
+                    time.sleep(1.5)
+                    
+                m_data = pd.read_csv(fileName)
+                m_data.drop(m_data.tail(1).index,inplace=True)
+                #整理一下資料
+                m_data.rename(columns = {"公司代號":"code"},inplace = True)
+                m_data[["code"]] = m_data[["code"]].astype(int)
+                m_data.set_index("code",inplace = True)
+            return m_data 
+    def get_stock_history(self, number: str, start=datetime.strptime('2005-1-1', "%Y-%m-%d")) -> pd.DataFrame:
+        try:
+            return super().get_stock_history(number, start)
+        except:
+            print(''.join(["取得" , str(number) , "的資料從" , str(start) ,"到今天:{}".format(sys._getframe().f_code.co_name)]))
+            start_time = start
+            if type(start_time) == str:
+                start_time  = datetime.strptime(start_time,"%Y-%m-%d")
+            if type(number) != str:
+                number = str(number)
+            data_time = datetime.strptime('2005-1-1',"%Y-%m-%d")
+            result = pd.DataFrame()
+
+            if StockInfos.ts.codes.__contains__(number) == False:
+                print("無此檔股票")
+                return result
+            if start_time < data_time:
+                print('日期請大於西元2005年')
+                return result
+            file = str(number)
+            filename = self.filePath + '\\' + self.fileName_stockInfo  + '\\' + file + '_2000-1-1_2021-8-7'
+            m_history = pd.DataFrame()
+            if os.path.isfile(filename + '.csv') == False:
+                return result
+            m_history = pd.read_csv(filename + '.csv', index_col='Date', parse_dates=['Date'])
+            #整理一下資料
+            mask = m_history.index >= start_time
+            result = m_history[mask]
+            result = result.dropna(axis = 0,how = 'any')
+            return result
+    def get_allstock_financial_statement(self,start:datetime,type:info.FS_type):
+        try:
+            super().get_allstock_financial_statement(start,type)
+        except:
+            Temp_data = pd.DataFrame()
+            season = int(((start.month - 1)/3)+1)
+            file = str(start.year) + "-season" + str(season) + "-" + type.value
+            fileName = self.filePath + '/' + self.fileName_season + '/' + file
+            if Temp_data.empty == True:
+                if os.path.isfile(fileName + '.csv') == True:
+                    print("已經有" + str(start.month)+ "月財務報告")
+                else:   
+                    self._financial_statement(start.year, season, type)
+                    print("下載" + str(start.month)+ "月財務報告ＯＫ")            
+                stock = pd.read_csv(fileName + '.csv')
+                #整理一下資料
+                stock.rename(columns = {"公司代號":"code"},inplace = True)
+                stock.set_index("code",inplace = True)
+                if info.FS_type.SCF == type:
+                    if stock["投資活動之淨現金流入（流出）"].dtype == object: 
+                        stock["投資活動之淨現金流入（流出）"] = pd.to_numeric(stock["投資活動之淨現金流入（流出）"].str.replace('--', '0'))
+                    if stock["營業活動之淨現金流入（流出）"].dtype == object: 
+                        stock["營業活動之淨現金流入（流出）"] = pd.to_numeric(stock["營業活動之淨現金流入（流出）"].str.replace('--', '0'))
+                    if stock["籌資活動之淨現金流入（流出）"].dtype == object: 
+                        stock["籌資活動之淨現金流入（流出）"] = pd.to_numeric(stock["籌資活動之淨現金流入（流出）"].str.replace('--', '0'))
+            else:
+                stock = Temp_data
+            return stock
+class ExternalDataFactory:
+    @staticmethod
+    def Get_instance(type: ExternalDataTypeEnum = ExternalDataTypeEnum.Normal) -> IGetExternalData:
+        if type == ExternalDataTypeEnum.Test:
+            return GetExternalDataTest()
+        else:
+            return TGetExternalData()

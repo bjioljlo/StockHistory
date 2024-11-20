@@ -5,7 +5,7 @@ import twstock #抓取台灣股票資料套件
 import Tools
 import pandas as pd
 
-class MongoService:
+class MongoService:   
     def __init__(self) -> None:
         self.mongoConnect:MongoClient = None
         self.mongodb:database = None
@@ -51,4 +51,3 @@ class MongoService:
                 
                 _clo = self.mongodb["StockInfo"]
                 _clo.insert_one(_saveData)
-            

@@ -3,11 +3,12 @@ import numpy as np
 from datetime import datetime,timedelta
 #from backtesting import Backtest, Strategy #引入回測和交易策略功能
 import talib
-from GetExternalData import TGetExternalData 
+from GetExternalDataService import TGetExternalData 
 import FilterService.GetStockData as GetStockData
+from FilterService.StockHistory import OriginalStockByYahoo
 import Tools
 from Tools import MixDataFrames,Count_Stock_Amount
-from BackTestService.StockInfosInBackTest import StockInfoDatasInBackTestPriceByToday
+from BackTestService.BackTestInfoData import BackTestInfoDataPriceByToday
 import InfomationType as info
 from InfomationType import stock_data_kind
 from Parameter import RecordBackTestParameter
@@ -31,10 +32,11 @@ class BackTestStock():
         self.bool_check_price_pick = price_pick
         self.bool_check_PBR_pick = PBR_pick
         self.bool_check_ROE_pick = ROE_pick
- 
+
     def backtest_KD_pick(self, mainParament:RecordBackTestParameter):
         '''KD值選股 https://www.finlab.tw/%e7%94%a8kd%e5%80%bc%e9%81%b8%e8%82%a1%ef%bc%9a%e9%82%84%e9%9c%80%e6%90%ad%e9%85%8d%e9%80%99%e4%b8%89%e7%a8%ae%e6%8c%87%e6%a8%99/'''
-        userInfo = StockInfoDatasInBackTestPriceByToday(BaseInfoData(mainParament.money_start,mainParament.date_start,mainParament.date_end))
+        userInfo = BackTestInfoDataPriceByToday(BaseInfoData(mainParament.money_start,mainParament.date_start,mainParament.date_end),
+                                                        OriginalStockByYahoo())
         Temp_result_pick = pd.DataFrame(columns=['date','選股數量'])
         Temp_table = TGetExternalData().get_stock_history(mainParament.buy_number,mainParament.date_start)
         All_stock_signal = dict()
@@ -97,7 +99,6 @@ class BackTestStock():
                     signal[signal_sell] = -1
                     All_stock_signal[key] = signal
             
-            
             #找出買入訊號跟賣出訊號-------------------------
             buy_numbers = []
             sell_numbers = []
@@ -158,7 +159,7 @@ class BackTestStock():
         return userInfo._TempResultDraw
     def backtest_PEG_pick_Fast(self, mainParament:RecordBackTestParameter):
         ''' PEG選股外加月營收增高 https://www.finlab.tw/finlab-tw-stock-peg-strategy/#PEG_ding_yi '''
-        userInfo = StockInfoDatasInBackTestPriceByToday(BaseInfoData(mainParament.money_start,mainParament.date_start,mainParament.date_end))
+        userInfo = BackTestInfoDataPriceByToday(BaseInfoData(mainParament.money_start,mainParament.date_start,mainParament.date_end))
         buy_month = mainParament.date_start
         Temp_result_pick = pd.DataFrame(columns=['date','選股數量'])
         All_data = TGetExternalData().get_stock_history(mainParament.buy_number,mainParament.date_start)
@@ -222,7 +223,7 @@ class BackTestStock():
         return userInfo._TempResultDraw
     def backtest_Regular_quota_Fast(self, mainParament:RecordBackTestParameter):
         '''定期定額'''
-        userInfo = StockInfoDatasInBackTestPriceByToday(BaseInfoData(0,mainParament.date_start,mainParament.date_end))
+        userInfo = BackTestInfoDataPriceByToday(BaseInfoData(0,mainParament.date_start,mainParament.date_end))
         buy_month = mainParament.date_start
         Temp_result_pick = pd.DataFrame(columns=['date','選股數量'])
         
@@ -269,7 +270,7 @@ class BackTestStock():
     def backtest_Record_high_Fast(self, mainParament:RecordBackTestParameter):
         '''#創新高 https://www.finlab.tw/break-new-high-roe-stock/'''
         Temp_reset = 0#休息日剩餘天數
-        userInfo = StockInfoDatasInBackTestPriceByToday(BaseInfoData(mainParament.money_start,mainParament.date_start,mainParament.date_end))
+        userInfo = BackTestInfoDataPriceByToday(BaseInfoData(mainParament.money_start,mainParament.date_start,mainParament.date_end))
         Temp_result_pick = pd.DataFrame(columns=['date','選股數量'])
         All_data = TGetExternalData().get_stock_history(mainParament.buy_number,mainParament.date_start)
         add_one_day = userInfo.AddOneDay
@@ -357,7 +358,7 @@ class BackTestStock():
         Temp_changeDays = 0#換股剩餘天數
         Temp_result_pick = pd.DataFrame(columns=['date','選股數量'])
 
-        userInfo = StockInfoDatasInBackTestPriceByToday(BaseInfoData(mainParament.money_start,mainParament.date_start,mainParament.date_end))
+        userInfo = BackTestInfoDataPriceByToday(BaseInfoData(mainParament.money_start,mainParament.date_start,mainParament.date_end))
 
         All_data = TGetExternalData().get_stock_history(mainParament.buy_number,mainParament.date_start)
         
@@ -442,7 +443,7 @@ class BackTestStock():
     def backtest_monthRP_Up_Fast(self, mainParament:RecordBackTestParameter):
         '''#月營收增高 https://www.finlab.tw/%e4%b8%89%e7%a8%ae%e6%9c%88%e7%87%9f%e6%94%b6%e9%80%b2%e9%9a%8e%e7%9c%8b%e6%b3%95/#ji_ji_xuan_gu_cheng_zhang_fa'''
         Temp_change = 0 #換股剩餘天數
-        userInfo = StockInfoDatasInBackTestPriceByToday(BaseInfoData(mainParament.money_start,mainParament.date_start,mainParament.date_end))
+        userInfo = BackTestInfoDataPriceByToday(BaseInfoData(mainParament.money_start,mainParament.date_start,mainParament.date_end))
         Temp_result_pick = pd.DataFrame(columns=['date','選股數量'])
         All_data = TGetExternalData().get_stock_history(mainParament.buy_number,mainParament.date_start)
         add_one_day = userInfo.AddOneDay

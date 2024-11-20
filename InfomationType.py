@@ -1,3 +1,6 @@
+"""
+股票指標欄位的枚舉
+"""
 from enum import Enum
 
 class FS_type(Enum):

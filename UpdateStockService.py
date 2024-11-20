@@ -9,20 +9,25 @@ import os
 import Tools
 import InfomationType as info
 from StockInfos import UserInfoDatas
-from GetExternalData import TGetExternalData
+from GetExternalDataService import ExternalDataFactory, IGetExternalData
 import Globals
 
 class UpdateStockService():
     def __init__(self) -> None:
         self.threads = []
         self.isUpdating:bool = False
+        self._getExternalData:IGetExternalData = ExternalDataFactory.Get_instance()
         
     def UpdateAllStocksHandle(self, MainUserInfoDatas: UserInfoDatas):
         temp_thread = threading.Thread(target=self.__runUpdate, args=[MainUserInfoDatas,])
         temp_thread.setDaemon(True)
-
         temp_thread.start()
         self.threads.append(temp_thread)
+        # temp_thread.join()
+        # temp_thread_drawdown = threading.Thread(target=self.__RunUpDate2, args=["",])
+        # temp_thread_drawdown.setDaemon(True)
+        # temp_thread_drawdown.start()
+        # self.threads.append(temp_thread_drawdown)
         
     def __runUpdate(self, MainUserInfoDatas: UserInfoDatas):
         print("Update all stocks start!")
@@ -55,6 +60,7 @@ class UpdateStockService():
         print("Update all stocks end!")    
         
     def __RunUpdate_sp500(self):
+        # TODO : 可以加入每日更新行列
         print("Update all sp500 stocks start!")
         sp500 = Tools.get_SP500_list()
         yf.pdr_override()
@@ -79,7 +85,7 @@ class UpdateStockService():
     def __RunUpDate2(self):
         print("Update stocks other Info start!")
         end_date = datetime(datetime.today().year,datetime.today().month,datetime.today().day)#設定資料起訖日期
-        TGetExternalData().get_stock_AD_index(end_date)#更新騰落
+        self._getExternalData.get_stock_AD_index(end_date)#更新騰落
         print("Update stocks other Info end!")    
         
     def __deleteStockDayTable(self, name):
