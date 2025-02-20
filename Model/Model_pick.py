@@ -1,18 +1,16 @@
-from Controller.Controller import IController
 from Model.Model import TModel
 import Tools
 from datetime import timedelta,datetime
-import FilterService.GetStockData as GetStockData
+from FilterService import GetStockData, All_Stock_Filters_fuc
 import InfomationType as info
 from Parameter import RecordPickParameter
 import pandas as pd
-from FilterService.StockHistory import OriginalStockByYahoo
+from FilterService import OriginalStockByYahoo
 import twstock
 
 class Model_pick(TModel):
-    def __init__(self,_interactiveController: IController):
+    def __init__(self):
         super().__init__()
-        self._InteractiveController = _interactiveController
         self._Groups:list[str] = None
         self._setGroups()
 
@@ -21,14 +19,6 @@ class Model_pick(TModel):
         if self._Groups == None:
             raise
         return self._Groups
-    @property
-    def InteractiveController(self):
-        if self._InteractiveController == None:
-            raise
-        return self._InteractiveController
-    @InteractiveController.setter
-    def InteractiveController(self,_interactiveController:IController):
-        self._InteractiveController = _interactiveController
 
     def _setGroups(self):
         self._Groups = []
@@ -88,7 +78,7 @@ class Model_pick(TModel):
 
         FS_data = self.get_financial_statement(date,GPM,OPR,EPS,RPS)
         
-        mainStockfun = GetStockData.All_Stock_Filters_fuc(date,FS_data)
+        mainStockfun = All_Stock_Filters_fuc(date,FS_data)
         mainfun = GetStockData.All_fuc(date,GetStockData.Month_index)
         result_data = mainfun.get_Smooth_Up_Auto(monthRP_smoothAVG,monthRP_UpMpnth)
         

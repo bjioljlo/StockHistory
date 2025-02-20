@@ -1,7 +1,6 @@
-from Controller.Controller import IController
 from Model.Model import TModel
 from datetime import datetime
-import FilterService.GetStockData as GetStockData
+from FilterService import GetStockData
 import Tools
 import Globals
 from DrawFigur import DrawFigur
@@ -10,23 +9,13 @@ from StockInfos import UserInfoDatas
 from ScheduleService import ScheduleService
 
 class Model_main(TModel):
-    def __init__(self, _interactiveController: IController, _scheduleService: ScheduleService):
+    def __init__(self, _scheduleService: ScheduleService):
         super().__init__()
-        self._InteractiveController:IController = _interactiveController
         self._MainUserInfoData:UserInfoDatas = UserInfoDatas('stock_info_list.npy', 'Update_date.npy')
         self._MainUserInfoData._Show_all_stock_info()
         self._ScheduleService:ScheduleService = _scheduleService
         self.df:DrawFigur = Globals.DRAWFIGUR
-    
-    @property
-    def InteractiveController(self):
-        if self._InteractiveController == None:
-            raise
-        return self._InteractiveController
-    @InteractiveController.setter
-    def InteractiveController(self,_interactiveController:IController):
-        self._InteractiveController = _interactiveController
-
+        
     @property
     def MainUserInfoData(self):
         if self._MainUserInfoData == None:

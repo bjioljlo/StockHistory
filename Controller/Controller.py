@@ -1,3 +1,5 @@
+from enum import Enum
+from typing import Callable
 from PyQt5.QtGui import QStandardItemModel
 from PyQt5.QtCore import Qt
 from StockInfos import UserInfoDatas
@@ -11,26 +13,37 @@ PICK__TITALLIST = ["股票號碼","股票名稱","每股參考淨值","基本每
                 "毛利率(%)","營業利益率(%)","資產總額","負債總額","股本",
                 "權益總額","本期綜合損益總額（稅後）","PBR","PER","PEG","ROE","殖利率"]
 
+class controllers(Enum):
+    Main = 1
+    Pick = 2
+    BackTest = 3
+
 class IController(ABC):
+    def __init__(self):
+        super().__init__()
+        self.GetController: GetControllerEvent = None
+
     @abstractmethod
     def GetView(self) -> IWindow:
-        pass
-    
+        raise NotImplementedError
+
     @abstractmethod
     def ShowWindow(self):
-        pass
+        raise NotImplementedError
 
     @abstractmethod
     def GetEndDate(self) -> datetime:
-        pass
+        raise NotImplementedError
 
     @abstractmethod
     def GetStockNumber(self) -> str:
-        pass
+        raise NotImplementedError
 
     @abstractmethod
     def SetStockNumber(self, stockNumber:str):
-        pass
+        raise NotImplementedError
+
+GetControllerEvent = Callable[[controllers], IController]
 
 class TController(IController):
     def __init__(self, _view: IWindow = None, _model: IModel = None) -> None:
@@ -61,19 +74,6 @@ class TController(IController):
 
     def ShowWindow(self):
         self.GetView().GetFormUI().show()
-
-    @abstractmethod
-    def GetEndDate(self) -> datetime:
-        pass
-
-    @abstractmethod
-    def GetStockNumber(self) -> str:
-        pass
-
-    @abstractmethod
-    def SetStockNumber(self, stockNumber:str):
-        pass
-    
 
 #讓Controller都可以用
 def creat_treeView_model(parent,titalList,UserInfoData:UserInfoDatas = None):

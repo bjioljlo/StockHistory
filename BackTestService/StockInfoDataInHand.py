@@ -1,3 +1,4 @@
+import sys
 from StockInfoData import StockInfoData, StockInfoCurrentData
 from abc import ABC, abstractmethod
 import twstock as ts #抓取台灣股票資料套件
@@ -7,19 +8,19 @@ class IStockInfoDataInHand(ABC):
     @property
     @abstractmethod
     def Price(self) -> float:
-        pass
+        raise NotImplementedError( "{} is virutal! Must be overwrited.".format(sys._getframe().f_code.co_name))
     @property
     @abstractmethod
     def Amount(self) -> int:
-        pass
+        raise NotImplementedError( "{} is virutal! Must be overwrited.".format(sys._getframe().f_code.co_name))
     @abstractmethod
     def AddAmount(self,amount:int,price:float):
         '''買入'''
-        pass
+        raise NotImplementedError( "{} is virutal! Must be overwrited.".format(sys._getframe().f_code.co_name))
     @abstractmethod
     def MinusAmount(self,amount:int) -> bool:
         '''賣出'''
-        pass
+        raise NotImplementedError( "{} is virutal! Must be overwrited.".format(sys._getframe().f_code.co_name))
 
 class TStockInfoDataInHand(IStockInfoDataInHand):
     '''手持股票資訊實作'''
@@ -39,9 +40,6 @@ class TStockInfoDataInHand(IStockInfoDataInHand):
         if self._StockInfoCurData.amount == None:
             raise
         return self._StockInfoCurData.amount
-    @abstractmethod
-    def AddAmount(self,amount:int,price:float):
-        pass
         
     def MinusAmount(self,amount:int) -> bool:
         '''賣出'''
@@ -60,6 +58,7 @@ class StockInfoDataInHandWithWeightedAverage(TStockInfoDataInHand):
         self._StockInfoCurData.price = ((self._StockInfoCurData.price * self._StockInfoCurData.amount) + (price * amount)) / (self._StockInfoCurData.amount + amount)
         self._StockInfoCurData.amount = self._StockInfoCurData.amount + amount
 
+@staticmethod
 def  StockInfoDataInHandFactory(number:str) -> IStockInfoDataInHand:
     m_stock = ts.codes[str(number)]
     m_info = StockInfoData(m_stock.code,m_stock.name,m_stock.type,m_stock.start,m_stock.market,m_stock.group)

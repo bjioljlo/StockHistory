@@ -1,5 +1,4 @@
-import Controller.Controller as Controller
-from Controller.Controller import TController
+from .Controller import TController, controllers, creat_treeView_model, MAIN_TITALLIST, creat_treeView_model
 from View.View_main import Main_Window
 from Model.Model_main import Model_main
 from Model.Model import IModel
@@ -14,7 +13,6 @@ from DrawFigur import DrawFigur
 import threading
 from datetime import datetime
 from PyQt5 import QtCore
-from MediatorController import IMediator_Controller, controllers
 # TODO telegram 要重新寫新版改太多了....telegram_bot
 
 class Controller_main(TController):
@@ -22,16 +20,7 @@ class Controller_main(TController):
         super().__init__(_view, _model)
         self.Init_Window()
         self.lock = threading.Lock()
-        self.mediator:IMediator_Controller = None
         self.df:DrawFigur = Globals.DRAWFIGUR
-        # self._telegram:telegram_bot = telegram_bot
-        # self._telegram.MainUserInfoData = self.__GetModel().MainUserInfoData
-    
-    # @property
-    # def telegram(self):
-    #     if self._telegram is None:
-    #         raise
-    #     return self._telegram
 
     def __GetView(self) -> Main_Window:
         return self.View
@@ -43,7 +32,7 @@ class Controller_main(TController):
         UI_form = self.__GetView().GetFormUI()
         UI_form.button_addStock.clicked.connect(self.button_addStock_click)#設定button功能
         UI_form.button_deletStock.clicked.connect(self.button_deletStock_click)#設定button功能
-        UI_form.treeView.setModel(Controller.creat_treeView_model(UI_form.treeView,Controller.MAIN_TITALLIST,self.__GetModel().MainUserInfoData))#設定treeView功能
+        UI_form.treeView.setModel(creat_treeView_model(UI_form.treeView, MAIN_TITALLIST,self.__GetModel().MainUserInfoData))#設定treeView功能
         UI_form.button_moveToInput.clicked.connect(self.button_moveToInput_click)#設定button功能
         UI_form.button_getStockHistory.clicked.connect(self.button_getStockHistory)#設定button功能
         UI_form.button_openPickWindow.clicked.connect(self.button_openPickWindow_click)#設定button功能
@@ -92,16 +81,17 @@ class Controller_main(TController):
         self.__GetView().GetFormUI().input_stockNumber.setText(stockNumber)
 
     def button_openPickWindow_click(self):
-        self.mediator.ShowWindow(self, controllers.Pick)
+        self.GetController(controllers.Pick).ShowWindow()
+        
     def button_addStock_click(self):
         stocknum = self.__GetView().GetFormUI().input_stockNumber.toPlainText()
         self.__GetModel().MainUserInfoData.AddStockInfo(stocknum)
-        self.__GetView().GetFormUI().treeView.setModel(Controller.creat_treeView_model(self.__GetView().GetFormUI().treeView,Controller.MAIN_TITALLIST,self.__GetModel().MainUserInfoData))#設定treeView功能
+        self.__GetView().GetFormUI().treeView.setModel(creat_treeView_model(self.__GetView().GetFormUI().treeView, MAIN_TITALLIST,self.__GetModel().MainUserInfoData))#設定treeView功能
     def button_deletStock_click(self):
         UI_form = self.__GetView().GetFormUI()
         stocknum = UI_form.input_stockNumber.toPlainText()
         self.__GetModel().MainUserInfoData.DeletStockInfo(stocknum)
-        UI_form.treeView.setModel(Controller.creat_treeView_model(UI_form.treeView,Controller.MAIN_TITALLIST,self.__GetModel().MainUserInfoData))#設定treeView功能
+        UI_form.treeView.setModel(creat_treeView_model(UI_form.treeView, MAIN_TITALLIST,self.__GetModel().MainUserInfoData))#設定treeView功能
     def button_moveToInput_click(self):
         Index = self.__GetView().GetFormUI().treeView.currentIndex()
         mModel = self.__GetView().GetFormUI().treeView.model()
@@ -152,14 +142,12 @@ class Controller_main(TController):
         self.df.Clear_PICS()
         if self.__GetView().GetFormUI().input_stockNumber.toPlainText() == "":
             for key,value in self.__GetModel().MainUserInfoData.StockList.items():
-                m_history = TGetExternalData().get_stock_history(key,str_date)
-            return
+                TGetExternalData().get_stock_history(key,str_date)
         elif self.__GetView().GetFormUI().input_stockNumber.toPlainText() == "Update":
             str_date = [str_date]
             new_thread = threading.Thread(target= self.Update_StockData_threading,args=str_date)
             new_thread.setDaemon(True)
-            new_thread.start()
-            return  
+            new_thread.start() 
         else:
             stock_number = self.__GetView().GetFormUI().input_stockNumber.toPlainText()
             Stock_RangeDate.number = int(stock_number)
@@ -185,7 +173,7 @@ class Controller_main(TController):
                 if Tools.check_no_use_stock(value.code) == True:
                     print('get_stock_price: ' + str(value.code) + ' in no use')
                     continue
-                m_history = TGetExternalData().get_stock_history(value.code,str_date)
+                TGetExternalData().get_stock_history(value.code,str_date)
                 print("get " + str(value.code) + " info susess!")
         #存更新日期
         self.__GetModel().MainUserInfoData.UpdateDate = str(datetime.today())[0:10]   

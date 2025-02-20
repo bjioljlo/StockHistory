@@ -1,17 +1,15 @@
-from Controller.Controller import TController
+from .Controller import TController, controllers
 from Model.Model import IModel
 from View.View import IWindow
 from View.View_pick import Pick_Window
-import Controller.Controller as Controller
+from . import Controller 
 from Model.Model_pick import Model_pick
-from MediatorController import IMediator_Controller, controllers
 from datetime import datetime
 
 class Controller_pick(TController):
     def __init__(self, _view: IWindow = None, _model: IModel = None) -> None:
         super().__init__(_view, _model)
         self.Init_Window()
-        self.mediator:IMediator_Controller = None
     
     def __GetView(self) -> Pick_Window:
         return self.View
@@ -57,16 +55,16 @@ class Controller_pick(TController):
         UI_form.input_kind.addItems(self.__GetModel().Groups)
 
     def GetEndDate(self) -> datetime:
-        return super().GetEndDate()
+        pass
 
     def GetStockNumber(self) -> str:
-        return super().GetStockNumber()
+        pass
     
     def SetStockNumber(self, stockNumber: str):
-        return super().SetStockNumber(stockNumber)
+        pass
 
     def button_openBackWindow_click(self):
-        self.mediator.ShowWindow(self, controllers.BackTest)
+        self.GetController(controllers.BackTest).ShowWindow()
 
     def button_moveToInputFromPick_click(self):
         Index = self.__GetView().GetFormUI().treeView_pick.currentIndex()
@@ -74,13 +72,13 @@ class Controller_pick(TController):
         try:
             data = mModel.item(Index.row(),0).text()
             text = str(data)
-            self.mediator.SetStockNumber(self, controllers.Main, text)
+            self.GetController(controllers.Main).SetStockNumber(text)
         except:
             print("")
     #全部篩選
     def button_monthRP_Up_click(self):
         UI_form = self.__GetView().GetFormUI()
-        endDate = self.mediator.GetEndDate(self, controllers.Main)
+        endDate = self.GetController(controllers.Main).GetEndDate()
         pick_data = self.__GetModel().monthRP_Up(self.__GetView().Parament, endDate)
         UI_form.treeView_pick.setModel(Controller.creat_treeView_model(UI_form.treeView_pick,Controller.PICK__TITALLIST))#設定treeView功能
         Controller.set_treeView2(UI_form.treeView_pick.model(),pick_data)

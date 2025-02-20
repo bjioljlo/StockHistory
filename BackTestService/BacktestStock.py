@@ -4,10 +4,8 @@ from datetime import datetime,timedelta
 #from backtesting import Backtest, Strategy #引入回測和交易策略功能
 import talib
 from GetExternalDataService import TGetExternalData 
-import FilterService.GetStockData as GetStockData
-from FilterService.StockHistory import OriginalStockByYahoo
+from FilterService import All_Stock_Filters_fuc, GetStockData, OriginalStockByYahoo
 import Tools
-from Tools import MixDataFrames,Count_Stock_Amount
 from BackTestService.BackTestInfoData import BackTestInfoDataPriceByToday
 import InfomationType as info
 from InfomationType import stock_data_kind
@@ -51,6 +49,7 @@ class BackTestStock():
         MixDataFrames = Tools.MixDataFrames
         sell_stock = userInfo.SellStock
         buy_all_stock = userInfo.BuyAllStock
+        # TODO 要新增日期的管理 IBackTestDateStrategy  外部帶入所有要用的的功能 EX.userInfo filter...等
         for index,row in Temp_table.iterrows():
             if index < userInfo.BaseInfoData.now_day:
                 continue
@@ -58,7 +57,7 @@ class BackTestStock():
                 if add_one_day() == False:
                     break
             has_trade = False
-            #ROE篩選
+            # ROE篩選  --已拆分IBacktestFilter
             if ROE_record_day <= index:
                 ROE_data = {}
                 ROE_record_day = changeDateMonth(index,1)
@@ -78,7 +77,7 @@ class BackTestStock():
                 ROE_data_mask = ROE_data_1 > ROE_data_result
                 ROE_data = ROE_data_mask[ROE_data_mask]
                 
-                for key,_value in ROE_data.items():#先算出股票的買賣訊號
+                for key,_value in ROE_data.items():#先算出股票的買賣訊號 --已拆分IBacktestSignal
                     if Tools.check_no_use_stock(key) == True:
                         print('get_stock_price: ' + str(key) + ' in no use')
                         continue
@@ -99,7 +98,7 @@ class BackTestStock():
                     signal[signal_sell] = -1
                     All_stock_signal[key] = signal
             
-            #找出買入訊號跟賣出訊號-------------------------
+            #找出買入訊號跟賣出訊號------已拆分IBackTestFilterData
             buy_numbers = []
             sell_numbers = []
             for i,value in All_stock_signal.items():
@@ -113,24 +112,27 @@ class BackTestStock():
                 except:
                     #print('error:' + str(index) + ' at ' + str(i))
                     continue
-            #出場訊號篩選--------------------------------------
+            # TODO 弄一個出入場管理 IBackTestInOutStrategy 從外部帶入userInfo買賣由userInfo做，但何時做進出訊號由上方時間管理做
+            
+            # TODO 出場訊號--------------------------------------
             if len(userInfo.HandleStock) > 0:
                 Temp_data = userInfo.HandleStock
                 for key,value in list(Temp_data.items()):
                     if sell_numbers.__contains__(int(key)):
                         sell_stock(key,value.Amount)
                         has_trade = True
-            #入場訊號篩選--------------------------------------
+            # TODO 入場訊號--------------------------------------
             if len(buy_numbers) > 0 :
                 Temp_buy = pd.DataFrame(columns=['code','volume']).set_index('code')
                 for number in buy_numbers:
-                    volume = GetStockData.get_stock_price(number,Tools.DateTime2String(userInfo.BaseInfoData.now_day),stock_data_kind.Volume)[userInfo.BaseInfoData.now_day]
+                    volume = GetStockData.get_stock_price(number,Tools.DateTime2String(userInfo.BaseInfoData.now_day),
+                                                            stock_data_kind.Volume)[userInfo.BaseInfoData.now_day]
                     Temp_buy = pd.concat([Temp_buy,pd.DataFrame({'code':[str(number)],'volume':[volume]})],ignore_index = True)
                 Temp_buy = Temp_buy.sort_values(by='volume', ascending=False).set_index('code')
                 buy_all_stock(Temp_buy)
                 has_trade = True
-                
-            #更新資訊--------------------------------------
+            
+            # TODO 更新資訊 分散至各自的功能紀錄嗎?還是做一個功能?    
             if has_trade:
                 if len(buy_numbers) != 0:
                     buy_data = pd.concat([buy_data,pd.DataFrame({'Date':index,'code':buy_numbers})],ignore_index = True)
@@ -141,7 +143,7 @@ class BackTestStock():
                 Temp_result_pick = pd.concat([Temp_result_pick, pd.DataFrame({'date':[userInfo.BaseInfoData.now_day],
                                                                             '選股數量':[len(buy_numbers)]})],
                                                                             ignore_index = True)
-        
+        # TODO 更新資訊 最後完結輸出檔案
         buy_data = buy_data.set_index('Date')
         buy_data.to_csv('buy.csv')
         sell_data = sell_data.set_index('Date')
@@ -155,6 +157,7 @@ class BackTestStock():
         
         userInfo._TempResultDraw.to_csv('backtestdata.csv')
         userInfo._TempTradeInfo.to_csv('backtesttrade.csv')
+        
         Temp_alldata.to_csv('backtestAll.csv')   
         return userInfo._TempResultDraw
     def backtest_PEG_pick_Fast(self, mainParament:RecordBackTestParameter):
@@ -191,7 +194,7 @@ class BackTestStock():
                     if self.bool_check_monthRP_pick:
                         Temp_result0['month'] = GetStockData.get_monthRP_up(userInfo.BaseInfoData.now_day,mainParament.smoothAVG,mainParament.upMonth)
                         Temp_result0['PEG'] = GetStockData.get_PEG_range(userInfo.BaseInfoData.now_day,0.66,1)
-                        Temp_result0['result'] = MixDataFrames(Temp_result0)
+                        Temp_result0['result'] = Tools.MixDataFrames(Temp_result0)
                     Temp_buy = Temp_result0['result']
                     if Temp_buy.empty == False:
                         Temp_buy = Temp_buy.sort_values(by='PEG')
@@ -214,8 +217,8 @@ class BackTestStock():
         #最後總結算----------------------------
         Temp_result_pick.set_index('date',inplace=True)
         userInfo.RunFinish()
-        Temp_alldata = MixDataFrames({'draw':userInfo._TempResultDraw,'pick':Temp_result_pick},'date')
-        Temp_alldata = MixDataFrames({'all':Temp_alldata,'userinfo':userInfo._TempResultAll},'date')
+        Temp_alldata = Tools.MixDataFrames({'draw':userInfo._TempResultDraw,'pick':Temp_result_pick},'date')
+        Temp_alldata = Tools.MixDataFrames({'all':Temp_alldata,'userinfo':userInfo._TempResultAll},'date')
         
         userInfo._TempResultDraw.to_csv('backtestdata.csv')
         userInfo._TempTradeInfo.to_csv('backtesttrade.csv')
@@ -244,7 +247,7 @@ class BackTestStock():
                 Temp_price = row['Adj Close']
                 userInfo.BaseInfoData.now_money = userInfo.BaseInfoData.now_money + mainParament.money_start
                 userInfo.BaseInfoData.start_money = userInfo.BaseInfoData.start_money + mainParament.money_start
-                Temp_stockNumber = Count_Stock_Amount(mainParament.money_start,Temp_price)
+                Temp_stockNumber = Tools.Count_Stock_Amount(mainParament.money_start,Temp_price)
                 buy_stock(mainParament.buy_number,Temp_stockNumber)
                 buy_month = userInfo.BaseInfoData.now_day
                 #更新資訊--------------------------------------   
@@ -260,8 +263,8 @@ class BackTestStock():
         #最後總結算----------------------------
         Temp_result_pick.set_index('date',inplace=True)
         userInfo.RunFinish()
-        Temp_alldata = MixDataFrames({'draw':userInfo._TempResultDraw,'pick':Temp_result_pick},'date')
-        Temp_alldata = MixDataFrames({'all':Temp_alldata,'userinfo':userInfo._TempResultAll},'date')
+        Temp_alldata = Tools.MixDataFrames({'draw':userInfo._TempResultDraw,'pick':Temp_result_pick},'date')
+        Temp_alldata = Tools.MixDataFrames({'all':Temp_alldata,'userinfo':userInfo._TempResultAll},'date')
         
         userInfo._TempResultDraw.to_csv('backtestdata.csv')
         userInfo._TempTradeInfo.to_csv('backtesttrade.csv')
@@ -301,27 +304,27 @@ class BackTestStock():
                     Temp_result0['ROE_last_seson'] = GetStockData.get_ROE_range(userInfo.BaseInfoData.now_day - timedelta(weeks = 12),10000,1)
                 if self.bool_check_PBR_pick:
                     Temp_result0['PBR'] = GetStockData.get_PBR_range(userInfo.BaseInfoData.now_day,mainParament.PBR_end,mainParament.PBR_start)
-                Temp_result = MixDataFrames(Temp_result0)
+                Temp_result = Tools.MixDataFrames(Temp_result0)
                 
             #入場訊號篩選--------------------------------------
             if Temp_reset <= 0 and len(Temp_result) > 0:
                 Temp_buy0 = {'result':Temp_result}
                 Temp_buy0['result']['point'] = (Temp_result['ROE'] / Temp_result['ROE_R']) / Temp_result['PBR']
                 if self.bool_check_price_pick:
-                    Temp_buy0['price'] = GetStockData.All_Stock_Filters_fuc(userInfo.BaseInfoData.now_day,Temp_result).get_Filter('price',mainParament.price_high,mainParament.price_low,info.Price_type.Close)
-                    Temp_buy0['result'] = MixDataFrames(Temp_buy0)
+                    Temp_buy0['price'] = All_Stock_Filters_fuc(userInfo.BaseInfoData.now_day,Temp_result).get_Filter('price',mainParament.price_high,mainParament.price_low,info.Price_type.Close)
+                    Temp_buy0['result'] = Tools.MixDataFrames(Temp_buy0)
                 if self.bool_check_volume_pick:
                     Temp_buy0['volume'] = GetStockData.get_AVG_value(userInfo.BaseInfoData.now_day,mainParament.volumeAVG,mainParament.volumeDays,Temp_result)
-                    Temp_buy0['result'] = MixDataFrames(Temp_buy0)
+                    Temp_buy0['result'] = Tools.MixDataFrames(Temp_buy0)
 
-                Temp_buy = MixDataFrames(Temp_buy0)
+                Temp_buy = Tools.MixDataFrames(Temp_buy0)
 
                 Temp_buy = Temp_buy.sort_values(by='point', ascending=False)
                 
                 Temp_buy1 = {'result':Temp_buy}
                 #Temp_buy1['high'] = gsh.get_RecordHigh_range(userInfo.BaseInfoData.now_day,mainParament.change_days,mainParament.Record_high_day,Temp_buy)
-                Temp_buy1['high'] = GetStockData.All_Stock_Filters_fuc(userInfo.BaseInfoData.now_day,Temp_buy).get_Filter_RecordHigh(mainParament.change_days,mainParament.Record_high_day,info.Price_type.High)
-                Temp_buy = MixDataFrames(Temp_buy1)
+                Temp_buy1['high'] = All_Stock_Filters_fuc(userInfo.BaseInfoData.now_day,Temp_buy).get_Filter_RecordHigh(mainParament.change_days,mainParament.Record_high_day,info.Price_type.High)
+                Temp_buy = Tools.MixDataFrames(Temp_buy1)
 
                 if Temp_buy.empty == False:
                     Temp_buy = Temp_buy.sort_values(by='point', ascending=False)
@@ -346,8 +349,8 @@ class BackTestStock():
         #最後總結算----------------------------
         Temp_result_pick.set_index('date',inplace=True)
         userInfo.RunFinish()
-        Temp_alldata = MixDataFrames({'draw':userInfo._TempResultDraw,'pick':Temp_result_pick},'date')
-        Temp_alldata = MixDataFrames({'all':Temp_alldata,'userinfo':userInfo._TempResultAll},'date')
+        Temp_alldata = Tools.MixDataFrames({'draw':userInfo._TempResultDraw,'pick':Temp_result_pick},'date')
+        Temp_alldata = Tools.MixDataFrames({'all':Temp_alldata,'userinfo':userInfo._TempResultAll},'date')
         userInfo._TempResultDraw.to_csv('backtestdata.csv')
         userInfo._TempTradeInfo.to_csv('backtesttrade.csv')
         Temp_alldata.to_csv('backtestAll.csv')
@@ -403,7 +406,7 @@ class BackTestStock():
             if len(Temp_result) >= mainParament.Pick_amount and Temp_reset == 0 and len(userInfo.HandleStock) == 0:
                 Temp_buy0 = {'result':Temp_result}
                 if self.bool_check_price_pick:
-                    Temp_buy0['price'] = GetStockData.All_Stock_Filters_fuc(userInfo.BaseInfoData.now_day,Temp_result).get_Filter('price',mainParament.price_high,mainParament.price_low,info.Price_type.Close)
+                    Temp_buy0['price'] = All_Stock_Filters_fuc(userInfo.BaseInfoData.now_day,Temp_result).get_Filter('price',mainParament.price_high,mainParament.price_low,info.Price_type.Close)
                     Temp_buy0['price'] = Temp_buy0['price'].sort_values(by='price', ascending=False)
                 if self.bool_check_volume_pick:
                     Temp_buy0['volume'] = GetStockData.get_AVG_value(userInfo.BaseInfoData.now_day,mainParament.volumeAVG,mainParament.volumeDays,Temp_result)
@@ -476,7 +479,7 @@ class BackTestStock():
             if Temp_change <= 0 and len(userInfo.HandleStock) <= 0 and len(Temp_result) > mainParament.Pick_amount:
                 Temp_buy0 = {'result':Temp_result}
                 if self.bool_check_price_pick:
-                    Temp_buy0['price'] = GetStockData.All_Stock_Filters_fuc(userInfo.BaseInfoData.now_day,Temp_result).get_Filter('price',mainParament.price_high,mainParament.price_low,info.Price_type.Close)
+                    Temp_buy0['price'] = All_Stock_Filters_fuc(userInfo.BaseInfoData.now_day,Temp_result).get_Filter('price',mainParament.price_high,mainParament.price_low,info.Price_type.Close)
                     Temp_buy0['price'] = Temp_buy0['price'].sort_values(by='price', ascending=False)
                 if self.bool_check_volume_pick:
                     Temp_buy0['volume'] = GetStockData.get_AVG_value(userInfo.BaseInfoData.now_day,mainParament.volumeAVG,mainParament.volumeDays,Temp_result)

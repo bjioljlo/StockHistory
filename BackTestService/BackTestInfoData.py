@@ -1,37 +1,53 @@
-from datetime import timedelta
-import pandas as pd
+from datetime import timedelta, datetime
+import sys
 from pandas import DataFrame
-from FilterService.StockHistory import OriginalStock
+from FilterService import OriginalStock
 from InfomationType import stock_data_kind
 from StockInfoData import BaseInfoData
-from BackTestService.StockInfoDataInHand import IStockInfoDataInHand
-import BackTestService.StockInfoDataInHand as StockInfoDataInHand
+from .StockInfoDataInHand import IStockInfoDataInHand, StockInfoDataInHandFactory
 import Tools
-import twstock as ts #抓取台灣股票資料套件
 from abc import ABC, abstractmethod
+from .BackTestRecord import BackTestRecord_indexWithDate, IBackTestRecord
 
 class IBackTestInfoData(ABC):
     '''回測資訊'''
     @property
     @abstractmethod
     def BaseInfoData(self)-> BaseInfoData:
-        pass
+        raise NotImplementedError( "{} is virutal! Must be overwrited.".format(sys._getframe().f_code.co_name))
     @property
     @abstractmethod
     def HandleStock(self)-> dict[str, IStockInfoDataInHand]:
-        pass
+        raise NotImplementedError( "{} is virutal! Must be overwrited.".format(sys._getframe().f_code.co_name))
+    @property
+    @abstractmethod
+    def UserStockAsset(self)-> int:
+        raise NotImplementedError( "{} is virutal! Must be overwrited.".format(sys._getframe().f_code.co_name))
+    @property
+    @abstractmethod
+    def UserAllAsset(self)-> int:
+        raise NotImplementedError( "{} is virutal! Must be overwrited.".format(sys._getframe().f_code.co_name))
     @abstractmethod
     def SellAllStock(self):
-        pass
+        raise NotImplementedError( "{} is virutal! Must be overwrited.".format(sys._getframe().f_code.co_name))
     @abstractmethod
     def SellStock(self,number:str,amount:int) -> bool:
-        pass
+        raise NotImplementedError( "{} is virutal! Must be overwrited.".format(sys._getframe().f_code.co_name))
     @abstractmethod
     def BuyAllStock(self,data:DataFrame):
-        pass
+        raise NotImplementedError( "{} is virutal! Must be overwrited.".format(sys._getframe().f_code.co_name))
     @abstractmethod
     def BuyStock(self,number:str,amount:int) -> bool:
-        pass
+        raise NotImplementedError( "{} is virutal! Must be overwrited.".format(sys._getframe().f_code.co_name))
+    @abstractmethod
+    def GoToNextWorkDay(self, _dateNow: datetime):
+        raise NotImplementedError( "{} is virutal! Must be overwrited.".format(sys._getframe().f_code.co_name))
+    @abstractmethod
+    def RunFinish(self):
+        raise NotImplementedError( "{} is virutal! Must be overwrited.".format(sys._getframe().f_code.co_name))
+    @abstractmethod
+    def RecordUserInfo(self):
+        raise NotImplementedError( "{} is virutal! Must be overwrited.".format(sys._getframe().f_code.co_name))
 
 class TBackTestInfoData(IBackTestInfoData):
     '''回測資訊實作'''
@@ -40,6 +56,9 @@ class TBackTestInfoData(IBackTestInfoData):
         self._BaseInfoData:BaseInfoData = _baseInfoData
         self._HandleStock:dict[str, IStockInfoDataInHand] = {}#手持股票
         self._GetStockPrice:OriginalStock = _getStockPrice
+        self._TempResultDraw:IBackTestRecord = BackTestRecord_indexWithDate(['date','資產比例'])
+        self._TempResultAll:IBackTestRecord = BackTestRecord_indexWithDate(['date','股票資產','剩餘現金','總資產'])
+        self._TempTradeInfo:IBackTestRecord = BackTestRecord_indexWithDate(['date','號碼','數量','均價'])
     def _GetUserStockAsset(self) -> int:
         '''股票資產'''
         Temp_money = 0
@@ -54,7 +73,7 @@ class TBackTestInfoData(IBackTestInfoData):
     def _GetUserAllAsset(self) -> int:
         '''總資產'''
         Temp_money = self._GetUserStockAsset()
-        return Temp_money + self._BaseInfoData.now_money  
+        return Temp_money + self._BaseInfoData.now_money
     @property
     def BaseInfoData(self) -> BaseInfoData:
         if self._BaseInfoData == None:
@@ -65,14 +84,12 @@ class TBackTestInfoData(IBackTestInfoData):
         if self._HandleStock == None:
             raise
         return self._HandleStock
-    @abstractmethod
-    def SellStock(self,number:str,amount:int) -> bool:
-        '''賣某張股票'''
-        pass
-    @abstractmethod
-    def BuyStock(self,number:str,amount:int) -> bool:
-        '''買股票'''
-        pass
+    @property
+    def UserStockAsset(self)-> int:
+        return self._GetUserStockAsset()
+    @property
+    def UserAllAsset(self)-> int:
+        return self._GetUserAllAsset()
     def SellAllStock(self):
         '''賣出所有股票'''
         for key,value in list(self._HandleStock.items()):
@@ -83,14 +100,23 @@ class TBackTestInfoData(IBackTestInfoData):
             for index,row in data.iterrows():
                 if self.BuyStock(index,1000) == False:
                     data = data.drop(index=index)
+    def GoToNextWorkDay(self, _dateNow):
+        if (self._BaseInfoData.now_day < _dateNow) and (self._BaseInfoData.end_day > _dateNow):
+            self._BaseInfoData.now_day = _dateNow
+        else:
+            print('輸入日期錯誤')
+    def RunFinish(self):
+        self._TempResultDraw.RunFinish()
+        self._TempResultAll.RunFinish()
+        self._TempTradeInfo.RunFinish()
+    def RecordUserInfo(self):
+        self._TempResultDraw.RunRecord([self._BaseInfoData.now_day, self._GetUserAllAsset()/self._BaseInfoData.start_money])
+        self._TempResultAll.RunRecord([self._BaseInfoData.now_day, self._GetUserStockAsset(), self._BaseInfoData.now_money, self._GetUserAllAsset()])  
+        for key,value in self._HandleStock.items():
+            self._TempTradeInfo.RunRecord([self._BaseInfoData.now_day, key, value.Amount, value.Price])
 
 class BackTestInfoDataPriceByToday(TBackTestInfoData):
-    '''回測資訊(當天價格)'''
-    def __init__(self, _baseInfoData: BaseInfoData, _getStockPrice: OriginalStock) -> None:
-        super().__init__(_baseInfoData, _getStockPrice)
-        self._TempResultDraw:DataFrame = DataFrame(columns=['date','資產比例'])
-        self._TempResultAll:DataFrame = DataFrame(columns=['date','股票資產','剩餘現金','總資產'])
-        self._TempTradeInfo:DataFrame = DataFrame(columns=['date','號碼','數量','均價'])
+    '''回測資訊(當天價格)'''       
     def SellStock(self,number:str,amount:int) -> bool:
         '''賣某張股票'''
         if self._HandleStock.__contains__(number) == False:
@@ -114,52 +140,20 @@ class BackTestInfoDataPriceByToday(TBackTestInfoData):
             print(str(number) + ' no use stock')
             return False
         elif Tools.Total_with_Handling_fee_and_Tax(stock_price,amount) > self._BaseInfoData.now_money:
-            print('錢不夠：')
+            print('錢不夠買：'+ str(number) + ' ' + str(amount) + "股")
             return False
         else:
             if self._HandleStock.__contains__(number) == False:
-                self._HandleStock[number] = StockInfoDataInHand.StockInfoDataInHandFactory(number)
+                self._HandleStock[number] = StockInfoDataInHandFactory(number)
             self._HandleStock[number].AddAmount(amount,stock_price)
             self._BaseInfoData.now_money = self._BaseInfoData.now_money - Tools.Total_with_Handling_fee_and_Tax(stock_price,amount)
             return True
-    def RunFinish(self):
-        '''完成結果'''
-        if self._TempResultAll.index.name != 'date':
-            self._TempResultAll = self._TempResultAll.set_index('date')
-            self._TempResultDraw = self._TempResultDraw.set_index('date')
-            self._TempTradeInfo = self._TempTradeInfo.set_index('date')
+    
     def AddOneDay(self):
         '''過一天'''
         if self._BaseInfoData.now_day >= self._BaseInfoData.end_day:
-            if self._TempResultAll.index.name != 'date':
-                self._TempResultAll = self._TempResultAll.set_index('date')
-                self._TempResultDraw = self._TempResultDraw.set_index('date')
-                self._TempTradeInfo = self._TempTradeInfo.set_index('date')
+            self.RunFinish()
             return False
         else:
             self._BaseInfoData.now_day = self._BaseInfoData.now_day + timedelta(days=1)#加一天
             return True
-    def RecordUserInfo(self):
-        '''紀錄回測資產紀錄'''
-        self._TempResultDraw = pd.concat([self._TempResultDraw, DataFrame({'date':[self._BaseInfoData.now_day],
-                                                                '資產比例':[self._GetUserAllAsset()/self._BaseInfoData.start_money]})], 
-                                                                ignore_index = True)
-        self._TempResultAll = pd.concat([self._TempResultAll,DataFrame({'date':[self._BaseInfoData.now_day],
-                                                            '股票資產':[self._GetUserStockAsset()],
-                                                            '剩餘現金':[self._BaseInfoData.now_money],
-                                                            '總資產':[self._GetUserAllAsset()]})],
-                                                            ignore_index=True)    
-    def RecodTradeInfo(self):
-        '''紀錄交易紀錄'''
-        temp_numbers = ''
-        temp_amount = ''
-        temp_price = ''
-        for key,value in self._HandleStock.items():
-            temp_amount = temp_amount + str(value.Amount) + '/' 
-            temp_price = temp_price + str(value.Price)+ '/' 
-            temp_numbers = temp_numbers + str(key)+ '/' 
-        self._TempTradeInfo = pd.concat([self._TempTradeInfo,DataFrame({'date':[self._BaseInfoData.now_day],
-                                                                        '號碼':[temp_numbers],
-                                                                        '數量':[temp_amount],
-                                                                        '均價':[temp_price]})],
-                                                                        ignore_index=True)

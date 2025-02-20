@@ -1,17 +1,15 @@
 from Model.Model import IModel
 from View.View import IWindow
 from View.View_backtest import BackTest_Window
-from Controller.Controller import TController
+from .Controller import TController
 from Model.Model_backtest import Model_backtest
 from datetime import datetime
 from PyQt5 import QtCore
-from MediatorController import IMediator_Controller
 
 class Controller_backTest(TController):
     def __init__(self, _view: IWindow = None, _model: IModel = None) -> None:
         super().__init__(_view, _model)
         self.Init_Window()
-        self.mediator:IMediator_Controller = None
 
     def __GetView(self) -> BackTest_Window:
         return self.View

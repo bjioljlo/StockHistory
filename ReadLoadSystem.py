@@ -24,7 +24,8 @@ class ReadLoadSystem():
                 for i in range(10):
                     stringText = stringText.replace(str(i) + ",",str(i))
                 pos = stringText.index('\n')
-                pos2 = stringText.rindex('\r\n""\r\n')
+                # pos2 = stringText.rindex('\r\n""\r\n')
+                pos2 = stringText.rindex('\r\n')
                 f.writelines(stringText[pos + 1:pos2])
     def load_stock_file(self, fileName:str,stockName:str = ''):
         '''#讀取歷史資料'''

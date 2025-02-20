@@ -1,17 +1,29 @@
 import unittest
-from BackTestService.BackTestFilterData import IBackTestFilterData, KD_pickFilterData
-from BackTestService.BackTestStrategy import KD_pickBacktestFilter, KD_pickBacktestSignal
-from FilterService.GetStockData import ROE_index
+import InfomationType as info
+from BackTestService.BackTestFilterData import BacktestFilterDataFactory, BacktestFilterDataType
+from BackTestService.FilterAndSignalStrategy import BacktestSignalFactory, BacktestSignalType, BacktestFilterFactory, BacktestFilterType
+from FilterService.GetStockData import ROE_Indicator
 from FilterService.StockHistory import OriginalStockTest
+from FilterService.StockReportHistory import SeasonReportFactory
 from datetime import datetime
+from GetExternalDataService import ExternalDataFactory, ExternalDataTypeEnum
 
 class TKD_pickFilterData_Test(unittest.TestCase):
     def BuyStrockFun(aName: str, aIsBuy: bool):
         pass
     def setUp(self) -> None:
-        self._BackTestFilterData:IBackTestFilterData = KD_pickFilterData(self.BuyStrockFun, KD_pickBacktestFilter(ROE_index), 
-                                                                        KD_pickBacktestSignal(OriginalStockTest()), datetime.strptime('2020-03-04', '%Y-%m-%d'))
+        self._external_data = ExternalDataFactory.Get_instance(ExternalDataTypeEnum.Test)
+        self.ROE_index_test = ROE_Indicator('ROE', SeasonReportFactory(info.FS_type.CPL, self._external_data), 
+                                            SeasonReportFactory(info.FS_type.BS, self._external_data))
+        self._BackTestFilterData = BacktestFilterDataFactory(BacktestFilterDataType.KD, 
+                                                            self.BuyStrockFun, 
+                                                            BacktestFilterFactory(BacktestFilterType.KD, self.ROE_index_test),
+                                                            BacktestSignalFactory(BacktestSignalType.KD, OriginalStockTest()),
+                                                            datetime.strptime('2019-03-04', '%Y-%m-%d'),
+                                                            datetime.strptime('2021-08-07', '%Y-%m-%d'))
     def setDown(self):
         pass
     def test_Runtest(self):
-        self._BackTestFilterData.GoToNextWorkDay()
+        self._BackTestFilterData.GoToNextWorkDay(datetime.strptime('2020-03-04', '%Y-%m-%d'))
+        _buydata = self._BackTestFilterData.ShouldBuyStocks()
+        _selldata = self._BackTestFilterData.ShouldSellStocks()

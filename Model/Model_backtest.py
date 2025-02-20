@@ -2,7 +2,7 @@ from Model.Model import TModel
 from Parameter import RecordBackTestParameter
 import Globals
 from DrawFigur import DrawFigur
-from BackTestService.BacktestStock import BackTestStock
+from BackTestService import BackTestStock
 
 class Model_backtest(TModel):
     def __init__(self):

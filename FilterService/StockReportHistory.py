@@ -4,7 +4,7 @@ from pandas import DataFrame, Series
 import InfomationType as info
 import Tools
 import pandas
-from FilterService.StockHistory import OriginalStock
+from .StockHistory import OriginalStock
 from GetExternalDataService import IGetExternalData
 from datetime import datetime
 
@@ -57,9 +57,9 @@ class TReport(IReport):
         return Tools.changeDateMonth(date,-self._Unit)
 class AllStockReport(TReport):
     '''指標歷史資料'''
-    def __init__(self, name: str, Unit: int, GetExternal: IGetExternalData) -> None:
-        super().__init__(name, Unit)
-        self._main_GetExternalData = GetExternal
+    def __init__(self, _name: str, _Unit: int, _GetExternal: IGetExternalData) -> None:
+        super().__init__(_name, _Unit)
+        self._main_GetExternalData = _GetExternal
 class Season_Report(AllStockReport):
     '''以季為單位的指標歷史資料'''
     def __init__(self, name: str, Unit: int, GetExternal: IGetExternalData, _FS_type:info.FS_type):
@@ -67,7 +67,8 @@ class Season_Report(AllStockReport):
         self._FS_type = _FS_type
     def get_ALL_Report(self,date)-> DataFrame:
         return self._main_GetExternalData.get_allstock_financial_statement(date,self._FS_type)
-def GetSeasonReportFactory(self, _FS_type:info.FS_type, _GetExternal: IGetExternalData) -> Season_Report:
+@staticmethod
+def SeasonReportFactory(_FS_type:info.FS_type, _GetExternal: IGetExternalData) -> Season_Report:
     return Season_Report(_FS_type.value, 3, _GetExternal, _FS_type) 
 class Month_Report(AllStockReport):
     '''以月為單位的指標歷史資料'''
