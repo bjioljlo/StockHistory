@@ -1,6 +1,6 @@
 from Model.Model import TModel
 import Tools
-from datetime import timedelta,datetime
+from datetime import timedelta, datetime
 from FilterService import GetStockData, All_Stock_Filters_fuc
 import InfomationType as info
 from Parameter import RecordPickParameter
@@ -8,35 +8,42 @@ import pandas as pd
 from FilterService import OriginalStockByYahoo
 import twstock
 
+
 class Model_pick(TModel):
     def __init__(self):
         super().__init__()
-        self._Groups:list[str] = None
+        self._Groups: list[str] = None
         self._setGroups()
 
     @property
     def Groups(self) -> list[str]:
-        if self._Groups == None:
+        if self._Groups is None:
             raise
         return self._Groups
 
     def _setGroups(self):
         self._Groups = []
-        for key,value in twstock.codes.items():
-            if (value.group != '') and (not value.group in self._Groups):
+        for key, value in twstock.codes.items():
+            if (value.group != "") and (value.group not in self._Groups):
                 self._Groups.append(value.group)
-                
-    
-    #全部篩選
-    def monthRP_Up(self, RecordPickParameter: RecordPickParameter, endDate: datetime) -> pd.DataFrame:
+
+    # 全部篩選
+    def monthRP_Up(
+        self, RecordPickParameter: RecordPickParameter, endDate: datetime
+    ) -> pd.DataFrame:
         date = endDate
-        while OriginalStockByYahoo(2330).get_PriceByDateAndType(date,info.Price_type.AdjClose) is None:
+        while (
+            OriginalStockByYahoo(2330).get_PriceByDateAndType(
+                date, info.Price_type.AdjClose
+            )
+            is None
+        ):
             date = date + timedelta(days=-1)
         try:
             GPM = RecordPickParameter.GPM
             OPR = RecordPickParameter.OPR
             EPS = RecordPickParameter.EPS
-            RPS = RecordPickParameter.RPS 
+            RPS = RecordPickParameter.RPS
             monthRP_smoothAVG = RecordPickParameter.monthRP_smoothAVG
             monthRP_UpMpnth = RecordPickParameter.monthRP_UpMpnth
             PBR_low = RecordPickParameter.PBR_low
@@ -62,7 +69,7 @@ class Model_pick(TModel):
             MRGR = RecordPickParameter.MRGR
             BerMA = RecordPickParameter.BetterMA
             Kind = RecordPickParameter.Kind
-        except:
+        except Exception:
             print("Get value error")
             return
         FS_data = pd.DataFrame()
@@ -76,110 +83,148 @@ class Model_pick(TModel):
         ROE_Up_data = pd.DataFrame()
         EPS_up_data = pd.DataFrame()
 
-        FS_data = self.get_financial_statement(date,GPM,OPR,EPS,RPS)
-        
-        mainStockfun = All_Stock_Filters_fuc(date,FS_data)
-        mainfun = GetStockData.All_fuc(date,GetStockData.Month_index)
-        result_data = mainfun.get_Smooth_Up_Auto(monthRP_smoothAVG,monthRP_UpMpnth)
-        
+        FS_data = self.get_financial_statement(date, GPM, OPR, EPS, RPS)
+
+        mainStockfun = All_Stock_Filters_fuc(date, FS_data)
+        mainfun = GetStockData.All_fuc(date, GetStockData.Month_index)
+        result_data = mainfun.get_Smooth_Up_Auto(monthRP_smoothAVG, monthRP_UpMpnth)
+
         mainfun.report = GetStockData.PBR_index
-        BOOK_data = mainfun.get_Filter_Auto(PBR_high,PBR_low)
-        
+        BOOK_data = mainfun.get_Filter_Auto(PBR_high, PBR_low)
+
         mainfun.report = GetStockData.PER_index
-        PER_data = mainfun.get_Filter_Auto(PER_high,PER_low)
-        
+        PER_data = mainfun.get_Filter_Auto(PER_high, PER_low)
+
         mainfun.report = GetStockData.ROE_index
-        ROE_data = mainfun.get_Filter_Auto(ROE_high,ROE_low)
+        ROE_data = mainfun.get_Filter_Auto(ROE_high, ROE_low)
         ROE_Up_data = mainfun.get_Up_Auto(ROE_up)
-        
+
         mainfun.report = GetStockData.Yield_index
-        yield_data = mainfun.get_Filter_Auto(yiled_high,yiled_low)
-        
+        yield_data = mainfun.get_Filter_Auto(yiled_high, yiled_low)
+
         mainfun.report = GetStockData.OM_Growth_index
         OMGR_data = mainfun.get_Up_Auto(OMGR)
-        
+
         mainfun.report = GetStockData.PEG_index
-        PEG_data = mainfun.get_Filter_Auto(PEG_high,PEG_low)
-        
+        PEG_data = mainfun.get_Filter_Auto(PEG_high, PEG_low)
+
         mainfun.report = GetStockData.FreeCF_index
         FCF_data = mainfun.get_Up_Auto(FCF)
-        
+
         mainfun.report = GetStockData.EPS_index
         EPS_up_data = mainfun.get_Up_Auto(EPS_up)
-        
+
         mainfun.report = GetStockData.SR_Growth_index
         SRGR_data = mainfun.get_Up_Auto(SRGR)
-        
+
         mainfun.report = GetStockData.MR_Growth_index
         MRGR_data = mainfun.get_Up_Auto(MRGR)
-        
+
         pick_data = FS_data
-        if monthRP_smoothAVG > 0 or monthRP_UpMpnth > 0:            
-            pick_data = pd.merge(pick_data,result_data,left_index=True,right_index=True,how='left')
-            pick_data = pick_data.dropna(axis=0,how='any')
+        if monthRP_smoothAVG > 0 or monthRP_UpMpnth > 0:
+            pick_data = pd.merge(
+                pick_data, result_data, left_index=True, right_index=True, how="left"
+            )
+            pick_data = pick_data.dropna(axis=0, how="any")
         if PBR_low > 0 or PBR_high > 0:
-            pick_data = pd.merge(pick_data,BOOK_data,left_index=True,right_index=True,how='left')
-            pick_data = pick_data.dropna(axis=0,how='any')
+            pick_data = pd.merge(
+                pick_data, BOOK_data, left_index=True, right_index=True, how="left"
+            )
+            pick_data = pick_data.dropna(axis=0, how="any")
         if PER_low > 0 or PER_high > 0:
-            pick_data = pd.merge(pick_data,PER_data,left_index=True,right_index=True,how='left')
-            pick_data = pick_data.dropna(axis=0,how='any')
+            pick_data = pd.merge(
+                pick_data, PER_data, left_index=True, right_index=True, how="left"
+            )
+            pick_data = pick_data.dropna(axis=0, how="any")
         if PEG_low > 0 or PEG_high > 0:
-            pick_data = pd.merge(pick_data,PEG_data,left_index=True,right_index=True,how='left')
-            pick_data = pick_data.dropna(axis=0,how='any')
+            pick_data = pd.merge(
+                pick_data, PEG_data, left_index=True, right_index=True, how="left"
+            )
+            pick_data = pick_data.dropna(axis=0, how="any")
         if ROE_low > 0 or ROE_high > 0:
-            pick_data = pd.merge(pick_data,ROE_data,left_index=True,right_index=True,how='left')
-            pick_data = pick_data.dropna(axis=0,how='any')
+            pick_data = pd.merge(
+                pick_data, ROE_data, left_index=True, right_index=True, how="left"
+            )
+            pick_data = pick_data.dropna(axis=0, how="any")
         if yiled_high > 0 or yiled_low > 0:
-            pick_data = pd.merge(pick_data,yield_data,left_index=True,right_index=True,how='left')
-            pick_data = pick_data.dropna(axis=0,how='any')
+            pick_data = pd.merge(
+                pick_data, yield_data, left_index=True, right_index=True, how="left"
+            )
+            pick_data = pick_data.dropna(axis=0, how="any")
         if OMGR > 0:
-            pick_data = pd.merge(pick_data,OMGR_data,left_index=True,right_index=True,how='left')
-            pick_data = pick_data.dropna(axis=0,how='any')
+            pick_data = pd.merge(
+                pick_data, OMGR_data, left_index=True, right_index=True, how="left"
+            )
+            pick_data = pick_data.dropna(axis=0, how="any")
         if SRGR > 0:
-            pick_data = pd.merge(pick_data,SRGR_data,left_index=True,right_index=True,how='left')
-            pick_data = pick_data.dropna(axis=0,how='any')
+            pick_data = pd.merge(
+                pick_data, SRGR_data, left_index=True, right_index=True, how="left"
+            )
+            pick_data = pick_data.dropna(axis=0, how="any")
         if MRGR > 0:
-            pick_data = pd.merge(pick_data,MRGR_data,left_index=True,right_index=True,how='left')
-            pick_data = pick_data.dropna(axis=0,how='any')
+            pick_data = pd.merge(
+                pick_data, MRGR_data, left_index=True, right_index=True, how="left"
+            )
+            pick_data = pick_data.dropna(axis=0, how="any")
         if FCF > 0:
-            pick_data = pd.merge(pick_data,FCF_data,left_index=True,right_index=True,how='left')
-            pick_data = pick_data.dropna(axis=0,how='any')
+            pick_data = pd.merge(
+                pick_data, FCF_data, left_index=True, right_index=True, how="left"
+            )
+            pick_data = pick_data.dropna(axis=0, how="any")
         if ROE_up > 0:
-            pick_data = pd.merge(pick_data,ROE_Up_data,left_index=True,right_index=True,how='left')
-            pick_data = pick_data.dropna(axis=0,how='any')
+            pick_data = pd.merge(
+                pick_data, ROE_Up_data, left_index=True, right_index=True, how="left"
+            )
+            pick_data = pick_data.dropna(axis=0, how="any")
         if EPS_up > 0:
-            pick_data = pd.merge(pick_data,EPS_up_data,left_index=True,right_index=True,how='left')
-            pick_data = pick_data.dropna(axis=0,how='any')
+            pick_data = pd.merge(
+                pick_data, EPS_up_data, left_index=True, right_index=True, how="left"
+            )
+            pick_data = pick_data.dropna(axis=0, how="any")
         if price_high > 0 or price_low > 0:
             mainStockfun.Data = pick_data
-            price_data = mainStockfun.get_Filter('price',price_high,price_low,info.Price_type.Close)
-            pick_data = Tools.MixDataFrames({'pick':pick_data,'price':price_data})
-            pick_data = pick_data.dropna(axis=0,how='any')
+            price_data = mainStockfun.get_Filter(
+                "price", price_high, price_low, info.Price_type.Close
+            )
+            pick_data = Tools.MixDataFrames({"pick": pick_data, "price": price_data})
+            pick_data = pick_data.dropna(axis=0, how="any")
         if flash_Day > 0 or record_Day > 0:
             mainStockfun.Data = pick_data
-            record_data = mainStockfun.get_Filter_RecordHigh(flash_Day,record_Day,info.Price_type.High)
-            pick_data = Tools.MixDataFrames({'pick':pick_data,'recordHigh':record_data})
-            pick_data = pick_data.dropna(axis=0,how='any')
+            record_data = mainStockfun.get_Filter_RecordHigh(
+                flash_Day, record_Day, info.Price_type.High
+            )
+            pick_data = Tools.MixDataFrames(
+                {"pick": pick_data, "recordHigh": record_data}
+            )
+            pick_data = pick_data.dropna(axis=0, how="any")
         if BerMA > 0:
             mainStockfun.Data = pick_data
-            BerMA_data = mainStockfun.get_Filter_BetterMA(BerMA,info.Price_type.Close)
-            pick_data = Tools.MixDataFrames({'pick':pick_data,'BerMA_data':BerMA_data})
-            pick_data = pick_data.dropna(axis=0,how='any')
+            BerMA_data = mainStockfun.get_Filter_BetterMA(BerMA, info.Price_type.Close)
+            pick_data = Tools.MixDataFrames(
+                {"pick": pick_data, "BerMA_data": BerMA_data}
+            )
+            pick_data = pick_data.dropna(axis=0, how="any")
         if volum > 0:
             mainStockfun.Data = pick_data
-            volume_data = mainStockfun.get_Filter_SMA('volume',volum * 100000000,volum * 10000,5,info.Price_type.Volume)
-            pick_data = Tools.MixDataFrames({'pick':pick_data,'volumeData':volume_data})
-            pick_data = pick_data.dropna(axis=0,how='any')
+            volume_data = mainStockfun.get_Filter_SMA(
+                "volume", volum * 100000000, volum * 10000, 5, info.Price_type.Volume
+            )
+            pick_data = Tools.MixDataFrames(
+                {"pick": pick_data, "volumeData": volume_data}
+            )
+            pick_data = pick_data.dropna(axis=0, how="any")
         if Kind > 0:
             mainStockfun.Data = pick_data
-            group_data = mainStockfun.get_FilterInfo(self.Groups[Kind-1])
-            pick_data = Tools.MixDataFrames({'pick':pick_data,'InfoData':group_data})
-            pick_data = pick_data.dropna(axis=0,how='any')
+            group_data = mainStockfun.get_FilterInfo(self.Groups[Kind - 1])
+            pick_data = Tools.MixDataFrames({"pick": pick_data, "InfoData": group_data})
+            pick_data = pick_data.dropna(axis=0, how="any")
         print("總挑選數量:" + str(len(pick_data)))
         return pick_data
 
-    #取得各種財報數字篩選
-    def get_financial_statement(slef, date, GPM:float = 0 ,OPR:float = 0 ,EPS:int = 0,RPS:float = 0) -> pd.DataFrame:
+    # 取得各種財報數字篩選
+    def get_financial_statement(
+        slef, date, GPM: float = 0, OPR: float = 0, EPS: int = 0, RPS: float = 0
+    ) -> pd.DataFrame:
         resultAllFS1 = []
         resultAllFS2 = []
         resultAllFS3 = []
@@ -189,13 +234,13 @@ class Model_pick(TModel):
             try:
                 this = GetStockData.PLA_RP.get_ALL_Report(volume_date)
                 if this.empty:
-                    volume_date = Tools.changeDateMonth(volume_date,-1)
+                    volume_date = Tools.changeDateMonth(volume_date, -1)
                     continue
-                print(str(volume_date.month)+ "月財務報告ＯＫ")
+                print(str(volume_date.month) + "月財務報告ＯＫ")
                 break
-            except:
-                print(str(volume_date.month)+ "月財務報告未出跳下一個月")
-                volume_date = Tools.changeDateMonth(volume_date,-1)
+            except Exception:
+                print(str(volume_date.month) + "月財務報告未出跳下一個月")
+                volume_date = Tools.changeDateMonth(volume_date, -1)
                 continue
         this1 = this["毛利率(%)"] > float(GPM)
         this2 = this["營業利益率(%)"] > float(OPR)
@@ -209,7 +254,11 @@ class Model_pick(TModel):
         this1 = this["基本每股盈餘（元）"] > float(EPS)
         resultAllFS3 = this[this1]
 
-        resultAllFS_temp = Tools.MixDataFrames({'resultAllFS1':resultAllFS1,'resultAllFS2':resultAllFS2})
-        resultAllFS = Tools.MixDataFrames({'resultAllFS_temp':resultAllFS_temp, 'resultAllFS3':resultAllFS3})
+        resultAllFS_temp = Tools.MixDataFrames(
+            {"resultAllFS1": resultAllFS1, "resultAllFS2": resultAllFS2}
+        )
+        resultAllFS = Tools.MixDataFrames(
+            {"resultAllFS_temp": resultAllFS_temp, "resultAllFS3": resultAllFS3}
+        )
 
         return resultAllFS

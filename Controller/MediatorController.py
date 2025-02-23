@@ -15,7 +15,7 @@ class IMediator_Controller(ABC):
     @abstractmethod
     def ShowWindow(self, reciver: controllers):
         raise NotImplementedError
-    
+
     @abstractmethod
     def GetEndDate(self, reciver: controllers) -> datetime:
         raise NotImplementedError
@@ -25,19 +25,36 @@ class IMediator_Controller(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    def SetStockNumber(self, reciver: controllers, stockNumber:str):
+    def SetStockNumber(self, reciver: controllers, stockNumber: str):
         raise NotImplementedError
-    
+
     @abstractmethod
     def GetController(self, reciver: controllers) -> IController:
         raise NotImplementedError
 
+
 class Mediator_Controller(IMediator_Controller):
-    '''controller的中介者'''
+    """controller的中介者"""
+
     def __init__(self, Schedule) -> None:
-        self._main_controller:IController = Controller_Factory(controllers.Main, Main_Window(MyWindow()), Model_main(Schedule), self.GetController)
-        self._pick_controller:IController = Controller_Factory(controllers.Pick, Pick_Window(MyPickWindow()), Model_pick(), self.GetController)
-        self._backtest_controller:IController = Controller_Factory(controllers.BackTest, BackTest_Window(MyBacktestWindow()), Model_backtest(), self.GetController)
+        self._main_controller: IController = Controller_Factory(
+            controllers.Main,
+            Main_Window(MyWindow()),
+            Model_main(Schedule),
+            self.GetController,
+        )
+        self._pick_controller: IController = Controller_Factory(
+            controllers.Pick,
+            Pick_Window(MyPickWindow()),
+            Model_pick(),
+            self.GetController,
+        )
+        self._backtest_controller: IController = Controller_Factory(
+            controllers.BackTest,
+            BackTest_Window(MyBacktestWindow()),
+            Model_backtest(),
+            self.GetController,
+        )
 
     def GetController(self, reciver: controllers) -> IController:
         if reciver == controllers.Main:
@@ -48,7 +65,7 @@ class Mediator_Controller(IMediator_Controller):
             return self._backtest_controller
         else:
             print("reciver 錯誤!!")
-    
+
     def ShowWindow(self, reciver: controllers):
         if reciver == controllers.Main:
             self._main_controller.ShowWindow()
@@ -79,7 +96,7 @@ class Mediator_Controller(IMediator_Controller):
         else:
             print("reciver 錯誤!!")
 
-    def SetStockNumber(self, reciver: controllers, stockNumber:str):
+    def SetStockNumber(self, reciver: controllers, stockNumber: str):
         if reciver == controllers.Main:
             return self._main_controller.SetStockNumber(stockNumber)
         elif reciver == controllers.Pick:

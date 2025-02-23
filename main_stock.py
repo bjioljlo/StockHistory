@@ -22,6 +22,6 @@ mediator_controller.ShowWindow(controllers.Main)
 
 try:
     sys.exit(app.exec_())
-except: #退出時需要清理的方法
-    print('開始清理異步內存')
+except Exception:  # 退出時需要清理的方法
+    print("開始清理異步內存")
     Schedule.StopThreadSchedule()
