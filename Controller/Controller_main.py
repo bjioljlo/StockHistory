@@ -1,23 +1,20 @@
-from .Controller import (
-    TController,
-    controllers,
-    creat_treeView_model,
-    MAIN_TITALLIST,
-)
-from View.View_main import Main_Window
-from Model.Model_main import Model_main
-from Model.Model import IModel
-from View.View import IWindow
-
-import StockInfos as MainUserDataInfo
-from GetExternalDataService import TGetExternalData
-from FilterService.GetStockData import Stock_RangeDate
-import Tools
-import Globals
-from DrawFigur import DrawFigur
 import threading
 from datetime import datetime
+
 from PyQt5 import QtCore
+
+import Globals
+import StockInfos as MainUserDataInfo
+import Tools
+from DrawFigur import DrawFigur
+from FilterService.GetStockData import Stock_RangeDate
+from GetExternalDataService import TGetExternalData
+from Model.Model import IModel
+from Model.Model_main import Model_main
+from View.View import IWindow
+from View.View_main import Main_Window
+
+from .Controller import MAIN_TITALLIST, TController, controllers, creat_treeView_model
 
 # TODO telegram 要重新寫新版改太多了....telegram_bot
 

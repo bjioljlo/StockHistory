@@ -1,5 +1,7 @@
-from PyQt5 import QtWidgets
 from abc import ABC, abstractmethod
+
+from PyQt5 import QtWidgets
+
 import Parameter
 
 

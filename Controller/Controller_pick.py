@@ -1,10 +1,12 @@
-from .Controller import TController, controllers
+from datetime import datetime
+
 from Model.Model import IModel
+from Model.Model_pick import Model_pick
 from View.View import IWindow
 from View.View_pick import Pick_Window
+
 from . import Controller
-from Model.Model_pick import Model_pick
-from datetime import datetime
+from .Controller import TController, controllers
 
 
 class Controller_pick(TController):

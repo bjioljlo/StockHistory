@@ -1,10 +1,13 @@
+from datetime import datetime
+
+from PyQt5 import QtCore
+
 from Model.Model import IModel
+from Model.Model_backtest import Model_backtest
 from View.View import IWindow
 from View.View_backtest import BackTest_Window
+
 from .Controller import TController
-from Model.Model_backtest import Model_backtest
-from datetime import datetime
-from PyQt5 import QtCore
 
 
 class Controller_backTest(TController):

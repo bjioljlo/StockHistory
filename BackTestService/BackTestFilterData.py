@@ -1,12 +1,15 @@
-from abc import ABC, abstractmethod
-from enum import Enum
 import sys
-from StockInfoData import StockInfoSignalData, StockInfoData
-from typing import Callable
-from .FilterAndSignalStrategy import IBacktestFilter, IBacktestSignal
+from abc import ABC, abstractmethod
 from datetime import datetime
-from pandas import Series
+from enum import Enum
+from typing import Callable
+
 import twstock as ts  # 抓取台灣股票資料套件
+from pandas import Series
+
+from StockInfoData import StockInfoData, StockInfoSignalData
+
+from .FilterAndSignalStrategy import IBacktestFilter, IBacktestSignal
 
 BuyStockEvent = Callable[[str], bool]
 

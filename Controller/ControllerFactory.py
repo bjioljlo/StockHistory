@@ -1,9 +1,10 @@
-from View.View import IWindow
 from Model.Model import IModel
-from .Controller_pick import Controller_pick
-from .Controller_main import Controller_main
+from View.View import IWindow
+
+from .Controller import GetControllerEvent, IController, controllers
 from .Controller_backTest import Controller_backTest
-from .Controller import IController, controllers, GetControllerEvent
+from .Controller_main import Controller_main
+from .Controller_pick import Controller_pick
 
 
 @staticmethod

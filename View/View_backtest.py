@@ -1,8 +1,9 @@
-from View.View import TWindow
 from PyQt5 import QtWidgets
-from UI.UI_backtest import Ui_MainWindow3
-from Parameter import RecordBackTestParameter
+
 import Tools
+from Parameter import RecordBackTestParameter
+from UI.UI_backtest import Ui_MainWindow3
+from View.View import TWindow
 
 
 class BackTest_Window(TWindow):

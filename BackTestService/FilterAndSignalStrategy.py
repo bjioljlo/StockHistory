@@ -1,12 +1,14 @@
+import sys
 from abc import ABC, abstractmethod
-from enum import Enum
-from FilterService import OriginalStock, Indicator, All_fuc
 from datetime import datetime
-import Tools
+from enum import Enum
+
+import numpy as np
 import pandas as pd
 import talib
-import numpy as np
-import sys
+
+import Tools
+from FilterService import All_fuc, Indicator, OriginalStock
 
 
 # ISignal

@@ -1,5 +1,4 @@
-from . import GetStockData
-from .GetStockData import All_Stock_Filters_fuc, All_fuc
-from . import StockHistory
-from .StockHistory import OriginalStockByYahoo, OriginalStock
+from . import GetStockData, StockHistory
+from .GetStockData import All_fuc, All_Stock_Filters_fuc
+from .StockHistory import OriginalStock, OriginalStockByYahoo
 from .StockReportHistory import Indicator

@@ -1,14 +1,16 @@
-from datetime import datetime, timedelta
+import os
 import threading
+from datetime import datetime, timedelta
+
 import twstock  # 抓取台灣股票資料套件
 import yfinance as yf
 from sqlalchemy.ext.declarative import declarative_base
-import os
-import Tools
-import InfomationType as info
-from StockInfos import UserInfoDatas
-from GetExternalDataService import ExternalDataFactory, IGetExternalData
+
 import Globals
+import InfomationType as info
+import Tools
+from GetExternalDataService import ExternalDataFactory, IGetExternalData
+from StockInfos import UserInfoDatas
 
 
 class UpdateStockService:

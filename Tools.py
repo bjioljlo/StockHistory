@@ -2,8 +2,9 @@
 一些方便的轉換式
 """
 
-from datetime import datetime, timedelta
 import random
+from datetime import datetime, timedelta
+
 import pandas as pd
 import requests
 

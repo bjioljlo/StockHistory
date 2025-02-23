@@ -1,9 +1,11 @@
-import unittest
 import datetime
-import Tools
-from PyQt5 import QtCore
+import unittest
 from unittest.mock import Mock
+
 from freezegun import freeze_time
+from PyQt5 import QtCore
+
+import Tools
 
 
 class tools_test(unittest.TestCase):

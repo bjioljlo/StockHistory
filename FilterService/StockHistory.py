@@ -1,11 +1,13 @@
 import sys
 from abc import ABC, abstractmethod
-from pandas import DataFrame, concat, Series
 from datetime import datetime
-import InfomationType as info
+
 import talib
-from GetExternalDataService import ExternalDataFactory, ExternalDataTypeEnum
 import twstock
+from pandas import DataFrame, Series, concat
+
+import InfomationType as info
+from GetExternalDataService import ExternalDataFactory, ExternalDataTypeEnum
 
 
 class IStock(ABC):

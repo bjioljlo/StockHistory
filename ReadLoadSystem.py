@@ -1,8 +1,10 @@
-from pandas import DataFrame
-import pandas as pd
 import os
-import InfomationType as info
+
+import pandas as pd
+from pandas import DataFrame
+
 import Globals
+import InfomationType as info
 
 
 class ReadLoadSystem:

@@ -1,17 +1,19 @@
-import requests
-from datetime import datetime
-import pandas as pd
-import StockInfos
 import os
-import Globals
-import numpy as np
-from io import StringIO
-import time
-import Tools
-import InfomationType as info
 import sys
+import time
 from abc import ABC, abstractmethod
+from datetime import datetime
 from enum import Enum
+from io import StringIO
+
+import numpy as np
+import pandas as pd
+import requests
+
+import Globals
+import InfomationType as info
+import StockInfos
+import Tools
 
 
 class ExternalDataTypeEnum(Enum):

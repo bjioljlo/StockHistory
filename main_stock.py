@@ -1,12 +1,14 @@
-from PyQt5 import QtWidgets
 import sys
+
+from PyQt5 import QtWidgets
+
 import Globals
+from Controller import Mediator_Controller, controllers, mediator_controller
+from DrawFigur import DrawFigur
+from MongoService import MongoService
+from ReadLoadSystem import ReadLoadSystem
 from ScheduleService import ScheduleService
 from SqlService import SqlService
-from ReadLoadSystem import ReadLoadSystem
-from MongoService import MongoService
-from Controller import mediator_controller, Mediator_Controller, controllers
-from DrawFigur import DrawFigur
 
 app = QtWidgets.QApplication(sys.argv)
 Globals.MYSQL = SqlService()

@@ -1,14 +1,15 @@
 from abc import ABC, abstractmethod
-from .Controller import IController, controllers
-from .ControllerFactory import Controller_Factory
 from datetime import datetime
-from View.View_main import Main_Window, MyWindow
-from View.View_pick import Pick_Window, MyPickWindow
-from View.View_backtest import BackTest_Window, MyBacktestWindow
 
+from Model.Model_backtest import Model_backtest
 from Model.Model_main import Model_main
 from Model.Model_pick import Model_pick
-from Model.Model_backtest import Model_backtest
+from View.View_backtest import BackTest_Window, MyBacktestWindow
+from View.View_main import Main_Window, MyWindow
+from View.View_pick import MyPickWindow, Pick_Window
+
+from .Controller import IController, controllers
+from .ControllerFactory import Controller_Factory
 
 
 class IMediator_Controller(ABC):

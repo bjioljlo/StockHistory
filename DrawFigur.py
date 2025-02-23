@@ -1,10 +1,11 @@
-import talib
-import numpy as np
 import matplotlib.pyplot as plt
 import mplfinance as mpf
+import numpy as np
+import talib
+from pandas import DataFrame
+
 import Tools
 from StockInfoData import StockInfoData
-from pandas import DataFrame
 
 
 class DrawFigur:

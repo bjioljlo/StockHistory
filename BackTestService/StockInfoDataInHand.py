@@ -1,7 +1,9 @@
 import sys
-from StockInfoData import StockInfoData, StockInfoCurrentData
 from abc import ABC, abstractmethod
+
 import twstock as ts  # 抓取台灣股票資料套件
+
+from StockInfoData import StockInfoCurrentData, StockInfoData
 
 
 class IStockInfoDataInHand(ABC):

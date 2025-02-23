@@ -1,9 +1,11 @@
-import pymongo
-from pymongo import MongoClient, database
 import threading
-import twstock  # 抓取台灣股票資料套件
-import Tools
+
 import pandas as pd
+import pymongo
+import twstock  # 抓取台灣股票資料套件
+from pymongo import MongoClient, database
+
+import Tools
 
 
 class MongoService:

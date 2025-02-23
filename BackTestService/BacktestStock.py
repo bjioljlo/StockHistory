@@ -1,14 +1,15 @@
-import pandas as pd
-import numpy as np
 from datetime import datetime, timedelta
 
+import numpy as np
+import pandas as pd
 # from backtesting import Backtest, Strategy #引入回測和交易策略功能
 import talib
-from GetExternalDataService import TGetExternalData
-from FilterService import All_Stock_Filters_fuc, GetStockData, OriginalStockByYahoo
+
+import InfomationType as info
 import Tools
 from BackTestService.BackTestInfoData import BackTestInfoDataPriceByToday
-import InfomationType as info
+from FilterService import All_Stock_Filters_fuc, GetStockData, OriginalStockByYahoo
+from GetExternalDataService import TGetExternalData
 from InfomationType import stock_data_kind
 from Parameter import RecordBackTestParameter
 from StockInfoData import BaseInfoData

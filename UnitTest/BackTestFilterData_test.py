@@ -1,19 +1,20 @@
 import unittest
+from datetime import datetime
+
 import InfomationType as info
 from BackTestService.BackTestFilterData import (
     BacktestFilterDataFactory,
     BacktestFilterDataType,
 )
 from BackTestService.FilterAndSignalStrategy import (
-    BacktestSignalFactory,
-    BacktestSignalType,
     BacktestFilterFactory,
     BacktestFilterType,
+    BacktestSignalFactory,
+    BacktestSignalType,
 )
 from FilterService.GetStockData import ROE_Indicator
 from FilterService.StockHistory import OriginalStockTest
 from FilterService.StockReportHistory import SeasonReportFactory
-from datetime import datetime
 from GetExternalDataService import ExternalDataFactory, ExternalDataTypeEnum
 
 

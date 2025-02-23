@@ -1,12 +1,15 @@
 import sys
 from abc import ABC, abstractmethod
+from datetime import datetime
+
+import pandas
 from pandas import DataFrame, Series
+
 import InfomationType as info
 import Tools
-import pandas
-from .StockHistory import OriginalStock
 from GetExternalDataService import IGetExternalData
-from datetime import datetime
+
+from .StockHistory import OriginalStock
 
 
 class IReport(ABC):

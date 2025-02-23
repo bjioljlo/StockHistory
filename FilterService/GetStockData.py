@@ -1,43 +1,21 @@
+import sys
 from datetime import datetime
+
 import pandas as pd
 from pandas import DataFrame
-import Tools
+
 import InfomationType as info
-import sys
-from .StockHistory import (
-    OriginalStockByYahoo,
-    RangeDate_Stock,
-    SMA_Stock,
-    RecordHigh_Stock,
-    StockFilter,
-    StockRecordHigh,
-    StockPriceBetterMA,
-    StockFilterInfo,
-)
-from .StockReportHistory import (
-    Indicator,
-    ROE_Indicator,
-    FreeCF_Indicator,
-    Debt_Indicator,
-    OM_Growth_Indicator,
-    MR_Growth_Indicator,
-    SR_Growth_Indicator,
-    PEG_Indicator,
-    Original_Indicator,
-    OCFPerShare_Indicator,
-    PCF_Indicator,
-    ADL_Indicator,
-    ADLs_Indicator,
-)
-from .StockReportHistory import (
-    TReport,
-    Season_Report,
-    Month_Report,
-    Day_Report,
-    ADL_Report,
-)
-from InfomationType import stock_data_kind
+import Tools
 from GetExternalDataService import ExternalDataFactory, ExternalDataTypeEnum
+from InfomationType import stock_data_kind
+
+from .StockHistory import (OriginalStockByYahoo, RangeDate_Stock, RecordHigh_Stock, SMA_Stock,
+                           StockFilter, StockFilterInfo, StockPriceBetterMA, StockRecordHigh)
+from .StockReportHistory import (ADL_Indicator, ADL_Report, ADLs_Indicator, Day_Report,
+                                 Debt_Indicator, FreeCF_Indicator, Indicator, Month_Report,
+                                 MR_Growth_Indicator, OCFPerShare_Indicator, OM_Growth_Indicator,
+                                 Original_Indicator, PCF_Indicator, PEG_Indicator, ROE_Indicator,
+                                 Season_Report, SR_Growth_Indicator, TReport)
 
 OriginalStocStock_2330 = OriginalStockByYahoo(2330)
 OriginalStocStock_main = OriginalStockByYahoo()

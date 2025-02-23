@@ -1,12 +1,13 @@
-from Model.Model import TModel
 from datetime import datetime
-from FilterService import GetStockData
-import Tools
+
 import Globals
+import Tools
 from DrawFigur import DrawFigur
+from FilterService import GetStockData
+from Model.Model import TModel
 from Parameter import RecordMainParameter
-from StockInfos import UserInfoDatas
 from ScheduleService import ScheduleService
+from StockInfos import UserInfoDatas
 
 
 class Model_main(TModel):

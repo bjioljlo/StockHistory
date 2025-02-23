@@ -1,13 +1,16 @@
-from datetime import timedelta, datetime
 import sys
+from abc import ABC, abstractmethod
+from datetime import datetime, timedelta
+
 from pandas import DataFrame
+
+import Tools
 from FilterService import OriginalStock
 from InfomationType import stock_data_kind
 from StockInfoData import BaseInfoData
-from .StockInfoDataInHand import IStockInfoDataInHand, StockInfoDataInHandFactory
-import Tools
-from abc import ABC, abstractmethod
+
 from .BackTestRecord import BackTestRecord_indexWithDate, IBackTestRecord
+from .StockInfoDataInHand import IStockInfoDataInHand, StockInfoDataInHandFactory
 
 
 class IBackTestInfoData(ABC):

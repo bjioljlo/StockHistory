@@ -1,10 +1,11 @@
-from datetime import datetime
 import threading
+from datetime import datetime
+
+import pandas as pd
+import yfinance as yf
 from flask import Flask
 from flask_sqlalchemy import SQLAlchemy
-import pandas as pd
-from pandas_datareader import data
-import yfinance as yf
+
 import Tools
 
 

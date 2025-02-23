@@ -1,6 +1,7 @@
 from abc import ABC, abstractmethod
-from pandas import DataFrame
+
 import pandas as pd
+from pandas import DataFrame
 
 
 class IBackTestRecord(ABC):

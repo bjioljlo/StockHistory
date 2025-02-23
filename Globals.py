@@ -2,10 +2,10 @@
 全域的service
 """
 
-from SqlService import SqlService
-from ReadLoadSystem import ReadLoadSystem
 from DrawFigur import DrawFigur
 from MongoService import MongoService
+from ReadLoadSystem import ReadLoadSystem
+from SqlService import SqlService
 
 MYSQL: SqlService = None
 READLOAD: ReadLoadSystem = None

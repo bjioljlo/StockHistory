@@ -3,10 +3,12 @@
 """
 
 import os  # 讀取路徑套件
-import twstock as ts  # 抓取台灣股票資料套件
-import numpy as np
-from datetime import datetime
 from abc import ABC, abstractmethod
+from datetime import datetime
+
+import numpy as np
+import twstock as ts  # 抓取台灣股票資料套件
+
 from StockInfoData import StockInfoData
 
 

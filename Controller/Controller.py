@@ -1,12 +1,14 @@
+from abc import ABC, abstractmethod
+from datetime import datetime
 from enum import Enum
 from typing import Callable
-from PyQt5.QtGui import QStandardItemModel
+
 from PyQt5.QtCore import Qt
-from StockInfos import UserInfoDatas
-from abc import ABC, abstractmethod
-from View.View import IWindow
+from PyQt5.QtGui import QStandardItemModel
+
 from Model.Model import IModel
-from datetime import datetime
+from StockInfos import UserInfoDatas
+from View.View import IWindow
 
 MAIN_TITALLIST = ["股票號碼", "股票名稱"]
 PICK__TITALLIST = [

@@ -1,12 +1,13 @@
-from Model.Model import TModel
-import Tools
-from datetime import timedelta, datetime
-from FilterService import GetStockData, All_Stock_Filters_fuc
-import InfomationType as info
-from Parameter import RecordPickParameter
+from datetime import datetime, timedelta
+
 import pandas as pd
-from FilterService import OriginalStockByYahoo
 import twstock
+
+import InfomationType as info
+import Tools
+from FilterService import All_Stock_Filters_fuc, GetStockData, OriginalStockByYahoo
+from Model.Model import TModel
+from Parameter import RecordPickParameter
 
 
 class Model_pick(TModel):

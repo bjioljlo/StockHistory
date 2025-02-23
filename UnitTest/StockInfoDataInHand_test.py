@@ -1,6 +1,7 @@
 import unittest
-from StockInfoData import StockInfoCurrentData, StockInfoData
+
 from BackTestService.StockInfoDataInHand import StockInfoDataInHandWithWeightedAverage
+from StockInfoData import StockInfoCurrentData, StockInfoData
 
 
 class StockInfoDataInHand_test(unittest.TestCase):
