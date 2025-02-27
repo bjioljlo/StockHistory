@@ -299,12 +299,17 @@ class PCF_Indicator(Indicator):
     """#股價現金流量比率"""
 
     def __init__(
-        self, name: str, OCFPerShare: OCFPerShare_Indicator, StockPrice: OriginalStock
+        self,
+        name: str,
+        OCFPerShare: OCFPerShare_Indicator,
+        StockPrice: OriginalStock,
+        GetExternal: IGetExternalData,
     ) -> None:
         super().__init__(name, 1)
         self.OCFPerShare = OCFPerShare
         self._number = None
         self._StockPrice = StockPrice
+        self._main_GetExternalData = GetExternal
 
     def get_ALL_Report(self, date):
         if self._number is None:
@@ -315,7 +320,7 @@ class PCF_Indicator(Indicator):
             return DataFrame()
         self._StockPrice.number = self._number
         stock_price = self._StockPrice.get_PriceByDateAndType(
-            date, info.Price_type.AdjClose
+            date, info.Price_type.Close
         )  # get_stock_price(self._number,date,stock_data_kind.AdjClose)
         table_result[self._name] = stock_price / table_OCFPerShare
         return table_result

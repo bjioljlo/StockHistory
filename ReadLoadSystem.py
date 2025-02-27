@@ -94,11 +94,22 @@ class ReadLoadSystem:
         if file != "":
             df = Globals.MYSQL.readDividendYield(file)
         if df.empty:
+            return df
+        else:
             try:
                 df = pd.read_csv(
-                    fileName + ".csv", index_col="code", parse_dates=["code"]
+                    fileName + ".csv",
+                    index_col="code",
+                    parse_dates=["code"],
                 )
-            except pd.errors.EmptyDataError:
-                print("no " + fileName + " csv file")
+            except UnicodeDecodeError as e:
+                print("no " + fileName + " csv file" + " " + str(e))
+                return df
+            except pd.errors.EmptyDataError as e:
+                print("no " + fileName + " csv file" + " " + str(e))
+                return df
+            except FileNotFoundError as e:
+                print("no " + fileName + " csv file" + " " + str(e))
+                return df
         self.load_memery[fileName] = df
         return df

@@ -35,7 +35,7 @@ class Model_pick(TModel):
         date = endDate
         while (
             OriginalStockByYahoo(2330).get_PriceByDateAndType(
-                date, info.Price_type.AdjClose
+                date, info.Price_type.Close
             )
             is None
         ):

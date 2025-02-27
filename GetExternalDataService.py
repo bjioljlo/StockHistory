@@ -224,9 +224,13 @@ class TGetExternalData(IGetExternalData):
                 # 偽停頓
                 time.sleep(3)
             try:
-                m_yield = pd.read_csv(fileName + ".csv")
-            except pd.errors.ParserError:
                 m_yield = pd.read_csv(fileName + ".csv", encoding="ANSI")
+            except pd.errors.EmptyDataError:
+                print("no " + fileName + " csv file ")
+            except pd.errors.ParserError:
+                print("get Parser error " + fileName + " csv file")
+            except UnicodeDecodeError:
+                print("get UnicodeDecode error " + fileName + " csv file")
             # 整理一下資料
             m_yield.rename(columns={"證券代號": "code"}, inplace=True)
             m_yield.set_index("code", inplace=True)
@@ -610,13 +614,13 @@ class TGetExternalData(IGetExternalData):
             myear -= 1911
 
         if type == info.FS_type.CPL:
-            url = "https://mops.twse.com.tw/mops/web/ajax_t163sb04"
+            url = "https://mopsov.twse.com.tw/mops/web/ajax_t163sb04"
         elif type == info.FS_type.BS:
-            url = "https://mops.twse.com.tw/mops/web/ajax_t163sb05"
+            url = "https://mopsov.twse.com.tw/mops/web/ajax_t163sb05"
         elif type == info.FS_type.PLA:
-            url = "https://mops.twse.com.tw/mops/web/ajax_t163sb06"
+            url = "https://mopsov.twse.com.tw/mops/web/ajax_t163sb06"
         elif type == info.FS_type.SCF:
-            url = "https://mops.twse.com.tw/mops/web/ajax_t163sb20"
+            url = "https://mopsov.twse.com.tw/mops/web/ajax_t163sb20"
         else:
             print("type does not match")
 

@@ -9,13 +9,36 @@ import Tools
 from GetExternalDataService import ExternalDataFactory, ExternalDataTypeEnum
 from InfomationType import stock_data_kind
 
-from .StockHistory import (OriginalStockByYahoo, RangeDate_Stock, RecordHigh_Stock, SMA_Stock,
-                           StockFilter, StockFilterInfo, StockPriceBetterMA, StockRecordHigh)
-from .StockReportHistory import (ADL_Indicator, ADL_Report, ADLs_Indicator, Day_Report,
-                                 Debt_Indicator, FreeCF_Indicator, Indicator, Month_Report,
-                                 MR_Growth_Indicator, OCFPerShare_Indicator, OM_Growth_Indicator,
-                                 Original_Indicator, PCF_Indicator, PEG_Indicator, ROE_Indicator,
-                                 Season_Report, SR_Growth_Indicator, TReport)
+from .StockHistory import (
+    OriginalStockByYahoo,
+    RangeDate_Stock,
+    RecordHigh_Stock,
+    SMA_Stock,
+    StockFilter,
+    StockFilterInfo,
+    StockPriceBetterMA,
+    StockRecordHigh,
+)
+from .StockReportHistory import (
+    ADL_Indicator,
+    ADL_Report,
+    ADLs_Indicator,
+    Day_Report,
+    Debt_Indicator,
+    FreeCF_Indicator,
+    Indicator,
+    Month_Report,
+    MR_Growth_Indicator,
+    OCFPerShare_Indicator,
+    OM_Growth_Indicator,
+    Original_Indicator,
+    PCF_Indicator,
+    PEG_Indicator,
+    ROE_Indicator,
+    Season_Report,
+    SR_Growth_Indicator,
+    TReport,
+)
 
 OriginalStocStock_2330 = OriginalStockByYahoo(2330)
 OriginalStocStock_main = OriginalStockByYahoo()
@@ -122,7 +145,9 @@ OCF_index = Original_Indicator("OCF", SCF_RP, info.SCF_type.OCF)  # 營業活動
 ICF_index = Original_Indicator("ICF", SCF_RP, info.SCF_type.ICF)  # 投資活動之淨現金流入
 OM_index = Original_Indicator("OM", PLA_RP, info.PLA_type.type_2)  # 營業利益率(%)
 OCFPerShare_index = OCFPerShare_Indicator("OCFPerShare", SCF_RP, BS_RP)
-PCF_index = PCF_Indicator("P/CF", OCFPerShare_index, OriginalStocStock_main)
+PCF_index = PCF_Indicator(
+    "P/CF", OCFPerShare_index, OriginalStocStock_main, GetExternal
+)
 ADL_index = ADL_Indicator("ADL", ADL_RP)
 ADLs_index = ADLs_Indicator("ADLs", ADL_RP)
 
