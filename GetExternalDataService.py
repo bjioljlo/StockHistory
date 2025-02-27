@@ -170,7 +170,7 @@ class TGetExternalData(IGetExternalData):
                 df = df[~df["當月營收"].isnull()]
                 df = df[df["公司代號"] != "合計"]
 
-                df.to_csv(fileName, index=False)
+                df.to_csv(fileName + ".csv", index=False)
                 # 偽停頓
                 time.sleep(1.5)
 
@@ -716,7 +716,7 @@ class GetExternalDataTest(TGetExternalData):
                     df = df[~df["當月營收"].isnull()]
                     df = df[df["公司代號"] != "合計"]
 
-                    df.to_csv(fileName, index=False)
+                    df.to_csv(fileName + ".csv", index=False)
                     # 偽停頓
                     time.sleep(1.5)
 
