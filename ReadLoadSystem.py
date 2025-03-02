@@ -94,8 +94,6 @@ class ReadLoadSystem:
         if file != "":
             df = Globals.MYSQL.readDividendYield(file)
         if df.empty:
-            return df
-        else:
             try:
                 df = pd.read_csv(
                     fileName + ".csv",
