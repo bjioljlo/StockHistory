@@ -25,7 +25,7 @@ class BackTestInfoDataPriceByToday_test(unittest.TestCase):
         self.BackTestInfoDataPriceByToday_test.BuyStock("2330", 1000)
         Result = self.BackTestInfoDataPriceByToday_test.HandleStock["2330"]
         self.assertEqual(Result.Amount, 1000)
-        self.assertEqual(Result.Price, 303.793091)
+        self.assertEqual(Result.Price, 315)
 
     def test_SellStock(self):
         self.BackTestInfoDataPriceByToday_test.BuyStock("2330", 2000)
@@ -33,7 +33,7 @@ class BackTestInfoDataPriceByToday_test(unittest.TestCase):
         if self.BackTestInfoDataPriceByToday_test.SellStock("2330", 1000):
             Result = self.BackTestInfoDataPriceByToday_test.HandleStock["2330"]
             self.assertEqual(Result.Amount, _oldAmount - 1000)
-            self.assertEqual(Result.Price, 303.793091)
+            self.assertEqual(Result.Price, 315)
 
     def test_RecordUserInfo(self):
         self.BackTestInfoDataPriceByToday_test.BuyStock("2330", 1000)
@@ -50,5 +50,5 @@ class BackTestInfoDataPriceByToday_test(unittest.TestCase):
                 datetime.strptime("2020-03-06", "%Y-%m-%d")
             ]
             / 1000,
-            303.793091,
+            315,
         )

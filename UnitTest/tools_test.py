@@ -1,5 +1,5 @@
-import datetime
 import unittest
+from datetime import datetime
 from unittest.mock import Mock
 
 from freezegun import freeze_time
@@ -80,7 +80,3 @@ class tools_test(unittest.TestCase):
         input_date = datetime(2023, 5, 1)
         result = Tools.Have_DayRP(input_date)
         self.assertEqual(result, False)
-
-
-if __name__ == "__main__":
-    unittest.main()

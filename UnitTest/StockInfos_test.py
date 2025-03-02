@@ -35,7 +35,3 @@ class PickInfoDatas_test(unittest.TestCase):
         self.test_StockInfoDatas.CleanData()
         Result = self.test_StockInfoDatas.StockList
         self.assertCountEqual(Result, Clean_Data)
-
-
-if __name__ == "__main__":
-    unittest.main()
