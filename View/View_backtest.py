@@ -1,20 +1,24 @@
-from View.View import TWindow 
 from PyQt5 import QtWidgets
-from UI.UI_backtest import Ui_MainWindow3
-from Parameter import RecordBackTestParameter
+
 import Tools
+from Parameter import RecordBackTestParameter
+from UI.UI_backtest import Ui_MainWindow3
+from View.View import TWindow
+
 
 class BackTest_Window(TWindow):
-    def __init__(self, Ui_Window:Ui_MainWindow3):
+    def __init__(self, Ui_Window: Ui_MainWindow3):
         super().__init__()
         self.FormUI = Ui_Window
+
     def GetFormUI(self) -> Ui_MainWindow3:
         return self.FormUI
-    
+
     @property
     def Parament(self):
         self._Parament = BackTestParameter(self)
         return self._Parament
+
 
 class BackTestParameter(RecordBackTestParameter):
     def __init__(self, _view: BackTest_Window) -> None:
@@ -22,12 +26,12 @@ class BackTestParameter(RecordBackTestParameter):
         try:
             UI_form = _view.GetFormUI()
             self.check_monthRP_pick = bool(UI_form.check_monthRP_pick.isChecked())
-            self.check_PER_pick:bool = bool(UI_form.check_PER_pick.isChecked())
-            self.check_volume_pick:bool = bool(UI_form.check_volume_pick.isChecked())
-            self.check_pickOneStock:bool = bool(UI_form.check_pickOneStock.isChecked())
-            self.check_price_pick:bool = bool(UI_form.check_price_pick.isChecked())
-            self.check_PBR_pick:bool = bool(UI_form.check_PBR_pick.isChecked())
-            self.check_ROE_pick:bool = bool(UI_form.check_ROE_pick.isChecked())
+            self.check_PER_pick: bool = bool(UI_form.check_PER_pick.isChecked())
+            self.check_volume_pick: bool = bool(UI_form.check_volume_pick.isChecked())
+            self.check_pickOneStock: bool = bool(UI_form.check_pickOneStock.isChecked())
+            self.check_price_pick: bool = bool(UI_form.check_price_pick.isChecked())
+            self.check_PBR_pick: bool = bool(UI_form.check_PBR_pick.isChecked())
+            self.check_ROE_pick: bool = bool(UI_form.check_ROE_pick.isChecked())
             self.date_start = Tools.QtDate2DateTime(UI_form.date_start.date())
             self.date_end = Tools.QtDate2DateTime(UI_form.date_end.date())
             self.money_start = int(UI_form.input_startMoney.toPlainText())
@@ -49,12 +53,13 @@ class BackTestParameter(RecordBackTestParameter):
             self.Dividend_yield_high = float(UI_form.input_yield_start.toPlainText())
             self.Dividend_yield_low = float(UI_form.input_yield_end.toPlainText())
             self.buy_day = int(UI_form.input_buyDay.toPlainText())
-            self.Record_high_day = int(UI_form.input_RecordHigh.toPlainText())  
+            self.Record_high_day = int(UI_form.input_RecordHigh.toPlainText())
         except ValueError as e:
             print("ValueError:", e)
 
-#回測畫面
-class MyBacktestWindow(QtWidgets.QMainWindow,Ui_MainWindow3):
+
+# 回測畫面
+class MyBacktestWindow(QtWidgets.QMainWindow, Ui_MainWindow3):
     def __init__(self):
-        super(MyBacktestWindow,self).__init__()
+        super(MyBacktestWindow, self).__init__()
         self.setupUi(self)

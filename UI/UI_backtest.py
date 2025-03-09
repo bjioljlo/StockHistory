@@ -76,16 +76,26 @@ class Ui_MainWindow3(object):
         self.label_6.setObjectName("label_6")
         self.input_monthRP_UpMpnth = QtWidgets.QTextEdit(self.scrollAreaWidgetContents)
         self.input_monthRP_UpMpnth.setGeometry(QtCore.QRect(120, 70, 81, 21))
-        self.input_monthRP_UpMpnth.setVerticalScrollBarPolicy(QtCore.Qt.ScrollBarAlwaysOff)
-        self.input_monthRP_UpMpnth.setHorizontalScrollBarPolicy(QtCore.Qt.ScrollBarAlwaysOff)
+        self.input_monthRP_UpMpnth.setVerticalScrollBarPolicy(
+            QtCore.Qt.ScrollBarAlwaysOff
+        )
+        self.input_monthRP_UpMpnth.setHorizontalScrollBarPolicy(
+            QtCore.Qt.ScrollBarAlwaysOff
+        )
         self.input_monthRP_UpMpnth.setObjectName("input_monthRP_UpMpnth")
         self.label_5 = QtWidgets.QLabel(self.scrollAreaWidgetContents)
         self.label_5.setGeometry(QtCore.QRect(30, 40, 101, 21))
         self.label_5.setObjectName("label_5")
-        self.input_monthRP_smoothAVG = QtWidgets.QTextEdit(self.scrollAreaWidgetContents)
+        self.input_monthRP_smoothAVG = QtWidgets.QTextEdit(
+            self.scrollAreaWidgetContents
+        )
         self.input_monthRP_smoothAVG.setGeometry(QtCore.QRect(120, 40, 81, 21))
-        self.input_monthRP_smoothAVG.setVerticalScrollBarPolicy(QtCore.Qt.ScrollBarAlwaysOff)
-        self.input_monthRP_smoothAVG.setHorizontalScrollBarPolicy(QtCore.Qt.ScrollBarAlwaysOff)
+        self.input_monthRP_smoothAVG.setVerticalScrollBarPolicy(
+            QtCore.Qt.ScrollBarAlwaysOff
+        )
+        self.input_monthRP_smoothAVG.setHorizontalScrollBarPolicy(
+            QtCore.Qt.ScrollBarAlwaysOff
+        )
         self.input_monthRP_smoothAVG.setObjectName("input_monthRP_smoothAVG")
         self.label_7 = QtWidgets.QLabel(self.scrollAreaWidgetContents)
         self.label_7.setGeometry(QtCore.QRect(30, 10, 101, 21))
@@ -140,8 +150,12 @@ class Ui_MainWindow3(object):
         self.label_11.setObjectName("label_11")
         self.input_volumeAVG_days = QtWidgets.QTextEdit(self.scrollAreaWidgetContents_3)
         self.input_volumeAVG_days.setGeometry(QtCore.QRect(110, 70, 81, 21))
-        self.input_volumeAVG_days.setVerticalScrollBarPolicy(QtCore.Qt.ScrollBarAlwaysOff)
-        self.input_volumeAVG_days.setHorizontalScrollBarPolicy(QtCore.Qt.ScrollBarAlwaysOff)
+        self.input_volumeAVG_days.setVerticalScrollBarPolicy(
+            QtCore.Qt.ScrollBarAlwaysOff
+        )
+        self.input_volumeAVG_days.setHorizontalScrollBarPolicy(
+            QtCore.Qt.ScrollBarAlwaysOff
+        )
         self.input_volumeAVG_days.setObjectName("input_volumeAVG_days")
         self.label_12 = QtWidgets.QLabel(self.scrollAreaWidgetContents_3)
         self.label_12.setGeometry(QtCore.QRect(30, 40, 101, 21))
@@ -149,7 +163,9 @@ class Ui_MainWindow3(object):
         self.input_volume_money = QtWidgets.QTextEdit(self.scrollAreaWidgetContents_3)
         self.input_volume_money.setGeometry(QtCore.QRect(110, 40, 81, 21))
         self.input_volume_money.setVerticalScrollBarPolicy(QtCore.Qt.ScrollBarAlwaysOff)
-        self.input_volume_money.setHorizontalScrollBarPolicy(QtCore.Qt.ScrollBarAlwaysOff)
+        self.input_volume_money.setHorizontalScrollBarPolicy(
+            QtCore.Qt.ScrollBarAlwaysOff
+        )
         self.input_volume_money.setObjectName("input_volume_money")
         self.label_13 = QtWidgets.QLabel(self.scrollAreaWidgetContents_3)
         self.label_13.setGeometry(QtCore.QRect(30, 10, 101, 21))
@@ -279,7 +295,9 @@ class Ui_MainWindow3(object):
         font.setWeight(75)
         self.input_StockAmount.setFont(font)
         self.input_StockAmount.setVerticalScrollBarPolicy(QtCore.Qt.ScrollBarAlwaysOff)
-        self.input_StockAmount.setHorizontalScrollBarPolicy(QtCore.Qt.ScrollBarAlwaysOff)
+        self.input_StockAmount.setHorizontalScrollBarPolicy(
+            QtCore.Qt.ScrollBarAlwaysOff
+        )
         self.input_StockAmount.setDocumentTitle("")
         self.input_StockAmount.setPlaceholderText("")
         self.input_StockAmount.setObjectName("input_StockAmount")
@@ -294,7 +312,9 @@ class Ui_MainWindow3(object):
         font.setWeight(75)
         self.input_stockNumber.setFont(font)
         self.input_stockNumber.setVerticalScrollBarPolicy(QtCore.Qt.ScrollBarAlwaysOff)
-        self.input_stockNumber.setHorizontalScrollBarPolicy(QtCore.Qt.ScrollBarAlwaysOff)
+        self.input_stockNumber.setHorizontalScrollBarPolicy(
+            QtCore.Qt.ScrollBarAlwaysOff
+        )
         self.input_stockNumber.setDocumentTitle("")
         self.input_stockNumber.setPlaceholderText("")
         self.input_stockNumber.setObjectName("input_stockNumber")
@@ -323,7 +343,9 @@ class Ui_MainWindow3(object):
         self.input_yield_start = QtWidgets.QTextEdit(self.scrollAreaWidgetContents_7)
         self.input_yield_start.setGeometry(QtCore.QRect(80, 40, 81, 21))
         self.input_yield_start.setVerticalScrollBarPolicy(QtCore.Qt.ScrollBarAlwaysOff)
-        self.input_yield_start.setHorizontalScrollBarPolicy(QtCore.Qt.ScrollBarAlwaysOff)
+        self.input_yield_start.setHorizontalScrollBarPolicy(
+            QtCore.Qt.ScrollBarAlwaysOff
+        )
         self.input_yield_start.setObjectName("input_yield_start")
         self.label_28 = QtWidgets.QLabel(self.scrollAreaWidgetContents_7)
         self.label_28.setGeometry(QtCore.QRect(40, 10, 141, 21))
@@ -426,5 +448,3 @@ class Ui_MainWindow3(object):
         self.label_30.setText(_translate("MainWindow3", "幾天內創新高"))
         self.button_backtest_5.setText(_translate("MainWindow3", "開始KD值回測"))
         self.button_backtest_6.setText(_translate("MainWindow3", "開始PEG值回測"))
-
-

@@ -1,14 +1,15 @@
 from abc import ABC, abstractmethod
 
+
 class IModel(ABC):
     @abstractmethod
-    def GetInteractiveController(self): 
+    def GetInteractiveController(self):
         pass
+
 
 class TModel(IModel):
     def __init__(self):
-        super(TModel,self).__init__()
+        super(TModel, self).__init__()
 
     def GetInteractiveController(self):
         pass
-    

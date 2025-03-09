@@ -96,7 +96,9 @@ class Ui_MainWindow2(object):
         self.input_monthRP_UpMpnth.setGeometry(QtCore.QRect(140, 50, 48, 24))
         self.input_monthRP_UpMpnth.setMaximum(99)
         self.input_monthRP_UpMpnth.setObjectName("input_monthRP_UpMpnth")
-        self.input_monthRP_smoothAVG = QtWidgets.QSpinBox(self.scrollAreaWidgetContents_2)
+        self.input_monthRP_smoothAVG = QtWidgets.QSpinBox(
+            self.scrollAreaWidgetContents_2
+        )
         self.input_monthRP_smoothAVG.setGeometry(QtCore.QRect(140, 30, 48, 24))
         self.input_monthRP_smoothAVG.setMaximum(99)
         self.input_monthRP_smoothAVG.setObjectName("input_monthRP_smoothAVG")
@@ -307,7 +309,9 @@ class Ui_MainWindow2(object):
         self.label_24 = QtWidgets.QLabel(self.scrollAreaWidgetContents_8)
         self.label_24.setGeometry(QtCore.QRect(0, 60, 101, 21))
         self.label_24.setObjectName("label_24")
-        self.input_yiled_high = QtWidgets.QDoubleSpinBox(self.scrollAreaWidgetContents_8)
+        self.input_yiled_high = QtWidgets.QDoubleSpinBox(
+            self.scrollAreaWidgetContents_8
+        )
         self.input_yiled_high.setGeometry(QtCore.QRect(90, 30, 71, 24))
         self.input_yiled_high.setMaximum(999.99)
         self.input_yiled_high.setObjectName("input_yiled_high")
@@ -394,11 +398,18 @@ class Ui_MainWindow2(object):
         self.label_2.setText(_translate("MainWindow2", "營業利益率(%)大於"))
         self.label_3.setText(_translate("MainWindow2", "每股參考淨值"))
         self.label_4.setText(_translate("MainWindow2", "基本每股盈餘(元)"))
-        self.label_38.setText(_translate("MainWindow2", "<html><head/><body><p><span style=\" font-size:10pt;\">種類</span></p></body></html>"))
+        self.label_38.setText(
+            _translate(
+                "MainWindow2",
+                '<html><head/><body><p><span style=" font-size:10pt;">種類</span></p></body></html>',
+            )
+        )
         self.label_5.setText(_translate("MainWindow2", "月營收往前平滑月份"))
         self.label_6.setText(_translate("MainWindow2", "月營收連續升高月份"))
         self.label_7.setText(_translate("MainWindow2", "逐步升高篩選"))
-        self.label_28.setText(_translate("MainWindow2", "季營業利益成長率連續增高(YOY)"))
+        self.label_28.setText(
+            _translate("MainWindow2", "季營業利益成長率連續增高(YOY)")
+        )
         self.label_32.setText(_translate("MainWindow2", "自由現金流連續增高季數"))
         self.label_33.setText(_translate("MainWindow2", "ROE連續增高季數"))
         self.label_34.setText(_translate("MainWindow2", "EPS連續增高季數"))
