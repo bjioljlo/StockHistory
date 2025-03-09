@@ -113,7 +113,7 @@ class TBackTestInfoData(IBackTestInfoData):
         for key, value in self._HandleStock.items():
             self._GetStockPrice.number = key
             Temp = self._GetStockPrice.get_PriceByDateAndType(
-                self._BaseInfoData.now_day, stock_data_kind.AdjClose
+                self._BaseInfoData.now_day, stock_data_kind.Close
             )
             if Temp is None:
                 print("no stock price:" + str(key))
@@ -206,7 +206,7 @@ class BackTestInfoDataPriceByToday(TBackTestInfoData):
         else:
             self._GetStockPrice.number = number
             stock_price = self._GetStockPrice.get_PriceByDateAndType(
-                self._BaseInfoData.now_day, stock_data_kind.AdjClose
+                self._BaseInfoData.now_day, stock_data_kind.Close
             )
             self._BaseInfoData.now_money = (
                 self._BaseInfoData.now_money
@@ -220,7 +220,7 @@ class BackTestInfoDataPriceByToday(TBackTestInfoData):
         """買股票"""
         self._GetStockPrice.number = number
         stock_price = self._GetStockPrice.get_PriceByDateAndType(
-            self._BaseInfoData.now_day, stock_data_kind.AdjClose
+            self._BaseInfoData.now_day, stock_data_kind.Close
         )
         if stock_price is None:
             print(str(number) + " no use stock")

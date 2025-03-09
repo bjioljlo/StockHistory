@@ -68,5 +68,6 @@ class local_type:
 
 
 class stock_data_kind(Enum):
+    Close = "Close"
     AdjClose = "Adj Close"
     Volume = "Volume"

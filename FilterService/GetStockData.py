@@ -529,7 +529,7 @@ def AvgStockPrice(date, vData=pd.DataFrame()):
     for value in range(0, len(vData)):
         Nnumber = str(vData.iloc[value].name)
         Temp_stock_price = get_stock_price(
-            Nnumber, Tools.DateTime2String(date), stock_data_kind.AdjClose
+            Nnumber, Tools.DateTime2String(date), stock_data_kind.Close
         )
         if Temp_stock_price is not None:
             All_price = All_price + Temp_stock_price

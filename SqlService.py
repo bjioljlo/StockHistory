@@ -60,8 +60,6 @@ class SqlService:
             return False
 
     def yfInfo(self, name: str):
-        if not name.islower():
-            name = name.lower()
         start_date = datetime(2005, 1, 1)
         end_date = datetime.today()  # 設定資料起訖日期
         df_result = yf.download([name], start_date, end_date)
@@ -70,6 +68,8 @@ class SqlService:
         else:
             df_result = Tools.TidyTicketData(df_result, name)
             with self.server_flask.app_context():
+                if not name.islower():
+                    name = name.lower()
                 df_result.to_sql(
                     name=name, con=self.MySql_server.engine, if_exists="replace"
                 )

@@ -273,11 +273,11 @@ class TGetExternalData(IGetExternalData):
         m_history = Globals.READLOAD.load_stock_file(filename, file)
         if m_history.empty:
             # 去ＹＦ讀取資料
-            Globals.MYSQL.yfInfo(str(number) + info.local_type.Taiwan)
+            Globals.MYSQL.yfInfo(str(number) + ".TW")
             # 偽停頓
             time.sleep(1.5)
             m_history = Globals.READLOAD.load_stock_file(filename, file)
-            Globals.MONGO.saveTable(str(number) + info.local_type.Taiwan, m_history)
+            Globals.MONGO.saveTable(str(number) + ".TW", m_history)
         mask = m_history.index >= start_time
         result = m_history[mask]
         result = result.dropna(axis=0, how="any")
@@ -653,7 +653,7 @@ class TGetExternalData(IGetExternalData):
 class GetExternalDataTest(TGetExternalData):
     """測試用爬取股票財務報告 請勿在別的地方使用"""
 
-    # TODO : 要完成其他測試用的GET方法
+    # TODO : 要完成其他測試用的GET方法 2025/3/2
     def get_allstock_monthly_report(self, start: datetime):
         try:
             return super().get_allstock_monthly_report(start)
