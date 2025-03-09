@@ -58,36 +58,42 @@ class KD_pickBacktestSignal(TBacktestSignal):
     def __init__(self, _GetPrice: OriginalStock) -> None:
         super().__init__()
         self._getPrice: OriginalStock = _GetPrice
+        self._tempSignals: pd.Series = pd.Series()
 
     def GetSignalResult(self, InputData: pd.Series, _Date: datetime) -> pd.Series:
         All_stock_signal = pd.Series()
         for key, _value in InputData.items():  # 先算出股票的買賣訊號
-            if Tools.check_no_use_stock(key):
-                print("get_stock_price: " + str(key) + " in no use")
-                continue
-            self._getPrice.number = key
-            table = self._getPrice.get_ALL()
-            if table.empty:
-                continue
-            table_K, table_D = talib.STOCH(
-                table["High"],
-                table["Low"],
-                table["Close"],
-                fastk_period=50,
-                slowk_period=20,
-                slowk_matype=0,
-                slowd_period=20,
-                slowd_matype=0,
-            )
-            table_sma10 = talib.SMA(np.array(table["Close"]), 10)
-            table_sma240 = talib.SMA(np.array(table["Close"]), 240)
-            signal_buy = table_K > table_D
-            signal_sell = table_K < table_D
-            signal_sma10 = table.Close < table_sma10
-            signal_sma240 = table.Close > table_sma240
-            signal = signal_sma10 & signal_sma240 & signal_buy
-            signal[signal_sell] = -1
-            All_stock_signal[key] = signal
+            try:
+                All_stock_signal[key] = self._tempSignals[key]
+            except KeyError:
+                print(f"Error: {key} not in data/msg:{KeyError}")
+                if Tools.check_no_use_stock(key):
+                    print("get_stock_price: " + str(key) + " in no use")
+                    continue
+                self._getPrice.number = key
+                table = self._getPrice.get_ALL()
+                if table.empty:
+                    continue
+                table_K, table_D = talib.STOCH(
+                    table["High"],
+                    table["Low"],
+                    table["Close"],
+                    fastk_period=50,
+                    slowk_period=20,
+                    slowk_matype=0,
+                    slowd_period=20,
+                    slowd_matype=0,
+                )
+                table_sma10 = talib.SMA(np.array(table["Close"]), 10)
+                table_sma240 = talib.SMA(np.array(table["Close"]), 240)
+                signal_buy = table_K > table_D
+                signal_sell = table_K < table_D
+                signal_sma10 = table.Close < table_sma10
+                signal_sma240 = table.Close > table_sma240
+                signal = signal_sma10 & signal_sma240 & signal_buy
+                signal[signal_sell] = -1
+                All_stock_signal[key] = signal
+                self._tempSignals[key] = signal
         return All_stock_signal
 
 

@@ -37,5 +37,7 @@ class BackTestRecord_indexWithDate(TBackTestRecord):
     def RunRecord(self, inputData: list):
         inputDict = {}
         for i in range(len(inputData)):
+            if i > len(self._data.columns) - 1:
+                break
             inputDict[self._data.columns[i]] = [inputData[i]]
         self._data = pd.concat([self._data, DataFrame(inputDict)], ignore_index=True)

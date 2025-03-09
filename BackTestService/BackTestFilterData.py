@@ -74,7 +74,7 @@ class IBackTestFilterData(ABC):
         )
 
     @abstractmethod
-    def ShouldSellStocks(self) -> set[str]:
+    def ShouldSellStocks(self, _dataInHand: dict) -> set[str]:
         """
         Determine which stocks should be sold.
 
@@ -117,7 +117,8 @@ class TBackTestFilterData(IBackTestFilterData):
         _enddate: datetime,
     ) -> None:
         super(TBackTestFilterData, self).__init__()
-        self._FilterStock: dict[str, StockInfoSignalData] = {}
+        self._FilterStockNow: Series = Series()  # 當天篩選
+        self._FilterStock: dict[str, StockInfoSignalData] = {}  # 信號暫存
         self.__BuyStockfun: BuyStockEvent = _buyStockfun  # 買入事件
         self._Filter: IBacktestFilter = _filter  # 回測篩選器
         self._Signal: IBacktestSignal = _signal  # 回測訊號
@@ -126,9 +127,25 @@ class TBackTestFilterData(IBackTestFilterData):
 
     @property
     def FilterStock(self) -> dict[str, StockInfoSignalData]:
-        return self._FilterStock
+        return self._FilterStockNow
 
     def _FinishFilterData(self, _NewData: Series):
+        """
+        Processes new stock data and stores the corresponding signals.
+        將信號放入暫存
+        This method iterates over the provided series of new stock data,
+        checks if each stock is already present in the _FilterStock dictionary,
+        and if not, retrieves the stock information and creates a StockInfoSignalData
+        object with the signal value. The new stock information and signal are then
+        stored in the _FilterStock dictionary.
+
+        Args:
+            _NewData (Series): A pandas Series where keys are stock identifiers
+                            and values are the corresponding signal data.
+
+        Returns:
+            None
+        """
         for key, value in _NewData.items():
             if key in self._FilterStock.keys():
                 continue
@@ -144,6 +161,22 @@ class TBackTestFilterData(IBackTestFilterData):
             self._FilterStock[str(key)] = StockInfoSignalData(stockinfo, value)
 
     def _CheckFilterData(self, _NewData: Series):
+        """
+        Filters out stocks with a sell signal from the current filter stock list.
+        將信號暫存中為賣出的股票挑掉
+        This method iterates through the current filter stock dictionary and
+        checks if each stock key is present in the new data keys or if the
+        stock's signal is not a sell signal (value.singnal[self._DateNow] != -1).
+        Only stocks that meet these conditions are retained in the result.
+
+        Args:
+            _NewData (Series): A pandas Series containing new stock data with
+                            stock identifiers as keys and their associated
+                            signal data as values.
+
+        Returns:
+            None
+        """
         _result = Series()
         for key, value in self._FilterStock.items():
             if (key in _NewData.keys()) or not (value.singnal[self._DateNow] == -1):
@@ -155,12 +188,11 @@ class KD_pickFilterData(TBackTestFilterData):
     """KD值-回測篩選"""
 
     def _RuuFilter(self):
-        FilterData: Series = self._Filter.RunFilter(self._DateNow)  # 篩選
+        self._FilterStockNow: Series = self._Filter.RunFilter(self._DateNow)  # 篩選
         SignalData: Series = self._Signal.GetSignalResult(
-            FilterData, self._EndDate
+            self._FilterStockNow, self._EndDate
         )  # 訊號
         self._FinishFilterData(SignalData)
-        self._CheckFilterData(FilterData)
 
     def GoToNextWorkDay(self, _dateNow: datetime):
         self._DateNow = _dateNow
@@ -168,14 +200,23 @@ class KD_pickFilterData(TBackTestFilterData):
 
     def ShouldBuyStocks(self) -> set[str]:
         _shouldBuyStocks = set()
-        for key, value in self._FilterStock.items():
-            if value.singnal[self._DateNow]:
-                _shouldBuyStocks.add(key)
+        for key, value in self._FilterStockNow.items():
+            try:
+                if (
+                    not self._FilterStock[str(key)].singnal[self._DateNow] == -1
+                    and self._FilterStock[str(key)].singnal[self._DateNow]
+                ):
+                    _shouldBuyStocks.add(str(key))
+            except KeyError:
+                print(f"Error: {key} not in data/msg:{KeyError}")
         return _shouldBuyStocks
 
-    def ShouldSellStocks(self) -> set[str]:
+    def ShouldSellStocks(self, _dataInHand: dict) -> set[str]:
         _shouldSellStocks = set()
         for key, value in self._FilterStock.items():
-            if value.singnal[self._DateNow] == -1:
-                _shouldSellStocks.add(key)
+            try:
+                if (key in _dataInHand.keys()) and value.singnal[self._DateNow] == -1:
+                    _shouldSellStocks.add(key)
+            except KeyError:
+                print(f"Error: {key} not in data/msg:{KeyError}")
         return _shouldSellStocks
