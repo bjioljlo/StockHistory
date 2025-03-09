@@ -39,6 +39,11 @@ class BackTestInfoDataPriceByToday_test(unittest.TestCase):
         self.BackTestInfoDataPriceByToday_test.BuyStock("2330", 1000)
         self.BackTestInfoDataPriceByToday_test.RecordUserInfo()
         self.BackTestInfoDataPriceByToday_test.RunFinish()
+        self.assertIsNotNone(
+            self.BackTestInfoDataPriceByToday_test._TempResultDraw.Data["資產比例"][
+                datetime.strptime("2020-03-06", "%Y-%m-%d")
+            ]
+        )
         self.assertEqual(
             self.BackTestInfoDataPriceByToday_test._TempTradeInfo.Data["號碼"][
                 datetime.strptime("2020-03-06", "%Y-%m-%d")

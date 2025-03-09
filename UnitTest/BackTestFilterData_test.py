@@ -1,5 +1,6 @@
 import unittest
-from datetime import datetime
+from datetime import datetime, timedelta
+import Tools
 
 import InfomationType as info
 from BackTestService.BackTestFilterData import (
@@ -43,9 +44,32 @@ class TKD_pickFilterData_Test(unittest.TestCase):
     def setDown(self):
         pass
 
-    def test_Runtest(self):
-        self._BackTestFilterData.GoToNextWorkDay(
-            datetime.strptime("2020-03-04", "%Y-%m-%d")
-        )
-        _buydata = self._BackTestFilterData.ShouldBuyStocks()
-        _selldata = self._BackTestFilterData.ShouldSellStocks()
+    def test_Run_KDtest_buystocks(self):
+        temp_date = datetime.strptime("2020-09-16", "%Y-%m-%d")
+        for i in range(1000):
+            if temp_date not in self._external_data.get_stock_history("2330").index:
+                temp_date = Tools.backWorkDays(temp_date, -1)
+                continue
+            if temp_date > datetime.strptime("2020-11-5", "%Y-%m-%d"):
+                break
+            self._BackTestFilterData.GoToNextWorkDay(temp_date)
+            _buydata = self._BackTestFilterData.ShouldBuyStocks()
+            temp_date = Tools.backWorkDays(temp_date, -1)
+            if len(_buydata) != 0:
+                self.assertEqual(_buydata, {"2330"})
+                break
+
+    def test_Run_KDtest_sellstocks(self):
+        temp_date = datetime.strptime("2020-09-16", "%Y-%m-%d")
+        for i in range(1000):
+            if temp_date not in self._external_data.get_stock_history("2330").index:
+                temp_date = Tools.backWorkDays(temp_date, -1)
+                continue
+            if temp_date > datetime.strptime("2020-11-5", "%Y-%m-%d"):
+                break
+            self._BackTestFilterData.GoToNextWorkDay(temp_date)
+            _selldata = self._BackTestFilterData.ShouldSellStocks({"2330": "1"})
+            temp_date = Tools.backWorkDays(temp_date, -1)
+            if len(_selldata) != 0:
+                self.assertEqual(_selldata, {"2330"})
+                break
