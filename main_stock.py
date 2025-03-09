@@ -3,7 +3,7 @@ import sys
 from PyQt5 import QtWidgets
 
 import Globals
-from Controller import Mediator_Controller, controllers, mediator_controller
+from Controller import Mediator_Controller, controllers
 from DrawFigur import DrawFigur
 from MongoService import MongoService
 from ReadLoadSystem import ReadLoadSystem
