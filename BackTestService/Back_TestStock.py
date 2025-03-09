@@ -95,7 +95,7 @@ class BackTestStock:
             mainParament.date_start,
             mainParament.date_end,
         )
-        # TODO 要新增日期的管理 IBackTestDateStrategy  外部帶入所有要用的的功能 EX.userInfo filter...等
+        # TODO 要新增日期的管理 IBackTestDateStrategy  外部帶入所有要用的的功能 EX.userInfo filter...等...
         for index, row in Temp_table.iterrows():
             if index < userInfo.BaseInfoData.now_day:
                 continue
