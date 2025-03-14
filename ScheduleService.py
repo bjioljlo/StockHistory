@@ -35,17 +35,12 @@ class ScheduleService:
     def __RunSchedule(self, func, UpdateTime: str, _args: tuple = None):
         print("RunSchedule at:" + UpdateTime)
         schedule.every().day.at(UpdateTime).do(func, _args)
-        temp_thread = threading.Thread(
-            target=self.__ScheduleStart,
-            args=[
-                "",
-            ],
-        )
+        temp_thread = threading.Thread(target=self.__ScheduleStart)
         temp_thread.start()
         self.threads.append(temp_thread)
         self.updateStockService.isUpdating = True
 
-    def __ScheduleStart(self, input):
+    def __ScheduleStart(self):
         t = threading.currentThread()
         while getattr(t, "do_run", True):
             schedule.run_pending()

@@ -9,6 +9,7 @@ from MongoService import MongoService
 from ReadLoadSystem import ReadLoadSystem
 from ScheduleService import ScheduleService
 from SqlService import SqlService
+from ThreadPool import ThreadPool
 
 app = QtWidgets.QApplication(sys.argv)
 Globals.MYSQL = SqlService()
@@ -16,11 +17,13 @@ Globals.MYSQL.RunMysql()
 Globals.DRAWFIGUR = DrawFigur()
 Globals.MONGO = MongoService()
 Globals.MONGO.RunMongoDB()
-
+Globals.THREADPOOL = ThreadPool()
 Globals.READLOAD = ReadLoadSystem()
 Schedule = ScheduleService(Globals.MYSQL, Globals.READLOAD)
 mediator_controller = Mediator_Controller(Schedule)
 mediator_controller.ShowWindow(controllers.Main)
+
+threadpool = ThreadPool(max_workers=5)
 
 try:
     sys.exit(app.exec_())
