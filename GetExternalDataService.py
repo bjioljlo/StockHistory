@@ -130,7 +130,7 @@ class TGetExternalData(IGetExternalData):
                 if year > 1990:
                     year -= 1911
                 url = (
-                    "https://mops.twse.com.tw/nas/t21/sii/t21sc03_"
+                    "https://mopsov.twse.com.tw/nas/t21/sii/t21sc03_"
                     + str(year)
                     + "_"
                     + str(start.month)
@@ -138,7 +138,7 @@ class TGetExternalData(IGetExternalData):
                 )
                 if year <= 98:
                     url = (
-                        "https://mops.twse.com.tw/nas/t21/sii/t21sc03_"
+                        "https://mopsov.twse.com.tw/nas/t21/sii/t21sc03_"
                         + str(year)
                         + "_"
                         + str(start.month)
@@ -174,7 +174,7 @@ class TGetExternalData(IGetExternalData):
                 # 偽停頓
                 time.sleep(1.5)
 
-            m_data = pd.read_csv(fileName)
+            m_data = pd.read_csv(fileName + ".csv")
             m_data.drop(m_data.tail(1).index, inplace=True)
             # 整理一下資料
             m_data.rename(columns={"公司代號": "code"}, inplace=True)
