@@ -1,47 +1,21 @@
-import threading
-import time
-from datetime import datetime
-
-import schedule
-
-from ReadLoadSystem import ReadLoadSystem
-from SqlService import SqlService
+import Globals
 from StockInfos import UserInfoDatas
 from UpdateStockService import UpdateStockService
 
 
 class ScheduleService:
-    def __init__(self, sql: SqlService, readLoad: ReadLoadSystem) -> None:
+    def __init__(self) -> None:
         self.updateStockService: UpdateStockService = UpdateStockService()
-        self.threads = []
 
     def RunScheduleNow(self, MainUserInfoDatas: UserInfoDatas):
-        self.__RunSchedule(
+        self.updateStockService.isUpdating = True
+        Globals.THREADPOOL.submit_task(
             self.updateStockService.UpdateAllStocksHandle,
-            str(datetime.today().hour).zfill(2)
-            + ":"
-            + str(datetime.today().minute + 1).zfill(2)
-            + ":01",
-            MainUserInfoDatas,
+            MainUserInfoDatas=MainUserInfoDatas,
         )
+        Globals.THREADPOOL.submit_task(self.updateStockService.UpdateStocksHandle, delay=1800)
+        Globals.THREADPOOL.submit_task(self.updateStockService.UpdateADLHandle, delay=1800)
 
     def StopThreadSchedule(self):
-        for thread in self.threads:
-            thread.do_run = False
-        self.threads.clear()
-        self.updateStockService.isUpdating = False
+        Globals.THREADPOOL.shutdown()
         print("thread all stop")
-
-    def __RunSchedule(self, func, UpdateTime: str, _args: tuple = None):
-        print("RunSchedule at:" + UpdateTime)
-        schedule.every().day.at(UpdateTime).do(func, _args)
-        temp_thread = threading.Thread(target=self.__ScheduleStart)
-        temp_thread.start()
-        self.threads.append(temp_thread)
-        self.updateStockService.isUpdating = True
-
-    def __ScheduleStart(self):
-        t = threading.currentThread()
-        while getattr(t, "do_run", True):
-            schedule.run_pending()
-            time.sleep(0.5)

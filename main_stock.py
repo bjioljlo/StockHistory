@@ -3,7 +3,7 @@ import sys
 from PyQt5 import QtWidgets
 
 import Globals
-from Controller import Mediator_Controller, controllers
+from Controller.MediatorController import Mediator_Controller, controllers
 from DrawFigur import DrawFigur
 from MongoService import MongoService
 from ReadLoadSystem import ReadLoadSystem
@@ -19,10 +19,9 @@ Globals.MONGO = MongoService()
 Globals.MONGO.RunMongoDB()
 Globals.THREADPOOL = ThreadPool()
 Globals.READLOAD = ReadLoadSystem()
-Schedule = ScheduleService(Globals.MYSQL, Globals.READLOAD)
+Schedule = ScheduleService()
 mediator_controller = Mediator_Controller(Schedule)
 mediator_controller.ShowWindow(controllers.Main)
-
 threadpool = ThreadPool(max_workers=5)
 
 try:

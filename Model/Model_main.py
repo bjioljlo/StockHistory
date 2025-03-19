@@ -292,9 +292,6 @@ class Model_main(TModel):
         )
         data_result = main_imge.get_Chart()
         return data_result
-        self.df.draw_RP(
-            data_result, 0, main_imge._report._name, main_imge._report._name, "ADL"
-        )
 
     def ADLs(self, RecordMainParameter: RecordMainParameter):
         """騰落比例指標"""
