@@ -7,14 +7,16 @@ class ScheduleService:
     def __init__(self) -> None:
         self.updateStockService: UpdateStockService = UpdateStockService()
 
-    def RunScheduleNow(self, MainUserInfoDatas: UserInfoDatas):
+    def RunUpdateInfoNow(self, MainUserInfoDatas: UserInfoDatas):
         self.updateStockService.isUpdating = True
+        Globals.THREADPOOL.enable_queue_mode(True)
         Globals.THREADPOOL.submit_task(
             self.updateStockService.UpdateAllStocksHandle,
             MainUserInfoDatas=MainUserInfoDatas,
         )
-        Globals.THREADPOOL.submit_task(self.updateStockService.UpdateStocksHandle, delay=1800)
-        Globals.THREADPOOL.submit_task(self.updateStockService.UpdateADLHandle, delay=1800)
+
+        Globals.THREADPOOL.submit_task(self.updateStockService.UpdateStocksHandle)
+        Globals.THREADPOOL.submit_task(self.updateStockService.UpdateADLHandle)
 
     def StopThreadSchedule(self):
         Globals.THREADPOOL.shutdown()

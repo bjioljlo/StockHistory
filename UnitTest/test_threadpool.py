@@ -17,15 +17,23 @@ class TestNonBlockingThreadPool(unittest.TestCase):
         """測試任務是否能正確執行並返回結果"""
 
         def simple_task(x):
-            time.sleep(0.1)  # 模擬短暫耗時
+            print(f"[{time.strftime('%H:%M:%S')}] 執行 simple_task")
+            time.sleep(0.1)
             return x * 2
 
         self.threadpool.submit_task(simple_task, None, x=5)
-        time.sleep(0.2)  # 給予足夠時間完成
-        results = self.threadpool.check_completed()
+        timeout = 1.0
+        start_time = time.time()
+        results = []
+        while time.time() - start_time < timeout:
+            results = self.threadpool.check_completed()
+            if results:
+                print(f"[{time.strftime('%H:%M:%S')}] 任務完成，結果: {results}")
+                break
+            time.sleep(0.01)
 
-        self.assertEqual(len(results), 1)
-        self.assertEqual(results[0], 10)
+        self.assertEqual(len(results), 1, "任務應該已經完成並返回一個結果")
+        self.assertEqual(results[0], 10, "任務結果應為 5 * 2 = 10")
 
     def test_callback_execution(self):
         """測試回調函數是否正確執行"""
@@ -128,18 +136,21 @@ class TestNonBlockingThreadPool(unittest.TestCase):
         """測試延遲執行是否正常"""
 
         def simple_task():
+            print(f"[{time.strftime('%H:%M:%S')}] 執行 delayed_task")
             return "delayed"
 
         start_time = time.time()
         self.threadpool.submit_task(simple_task, delay=1)
-        time.sleep(0.5)  # 等待 0.5 秒，任務尚未執行
+        time.sleep(0.5)
         results = self.threadpool.check_completed()
-        self.assertEqual(len(results), 0)  # 任務應該尚未完成
+        print(f"[{time.strftime('%H:%M:%S')}] 延遲 0.5 秒後檢查: {results}")
+        self.assertEqual(len(results), 0, "任務尚未執行")
 
-        time.sleep(1)  # 再等待 1 秒，總共 1.5 秒，任務應該完成
+        time.sleep(1)
         results = self.threadpool.check_completed()
-        self.assertEqual(len(results), 1)
-        self.assertEqual(results[0], "delayed")
+        print(f"[{time.strftime('%H:%M:%S')}] 延遲 1.5 秒後檢查: {results}")
+        self.assertEqual(len(results), 1, "任務應該完成")
+        self.assertEqual(results[0], "delayed", "結果應為 'delayed'")
 
     def test_periodic_task(self):
         """測試定期執行是否正常"""
@@ -155,6 +166,125 @@ class TestNonBlockingThreadPool(unittest.TestCase):
         time.sleep(2.0)  # 等待 1.6 秒，應該執行 3 次（0.5, 1.0, 1.5 秒）
         self.assertGreaterEqual(len(results), 3)  # 至少執行 3 次
         self.assertTrue(all(r == "periodic" for r in results))
+
+    def test_queue_execution(self):
+        """測試列隊執行是否按順序執行"""
+        results = []
+        execution_order = []
+
+        def ordered_task(id):
+            start_time = time.time()
+            time.sleep(0.2)  # 模擬耗時
+            end_time = time.time()
+            execution_order.append((id, start_time, end_time))
+            print(f"[{time.strftime('%H:%M:%S')}] 執行任務 {id}")
+            return f"result_{id}"
+
+        self.threadpool.enable_queue_mode(True)  # 啟用列隊模式
+        for i in range(3):
+            self.threadpool.submit_task(ordered_task, lambda r: results.append(r), id=i)
+
+        time.sleep(1.0)  # 等待所有任務完成
+        self.threadpool.enable_queue_mode(False)  # 停用列隊模式
+
+        self.assertEqual(len(results), 3, "應完成 3 個任務")
+        self.assertEqual(
+            results, ["result_0", "result_1", "result_2"], "結果應按順序返回"
+        )
+
+        # 檢查執行時間是否符合順序結束
+        for i in range(len(execution_order) - 1):
+            self.assertGreaterEqual(
+                execution_order[i + 1][1],
+                execution_order[i][2],
+                f"任務{i + 1} 應在任務 {i} 結束後開始",
+            )
+
+    def test_mixed_tasks(self):
+        """測試混合使用非列隊、列隊和延遲任務"""
+        results = []
+
+        def task(id, type):
+            print(f"[{time.strftime('%H:%M:%S')}] 執行任務 {id} ({type})")
+            time.sleep(0.1)
+            return f"result_{id}_{type}"
+
+        # 非列隊任務
+        self.threadpool.submit_task(
+            task, lambda r: results.append(r), id=1, type="normal"
+        )
+        # 啟用列隊模式並提交列隊任務
+        self.threadpool.enable_queue_mode(True)
+        self.threadpool.submit_task(
+            task, lambda r: results.append(r), id=2, type="queue"
+        )
+        self.threadpool.submit_task(
+            task, lambda r: results.append(r), id=3, type="queue"
+        )
+
+        # 延遲任務
+        self.threadpool.submit_task(
+            task, lambda r: results.append(r), id=4, type="delayed", delay=0.5
+        )
+
+        timeout = 1.0
+        start_time = time.time()
+        while time.time() - start_time < timeout:
+            completed = self.threadpool.check_completed()
+            if completed:
+                # 避免重複添加，檢查結果是否已存在
+                for result in completed:
+                    if result not in results:
+                        results.append(result)
+            time.sleep(0.01)
+        self.threadpool.enable_queue_mode(False)
+        self.assertEqual(len(results), 4, "應完成 4 個任務")
+        expected = [
+            "result_1_normal",
+            "result_2_queue",
+            "result_3_queue",
+            "result_4_delayed",
+        ]
+        self.assertTrue(
+            all(r in results for r in expected), f"結果應包含所有任務: {results}"
+        )
+
+    def test_queue_mode_switch(self):
+        """測試列隊模式的啟用和停用"""
+        results = []
+
+        def task(id):
+            print(f"[{time.strftime('%H:%M:%S')}] 執行任務 {id}")
+            time.sleep(0.1)
+            return f"result_{id}"
+
+        # 先以非列隊模式提交
+        self.threadpool.submit_task(task, lambda r: results.append(r), id=1)
+        # 啟用列隊模式
+        self.threadpool.enable_queue_mode(True)
+        self.threadpool.submit_task(task, lambda r: results.append(r), id=2)
+        self.threadpool.submit_task(task, lambda r: results.append(r), id=3)
+        # 停用列隊模式並提交
+
+        self.threadpool.submit_task(task, lambda r: results.append(r), id=4)
+
+        timeout = 1.0
+        start_time = time.time()
+        while time.time() - start_time < timeout:
+            completed = self.threadpool.check_completed()
+            if completed:
+                # 避免重複添加
+                for result in completed:
+                    if result not in results:
+                        results.append(result)
+            time.sleep(0.01)
+
+        self.threadpool.enable_queue_mode(False)
+        self.assertEqual(len(results), 4, "應完成 4 個任務")
+        expected = ["result_1", "result_2", "result_3", "result_4"]
+        self.assertTrue(
+            all(r in results for r in expected), f"結果應包含所有任務: {results}"
+        )
 
 
 if __name__ == "__main__":

@@ -351,7 +351,7 @@ class Model_main(TModel):
         )
 
     def RunSchedule(self):
-        self._ScheduleService.RunScheduleNow(self.MainUserInfoData)
+        self._ScheduleService.RunUpdateInfoNow(self.MainUserInfoData)
 
     def StopThreadSchedule(self):
         self._ScheduleService.StopThreadSchedule()
