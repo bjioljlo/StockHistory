@@ -291,16 +291,19 @@ class TGetExternalData(IGetExternalData):
         )
         if type(date) is str:
             date = datetime.strptime(date, "%Y-%m-%d")
-        time = date
-        str_date = Tools.DateTime2String(time)
-        time_yesterday = Tools.backWorkDays(time, 1)
 
+        time = date
+        while time not in self.get_stock_history("2330", time).index:
+            time = Tools.backWorkDays(time, 1)  # 加一天
+        str_date = Tools.DateTime2String(time)
+
+        time_yesterday = Tools.backWorkDays(time, 1)
         while (
             time_yesterday not in self.get_stock_history("2330", time_yesterday).index
         ):
             time_yesterday = Tools.backWorkDays(time_yesterday, 1)  # 加一天
-
         str_yesterday = Tools.DateTime2String(time_yesterday)
+
         fileName = self.filePath + "/" + self.fileName_index + "/" + "AD_index"
 
         ADindex_result = Globals.READLOAD.load_other_file(fileName, "AD_index")
@@ -324,7 +327,13 @@ class TGetExternalData(IGetExternalData):
                 if Tools.check_no_use_stock(value.code):
                     print("get_stock_price: " + str(value.code) + " in no use")
                     continue
-                m_history = self.get_stock_history(value.code, str_yesterday)["Close"]
+                try:
+                    m_history = self.get_stock_history(value.code, str_yesterday)[
+                        "Close"
+                    ]
+                except Exception:
+                    print("get " + str(value.code) + " info fail!")
+                    continue
                 try:
                     if m_history[str_yesterday] > m_history[str_date]:
                         down = down + 1
