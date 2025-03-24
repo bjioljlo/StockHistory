@@ -35,6 +35,10 @@ class MainParameter(RecordMainParameter):
 
 # 主畫面
 class MyWindow(QtWidgets.QMainWindow, Ui_MainWindow):
-    def __init__(self):
+    def __init__(self, _closeEvent):
         super(MyWindow, self).__init__()
         self.setupUi(self)
+        self.closeFuction = _closeEvent
+
+    def closeEvent(self, event):
+        self.closeFuction()

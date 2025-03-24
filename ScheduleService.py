@@ -14,10 +14,11 @@ class ScheduleService:
             self.updateStockService.UpdateAllStocksHandle,
             MainUserInfoDatas=MainUserInfoDatas,
         )
-
         Globals.THREADPOOL.submit_task(self.updateStockService.UpdateStocksHandle)
         Globals.THREADPOOL.submit_task(self.updateStockService.UpdateADLHandle)
+        Globals.THREADPOOL.enable_queue_mode(False)
 
     def StopThreadSchedule(self):
+        print("開始清理異步內存")
         Globals.THREADPOOL.shutdown()
         print("thread all stop")

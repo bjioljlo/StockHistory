@@ -162,25 +162,19 @@ class ThreadPool:
     def _run_queue(self):
         """處理列隊任務，確保任務按順序執行"""
         while self.running:
-            if self.is_queue_mode:
-                task = None
+            task = None
+            with self.queue_lock:
+                if self.queue_tasks and not self.is_processing_queue:
+                    self.is_processing_queue = True
+                    task = self.queue_tasks.pop(0)  # 取出第一個任務
+            if task:
+                print(f"[{time.strftime('%H:%M:%S')}] 執行列隊任務")
+                future = self._execute_task(task)  # 執行任務
+                future.result()  # 等待任務完成
+                with self.futures_lock:
+                    self.futures.append(future)  # 在任務完成後加入 futures
                 with self.queue_lock:
-                    print(
-                        f"[{time.strftime('%H:%M:%S')}] _run_queue 獲取 queue_lock 取出任務"
-                    )
-                    if self.queue_tasks and not self.is_processing_queue:
-                        self.is_processing_queue = True
-                        task = self.queue_tasks.pop(0)  # 取出第一個任務
-                    print(f"[{time.strftime('%H:%M:%S')}] _run_queue 釋放 queue_lock")
-                if task:
-                    print(f"[{time.strftime('%H:%M:%S')}] 執行列隊任務")
-                    future = self._execute_task(task)  # 執行任務
-                    future.result()  # 等待任務完成
-                    with self.futures_lock:
-                        self.futures.append(future)  # 在任務完成後加入 futures
-                    with self.queue_lock:
-                        self.is_processing_queue = False
-                    print(f"[{time.strftime('%H:%M:%S')}] 列隊任務完成")
+                    self.is_processing_queue = False
             time.sleep(0.05)  # 短暫休息，避免過高 CPU 使用
 
     def wait_all(self) -> None:

@@ -4,6 +4,7 @@ from datetime import datetime
 from Model.Model_backtest import Model_backtest
 from Model.Model_main import Model_main
 from Model.Model_pick import Model_pick
+from ScheduleService import ScheduleService
 from View.View_backtest import BackTest_Window, MyBacktestWindow
 from View.View_main import Main_Window, MyWindow
 from View.View_pick import MyPickWindow, Pick_Window
@@ -37,10 +38,10 @@ class IMediator_Controller(ABC):
 class Mediator_Controller(IMediator_Controller):
     """controller的中介者"""
 
-    def __init__(self, Schedule) -> None:
+    def __init__(self, Schedule: ScheduleService) -> None:
         self._main_controller: IController = Controller_Factory(
             controllers.Main,
-            Main_Window(MyWindow()),
+            Main_Window(MyWindow(Schedule.StopThreadSchedule)),
             Model_main(Schedule),
             self.GetController,
         )

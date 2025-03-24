@@ -22,10 +22,5 @@ Globals.READLOAD = ReadLoadSystem()
 Schedule = ScheduleService()
 mediator_controller = Mediator_Controller(Schedule)
 mediator_controller.ShowWindow(controllers.Main)
-threadpool = ThreadPool(max_workers=5)
 
-try:
-    sys.exit(app.exec_())
-except Exception:  # 退出時需要清理的方法
-    print("開始清理異步內存")
-    Schedule.StopThreadSchedule()
+sys.exit(app.exec_())
