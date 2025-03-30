@@ -1,6 +1,7 @@
 import matplotlib.pyplot as plt
 import mplfinance as mpf
 import numpy as np
+import seaborn as sns
 import talib
 from pandas import DataFrame
 
@@ -118,12 +119,14 @@ class DrawFigur:
         plt.title(stockNum)
         plt.show()
 
-    def draw_backtest(self, data: DataFrame):
-        ax4 = plt.axes()
-        ax4.plot(data, label="回測結果", color="b")
+    def draw_backtest(self, _data: DataFrame):
+        plt.figure(figsize=(15, 10))
+        sns.lineplot(x="date", y="資產比例", data=_data)
+        sns.set_style("darkgrid")
         plt.xlabel("date")
         plt.ylabel("%")
-        plt.show()
+        plt.savefig("回測結果.png")
+        plt.close()
 
     def draw_backtest2(self, data: DataFrame):
         ax5 = plt.axes()
