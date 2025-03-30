@@ -60,8 +60,11 @@ class Model_backtest(TModel):
 
     def backtest5(self, _recordBackTestParameter: RecordBackTestParameter):  # KD篩選
         self.Set_BackTestCheck(_recordBackTestParameter)
-        _data = self.backtestFunc.backtest_KD_pick(_recordBackTestParameter)
-        self.df.draw_backtest(_data)
+        Globals.THREADPOOL.submit_task(
+            self.backtestFunc.backtest_KD_pick,
+            self.df.draw_backtest,
+            mainParament=_recordBackTestParameter,
+        )
 
     def backtest6(self, _recordBackTestParameter: RecordBackTestParameter):  # PEG篩選
         self.Set_BackTestCheck(_recordBackTestParameter)

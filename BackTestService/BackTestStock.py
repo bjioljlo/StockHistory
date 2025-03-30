@@ -58,7 +58,7 @@ class BackTestStock:
     def BuyStrockFun(aName: str, aIsBuy: bool):
         pass
 
-    def backtest_KD_pick(self, mainParament: RecordBackTestParameter):
+    def backtest_KD_pick(self, mainParament: RecordBackTestParameter) -> pd.DataFrame:
         """
         KD值選股
         https://www.finlab.tw/%e7%94%a8kd%e5%80%bc%e9%81%b8%e8%82%a1%ef%bc%9a%e9%82%84%e9%9c%80%e6%90%ad%e9%85%8d%e9%80%99%e4%b8%89%e7%a8%ae%e6%8c%87%e6%a8%99/
@@ -102,7 +102,7 @@ class BackTestStock:
             while userInfo.BaseInfoData.now_day != index:
                 if not add_one_day():
                     break
-            has_trade = False
+            has_trade = False 
 
             self._BackTestFilterData.GoToNextWorkDay(userInfo.BaseInfoData.now_day)
 
