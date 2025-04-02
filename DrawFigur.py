@@ -85,19 +85,6 @@ class DrawFigur:
             mpf.make_addplot(table, panel=self.panelCount, color="blue", ylabel="ADL")
         )
 
-    def draw_ADLs(self, table: DataFrame):
-        self.panelCount = self.panelCount + 1
-        table_fast = Tools.smooth_Data(table, 10)
-        table_slow = Tools.smooth_Data(table, 30)
-        self.PICS.append(
-            mpf.make_addplot(table_fast, panel=self.panelCount, color="red")
-        )
-        self.PICS.append(
-            mpf.make_addplot(
-                table_slow, panel=self.panelCount, color="blue", ylabel="ADLs"
-            )
-        )
-
     def draw_MACD(self, table: DataFrame):
         self.panelCount = self.panelCount + 1
         macd, macdsignal, macdhist = talib.MACD(table["Close"])
@@ -119,7 +106,7 @@ class DrawFigur:
         plt.title(stockNum)
         plt.show()
 
-    def draw_backtest(self, _data: DataFrame):
+    def draw_BackTestResult(self, _data: DataFrame):
         plt.figure(figsize=(15, 10))
         sns.lineplot(x="date", y="資產比例", data=_data)
         sns.set_style("darkgrid")
@@ -127,16 +114,6 @@ class DrawFigur:
         plt.ylabel("%")
         plt.savefig("回測結果.png")
         plt.close()
-
-    def draw_backtest2(self, data: DataFrame):
-        ax5 = plt.axes()
-        ax5.plot(data, label="回測結果", color="r")
-        plt.xlabel("date")
-        plt.ylabel("number")
-        plt.show()
-
-    def draw_Show(self):
-        plt.show()
 
     def Clear_PICS(self):
         self.PICS = []
