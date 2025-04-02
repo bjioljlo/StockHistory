@@ -40,33 +40,33 @@ class Model_backtest(TModel):
         else:
             self.Set_BackTestCheck(_recordBackTestParameter)
         _data = self.backtestFunc.backtest_monthRP_Up_Fast(_recordBackTestParameter)
-        self.df.draw_backtest(_data)
+        self.df.draw_BackTestResult(_data)
 
     def backtest2(
         self, _recordBackTestParameter: RecordBackTestParameter
     ):  # PER PBR 回測開始紐
         self.Set_BackTestCheck(_recordBackTestParameter)
         _data = self.backtestFunc.backtest_PERandPBR_Fast(_recordBackTestParameter)
-        self.df.draw_backtest(_data)
+        self.df.draw_BackTestResult(_data)
 
     def backtest3(self, _recordBackTestParameter: RecordBackTestParameter):  # 定期定額
         _data = self.backtestFunc.backtest_Regular_quota_Fast(_recordBackTestParameter)
-        self.df.draw_backtest(_data)
+        self.df.draw_BackTestResult(_data)
 
     def backtest4(self, _recordBackTestParameter: RecordBackTestParameter):  # 創新高
         self.Set_BackTestCheck(_recordBackTestParameter)
         _data = self.backtestFunc.backtest_Record_high_Fast(_recordBackTestParameter)
-        self.df.draw_backtest(_data)
+        self.df.draw_BackTestResult(_data)
 
     def backtest5(self, _recordBackTestParameter: RecordBackTestParameter):  # KD篩選
         self.Set_BackTestCheck(_recordBackTestParameter)
         Globals.THREADPOOL.submit_task(
             self.backtestFunc.backtest_KD_pick,
-            self.df.draw_backtest,
+            self.df.draw_BackTestResult,
             mainParament=_recordBackTestParameter,
         )
 
     def backtest6(self, _recordBackTestParameter: RecordBackTestParameter):  # PEG篩選
         self.Set_BackTestCheck(_recordBackTestParameter)
         _data = self.backtestFunc.backtest_PEG_pick_Fast(_recordBackTestParameter)
-        self.df.draw_backtest(_data)
+        self.df.draw_BackTestResult(_data)

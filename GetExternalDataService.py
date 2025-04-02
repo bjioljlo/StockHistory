@@ -205,37 +205,40 @@ class TGetExternalData(IGetExternalData):
         # 去資料庫抓資料
         m_yield = Globals.READLOAD.load_month_file(fileName, file)
 
-        if m_yield.empty and (
-            self.get_stock_history("2330", start)["Volume"][
-                Tools.DateTime2String(start)
-            ]
-            > 0
-        ):
-            if not os.path.isfile(fileName + ".csv"):
-                url = (
-                    "https://www.twse.com.tw/exchangeReport/BWIBBU_d?response=csv&date="
-                    + str(start.year)
-                    + str(start.month).zfill(2)
-                    + str(start.day).zfill(2)
-                    + "&selectType=ALL"
-                )
-                response = requests.get(url, Tools.get_random_Header())
-                Globals.READLOAD.save_stock_file(fileName, response, 1, 2)
-                # 偽停頓
-                time.sleep(3)
-            try:
-                m_yield = pd.read_csv(fileName + ".csv", encoding="ANSI")
-            except pd.errors.EmptyDataError:
-                print("no " + fileName + " csv file ")
-            except pd.errors.ParserError:
-                print("get Parser error " + fileName + " csv file")
-            except UnicodeDecodeError:
-                print("get UnicodeDecode error " + fileName + " csv file")
-            # 整理一下資料
-            m_yield.rename(columns={"證券代號": "code"}, inplace=True)
-            m_yield.set_index("code", inplace=True)
-            # 存到資料庫
-            Globals.MYSQL.saveTable(file, m_yield)
+        try:
+            if m_yield.empty and (
+                self.get_stock_history("2330", start)["Volume"][
+                    Tools.DateTime2String(start)
+                ]
+                > 0
+            ):
+                if not os.path.isfile(fileName + ".csv"):
+                    url = (
+                        "https://www.twse.com.tw/exchangeReport/BWIBBU_d?response=csv&date="
+                        + str(start.year)
+                        + str(start.month).zfill(2)
+                        + str(start.day).zfill(2)
+                        + "&selectType=ALL"
+                    )
+                    response = requests.get(url, Tools.get_random_Header())
+                    Globals.READLOAD.save_stock_file(fileName, response, 1, 2)
+                    # 偽停頓
+                    time.sleep(3)
+                try:
+                    m_yield = pd.read_csv(fileName + ".csv", encoding="ANSI")
+                except pd.errors.EmptyDataError:
+                    print("no " + fileName + " csv file ")
+                except pd.errors.ParserError:
+                    print("get Parser error " + fileName + " csv file")
+                except UnicodeDecodeError:
+                    print("get UnicodeDecode error " + fileName + " csv file")
+                # 整理一下資料
+                m_yield.rename(columns={"證券代號": "code"}, inplace=True)
+                m_yield.set_index("code", inplace=True)
+                # 存到資料庫
+                Globals.MYSQL.saveTable(file, m_yield)
+        except Exception:
+            return pd.DataFrame()
         Globals.READLOAD.Memery[fileName] = m_yield
         return m_yield
 
