@@ -194,10 +194,13 @@ class SMA_Stock(VirtualStockFuc):
 
     def get_ALL(self):
         Temp = self.Stock.get_ALL()
-        mclose = talib.SMA(
-            Temp[self.PriceType], self.AvgDay
-        )  # 不用np.array也可以將均線和蠟燭圖放一起
-        return mclose
+        try:
+            mclose = talib.SMA(
+                Temp[self.PriceType], self.AvgDay
+            )  # 不用np.array也可以將均線和蠟燭圖放一起
+            return mclose
+        except Exception:
+            return DataFrame()
 
 
 class RecordHigh_Stock(VirtualStockFuc):
