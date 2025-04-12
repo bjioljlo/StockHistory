@@ -57,7 +57,7 @@ class IBackTestInfoData(ABC):
         )
 
     @abstractmethod
-    def BuyAllStock(self, data: DataFrame):
+    def BuyAllStock(self, data: DataFrame) -> bool:
         raise NotImplementedError(
             "{} is virutal! Must be overwrited.".format(sys._getframe().f_code.co_name)
         )
@@ -69,7 +69,7 @@ class IBackTestInfoData(ABC):
         )
 
     @abstractmethod
-    def GoToNextWorkDay(self, _dateNow: datetime):
+    def GoToNextWorkDay(self, _dateNow: datetime) -> bool:
         raise NotImplementedError(
             "{} is virutal! Must be overwrited.".format(sys._getframe().f_code.co_name)
         )
@@ -98,13 +98,13 @@ class TBackTestInfoData(IBackTestInfoData):
         self._HandleStock: dict[str, IStockInfoDataInHand] = {}  # 手持股票
         self._GetStockPrice: OriginalStock = _getStockPrice
         self._TempResultDraw: IBackTestRecord = BackTestRecord_indexWithDate(
-            ["date", "資產比例"]
+            ["date", "資產比例"], "backtest_data"
         )
         self._TempResultAll: IBackTestRecord = BackTestRecord_indexWithDate(
-            ["date", "股票資產", "剩餘現金", "總資產"]
+            ["date", "股票資產", "剩餘現金", "總資產"], "backtest_asset"
         )
         self._TempTradeInfo: IBackTestRecord = BackTestRecord_indexWithDate(
-            ["date", "號碼", "數量", "均價"]
+            ["date", "號碼", "數量", "均價"], "backtest_trade"
         )
 
     def _GetUserStockAsset(self) -> int:
@@ -151,20 +151,26 @@ class TBackTestInfoData(IBackTestInfoData):
         for key, value in list(self._HandleStock.items()):
             self.SellStock(key, value.Amount)
 
-    def BuyAllStock(self, data: DataFrame):
+    def BuyAllStock(self, data: DataFrame) -> bool:
         """買入所有股票"""
+        result = False
         while len(data) > 0:
             for index, row in data.iterrows():
                 if not self.BuyStock(index, 1000):
                     data = data.drop(index=index)
+                else:
+                    result = True
+        return result
 
-    def GoToNextWorkDay(self, _dateNow):
-        if (self._BaseInfoData.now_day < _dateNow) and (
-            self._BaseInfoData.end_day > _dateNow
+    def GoToNextWorkDay(self, _dateNow: datetime) -> bool:
+        if (self._BaseInfoData.now_day <= _dateNow) and (
+            self._BaseInfoData.end_day >= _dateNow
         ):
             self._BaseInfoData.now_day = _dateNow
+            return True
         else:
             print("輸入日期錯誤")
+            return False
 
     def RunFinish(self):
         self._TempResultDraw.RunFinish()
@@ -244,7 +250,6 @@ class BackTestInfoDataPriceByToday(TBackTestInfoData):
     def AddOneDay(self):
         """過一天"""
         if self._BaseInfoData.now_day >= self._BaseInfoData.end_day:
-            self.RunFinish()
             return False
         else:
             self._BaseInfoData.now_day = self._BaseInfoData.now_day + timedelta(

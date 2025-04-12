@@ -50,8 +50,12 @@ class Model_backtest(TModel):
         self.df.draw_BackTestResult(_data)
 
     def backtest3(self, _recordBackTestParameter: RecordBackTestParameter):  # 定期定額
-        _data = self.backtestFunc.backtest_Regular_quota_Fast(_recordBackTestParameter)
-        self.df.draw_BackTestResult(_data)
+        self.Set_BackTestCheck(_recordBackTestParameter)
+        Globals.THREADPOOL.submit_task(
+            self.backtestFunc.backtest_Regular_quota_Fast,
+            self.df.draw_BackTestResult,
+            mainParament=_recordBackTestParameter,
+        )
 
     def backtest4(self, _recordBackTestParameter: RecordBackTestParameter):  # 創新高
         self.Set_BackTestCheck(_recordBackTestParameter)
@@ -68,5 +72,8 @@ class Model_backtest(TModel):
 
     def backtest6(self, _recordBackTestParameter: RecordBackTestParameter):  # PEG篩選
         self.Set_BackTestCheck(_recordBackTestParameter)
-        _data = self.backtestFunc.backtest_PEG_pick_Fast(_recordBackTestParameter)
-        self.df.draw_BackTestResult(_data)
+        Globals.THREADPOOL.submit_task(
+            self.backtestFunc.backtest_PEG_pick_Fast,
+            self.df.draw_BackTestResult,
+            mainParament=_recordBackTestParameter,
+        )
