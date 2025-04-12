@@ -22,8 +22,9 @@ class IBackTestRecord(ABC):
 
 
 class TBackTestRecord(IBackTestRecord):
-    def __init__(self, _columns: list[str]):
+    def __init__(self, _columns: list[str], saveName: str):
         self._data: DataFrame = DataFrame(columns=_columns)
+        self._saveName: str = saveName
 
     @property
     def Data(self) -> DataFrame:
@@ -31,6 +32,7 @@ class TBackTestRecord(IBackTestRecord):
 
     def RunFinish(self):
         self._data.set_index(self._data.columns[0], inplace=True)
+        self._data.to_csv(self._saveName + ".csv")
 
 
 class BackTestRecord_indexWithDate(TBackTestRecord):

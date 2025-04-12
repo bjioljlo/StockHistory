@@ -2,19 +2,24 @@ import sys
 from abc import ABC, abstractmethod
 from datetime import datetime
 from enum import Enum
+from typing import List
 
 import numpy as np
 import pandas as pd
 import talib
 
+from FilterService.StockHistory import SMA_Stock
 import Tools
 from FilterService import All_fuc, Indicator, OriginalStock
+import InfomationType as info
 
 
 # ISignal
 class BacktestSignalType(Enum):
     KD = 1
     Date = 2
+    PEG = 3
+    RegularQuota = 4
 
 
 class IBacktestSignal(ABC):
@@ -38,9 +43,11 @@ class IBacktestSignal(ABC):
 
 def BacktestSignalFactory(
     _StrategyType: BacktestSignalType, _originalStock: OriginalStock
-) -> IBacktestSignal:
+):
     if _StrategyType == BacktestSignalType.KD:
         return KD_pickBacktestSignal(_originalStock)
+    elif _StrategyType == BacktestSignalType.PEG:
+        return PEG_pickBacktestSignal(_originalStock)
     else:
         return None
 
@@ -50,6 +57,39 @@ class TBacktestSignal(IBacktestSignal):
 
     def __init__(self) -> None:
         super(TBacktestSignal, self).__init__()
+
+    def GetSignalResult(self, InputData: pd.Series, _Date) -> pd.Series:
+        return pd.Series()
+
+
+class PEG_pickBacktestSignal(TBacktestSignal):
+    """PEG值訊號-訊號觸發"""
+
+    def __init__(self, _GetPrice: OriginalStock) -> None:
+        super().__init__()
+        self._getPrice: OriginalStock = _GetPrice
+        self._tempSignals: pd.Series = pd.Series()
+        self._sMA_Stock = SMA_Stock(self._getPrice, 20, info.Price_type.Close)
+
+    def GetSignalResult(self, InputData: pd.Series, _Date) -> pd.Series:
+        All_stock_signal = pd.Series()
+        for key, _value in InputData.items():  # 先算出股票的買賣訊號
+            try:
+                All_stock_signal[key] = self._tempSignals[key]
+            except KeyError:
+                print(f"Error: {key} not in data/msg:{KeyError}")
+                if Tools.check_no_use_stock(key):
+                    print("get_stock_price: " + str(key) + " in no use")
+                    continue
+                self._getPrice.number = key
+                table = self._getPrice.get_ALL()
+                if table.empty:
+                    continue
+                table_sma20 = self._sMA_Stock.get_ALL()
+                signal_result = table["Close"] > table_sma20
+                All_stock_signal[key] = signal_result
+                self._tempSignals[key] = signal_result
+        return All_stock_signal
 
 
 class KD_pickBacktestSignal(TBacktestSignal):
@@ -101,6 +141,8 @@ class KD_pickBacktestSignal(TBacktestSignal):
 class BacktestFilterType(Enum):
     KD = 1
     Date = 2
+    PEG = 3
+    RegularQuota = 4
 
 
 class IBacktestFilter(ABC):
@@ -114,10 +156,12 @@ class IBacktestFilter(ABC):
 
 
 def BacktestFilterFactory(
-    _backtestFilterType: BacktestFilterType, _indicator: Indicator
+    _backtestFilterType: BacktestFilterType, _indicators: List[Indicator]
 ) -> IBacktestFilter:
     if _backtestFilterType == BacktestFilterType.KD:
-        return KD_pickBacktestFilter(_indicator)
+        return KD_pickBacktestFilter(_indicators[0])
+    elif _backtestFilterType == BacktestFilterType.PEG:
+        return PEG_pickBacktestFilter(_indicators)
     else:
         return None
 
@@ -125,30 +169,50 @@ def BacktestFilterFactory(
 class TBacktestFilter(IBacktestFilter):
     """篩選器實作"""
 
-    def __init__(self) -> None:
+    def __init__(self, _indicators: List[Indicator]) -> None:
         super(TBacktestFilter, self).__init__()
+
+
+class PEG_pickBacktestFilter(TBacktestFilter):
+    """PEG值選股-篩選器"""
+
+    def __init__(self, _indicators: List[Indicator]) -> None:
+        self.PEG_Indicator: Indicator = _indicators[0]
+        self.MonthReportUp_indicator: Indicator = _indicators[1]
+
+    def RunFilter(self, Date: datetime) -> pd.Series:
+        Result_data = {}
+        Result_data[self.PEG_Indicator.name] = All_fuc(
+            Date, self.PEG_Indicator
+        ).get_Filter_Auto(1, 0.66)
+
+        Result_data[self.MonthReportUp_indicator.name] = All_fuc(
+            Date, self.MonthReportUp_indicator
+        ).get_Smooth_Up_Auto(4, 4)
+        Result_data = Tools.MixDataFrames(Result_data)
+        return Result_data[self.PEG_Indicator.name]
 
 
 class Regular_quotatestFilter(TBacktestFilter):
     """定期定額-篩選器"""
 
     def __init__(self, _stock: str) -> None:
-        super().__init__()
         self._StockNumber: str = _stock
 
-    def RunFilter(self, Date: datetime) -> pd.DataFrame:
-        return self._StockNumber
+    def RunFilter(self, Date: datetime) -> pd.Series:
+        Result_data = {}
+        Result_data[0] = self._StockNumber
+        return Result_data
 
 
 class KD_pickBacktestFilter(TBacktestFilter):
     """KD值選股-篩選器"""
 
     def __init__(self, _indicator: Indicator) -> None:
-        super().__init__()
         self._Indicator: Indicator = _indicator
 
     def RunFilter(self, Date: datetime) -> pd.Series:
-        Result_data = {}
+        Result_data = pd.DataFrame()
         for num in range(1, 5):
             ResultKeyName = self._Indicator.name + "_data_" + str(num)
             Result_data[ResultKeyName] = pd.DataFrame(
