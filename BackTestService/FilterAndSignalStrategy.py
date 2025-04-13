@@ -215,14 +215,9 @@ class KD_pickBacktestFilter(TBacktestFilter):
         Result_data = pd.DataFrame()
         for num in range(1, 5):
             ResultKeyName = self._Indicator.name + "_data_" + str(num)
-            Result_data[ResultKeyName] = pd.DataFrame(
-                All_fuc(
-                    Tools.changeDateMonth(Date, (-3 * num)), self._Indicator
-                ).get_Filter_Auto(0, 999)
-            )
-            Result_data[ResultKeyName].rename(
-                columns={self._Indicator.name: ResultKeyName}, inplace=True
-            )
+            Result_data[ResultKeyName] = All_fuc(
+                Tools.changeDateMonth(Date, (-3 * num)), self._Indicator
+            ).get_Filter_Auto(0, 999)
         mask = Tools.MixDataFrames(Result_data)
 
         AVG_data = (
