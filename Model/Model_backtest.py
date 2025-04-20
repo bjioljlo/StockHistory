@@ -59,8 +59,11 @@ class Model_backtest(TModel):
 
     def backtest4(self, _recordBackTestParameter: RecordBackTestParameter):  # 創新高
         self.Set_BackTestCheck(_recordBackTestParameter)
-        _data = self.backtestFunc.backtest_Record_high_Fast(_recordBackTestParameter)
-        self.df.draw_BackTestResult(_data)
+        Globals.THREADPOOL.submit_task(
+            self.backtestFunc.backtest_Record_high_Fast,
+            self.df.draw_BackTestResult,
+            mainParament=_recordBackTestParameter,
+        )
 
     def backtest5(self, _recordBackTestParameter: RecordBackTestParameter):  # KD篩選
         self.Set_BackTestCheck(_recordBackTestParameter)
