@@ -129,8 +129,11 @@ class BackTestStock:
         print("回測時間:", datetime.now() - startTime)
         return userInfo._TempResultDraw.Data
 
-    def backtest_PEG_pick_Fast(self, mainParament: RecordBackTestParameter):
-        """PEG選股外加月營收增高 https://www.finlab.tw/finlab-tw-stock-peg-strategy/#PEG_ding_yi"""
+    def backtest_PEG_pick(self, mainParament: RecordBackTestParameter):
+        """
+        PEG選股外加月營收增高
+        https://www.finlab.tw/finlab-tw-stock-peg-strategy/#PEG_ding_yi
+        """
         userInfo = BackTestInfoDataPriceByToday(
             BaseInfoData(
                 mainParament.money_start,
@@ -203,8 +206,10 @@ class BackTestStock:
         print("回測時間:", datetime.now() - startTime)
         return userInfo._TempResultDraw.Data
 
-    def backtest_Regular_quota_Fast(self, mainParament: RecordBackTestParameter):
-        """定期定額"""
+    def backtest_Regular_quota(self, mainParament: RecordBackTestParameter):
+        """
+        定期定額
+        """
         userInfo = BackTestInfoDataPriceByToday(
             BaseInfoData(0, mainParament.date_start, mainParament.date_end),
             OriginalStockByYahoo(),
@@ -264,8 +269,11 @@ class BackTestStock:
         print("回測時間:", datetime.now() - startTime)
         return userInfo._TempResultDraw.Data
 
-    def backtest_Record_high_Fast(self, mainParament: RecordBackTestParameter):
-        """#創新高 https://www.finlab.tw/break-new-high-roe-stock/"""
+    def backtest_Record_high(self, mainParament: RecordBackTestParameter):
+        """
+        創新高
+        https://www.finlab.tw/break-new-high-roe-stock/
+        """
         Temp_reset = 0  # 休息日剩餘天數
         userInfo = BackTestInfoDataPriceByToday(
             BaseInfoData(
@@ -339,8 +347,8 @@ class BackTestStock:
 
     def backtest_PERandPBR_Fast(self, mainParament: RecordBackTestParameter):
         """
-        # 14年14倍
-        # https://www.finlab.tw/%E6%AF%94%E7%AD%96%E7%95%A5%E7%8B%97%E9%82%84%E8%A6%81%E5%AE%89%E5%85%A8%E7%9A%84%E9%81%B8%E8%82%A1%E7%AD%96%E7%95%A5%EF%BC%81/
+        14年14倍
+        https://www.finlab.tw/%E6%AF%94%E7%AD%96%E7%95%A5%E7%8B%97%E9%82%84%E8%A6%81%E5%AE%89%E5%85%A8%E7%9A%84%E9%81%B8%E8%82%A1%E7%AD%96%E7%95%A5%EF%BC%81/
         """
         Temp_reset = 0  # 休息日剩餘天數
         Temp_changeDays = 0  # 換股剩餘天數
