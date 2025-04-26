@@ -22,6 +22,7 @@ class BacktestSignalType(Enum):
     PEG = 3
     RegularQuota = 4
     RecordHigh = 5
+    PERandPBR = 6
 
 
 class IBacktestSignal(ABC):
@@ -178,6 +179,7 @@ class BacktestFilterType(Enum):
     PEG = 3
     RegularQuota = 4
     RecordHigh = 5
+    PERandPBR = 6
 
 
 class IBacktestFilter(ABC):
@@ -199,6 +201,8 @@ def BacktestFilterFactory(
         return PEG_pickBacktestFilter(_indicators)
     elif _backtestFilterType == BacktestFilterType.RecordHigh:
         return RecordHigh_pickBacktestFilter(_indicators)
+    elif _backtestFilterType == BacktestFilterType.PERandPBR:
+        return PERandPBR_pickBacktestFilter(_indicators)
     else:
         return None
 
@@ -293,7 +297,6 @@ class RecordHigh_pickBacktestFilter(TBacktestFilter):
             1,
             info.Price_type.High,
         )
-
         Result_data[self.ROE_Indicator.name + "_last_seson"] = All_fuc(
             Date - timedelta(weeks=12), self.ROE_Indicator
         ).get_Filter_Auto(10000, 1)
@@ -318,3 +321,34 @@ class RecordHigh_pickBacktestFilter(TBacktestFilter):
         Result = Tools.MixDataFrames(Result_data)
         Result = Result.sort_values(by="point", ascending=False)
         return Result["point"]
+
+
+class PERandPBR_pickBacktestFilter(TBacktestFilter):
+    """PER PBR-篩選器"""
+
+    def __init__(self, _indicators: List[Indicator]) -> None:
+        self.PER_Indicator: Indicator = _indicators[0]
+        self.PBR_indicator: Indicator = _indicators[1]
+
+    def RunFilter(self, Date: datetime):
+        Result_data = {}
+        Result_data[self.PER_Indicator.name] = All_fuc(
+            Date, self.PER_Indicator
+        ).get_Filter_Auto(10000, 13)
+        Result_data[self.PBR_indicator.name] = All_fuc(
+            Date, self.PBR_indicator
+        ).get_Filter_Auto(10000, 0.7)
+        Result = Tools.MixDataFrames(Result_data)
+        Result_data["price"] = All_Stock_Filters_fuc(Date, Result).get_Filter(
+            "price",
+            9999,
+            10,
+            info.Price_type.Close,
+        )
+        Result = Tools.MixDataFrames(Result_data)
+        Result_data["volume"] = All_Stock_Filters_fuc(Date, Result).get_Filter_SMA(
+            "volume", 99999999999, 500000, 5, info.Price_type.Volume
+        )
+        Result = Tools.MixDataFrames(Result_data)
+        Result = Result.sort_values(by="volume", ascending=False)
+        return Result[self.PER_Indicator.name]

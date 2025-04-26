@@ -19,6 +19,13 @@ class IBackTestInOutStrategy(ABC):
             "{} is virutal! Must be overwrited.".format(sys._getframe().f_code.co_name)
         )
 
+    @property
+    @abstractmethod
+    def FilterData(self) -> IBackTestFilterData:
+        raise NotImplementedError(
+            "{} is virutal! Must be overwrited.".format(sys._getframe().f_code.co_name)
+        )
+
     @abstractmethod
     def Out(self, data: pd.DataFrame) -> bool:
         raise NotImplementedError(
@@ -73,6 +80,12 @@ class TBacktestInOutStrategy(IBackTestInOutStrategy):
             raise
         return self._result_pick
 
+    @property
+    def FilterData(self) -> IBackTestFilterData:
+        if self._backTestFilterData is None:
+            raise
+        return self._backTestFilterData
+
     def Run(self):
         self._has_trade = False
         self._backTestFilterData.GoToNextWorkDay(self._userInfo.BaseInfoData.now_day)
@@ -91,7 +104,6 @@ class TBacktestInOutStrategy(IBackTestInOutStrategy):
                     self._has_trade = True
 
     def In(self):
-        self._backTestFilterData.RuuFilter()
         self._buy_numbers = self._backTestFilterData.ShouldBuyStocks()
         if len(self._buy_numbers) > 0:
             Temp_buy = pd.DataFrame(columns=["code", "volume"]).set_index("code")
@@ -169,6 +181,22 @@ class TBacktestInOutStrategy(IBackTestInOutStrategy):
         if not self._sell_data.empty:
             sell_data = self._sell_data.set_index("date")
             sell_data.to_csv("sell.csv")
+
+
+class PERandPBR_BackTestInOutStrategy(TBacktestInOutStrategy):
+    def Run(self):
+        super().Run()
+        self._backTestFilterData.RuuFilter()
+        self._buy_numbers = self._backTestFilterData.ShouldBuyStocks()
+
+    def Out(self):
+        if len(self._userInfo.HandleStock) > 0:
+            self._sell_numbers = self._userInfo.HandleStock.keys()
+            self._userInfo.SellAllStock()
+            self._has_trade = True
+
+    def In(self):
+        super().In()
 
 
 class PEG_BackTestInOutStrategy(TBacktestInOutStrategy):

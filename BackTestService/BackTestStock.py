@@ -10,6 +10,7 @@ from BackTestService.BackTestFilterData import (
 )
 from BackTestService.BackTestInfoData import BackTestInfoDataPriceByToday
 from BackTestService.BackTestInOutStrategy import (
+    PERandPBR_BackTestInOutStrategy,
     Regular_backTestInOutStrategy,
     TBacktestInOutStrategy,
 )
@@ -352,28 +353,43 @@ class BackTestStock:
         """
         Temp_reset = 0  # 休息日剩餘天數
         Temp_changeDays = 0  # 換股剩餘天數
-        Temp_result_pick = pd.DataFrame(columns=["date", "選股數量"])
 
         userInfo = BackTestInfoDataPriceByToday(
             BaseInfoData(
                 mainParament.money_start, mainParament.date_start, mainParament.date_end
-            )
+            ),
+            OriginalStockByYahoo(),
         )
-
-        All_data = TGetExternalData().get_stock_history(
+        external_data = ExternalDataFactory.Get_instance(ExternalDataTypeEnum.Normal)
+        All_data = external_data.get_stock_history(
             mainParament.buy_number, mainParament.date_start
         )
 
-        add_one_day = userInfo.AddOneDay
-        sell_all_stock = userInfo.SellAllStock
-        buy_all_stock = userInfo.BuyAllStock
-        for index, row in All_data.iterrows():
-            has_trade = False
-            while userInfo.BaseInfoData.now_day != index:
-                # 加一天----------------------------
-                if not add_one_day():
-                    break
+        index_PER = Original_Indicator(  # 本益比
+            "PER", Day_Report("yield_RP", 1, external_data), info.Day_type.PER
+        )
 
+        index_PBR = Original_Indicator(  # 股價淨值比
+            "PBR", Day_Report("yield_RP", 1, external_data), info.Day_type.PBR
+        )
+
+        backTestFilterData = BacktestFilterDataFactory(
+            BacktestFilterDataType.PERandPBR,
+            self.BuyStrockFun,
+            BacktestFilterFactory(BacktestFilterType.PERandPBR, [index_PER, index_PBR]),
+            BacktestSignalFactory(BacktestSignalType.PERandPBR, OriginalStockByYahoo()),
+            mainParament.date_start,
+            mainParament.date_end,
+        )
+
+        PERandPBRInOutStrategy = PERandPBR_BackTestInOutStrategy(
+            userInfo, backTestFilterData, OriginalStockByYahoo()
+        )
+
+        startTime = datetime.now()
+        for index, row in All_data.iterrows():
+            if not userInfo.GoToNextWorkDay(index):
+                break
             # 休息日直接跳過
             if Temp_reset > 0 and len(userInfo.HandleStock) == 0:
                 print(
@@ -382,115 +398,48 @@ class BackTestStock:
                     + str(Temp_reset)
                     + "天"
                 )
-                if not add_one_day():  # 加一天
-                    break
                 Temp_reset = Temp_reset - 1
-                continue
-
-            # 開始篩選--------------------------------------
-            Temp_result0 = {}
-            Temp_result = pd.DataFrame()
-            if self.bool_check_PER_pick:  # PER pick
-                Temp_result0["PER"] = GetStockData.get_PER_range(
-                    userInfo.BaseInfoData.now_day,
-                    mainParament.PER_end,
-                    mainParament.PER_start,
-                )
-            if self.bool_check_PBR_pick:  # PBR pick
-                Temp_result0["PBR"] = GetStockData.get_PBR_range(
-                    userInfo.BaseInfoData.now_day,
-                    mainParament.PBR_end,
-                    mainParament.PBR_start,
-                )
-            Temp_result = Tools.MixDataFrames(Temp_result0)
-
-            # 出場訊號篩選--------------------------------------
-            if (
-                len(Temp_result) < mainParament.Pick_amount
-                and len(userInfo.HandleStock) > 0
-            ):
-                sell_all_stock()
-                Temp_reset = 120
-                has_trade = True
-            # 出場訊號篩選--------------------------------------
-            if Temp_changeDays <= 0 and len(userInfo.HandleStock) > 0:
-                sell_all_stock()
-                has_trade = True
-
-            # 入場訊號篩選--------------------------------------
-            if (
-                len(Temp_result) >= mainParament.Pick_amount
-                and Temp_reset == 0
-                and len(userInfo.HandleStock) == 0
-            ):
-                Temp_buy0 = {"result": Temp_result}
-                if self.bool_check_price_pick:
-                    Temp_buy0["price"] = All_Stock_Filters_fuc(
-                        userInfo.BaseInfoData.now_day, Temp_result
-                    ).get_Filter(
-                        "price",
-                        mainParament.price_high,
-                        mainParament.price_low,
-                        info.Price_type.Close,
-                    )
-                    Temp_buy0["price"] = Temp_buy0["price"].sort_values(
-                        by="price", ascending=False
-                    )
-                if self.bool_check_volume_pick:
-                    Temp_buy0["volume"] = GetStockData.get_AVG_value(
-                        userInfo.BaseInfoData.now_day,
-                        mainParament.volumeAVG,
-                        mainParament.volumeDays,
-                        Temp_result,
-                    )
-                    Temp_buy0["volume"] = Temp_buy0["volume"].sort_values(
-                        by="volume", ascending=False
-                    )
-                Temp_buy = Tools.MixDataFrames(Temp_buy0)
-                if Temp_buy0.__contains__("price") and not Temp_buy0["price"].empty:
-                    Temp_buy = Temp_buy.sort_values(by="price", ascending=False)
-                if Temp_buy0.__contains__("volume") and not Temp_buy0["volume"].empty:
-                    Temp_buy = Temp_buy.sort_values(by="volume", ascending=False)
-                buy_all_stock(Temp_buy)
-                Temp_changeDays = mainParament.change_days
-                has_trade = True
-            # 更新資訊--------------------------------------
-            if len(userInfo.HandleStock) > 0 or has_trade:
-                userInfo.RecordUserInfo()
-                userInfo.RecodTradeInfo()
-                Temp_result_pick = pd.concat(
-                    [
-                        Temp_result_pick,
-                        pd.DataFrame(
-                            {
-                                "date": [userInfo.BaseInfoData.now_day],
-                                "選股數量": [len(Temp_result)],
-                            }
-                        ),
-                    ],
-                    ignore_index=True,
-                )
-            # 加一天----------------------------
-            if not add_one_day():
-                break
             else:
-                Temp_changeDays = Temp_changeDays - 1
-
-        # 最後總結算----------------------------
-        Temp_result_pick.set_index("date", inplace=True)
+                # 開始篩選
+                PERandPBRInOutStrategy.Run()
+                # 出場訊號篩選
+                if (
+                    len(PERandPBRInOutStrategy.FilterData.ShouldBuyStocks())
+                    < 100
+                    and len(userInfo.HandleStock) > 0
+                ):
+                    PERandPBRInOutStrategy.Out()
+                    Temp_reset = 120
+                # 出場訊號篩選
+                if Temp_changeDays <= 0 and len(userInfo.HandleStock) > 0:
+                    PERandPBRInOutStrategy.Out()
+                # 入場訊號篩選
+                if (
+                    len(PERandPBRInOutStrategy.FilterData.ShouldBuyStocks())
+                    >= 100
+                    and Temp_reset == 0
+                    and len(userInfo.HandleStock) == 0
+                ):
+                    PERandPBRInOutStrategy.In()
+                    Temp_changeDays = 120
+            PERandPBRInOutStrategy.Record()
+            Temp_changeDays = Temp_changeDays - 1
+        # 最後總結算
+        PERandPBRInOutStrategy.Finish()
         userInfo.RunFinish()
         Temp_alldata = Tools.MixDataFrames(
-            {"draw": userInfo._TempResultDraw, "pick": Temp_result_pick}, "date"
+            {
+                "draw": userInfo._TempResultDraw.Data,
+                "pick": PERandPBRInOutStrategy.ResultPick,
+            },
+            "date",
         )
-
         Temp_alldata = Tools.MixDataFrames(
-            {"all": Temp_alldata, "userinfo": userInfo._TempResultAll}, "date"
+            {"all": Temp_alldata, "userinfo": userInfo._TempResultAll.Data}, "date"
         )
-
-        userInfo._TempResultDraw.to_csv("backtestdata.csv")
-        userInfo._TempTradeInfo.to_csv("backtesttrade.csv")
         Temp_alldata.to_csv("backtestAll.csv")
-        return userInfo._TempResultDraw
+        print("回測時間:", datetime.now() - startTime)
+        return userInfo._TempResultDraw.Data
 
     def backtest_monthRP_Up_Fast(self, mainParament: RecordBackTestParameter):
         """
