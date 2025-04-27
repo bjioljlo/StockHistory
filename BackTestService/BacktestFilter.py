@@ -178,18 +178,6 @@ class PERandPBR_pickBacktestFilter(TBacktestFilter):
             Date, self.PBR_indicator
         ).get_Filter_Auto(10000, 0.7)
         Result = Tools.MixDataFrames(Result_data)
-        Result_data["price"] = All_Stock_Filters_fuc(Date, Result).get_Filter(
-            "price",
-            9999,
-            10,
-            info.Price_type.Close,
-        )
-        Result = Tools.MixDataFrames(Result_data)
-        Result_data["volume"] = All_Stock_Filters_fuc(Date, Result).get_Filter_SMA(
-            "volume", 99999999999, 500000, 5, info.Price_type.Volume
-        )
-        Result = Tools.MixDataFrames(Result_data)
-        Result = Result.sort_values(by="volume", ascending=False)
         return Result[self.PER_Indicator.name]
     
 class MonthRpUp_pickbacktestFilter(TBacktestFilter):

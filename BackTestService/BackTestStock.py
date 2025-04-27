@@ -401,22 +401,18 @@ class BackTestStock:
                 # 開始篩選
                 PERandPBRInOutStrategy.Run()
                 # 出場訊號篩選
-                if (
-                    len(PERandPBRInOutStrategy.FilterData.ShouldBuyStocks())
+                if (len(userInfo.HandleStock) > 0                    
+                    and len(PERandPBRInOutStrategy.FilterData.ShouldBuyStocks())
                     < 100
-                    and len(userInfo.HandleStock) > 0
                 ):
                     PERandPBRInOutStrategy.Out()
                     Temp_reset = 120
                 # 出場訊號篩選
-                if Temp_changeDays <= 0 and len(userInfo.HandleStock) > 0:
+                if len(userInfo.HandleStock) > 0 and Temp_changeDays <= 0:
                     PERandPBRInOutStrategy.Out()
                 # 入場訊號篩選
-                if (
-                    len(PERandPBRInOutStrategy.FilterData.ShouldBuyStocks())
-                    >= 100
-                    and Temp_reset == 0
-                    and len(userInfo.HandleStock) == 0
+                if (len(userInfo.HandleStock) == 0 and
+                    len(PERandPBRInOutStrategy.FilterData.ShouldBuyStocks()) >= 100
                 ):
                     PERandPBRInOutStrategy.In()
                     Temp_changeDays = 120

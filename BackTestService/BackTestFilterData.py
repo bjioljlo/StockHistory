@@ -336,15 +336,18 @@ class PERandPBR_pickFilterData(TBackTestFilterData):
 
     def RuuFilter(self):
         self._FilterStockNow: Series = self._Filter.RunFilter(self._DateNow)  # 篩選
+        SignalData: Series = self._Signal.GetSignalResult(
+            self._FilterStockNow, self._EndDate
+        )  # 訊號
+        self._FinishFilterData(SignalData)
 
     def ShouldBuyStocks(self):
         _shouldBuyStocks = set()
         if not self._FilterStockNow.empty:
-            self._FilterStockNow.sort_values
-            Temp_buy = self._FilterStockNow.head(3)
-            for key, value in Temp_buy.items():
+            for key, value in self._FilterStockNow.items():
                 try:
-                    _shouldBuyStocks.add(str(key))
+                    if self._FilterStock[str(key)].singnal[self._DateNow]:
+                        _shouldBuyStocks.add(str(key))
                 except KeyError:
                     print(f"Error: {key} not in data/msg:{KeyError}")
         return _shouldBuyStocks

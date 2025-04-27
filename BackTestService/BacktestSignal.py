@@ -52,6 +52,8 @@ def BacktestSignalFactory(
         return RecordHigh_pickBacktestSignal(_originalStock)
     elif _StrategyType == BacktestSignalType.MonthRP_Up:
         return MonthRpUp_pickBacktestSignal(_originalStock)
+    elif _StrategyType == BacktestSignalType.PERandPBR:
+        return PERandPBR_pickBacktestSignal(_originalStock)
     else:
         return None
 
@@ -62,6 +64,31 @@ class TBacktestSignal(IBacktestSignal):
     def __init__(self) -> None:
         self._tempSignals: pd.Series = pd.Series()
 
+class PERandPBR_pickBacktestSignal(TBacktestSignal):
+    """PER和PBR訊號-訊號觸發"""
+    def __init__(self, _GetPrice: OriginalStock) -> None:
+        super().__init__()
+        self._getPrice: OriginalStock = _GetPrice
+    def GetSignalResult(self, InputData: pd.Series, _Date) -> pd.Series:
+        All_stock_signal = pd.Series()
+        for key, _value in InputData.items():  # 先算出股票的買賣訊號
+            try:
+                All_stock_signal[key] = self._tempSignals[key]
+            except KeyError:
+                print(f"Error: {key} not in data/msg:{KeyError}")
+                if Tools.check_no_use_stock(key):
+                    print("get_stock_price: " + str(key) + " in no use")
+                    continue
+                self._getPrice.number = key
+                table = self._getPrice.get_ALL()
+                if table.empty:
+                    continue
+                signal_result = table["Volume"] >= 500000
+                signal_result2 = table["Close"] >= 10
+                signal_result = signal_result & signal_result2
+                All_stock_signal[key] = signal_result
+                self._tempSignals[key] = signal_result
+        return All_stock_signal
 
 class PEG_pickBacktestSignal(TBacktestSignal):
     """PEG值訊號-訊號觸發"""
