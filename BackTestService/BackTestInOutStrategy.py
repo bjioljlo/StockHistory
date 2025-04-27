@@ -424,3 +424,8 @@ class Regular_backTestInOutStrategy(TBacktestInOutStrategy):
                 str(self._original_stock.number), Temp_stockNumber
             ):
                 self._has_trade = True
+                
+class MonthRpUp_backtestInOutStrategy(TBacktestInOutStrategy):
+    def Run(self):
+        super().Run()
+        self._backTestFilterData.RuuFilter()

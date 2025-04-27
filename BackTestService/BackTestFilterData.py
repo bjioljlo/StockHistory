@@ -20,6 +20,7 @@ class BacktestFilterDataType(Enum):
     RegularQuota = "RegularQuota"
     RecordHigh = "RecordHigh"
     PERandPBR = "PERandPBR"
+    MonthRP_Up = "MonthRP_Up"
 
 
 class IBackTestFilterData(ABC):
@@ -124,6 +125,8 @@ def BacktestFilterDataFactory(
         return PERandPBR_pickFilterData(
             _buyStockfun, _filter, _signal, _startdate, _enddate
         )
+    elif _backtestFilterDataType == BacktestFilterDataType.MonthRP_Up:
+        return MonthRpUp_pickFilterData(_buyStockfun, _filter, _signal, _startdate, _enddate)
     raise NotImplementedError(
         "{} is wrong type.".format(sys._getframe().f_code.co_name)
     )
@@ -350,6 +353,37 @@ class PERandPBR_pickFilterData(TBackTestFilterData):
         for key, value in self._FilterStockNow.items():
             try:
                 if key in _dataInHand.keys():
+                    _shouldSellStocks.add(key)
+            except KeyError:
+                print(f"Error: {key} not in data/msg:{KeyError}")
+        return _shouldSellStocks
+    
+class MonthRpUp_pickFilterData(TBackTestFilterData):
+    """月營收增高-回測篩選"""
+
+    def RuuFilter(self):
+        self._FilterStockNow: Series = self._Filter.RunFilter(self._DateNow)  # 篩選
+        SignalData: Series = self._Signal.GetSignalResult(
+            self._FilterStockNow, self._EndDate
+        )  # 訊號
+        self._FinishFilterData(SignalData)
+    def ShouldBuyStocks(self):
+        _shouldBuyStocks = set()
+        if not self._FilterStockNow.empty:
+            self._FilterStockNow.sort_values
+            Temp_buy = self._FilterStockNow.head(3)
+            for key, value in Temp_buy.items():
+                try:
+                    _shouldBuyStocks.add(str(key))
+                except KeyError:
+                    print(f"Error: {key} not in data/msg:{KeyError}")
+        return _shouldBuyStocks
+
+    def ShouldSellStocks(self, _dataInHand: dict):
+        _shouldSellStocks = set()
+        for key, value in self._FilterStock.items():
+            try:
+                if (key in _dataInHand.keys()) and not value.singnal[self._DateNow]:
                     _shouldSellStocks.add(key)
             except KeyError:
                 print(f"Error: {key} not in data/msg:{KeyError}")

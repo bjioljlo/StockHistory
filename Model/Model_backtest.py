@@ -26,26 +26,29 @@ class Model_backtest(TModel):
     def backtest(
         self, _recordBackTestParameter: RecordBackTestParameter
     ):  # 月營收回測開始紐
-        if (
-            _recordBackTestParameter.check_monthRP_pick
-            == _recordBackTestParameter.check_PER_pick
-            == _recordBackTestParameter.check_volume_pick
-            is False
-        ):
-            print("都沒選是要回測個毛線！")
-            return
-        elif _recordBackTestParameter.volumeDays < 2:
-            print("測均線給1天是怎樣!")
-            return
-        else:
-            self.Set_BackTestCheck(_recordBackTestParameter)
-        _data = self.backtestFunc.backtest_monthRP_Up_Fast(_recordBackTestParameter)
-        self.df.draw_BackTestResult(_data)
-
+        # if (
+        #     _recordBackTestParameter.check_monthRP_pick
+        #     == _recordBackTestParameter.check_PER_pick
+        #     == _recordBackTestParameter.check_volume_pick
+        #     is False
+        # ):
+        #     print("都沒選是要回測個毛線！")
+        #     return
+        # elif _recordBackTestParameter.volumeDays < 2:
+        #     print("測均線給1天是怎樣!")
+        #     return
+        # else:
+        #     self.Set_BackTestCheck(_recordBackTestParameter)
+        Globals.THREADPOOL.submit_task(
+            self.backtestFunc.backtest_monthRP_Up,
+            self.df.draw_BackTestResult,
+            mainParament=_recordBackTestParameter,
+        )
+        
     def backtest2(self, _recordBackTestParameter: RecordBackTestParameter):  # PER PBR
         self.Set_BackTestCheck(_recordBackTestParameter)
         Globals.THREADPOOL.submit_task(
-            self.backtestFunc.backtest_PERandPBR_Fast,
+            self.backtestFunc.backtest_PERandPBR,
             self.df.draw_BackTestResult,
             mainParament=_recordBackTestParameter,
         )

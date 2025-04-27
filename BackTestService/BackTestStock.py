@@ -10,6 +10,7 @@ from BackTestService.BackTestFilterData import (
 )
 from BackTestService.BackTestInfoData import BackTestInfoDataPriceByToday
 from BackTestService.BackTestInOutStrategy import (
+    MonthRpUp_backtestInOutStrategy,
     PERandPBR_BackTestInOutStrategy,
     Regular_backTestInOutStrategy,
     TBacktestInOutStrategy,
@@ -22,7 +23,7 @@ from BackTestService.FilterAndSignalStrategy import (
     Regular_quotatestFilter,
     TBacktestSignal,
 )
-from FilterService import All_Stock_Filters_fuc, GetStockData, OriginalStockByYahoo
+from FilterService import OriginalStockByYahoo
 from FilterService.StockReportHistory import (
     Day_Report,
     Month_Report,
@@ -36,9 +37,7 @@ from FilterService.StockReportHistory import (
 from GetExternalDataService import (
     ExternalDataFactory,
     ExternalDataTypeEnum,
-    TGetExternalData,
 )
-from InfomationType import stock_data_kind
 from Parameter import RecordBackTestParameter
 from StockInfoData import BaseInfoData
 
@@ -346,14 +345,13 @@ class BackTestStock:
         print("回測時間:", datetime.now() - startTime)
         return userInfo._TempResultDraw.Data
 
-    def backtest_PERandPBR_Fast(self, mainParament: RecordBackTestParameter):
+    def backtest_PERandPBR(self, mainParament: RecordBackTestParameter):
         """
         14年14倍
         https://www.finlab.tw/%E6%AF%94%E7%AD%96%E7%95%A5%E7%8B%97%E9%82%84%E8%A6%81%E5%AE%89%E5%85%A8%E7%9A%84%E9%81%B8%E8%82%A1%E7%AD%96%E7%95%A5%EF%BC%81/
         """
         Temp_reset = 0  # 休息日剩餘天數
         Temp_changeDays = 0  # 換股剩餘天數
-
         userInfo = BackTestInfoDataPriceByToday(
             BaseInfoData(
                 mainParament.money_start, mainParament.date_start, mainParament.date_end
@@ -364,15 +362,12 @@ class BackTestStock:
         All_data = external_data.get_stock_history(
             mainParament.buy_number, mainParament.date_start
         )
-
         index_PER = Original_Indicator(  # 本益比
             "PER", Day_Report("yield_RP", 1, external_data), info.Day_type.PER
         )
-
         index_PBR = Original_Indicator(  # 股價淨值比
             "PBR", Day_Report("yield_RP", 1, external_data), info.Day_type.PBR
         )
-
         backTestFilterData = BacktestFilterDataFactory(
             BacktestFilterDataType.PERandPBR,
             self.BuyStrockFun,
@@ -381,11 +376,9 @@ class BackTestStock:
             mainParament.date_start,
             mainParament.date_end,
         )
-
         PERandPBRInOutStrategy = PERandPBR_BackTestInOutStrategy(
             userInfo, backTestFilterData, OriginalStockByYahoo()
         )
-
         startTime = datetime.now()
         for index, row in All_data.iterrows():
             if not userInfo.GoToNextWorkDay(index):
@@ -441,7 +434,7 @@ class BackTestStock:
         print("回測時間:", datetime.now() - startTime)
         return userInfo._TempResultDraw.Data
 
-    def backtest_monthRP_Up_Fast(self, mainParament: RecordBackTestParameter):
+    def backtest_monthRP_Up(self, mainParament: RecordBackTestParameter):
         """
         # 月營收增高
         # https://www.finlab.tw/%e4%b8%89%e7%a8%ae%e6%9c%88%e7%87%9f%e6%94%b6%e9%80%b2%e9%9a%8e%e7%9c%8b%e6%b3%95/#ji_ji_xuan_gu_cheng_zhang_fa
@@ -450,125 +443,71 @@ class BackTestStock:
         userInfo = BackTestInfoDataPriceByToday(
             BaseInfoData(
                 mainParament.money_start, mainParament.date_start, mainParament.date_end
-            )
+            ),
+            OriginalStockByYahoo(),
         )
-        Temp_result_pick = pd.DataFrame(columns=["date", "選股數量"])
-        All_data = TGetExternalData().get_stock_history(
+        external_data = ExternalDataFactory.Get_instance(ExternalDataTypeEnum.Normal)
+        All_data = external_data.get_stock_history(
             mainParament.buy_number, mainParament.date_start
         )
-        add_one_day = userInfo.AddOneDay
-        sell_all_stock = userInfo.SellAllStock
-        buy_all_stock = userInfo.BuyAllStock
+        index_ROE = ROE_Indicator(
+            "ROE",
+            SeasonReportFactory(info.FS_type.CPL, external_data),
+            SeasonReportFactory(info.FS_type.BS, external_data),
+        )
+        index_PBR = Original_Indicator(  # 股價淨值比
+            "PBR", Day_Report("yield_RP", 1, external_data), info.Day_type.PBR
+        )
+        index_PER = Original_Indicator(  # 本益比
+            "PER", Day_Report("yield_RP", 1, external_data), info.Day_type.PER
+        )
+        Month_index = Original_Indicator("Month", Month_Report("month_RP", 1, external_data), info.Month_type.MR)
+        backTestFilterData = BacktestFilterDataFactory(
+            BacktestFilterDataType.MonthRP_Up,
+            self.BuyStrockFun,
+            BacktestFilterFactory(BacktestFilterType.MonthRP_Up, [Month_index, index_ROE, index_PER, index_PBR]),
+            BacktestSignalFactory(BacktestSignalType.MonthRP_Up, OriginalStockByYahoo()),
+            mainParament.date_start,
+            mainParament.date_end,
+        )
+        MonthRpUpInOutStrategy = MonthRpUp_backtestInOutStrategy(
+            userInfo, backTestFilterData, OriginalStockByYahoo()
+        )
+        startTime = datetime.now()
         for index, row in All_data.iterrows():
-            has_trade = False
-            while userInfo.BaseInfoData.now_day != index:
-                # 加一天----------------------------
-                if not add_one_day():
-                    break
-            # 出場訊號篩選--------------------------------------
+            if not userInfo.GoToNextWorkDay(index):
+                break
+            # 開始篩選
+            MonthRpUpInOutStrategy.Run()
+            # 出場訊號篩選
             if Temp_change <= 0 and len(userInfo.HandleStock) > 0:
-                sell_all_stock()
-                has_trade = True
-            # 開始篩選--------------------------------------
-            Temp_result0 = {}
-            Temp_result = pd.DataFrame()
-            if Temp_change <= 0:
-                if self.bool_check_monthRP_pick:  # 月營收升高篩選(月為單位)
-                    Temp_result0["month"] = GetStockData.get_monthRP_up(
-                        userInfo.BaseInfoData.now_day,
-                        mainParament.smoothAVG,
-                        mainParament.upMonth,
-                    )
-                if self.bool_check_ROE_pick:  # ROE
-                    Temp_result0["ROE"] = GetStockData.get_ROE_range(
-                        userInfo.BaseInfoData.now_day,
-                        mainParament.ROE_start,
-                        mainParament.ROE_end,
-                    )
-                if self.bool_check_PBR_pick:  # PBR
-                    Temp_result0["PBR"] = GetStockData.get_PBR_range(
-                        userInfo.BaseInfoData.now_day,
-                        mainParament.PBR_start,
-                        mainParament.PBR_end,
-                    )
-                if self.bool_check_PER_pick:  # PER
-                    Temp_result0["PER"] = GetStockData.get_PER_range(
-                        userInfo.BaseInfoData.now_day,
-                        mainParament.PER_start,
-                        mainParament.PER_end,
-                    )
-                Temp_result = Tools.MixDataFrames(Temp_result0)
-            # 入場訊號篩選--------------------------------------
+                MonthRpUpInOutStrategy.Out()
+            # 入場訊號篩選
             if (
                 Temp_change <= 0
                 and len(userInfo.HandleStock) <= 0
-                and len(Temp_result) > mainParament.Pick_amount
+                and len(MonthRpUpInOutStrategy.FilterData.ShouldBuyStocks()) > mainParament.Pick_amount
             ):
-                Temp_buy0 = {"result": Temp_result}
-                if self.bool_check_price_pick:
-                    Temp_buy0["price"] = All_Stock_Filters_fuc(
-                        userInfo.BaseInfoData.now_day, Temp_result
-                    ).get_Filter(
-                        "price",
-                        mainParament.price_high,
-                        mainParament.price_low,
-                        info.Price_type.Close,
-                    )
-                    Temp_buy0["price"] = Temp_buy0["price"].sort_values(
-                        by="price", ascending=False
-                    )
-                if self.bool_check_volume_pick:
-                    Temp_buy0["volume"] = GetStockData.get_AVG_value(
-                        userInfo.BaseInfoData.now_day,
-                        mainParament.volumeAVG,
-                        mainParament.volumeDays,
-                        Temp_result,
-                    )
-                    Temp_buy0["volume"] = Temp_buy0["volume"].sort_values(
-                        by="volume", ascending=False
-                    )
-                Temp_buy = Tools.MixDataFrames(Temp_buy0)
-                if Temp_buy0.__contains__("price") and not Temp_buy0["price"].empty:
-                    Temp_buy = Temp_buy.sort_values(by="price", ascending=False)
-                if Temp_buy0.__contains__("volume") and not Temp_buy0["volume"].empty:
-                    Temp_buy = Temp_buy.sort_values(by="volume", ascending=False)
-                buy_all_stock(Temp_buy)
-                has_trade = True
+                MonthRpUpInOutStrategy.In()
             # 更新資訊--------------------------------------
+            MonthRpUpInOutStrategy.Record()
             if Temp_change <= 0:
                 Temp_change = mainParament.change_days
-            if has_trade or len(userInfo.HandleStock) > 0:
-                userInfo.RecordUserInfo()
-                userInfo.RecodTradeInfo()
-                Temp_result_pick = pd.concat(
-                    [
-                        Temp_result_pick,
-                        pd.DataFrame(
-                            {
-                                "date": [userInfo.BaseInfoData.now_day],
-                                "選股數量": [len(Temp_result)],
-                            }
-                        ),
-                    ],
-                    ignore_index=True,
-                )
-            # 加一天----------------------------
-            if not add_one_day():
-                break
             else:
                 Temp_change = Temp_change - 1
         # 最後總結算----------------------------
-        Temp_result_pick.set_index("date", inplace=True)
+        MonthRpUpInOutStrategy.Finish()
         userInfo.RunFinish()
         Temp_alldata = Tools.MixDataFrames(
-            {"draw": userInfo._TempResultDraw, "pick": Temp_result_pick}, "date"
+            {
+                "draw": userInfo._TempResultDraw.Data,
+                "pick": MonthRpUpInOutStrategy.ResultPick,
+            },
+            "date",
         )
-
         Temp_alldata = Tools.MixDataFrames(
-            {"all": Temp_alldata, "userinfo": userInfo._TempResultAll}, "date"
+            {"all": Temp_alldata, "userinfo": userInfo._TempResultAll.Data}, "date"
         )
-
-        userInfo._TempResultDraw.to_csv("backtestdata.csv")
-        userInfo._TempTradeInfo.to_csv("backtesttrade.csv")
         Temp_alldata.to_csv("backtestAll.csv")
-        return userInfo._TempResultDraw
+        print("回測時間:", datetime.now() - startTime)
+        return userInfo._TempResultDraw.Data

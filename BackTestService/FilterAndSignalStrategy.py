@@ -23,6 +23,7 @@ class BacktestSignalType(Enum):
     RegularQuota = 4
     RecordHigh = 5
     PERandPBR = 6
+    MonthRP_Up = 7
 
 
 class IBacktestSignal(ABC):
@@ -53,6 +54,8 @@ def BacktestSignalFactory(
         return PEG_pickBacktestSignal(_originalStock)
     elif _StrategyType == BacktestSignalType.RecordHigh:
         return RecordHigh_pickBacktestSignal(_originalStock)
+    elif _StrategyType == BacktestSignalType.MonthRP_Up:
+        return MonthRpUp_pickBacktestSignal(_originalStock)
     else:
         return None
 
@@ -61,10 +64,7 @@ class TBacktestSignal(IBacktestSignal):
     """訊號觸發實作"""
 
     def __init__(self) -> None:
-        super(TBacktestSignal, self).__init__()
-
-    def GetSignalResult(self, InputData: pd.Series, _Date) -> pd.Series:
-        return pd.Series()
+        self._tempSignals: pd.Series = pd.Series()
 
 
 class PEG_pickBacktestSignal(TBacktestSignal):
@@ -73,7 +73,6 @@ class PEG_pickBacktestSignal(TBacktestSignal):
     def __init__(self, _GetPrice: OriginalStock) -> None:
         super().__init__()
         self._getPrice: OriginalStock = _GetPrice
-        self._tempSignals: pd.Series = pd.Series()
         self._sMA_Stock = SMA_Stock(self._getPrice, 20, info.Price_type.Close)
 
     def GetSignalResult(self, InputData: pd.Series, _Date) -> pd.Series:
@@ -103,7 +102,6 @@ class KD_pickBacktestSignal(TBacktestSignal):
     def __init__(self, _GetPrice: OriginalStock) -> None:
         super().__init__()
         self._getPrice: OriginalStock = _GetPrice
-        self._tempSignals: pd.Series = pd.Series()
 
     def GetSignalResult(self, InputData: pd.Series, _Date: datetime) -> pd.Series:
         All_stock_signal = pd.Series()
@@ -148,7 +146,6 @@ class RecordHigh_pickBacktestSignal(TBacktestSignal):
     def __init__(self, _GetPrice: OriginalStock) -> None:
         super().__init__()
         self._getPrice: OriginalStock = _GetPrice
-        self._tempSignals: pd.Series = pd.Series()
         self._sMA_Stock = SMA_Stock(self._getPrice, 20, info.Price_type.Close)
 
     def GetSignalResult(self, InputData: pd.Series, _Date) -> pd.Series:
@@ -171,6 +168,40 @@ class RecordHigh_pickBacktestSignal(TBacktestSignal):
                 self._tempSignals[key] = signal_result
         return All_stock_signal
 
+class MonthRpUp_pickBacktestSignal(TBacktestSignal):
+    """MonthRpUp值訊號-訊號觸發"""
+    def __init__(self, _GetPrice: OriginalStock) -> None:
+        super().__init__()
+        self._getPrice: OriginalStock = _GetPrice
+        self._sMA_Stock = SMA_Stock(self._getPrice, 20, info.Price_type.Close)
+        
+    def GetSignalResult(self, InputData, _Date):
+        All_stock_signal = pd.Series()
+        for key, _value in InputData.items():  # 先算出股票的買賣訊號
+            try:
+                All_stock_signal[key] = self._tempSignals[key]
+            except KeyError:
+                print(f"Error: {key} not in data/msg:{KeyError}")
+                if Tools.check_no_use_stock(key):
+                    print("get_stock_price: " + str(key) + " in no use")
+                    continue
+                self._getPrice.number = key
+                table = self._getPrice.get_ALL()
+                if table.empty:
+                    continue
+                table_sma20 = self._sMA_Stock.get_ALL()
+                signal_result = table["Close"] > table_sma20
+                
+                self._sMA_Stock.PriceType = info.Price_type.Volume
+                self._sMA_Stock.AvgDay = 5
+                table_SmaVolume = self._sMA_Stock.get_ALL()
+                signal_result2 = (table["Volume"] > table_SmaVolume)
+                signal_result = signal_result & signal_result2
+                
+                All_stock_signal[key] = signal_result
+                self._tempSignals[key] = signal_result
+        return All_stock_signal
+
 
 # IFilter
 class BacktestFilterType(Enum):
@@ -180,6 +211,7 @@ class BacktestFilterType(Enum):
     RegularQuota = 4
     RecordHigh = 5
     PERandPBR = 6
+    MonthRP_Up = 7
 
 
 class IBacktestFilter(ABC):
@@ -203,6 +235,8 @@ def BacktestFilterFactory(
         return RecordHigh_pickBacktestFilter(_indicators)
     elif _backtestFilterType == BacktestFilterType.PERandPBR:
         return PERandPBR_pickBacktestFilter(_indicators)
+    elif _backtestFilterType == BacktestFilterType.MonthRP_Up:
+        return MonthRpUp_pickbacktestFilter(_indicators)
     else:
         return None
 
@@ -229,7 +263,7 @@ class PEG_pickBacktestFilter(TBacktestFilter):
 
         Result_data[self.MonthReportUp_indicator.name] = All_fuc(
             Date, self.MonthReportUp_indicator
-        ).get_Smooth_Up_Auto(4, 4)
+        ).get_Smooth_Up_Auto(4, 5)
         Result_data = Tools.MixDataFrames(Result_data)
         return Result_data[self.PEG_Indicator.name]
 
@@ -352,3 +386,29 @@ class PERandPBR_pickBacktestFilter(TBacktestFilter):
         Result = Tools.MixDataFrames(Result_data)
         Result = Result.sort_values(by="volume", ascending=False)
         return Result[self.PER_Indicator.name]
+    
+class MonthRpUp_pickbacktestFilter(TBacktestFilter):
+    """月營收成長-篩選器"""
+
+    def __init__(self, _indicators: List[Indicator]) -> None:
+        self.MonthReportUp_indicator: Indicator = _indicators[0]
+        self.ROE_indicator: Indicator = _indicators[1]
+        self.PER_indicator: Indicator = _indicators[2]
+        self.PBR_indicator: Indicator = _indicators[3]
+
+    def RunFilter(self, Date: datetime) -> pd.Series:
+        Result_data = {}
+        Result_data[self.MonthReportUp_indicator.name] = All_fuc(
+            Date, self.MonthReportUp_indicator
+        ).get_Smooth_Up_Auto(4, 5)
+        Result_data[self.ROE_indicator.name] = All_fuc(
+            Date, self.ROE_indicator
+        ).get_Filter_Auto(10000, 3)
+        Result_data[self.PER_indicator.name] = All_fuc(
+            Date, self.PER_indicator
+        ).get_Filter_Auto(10000, 13)
+        Result_data[self.PBR_indicator.name] = All_fuc(
+            Date, self.PBR_indicator
+        ).get_Filter_Auto(10000, 0.7)
+        Result_data = Tools.MixDataFrames(Result_data)
+        return Result_data[self.PBR_indicator.name]
