@@ -4,23 +4,28 @@ import pandas as pd
 
 import InfomationType as info
 import Tools
+
 from BackTestService.BackTestFilterData import (
     BacktestFilterDataFactory,
     BacktestFilterDataType,
 )
 from BackTestService.BackTestInfoData import BackTestInfoDataPriceByToday
 from BackTestService.BackTestInOutStrategy import (
+    KD_BackTestInOutStrategy,
     MonthRpUp_backtestInOutStrategy,
+    PEG_BackTestInOutStrategy,
     PERandPBR_BackTestInOutStrategy,
+    RecordHigh_backtestInOutStrategy,
     Regular_backTestInOutStrategy,
-    TBacktestInOutStrategy,
 )
-from BackTestService.FilterAndSignalStrategy import (
+from BackTestService.BacktestFilter import (
     BacktestFilterFactory,
     BacktestFilterType,
+    Regular_quotatestFilter,
+)
+from BackTestService.BacktestSignal import (
     BacktestSignalFactory,
     BacktestSignalType,
-    Regular_quotatestFilter,
     TBacktestSignal,
 )
 from FilterService import OriginalStockByYahoo
@@ -101,7 +106,7 @@ class BackTestStock:
             mainParament.date_start,
             mainParament.date_end,
         )
-        KDInOutStrategy = TBacktestInOutStrategy(
+        KDInOutStrategy = KD_BackTestInOutStrategy(
             userInfo, backTestFilterData, OriginalStockByYahoo()
         )
         startTime = datetime.now()
@@ -167,7 +172,7 @@ class BackTestStock:
             mainParament.date_start,
             mainParament.date_end,
         )
-        PEGInOutStrategy = TBacktestInOutStrategy(
+        PEGInOutStrategy = PEG_BackTestInOutStrategy(
             userInfo, backTestFilterData, OriginalStockByYahoo()
         )
         buy_month = mainParament.date_start
@@ -309,7 +314,7 @@ class BackTestStock:
             mainParament.date_end,
         )
 
-        RecordHighInOutStrategy = TBacktestInOutStrategy(
+        RecordHighInOutStrategy = RecordHigh_backtestInOutStrategy(
             userInfo, backTestFilterData, OriginalStockByYahoo()
         )
         startTime = datetime.now()

@@ -429,3 +429,8 @@ class MonthRpUp_backtestInOutStrategy(TBacktestInOutStrategy):
     def Run(self):
         super().Run()
         self._backTestFilterData.RuuFilter()
+
+class RecordHigh_backtestInOutStrategy(TBacktestInOutStrategy):
+    def In(self):
+        self._backTestFilterData.RuuFilter()
+        super().In()

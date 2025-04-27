@@ -1,5 +1,5 @@
 import unittest
-from datetime import datetime, timedelta
+from datetime import datetime
 import Tools
 
 import InfomationType as info
@@ -7,9 +7,11 @@ from BackTestService.BackTestFilterData import (
     BacktestFilterDataFactory,
     BacktestFilterDataType,
 )
-from BackTestService.FilterAndSignalStrategy import (
+from BackTestService.BacktestFilter import (
     BacktestFilterFactory,
     BacktestFilterType,
+)
+from BackTestService.BacktestSignal import (
     BacktestSignalFactory,
     BacktestSignalType,
 )
