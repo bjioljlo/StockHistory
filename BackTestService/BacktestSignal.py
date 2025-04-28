@@ -63,6 +63,9 @@ class TBacktestSignal(IBacktestSignal):
 
     def __init__(self) -> None:
         self._tempSignals: pd.Series = pd.Series()
+        
+    def GetSignalResult(self, InputData, _Date):
+        return super().GetSignalResult(InputData, _Date)
 
 class PERandPBR_pickBacktestSignal(TBacktestSignal):
     """PER和PBR訊號-訊號觸發"""

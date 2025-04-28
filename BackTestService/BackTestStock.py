@@ -131,7 +131,7 @@ class BackTestStock:
             {"all": Temp_alldata, "userinfo": userInfo._TempResultAll.Data}, "date"
         )
         Temp_alldata.to_csv("backtestAll.csv")
-        print("回測時間:", datetime.now() - startTime)
+        print("KD值選股-回測時間:", datetime.now() - startTime)
         return userInfo._TempResultDraw.Data
 
     def backtest_PEG_pick(self, mainParament: RecordBackTestParameter):
@@ -208,7 +208,7 @@ class BackTestStock:
             {"all": Temp_alldata, "userinfo": userInfo._TempResultAll.Data}, "date"
         )
         Temp_alldata.to_csv("backtestAll.csv")
-        print("回測時間:", datetime.now() - startTime)
+        print("PEG選股外加月營收增高-回測時間:", datetime.now() - startTime)
         return userInfo._TempResultDraw.Data
 
     def backtest_Regular_quota(self, mainParament: RecordBackTestParameter):
@@ -271,7 +271,7 @@ class BackTestStock:
             {"all": Temp_alldata, "userinfo": userInfo._TempResultAll.Data}, "date"
         )
         Temp_alldata.to_csv("backtestAll.csv")
-        print("回測時間:", datetime.now() - startTime)
+        print("定期定額-回測時間:", datetime.now() - startTime)
         return userInfo._TempResultDraw.Data
 
     def backtest_Record_high(self, mainParament: RecordBackTestParameter):
@@ -347,7 +347,7 @@ class BackTestStock:
             {"all": Temp_alldata, "userinfo": userInfo._TempResultAll.Data}, "date"
         )
         Temp_alldata.to_csv("backtestAll.csv")
-        print("回測時間:", datetime.now() - startTime)
+        print("創新高-回測時間:", datetime.now() - startTime)
         return userInfo._TempResultDraw.Data
 
     def backtest_PERandPBR(self, mainParament: RecordBackTestParameter):
@@ -406,7 +406,7 @@ class BackTestStock:
                     < 100
                 ):
                     PERandPBRInOutStrategy.Out()
-                    Temp_reset = 120
+                    Temp_reset = 60
                 # 出場訊號篩選
                 if len(userInfo.HandleStock) > 0 and Temp_changeDays <= 0:
                     PERandPBRInOutStrategy.Out()
@@ -415,7 +415,7 @@ class BackTestStock:
                     len(PERandPBRInOutStrategy.FilterData.ShouldBuyStocks()) >= 100
                 ):
                     PERandPBRInOutStrategy.In()
-                    Temp_changeDays = 120
+                    Temp_changeDays = 60
             PERandPBRInOutStrategy.Record()
             Temp_changeDays = Temp_changeDays - 1
         # 最後總結算
@@ -432,7 +432,7 @@ class BackTestStock:
             {"all": Temp_alldata, "userinfo": userInfo._TempResultAll.Data}, "date"
         )
         Temp_alldata.to_csv("backtestAll.csv")
-        print("回測時間:", datetime.now() - startTime)
+        print("14年14倍-回測時間:", datetime.now() - startTime)
         return userInfo._TempResultDraw.Data
 
     def backtest_monthRP_Up(self, mainParament: RecordBackTestParameter):
@@ -510,5 +510,5 @@ class BackTestStock:
             {"all": Temp_alldata, "userinfo": userInfo._TempResultAll.Data}, "date"
         )
         Temp_alldata.to_csv("backtestAll.csv")
-        print("回測時間:", datetime.now() - startTime)
+        print("月營收增高-回測時間:", datetime.now() - startTime)
         return userInfo._TempResultDraw.Data
