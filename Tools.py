@@ -134,9 +134,13 @@ def get_random_Header():  # 取得隨機header
 
 
 def Total_with_Handling_fee_and_Tax(
-    stock_price, amount, buyIn=True, persent=0.1425, Use_fee_tax=True
+    stock_price, amount:int, buyIn=True, persent=0.1425, Use_fee_tax=True
 ):
     """交易手續費和交易稅"""
+    if stock_price is None:
+        return 0
+    if amount is None:
+        return 0
     if Use_fee_tax is False:
         return stock_price * amount
     if buyIn is False:  # 賣出
