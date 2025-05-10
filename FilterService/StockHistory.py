@@ -194,10 +194,13 @@ class SMA_Stock(VirtualStockFuc):
 
     def get_ALL(self):
         Temp = self.Stock.get_ALL()
-        mclose = talib.SMA(
-            Temp[self.PriceType], self.AvgDay
-        )  # 不用np.array也可以將均線和蠟燭圖放一起
-        return mclose
+        try:
+            mclose = talib.SMA(
+                Temp[self.PriceType], self.AvgDay
+            )  # 不用np.array也可以將均線和蠟燭圖放一起
+            return mclose
+        except Exception:
+            return DataFrame()
 
 
 class RecordHigh_Stock(VirtualStockFuc):
@@ -229,23 +232,26 @@ class RecordHigh_Stock(VirtualStockFuc):
         ):
             raise
         aRange = RangeDate_Stock(self.Stock, None, self._endDate)
-        All_data = aRange.get_ALL().sort_index(ascending=False)
-        for k in range(self._flashDay):
-            Now_price = All_data.iloc[k][self._atype]
-            Pass = True
-            for i in range(self._recordDays):
-                try:
-                    Temp_price = All_data.iloc[k + i + 1][self._atype]
-                except IndexError:
-                    return False
-                if Temp_price <= Now_price:
-                    continue
-                else:
-                    Pass = False
-                    break
-            if Pass:
-                return True
-        return False
+        try:
+            All_data = aRange.get_ALL().sort_index(ascending=False)
+            for k in range(self._flashDay):
+                Now_price = All_data.iloc[k][self._atype]
+                Pass = True
+                for i in range(self._recordDays):
+                    try:
+                        Temp_price = All_data.iloc[k + i + 1][self._atype]
+                    except IndexError:
+                        return False
+                    if Temp_price <= Now_price:
+                        continue
+                    else:
+                        Pass = False
+                        break
+                if Pass:
+                    return True
+            return False
+        except Exception:
+            return False
 
 
 class VirtualStockFilterFuc(TStock):

@@ -6,7 +6,7 @@ from pandas import DataFrame
 
 import InfomationType as info
 import Tools
-from GetExternalDataService import ExternalDataFactory, ExternalDataTypeEnum
+from GetExternalDataService import ExternalDataFactory
 from InfomationType import stock_data_kind
 
 from .StockHistory import (
@@ -116,15 +116,12 @@ class All_Stock_Filters_fuc:
         return temp
 
 
-# TODO : 這裡要加入factory 來產生不同狀態的報告 EX.unittest
 GetExternal = ExternalDataFactory.Get_instance()
-# GetExternal = ExternalDataFactory.Get_instance(ExternalDataTypeEnum.Test)
 
 CPL_RP = Season_Report(info.FS_type.CPL.value, 3, GetExternal, info.FS_type.CPL)
 BS_RP = Season_Report(info.FS_type.BS.value, 3, GetExternal, info.FS_type.BS)
 PLA_RP = Season_Report(info.FS_type.PLA.value, 3, GetExternal, info.FS_type.PLA)
 SCF_RP = Season_Report(info.FS_type.SCF.value, 3, GetExternal, info.FS_type.SCF)
-
 Month_RP = Month_Report("month_RP", 1, GetExternal)  # 月營收
 Yield_RP = Day_Report("yield_RP", 1, GetExternal)
 ADL_RP = ADL_Report("aDL_RP", 1, GetExternal)

@@ -13,7 +13,12 @@ class SqlService:
     def __init__(self) -> None:
         self.server_flask: Flask = Flask(__name__)  # 初始化server
         self.MySql_server: SQLAlchemy = None
-
+        self._CantUseStocks = [] # 無法使用的股票
+    
+    @property
+    def CantUseStocks(self):
+        return  self._CantUseStocks
+    
     def RunMysql(self):
         temp_thread = threading.Thread(target=self.__SetMysqlServer, args=["demo"])
         temp_thread.start()
@@ -60,10 +65,14 @@ class SqlService:
             return False
 
     def yfInfo(self, name: str):
+        if name in self._CantUseStocks:
+            print("CantUseStock:" + str(name))
+            return
         start_date = datetime(2005, 1, 1)
         end_date = datetime.today()  # 設定資料起訖日期
         df_result = yf.download([name], start_date, end_date)
         if df_result.empty:
+            self._CantUseStocks.append(name)
             print("yahoo no data:" + str(name))
         else:
             df_result = Tools.TidyTicketData(df_result, name)

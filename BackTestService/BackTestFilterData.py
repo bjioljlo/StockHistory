@@ -9,13 +9,19 @@ from pandas import Series
 
 from StockInfoData import StockInfoData, StockInfoSignalData
 
-from .FilterAndSignalStrategy import IBacktestFilter, IBacktestSignal
+from .BacktestFilter import IBacktestFilter
+from .BacktestSignal import IBacktestSignal
 
 BuyStockEvent = Callable[[str], bool]
 
 
 class BacktestFilterDataType(Enum):
     KD = "KD"
+    PEG = "PEG"
+    RegularQuota = "RegularQuota"
+    RecordHigh = "RecordHigh"
+    PERandPBR = "PERandPBR"
+    MonthRP_Up = "MonthRP_Up"
 
 
 class IBackTestFilterData(ABC):
@@ -36,6 +42,12 @@ class IBackTestFilterData(ABC):
             A dictionary of stock numbers and their corresponding
             StockInfoSignalData objects.
         """
+        raise NotImplementedError(
+            "{} is virutal! Must be overwrited.".format(sys._getframe().f_code.co_name)
+        )
+
+    @abstractmethod
+    def RuuFilter(self):
         raise NotImplementedError(
             "{} is virutal! Must be overwrited.".format(sys._getframe().f_code.co_name)
         )
@@ -100,6 +112,22 @@ def BacktestFilterDataFactory(
 ) -> IBackTestFilterData:
     if _backtestFilterDataType == BacktestFilterDataType.KD:
         return KD_pickFilterData(_buyStockfun, _filter, _signal, _startdate, _enddate)
+    elif _backtestFilterDataType == BacktestFilterDataType.PEG:
+        return PEG_pickFilterData(_buyStockfun, _filter, _signal, _startdate, _enddate)
+    elif _backtestFilterDataType == BacktestFilterDataType.RegularQuota:
+        return RegularQuota_pickFilterData(
+            _buyStockfun, _filter, _signal, _startdate, _enddate
+        )
+    elif _backtestFilterDataType == BacktestFilterDataType.RecordHigh:
+        return RecordHigh_pickFilterData(
+            _buyStockfun, _filter, _signal, _startdate, _enddate
+        )
+    elif _backtestFilterDataType == BacktestFilterDataType.PERandPBR:
+        return PERandPBR_pickFilterData(
+            _buyStockfun, _filter, _signal, _startdate, _enddate
+        )
+    elif _backtestFilterDataType == BacktestFilterDataType.MonthRP_Up:
+        return MonthRpUp_pickFilterData(_buyStockfun, _filter, _signal, _startdate, _enddate)
     raise NotImplementedError(
         "{} is wrong type.".format(sys._getframe().f_code.co_name)
     )
@@ -183,20 +211,52 @@ class TBackTestFilterData(IBackTestFilterData):
                 _result[key] = value
         self._FilterStock = _result
 
+    def GoToNextWorkDay(self, _dateNow: datetime):
+        self._DateNow = _dateNow
 
-class KD_pickFilterData(TBackTestFilterData):
-    """KD值-回測篩選"""
 
-    def _RuuFilter(self):
+class PEG_pickFilterData(TBackTestFilterData):
+    """PEG值-回測篩選"""
+
+    def RuuFilter(self):
         self._FilterStockNow: Series = self._Filter.RunFilter(self._DateNow)  # 篩選
         SignalData: Series = self._Signal.GetSignalResult(
             self._FilterStockNow, self._EndDate
         )  # 訊號
         self._FinishFilterData(SignalData)
 
-    def GoToNextWorkDay(self, _dateNow: datetime):
-        self._DateNow = _dateNow
-        self._RuuFilter()
+    def ShouldBuyStocks(self):
+        _shouldBuyStocks = set()
+        if not self._FilterStockNow.empty:
+            self._FilterStockNow.sort_values
+            Temp_buy = self._FilterStockNow.head(10)
+            for key, value in Temp_buy.items():
+                try:
+                    _shouldBuyStocks.add(str(key))
+                except KeyError:
+                    print(f"Error: {key} not in data/msg:{KeyError}")
+        return _shouldBuyStocks
+
+    def ShouldSellStocks(self, _dataInHand: dict):
+        _shouldSellStocks = set()
+        for key, value in self._FilterStock.items():
+            try:
+                if (key in _dataInHand.keys()) and not value.singnal[self._DateNow]:
+                    _shouldSellStocks.add(key)
+            except KeyError:
+                print(f"Error: {key} not in data/msg:{KeyError}")
+        return _shouldSellStocks
+
+
+class KD_pickFilterData(TBackTestFilterData):
+    """KD值-回測篩選"""
+
+    def RuuFilter(self):
+        self._FilterStockNow: Series = self._Filter.RunFilter(self._DateNow)  # 篩選
+        SignalData: Series = self._Signal.GetSignalResult(
+            self._FilterStockNow, self._EndDate
+        )  # 訊號
+        self._FinishFilterData(SignalData)
 
     def ShouldBuyStocks(self) -> set[str]:
         _shouldBuyStocks = set()
@@ -213,9 +273,121 @@ class KD_pickFilterData(TBackTestFilterData):
 
     def ShouldSellStocks(self, _dataInHand: dict) -> set[str]:
         _shouldSellStocks = set()
+        for key, value in _dataInHand.items():
+            try:
+                if self._FilterStock[key].singnal[self._DateNow] == -1:
+                    _shouldSellStocks.add(key)
+            except KeyError:
+                print(f"Error: {key} not in data/msg:{KeyError}")
+        return _shouldSellStocks
+
+
+class RegularQuota_pickFilterData(TBackTestFilterData):
+    """定期定額-回測篩選"""
+
+    def RuuFilter(self):
+        self._FilterStockNow: Series = self._Filter.RunFilter(self._DateNow)  # 篩選
+
+    def ShouldBuyStocks(self):
+        _shouldBuyStocks = set()
+        _shouldBuyStocks.add(self._Filter.RunFilter(self._DateNow)[0])
+        return _shouldBuyStocks
+
+    def ShouldSellStocks(self, _dataInHand):
+        _shouldSellStocks = set()
+        return _shouldSellStocks
+
+
+class RecordHigh_pickFilterData(TBackTestFilterData):
+    """創新高-回測篩選"""
+
+    def RuuFilter(self):
+        self._FilterStockNow: Series = self._Filter.RunFilter(self._DateNow)  # 篩選
+        SignalData: Series = self._Signal.GetSignalResult(
+            self._FilterStockNow, self._EndDate
+        )  # 訊號
+        self._FinishFilterData(SignalData)
+
+    def ShouldBuyStocks(self):
+        _shouldBuyStocks = set()
+        if not self._FilterStockNow.empty:
+            self._FilterStockNow.sort_values
+            Temp_buy = self._FilterStockNow.head(3)
+            for key, value in Temp_buy.items():
+                try:
+                    _shouldBuyStocks.add(str(key))
+                except KeyError:
+                    print(f"Error: {key} not in data/msg:{KeyError}")
+        return _shouldBuyStocks
+
+    def ShouldSellStocks(self, _dataInHand: dict):
+        _shouldSellStocks = set()
         for key, value in self._FilterStock.items():
             try:
-                if (key in _dataInHand.keys()) and value.singnal[self._DateNow] == -1:
+                if (key in _dataInHand.keys()) and not value.singnal[self._DateNow]:
+                    _shouldSellStocks.add(key)
+            except KeyError:
+                print(f"Error: {key} not in data/msg:{KeyError}")
+        return _shouldSellStocks
+
+
+class PERandPBR_pickFilterData(TBackTestFilterData):
+    """PER和PBR-回測篩選"""
+
+    def RuuFilter(self):
+        self._FilterStockNow: Series = self._Filter.RunFilter(self._DateNow)  # 篩選
+        SignalData: Series = self._Signal.GetSignalResult(
+            self._FilterStockNow, self._EndDate
+        )  # 訊號
+        self._FinishFilterData(SignalData)
+
+    def ShouldBuyStocks(self):
+        _shouldBuyStocks = set()
+        if not self._FilterStockNow.empty:
+            for key, value in self._FilterStockNow.items():
+                try:
+                    if self._FilterStock[str(key)].singnal[self._DateNow]:
+                        _shouldBuyStocks.add(str(key))
+                except KeyError:
+                    print(f"Error: {key} not in data/msg:{KeyError}")
+        return _shouldBuyStocks
+
+    def ShouldSellStocks(self, _dataInHand):
+        _shouldSellStocks = set()
+        for key, value in self._FilterStockNow.items():
+            try:
+                if key in _dataInHand.keys():
+                    _shouldSellStocks.add(key)
+            except KeyError:
+                print(f"Error: {key} not in data/msg:{KeyError}")
+        return _shouldSellStocks
+    
+class MonthRpUp_pickFilterData(TBackTestFilterData):
+    """月營收增高-回測篩選"""
+
+    def RuuFilter(self):
+        self._FilterStockNow: Series = self._Filter.RunFilter(self._DateNow)  # 篩選
+        SignalData: Series = self._Signal.GetSignalResult(
+            self._FilterStockNow, self._EndDate
+        )  # 訊號
+        self._FinishFilterData(SignalData)
+    def ShouldBuyStocks(self):
+        _shouldBuyStocks = set()
+        if not self._FilterStockNow.empty:
+            self._FilterStockNow.sort_values
+            Temp_buy = self._FilterStockNow.head(3)
+            for key, value in Temp_buy.items():
+                try:
+                    _shouldBuyStocks.add(str(key))
+                except KeyError:
+                    print(f"Error: {key} not in data/msg:{KeyError}")
+        return _shouldBuyStocks
+
+    def ShouldSellStocks(self, _dataInHand: dict):
+        _shouldSellStocks = set()
+        for key, value in self._FilterStock.items():
+            try:
+                if (key in _dataInHand.keys()) and not value.singnal[self._DateNow]:
                     _shouldSellStocks.add(key)
             except KeyError:
                 print(f"Error: {key} not in data/msg:{KeyError}")

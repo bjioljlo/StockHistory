@@ -261,10 +261,12 @@ class TGetExternalData(IGetExternalData):
         if type(start_time) is str:
             start_time = datetime.strptime(start_time, "%Y-%m-%d")
         if type(number) is not str:
-            number = str(number)
+            number = str(number)            
         data_time = datetime.strptime("2005-1-1", "%Y-%m-%d")
         result = pd.DataFrame()
-
+        if Globals.MYSQL.CantUseStocks.__contains__(str(number) + ".TW"):
+            print("ItsCantUseStock:" + str(number))
+            return result
         if not StockInfos.ts.codes.__contains__(number):
             print("無此檔股票")
             return result
