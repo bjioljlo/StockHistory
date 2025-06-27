@@ -6,8 +6,8 @@ import pandas as pd
 from FilterService.StockHistory import OriginalStock
 from BackTestService.BackTestFilterData import IBackTestFilterData
 from BackTestService.BackTestInfoData import IBackTestInfoData
-from InfomationType import stock_data_kind
-import Tools
+from Common.InfomationType import stock_data_kind
+import Common.Tools as Tools
 
 
 class IBackTestInOutStrategy(ABC):

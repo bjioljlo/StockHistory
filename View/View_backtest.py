@@ -1,7 +1,7 @@
 from PyQt5 import QtWidgets
 
-import Tools
-from Parameter import RecordBackTestParameter
+import Common.Tools as Tools
+from Common.Parameter import RecordBackTestParameter
 from UI.UI_backtest import Ui_MainWindow3
 from View.View import TWindow
 

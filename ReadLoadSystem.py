@@ -3,8 +3,8 @@ import os
 import pandas as pd
 from pandas import DataFrame
 
-import Globals
-import InfomationType as info
+import Common.Globals as Globals
+import Common.InfomationType as info
 
 
 class ReadLoadSystem:

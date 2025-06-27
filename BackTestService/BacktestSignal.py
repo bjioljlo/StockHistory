@@ -8,9 +8,9 @@ import pandas as pd
 import talib
 
 from FilterService.StockHistory import SMA_Stock
-import Tools
+import Common.Tools as Tools
 from FilterService import OriginalStock
-import InfomationType as info
+import Common.InfomationType as info
 
 class BacktestSignalType(Enum):
     KD = 1

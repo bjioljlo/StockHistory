@@ -4,10 +4,10 @@ from datetime import datetime
 import pandas as pd
 from pandas import DataFrame
 
-import InfomationType as info
-import Tools
+import Common.InfomationType as info
+import Common.Tools as Tools
 from GetExternalDataService import ExternalDataFactory
-from InfomationType import stock_data_kind
+from Common.InfomationType import stock_data_kind
 
 from .StockHistory import (
     OriginalStockByYahoo,

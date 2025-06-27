@@ -5,8 +5,7 @@ import seaborn as sns
 import talib
 from pandas import DataFrame
 
-import Tools
-from StockInfoData import StockInfoData
+from Common.StockInfoData import StockInfoData
 
 
 class DrawFigur:

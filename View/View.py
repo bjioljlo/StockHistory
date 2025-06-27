@@ -2,7 +2,7 @@ from abc import ABC, abstractmethod
 
 from PyQt5 import QtWidgets
 
-import Parameter
+import Common.Parameter as Parameter
 
 
 class IWindow(ABC):

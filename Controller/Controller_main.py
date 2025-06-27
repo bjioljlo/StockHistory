@@ -3,9 +3,9 @@ from datetime import datetime
 
 from PyQt5 import QtCore
 
-import Globals
+import Common.Globals as Globals
 import StockInfos as MainUserDataInfo
-import Tools
+import Common.Tools as Tools
 from DrawFigur import DrawFigur
 from FilterService.GetStockData import Stock_RangeDate
 from GetExternalDataService import TGetExternalData

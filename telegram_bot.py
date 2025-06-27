@@ -5,8 +5,8 @@ import telegram.ext
 import StockInfos as MainUserDataInfo
 import twstock as ts
 from FilterService import GetStockData
-import Tools
-import InfomationType as info
+import Common.Tools as Tools
+import Common.InfomationType as info
 from StockInfos import UserInfoDatas
 import asyncio
 

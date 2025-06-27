@@ -1,8 +1,8 @@
-import Globals
-from BackTestService import BackTestStock
+import Common.Globals as Globals
+from BackTestService.BackTestStock import BackTestStock
 from DrawFigur import DrawFigur
 from Model.Model import TModel
-from Parameter import RecordBackTestParameter
+from Common.Parameter import RecordBackTestParameter
 
 
 class Model_backtest(TModel):

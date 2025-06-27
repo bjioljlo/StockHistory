@@ -5,8 +5,8 @@ from datetime import datetime
 import pandas
 from pandas import DataFrame, Series
 
-import InfomationType as info
-import Tools
+import Common.InfomationType as info
+import Common.Tools as Tools
 from GetExternalDataService import IGetExternalData
 
 from .StockHistory import OriginalStock

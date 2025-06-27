@@ -10,10 +10,10 @@ import numpy as np
 import pandas as pd
 import requests
 
-import Globals
-import InfomationType as info
+import Common.Globals as Globals
+import Common.InfomationType as info
 import StockInfos
-import Tools
+import Common.Tools as Tools
 
 
 class ExternalDataTypeEnum(Enum):

@@ -6,7 +6,7 @@ import talib
 import twstock
 from pandas import DataFrame, Series, concat
 
-import InfomationType as info
+import Common.InfomationType as info
 from GetExternalDataService import ExternalDataFactory, ExternalDataTypeEnum
 
 

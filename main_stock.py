@@ -2,7 +2,7 @@ import sys
 
 from PyQt5 import QtWidgets
 
-import Globals
+import Common.Globals as Globals
 from Controller.MediatorController import Mediator_Controller, controllers
 from DrawFigur import DrawFigur
 from MongoService import MongoService

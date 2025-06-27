@@ -5,7 +5,7 @@ from unittest.mock import Mock
 from freezegun import freeze_time
 from PyQt5 import QtCore
 
-import Tools
+import Common.Tools as Tools
 
 
 class tools_test(unittest.TestCase):
