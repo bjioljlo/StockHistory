@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>700</width>
-    <height>670</height>
+    <width>694</width>
+    <height>712</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -18,7 +18,7 @@
     <property name="geometry">
      <rect>
       <x>10</x>
-      <y>380</y>
+      <y>420</y>
       <width>671</width>
       <height>211</height>
      </rect>
@@ -28,7 +28,7 @@
     <property name="geometry">
      <rect>
       <x>570</x>
-      <y>590</y>
+      <y>640</y>
       <width>113</width>
       <height>32</height>
      </rect>
@@ -43,7 +43,7 @@
       <x>10</x>
       <y>10</y>
       <width>251</width>
-      <height>191</height>
+      <height>121</height>
      </rect>
     </property>
     <property name="widgetResizable">
@@ -55,27 +55,14 @@
        <x>0</x>
        <y>0</y>
        <width>249</width>
-       <height>189</height>
+       <height>119</height>
       </rect>
      </property>
-     <widget class="QCheckBox" name="Ana_ProfitAndLoss">
-      <property name="geometry">
-       <rect>
-        <x>10</x>
-        <y>0</y>
-        <width>111</width>
-        <height>31</height>
-       </rect>
-      </property>
-      <property name="text">
-       <string>營益分析彙總表</string>
-      </property>
-     </widget>
      <widget class="QLabel" name="label">
       <property name="geometry">
        <rect>
         <x>30</x>
-        <y>30</y>
+        <y>10</y>
         <width>91</width>
         <height>21</height>
        </rect>
@@ -87,9 +74,9 @@
      <widget class="QLabel" name="label_2">
       <property name="geometry">
        <rect>
-        <x>30</x>
-        <y>60</y>
-        <width>121</width>
+        <x>10</x>
+        <y>30</y>
+        <width>111</width>
         <height>21</height>
        </rect>
       </property>
@@ -101,7 +88,7 @@
       <property name="geometry">
        <rect>
         <x>40</x>
-        <y>110</y>
+        <y>50</y>
         <width>81</width>
         <height>21</height>
        </rect>
@@ -110,37 +97,11 @@
        <string>每股參考淨值</string>
       </property>
      </widget>
-     <widget class="QCheckBox" name="Ana_BalanceSheet">
-      <property name="geometry">
-       <rect>
-        <x>10</x>
-        <y>80</y>
-        <width>111</width>
-        <height>31</height>
-       </rect>
-      </property>
-      <property name="text">
-       <string>資產負債彙總表</string>
-      </property>
-     </widget>
-     <widget class="QCheckBox" name="Ana_CPAndLoss">
-      <property name="geometry">
-       <rect>
-        <x>10</x>
-        <y>130</y>
-        <width>111</width>
-        <height>31</height>
-       </rect>
-      </property>
-      <property name="text">
-       <string>綜合損益彙總表</string>
-      </property>
-     </widget>
      <widget class="QLabel" name="label_4">
       <property name="geometry">
        <rect>
         <x>20</x>
-        <y>160</y>
+        <y>70</y>
         <width>101</width>
         <height>21</height>
        </rect>
@@ -149,27 +110,17 @@
        <string>基本每股盈餘(元)</string>
       </property>
      </widget>
-     <widget class="QPushButton" name="button_pick">
-      <property name="geometry">
-       <rect>
-        <x>140</x>
-        <y>0</y>
-        <width>113</width>
-        <height>32</height>
-       </rect>
-      </property>
-      <property name="text">
-       <string>開始篩選</string>
-      </property>
-     </widget>
      <widget class="QDoubleSpinBox" name="input_EPS">
       <property name="geometry">
        <rect>
-        <x>130</x>
-        <y>160</y>
+        <x>170</x>
+        <y>70</y>
         <width>71</width>
         <height>24</height>
        </rect>
+      </property>
+      <property name="minimum">
+       <double>-999.990000000000009</double>
       </property>
       <property name="maximum">
        <double>999.990000000000009</double>
@@ -178,11 +129,14 @@
      <widget class="QDoubleSpinBox" name="input_RPS">
       <property name="geometry">
        <rect>
-        <x>120</x>
-        <y>110</y>
+        <x>170</x>
+        <y>50</y>
         <width>71</width>
         <height>24</height>
        </rect>
+      </property>
+      <property name="minimum">
+       <double>-999.990000000000009</double>
       </property>
       <property name="maximum">
        <double>999.990000000000009</double>
@@ -191,11 +145,14 @@
      <widget class="QDoubleSpinBox" name="input_OPR">
       <property name="geometry">
        <rect>
-        <x>150</x>
-        <y>60</y>
+        <x>170</x>
+        <y>30</y>
         <width>71</width>
         <height>24</height>
        </rect>
+      </property>
+      <property name="minimum">
+       <double>-999.990000000000009</double>
       </property>
       <property name="maximum">
        <double>999.990000000000009</double>
@@ -204,14 +161,40 @@
      <widget class="QDoubleSpinBox" name="input_GPM">
       <property name="geometry">
        <rect>
-        <x>130</x>
-        <y>30</y>
+        <x>170</x>
+        <y>10</y>
         <width>71</width>
         <height>24</height>
        </rect>
       </property>
+      <property name="minimum">
+       <double>-999.990000000000009</double>
+      </property>
       <property name="maximum">
        <double>999.990000000000009</double>
+      </property>
+     </widget>
+     <widget class="QLabel" name="label_38">
+      <property name="geometry">
+       <rect>
+        <x>70</x>
+        <y>90</y>
+        <width>41</width>
+        <height>21</height>
+       </rect>
+      </property>
+      <property name="text">
+       <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;&lt;span style=&quot; font-size:10pt;&quot;&gt;種類&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+      </property>
+     </widget>
+     <widget class="QComboBox" name="input_kind">
+      <property name="geometry">
+       <rect>
+        <x>120</x>
+        <y>90</y>
+        <width>121</width>
+        <height>22</height>
+       </rect>
       </property>
      </widget>
     </widget>
@@ -220,9 +203,9 @@
     <property name="geometry">
      <rect>
       <x>10</x>
-      <y>200</y>
+      <y>130</y>
       <width>251</width>
-      <height>171</height>
+      <height>241</height>
      </rect>
     </property>
     <property name="widgetResizable">
@@ -234,7 +217,7 @@
        <x>0</x>
        <y>0</y>
        <width>249</width>
-       <height>169</height>
+       <height>239</height>
       </rect>
      </property>
      <widget class="QLabel" name="label_5">
@@ -294,20 +277,7 @@
        </font>
       </property>
       <property name="text">
-       <string>同季營業利益成長率連續增高季數</string>
-      </property>
-     </widget>
-     <widget class="QPushButton" name="button_pick_2">
-      <property name="geometry">
-       <rect>
-        <x>120</x>
-        <y>0</y>
-        <width>113</width>
-        <height>32</height>
-       </rect>
-      </property>
-      <property name="text">
-       <string>開始篩選</string>
+       <string>季營業利益成長率連續增高(YOY)</string>
       </property>
      </widget>
      <widget class="QSpinBox" name="input_OMGR">
@@ -442,13 +412,106 @@
        <number>999</number>
       </property>
      </widget>
+     <widget class="QLabel" name="label_35">
+      <property name="geometry">
+       <rect>
+        <x>10</x>
+        <y>150</y>
+        <width>161</width>
+        <height>21</height>
+       </rect>
+      </property>
+      <property name="font">
+       <font>
+        <pointsize>12</pointsize>
+       </font>
+      </property>
+      <property name="text">
+       <string>季營收成長率連續增高(YOY)</string>
+      </property>
+     </widget>
+     <widget class="QSpinBox" name="input_SRGR">
+      <property name="geometry">
+       <rect>
+        <x>170</x>
+        <y>150</y>
+        <width>48</width>
+        <height>24</height>
+       </rect>
+      </property>
+      <property name="maximum">
+       <number>999</number>
+      </property>
+     </widget>
+     <widget class="QLabel" name="label_36">
+      <property name="geometry">
+       <rect>
+        <x>10</x>
+        <y>170</y>
+        <width>161</width>
+        <height>21</height>
+       </rect>
+      </property>
+      <property name="font">
+       <font>
+        <pointsize>12</pointsize>
+       </font>
+      </property>
+      <property name="text">
+       <string>月營收成長率連續增高(YOY)</string>
+      </property>
+     </widget>
+     <widget class="QSpinBox" name="input_MRGR">
+      <property name="geometry">
+       <rect>
+        <x>170</x>
+        <y>170</y>
+        <width>48</width>
+        <height>24</height>
+       </rect>
+      </property>
+      <property name="maximum">
+       <number>999</number>
+      </property>
+     </widget>
+     <widget class="QLabel" name="label_37">
+      <property name="geometry">
+       <rect>
+        <x>10</x>
+        <y>190</y>
+        <width>91</width>
+        <height>21</height>
+       </rect>
+      </property>
+      <property name="font">
+       <font>
+        <pointsize>12</pointsize>
+       </font>
+      </property>
+      <property name="text">
+       <string>股價在均線之上</string>
+      </property>
+     </widget>
+     <widget class="QSpinBox" name="input_BetterMA">
+      <property name="geometry">
+       <rect>
+        <x>170</x>
+        <y>190</y>
+        <width>48</width>
+        <height>24</height>
+       </rect>
+      </property>
+      <property name="maximum">
+       <number>999</number>
+      </property>
+     </widget>
     </widget>
    </widget>
    <widget class="QPushButton" name="button_openBackWindow">
     <property name="geometry">
      <rect>
       <x>460</x>
-      <y>590</y>
+      <y>640</y>
       <width>113</width>
       <height>32</height>
      </rect>
@@ -1176,7 +1239,7 @@
     <property name="geometry">
      <rect>
       <x>10</x>
-      <y>590</y>
+      <y>640</y>
       <width>113</width>
       <height>32</height>
      </rect>
@@ -1185,14 +1248,27 @@
      <string>帶入價值數值</string>
     </property>
    </widget>
+   <widget class="QPushButton" name="button_pick_2">
+    <property name="geometry">
+     <rect>
+      <x>10</x>
+      <y>380</y>
+      <width>121</width>
+      <height>31</height>
+     </rect>
+    </property>
+    <property name="text">
+     <string>開始篩選</string>
+    </property>
+   </widget>
   </widget>
   <widget class="QMenuBar" name="menubar">
    <property name="geometry">
     <rect>
      <x>0</x>
      <y>0</y>
-     <width>700</width>
-     <height>22</height>
+     <width>694</width>
+     <height>21</height>
     </rect>
    </property>
   </widget>

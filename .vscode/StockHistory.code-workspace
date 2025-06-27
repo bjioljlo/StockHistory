@@ -1,0 +1,191 @@
+{
+  "folders": [
+    {
+      "path": "../"
+    }
+  ],
+  "settings": {
+    "workbench.colorTheme": "One Dark Pro",
+    "editor.tokenColorCustomizations": {
+      "[One Dark Pro]": {
+        "textMateRules": [
+          {
+            "name": "Classes 與繼承類別",
+            "scope": [
+              "support.class",
+              "entity.name.type.class",
+              "entity.other.inherited-class",
+              // 以下 4 個可能需要註解掉，因為看不出來有什麼效果 2023-10-16
+              "constant.other.character-class.regexp",
+              "entity.name.type.namespace",
+              "entity.name.type",
+              "entity.name.class.identifier.namespace.type"
+            ],
+            "settings": {
+              "foreground": "#d78532"
+            }
+          },
+          {
+            "name": "this, super, self, etc. IN FUNCTION",
+            "scope": [
+              "keyword.expressions-and-types.swift",
+              "keyword.other.this",
+              "variable.language",
+              "variable.language punctuation.definition.variable.php",
+              "variable.other.readwrite.instance.ruby",
+              "variable.parameter.function.language.special"
+            ],
+            "settings": {
+              "foreground": "#e1701a"
+              // "foreground": "#BD93F9",
+              // "fontStyle": "underline"
+            }
+          },
+          {
+            "name": "python self as parameter",
+            "scope": "variable.parameter.function.language.special.self.python",
+            "settings": {
+              "foreground": "#CD5C5C"
+              // "foreground": "#BD93F9",
+              // "fontStyle": ""
+            }
+          },
+          {
+            "name": "python parameter DEF",
+            "scope": [
+              "variable.parameter.function.language.python",
+              "entity.name.variable.parameter"
+            ],
+            "settings": {
+              // "foreground": "#d19a66" 原本的
+              "foreground": "#d2ac14",
+              "fontStyle": ""
+            }
+          },
+          {
+            "name": "python parameter 執行",
+            "scope": [
+              "variable.parameter" //「使用」函式時的參數顏色，和 def 不同
+            ],
+            "settings": {
+              // "foreground": "#d19a66",
+              // "foreground": "#d2ac14",
+              "fontStyle": ""
+            }
+          },
+          {
+            "name": "Operators 1 參數設定時 2-7 使用參數時",
+            "scope": [
+              "keyword.operator",
+              "keyword.operator.logical",
+              "keyword.operator.arithmetic",
+              "keyword.operator.comparison",
+              "keyword.operator.decrement",
+              "keyword.operator.increment",
+              "keyword.operator.relational"
+            ],
+            "settings": {
+              "foreground": "#9400D3",
+              "fontStyle": ""
+            }
+          },
+          {
+            "name": "True/False/None 目前只知這三個",
+            "scope": "constant",
+            "settings": {
+              // "foreground": "#CD5C5C"
+              "foreground": "#C71585"
+              // "foreground": "#798777"
+            }
+          },
+          {
+            "name": "變數常數(在 python 是全大寫)",
+            "scope": "constant.other",
+            "settings": {
+              "foreground": "#7777ee"
+              // "foreground": "#5e8b7e"
+              // "foreground": "#C71585"
+              // "foreground": "#798777"
+            }
+          },
+          {
+            "name": "整數",
+            "scope": "constant.numeric",
+            "settings": {
+              "foreground": "#CCAC00"
+            }
+          },
+          {
+            "name": "Comments 適用於#字 加上了適用於 // 這種註解的內容，總共四種，是原來兩個地方的合併",
+            "scope": "comment, punctuation.definition.comment, comment.line.double-slash, comment.block.documentation",
+            "settings": {
+              "fontStyle": ""
+              // "foreground": "#BC8F8F"
+            }
+          },
+          {
+            "name": "Strings",
+            "scope": "string",
+            "settings": {
+              "foreground": "#88AF6C"
+              // "foreground": "#98c379"
+            }
+          },
+          {
+            "name": "內建函式 str 這種(前者)，和 print 這種，共兩種",
+            "scope": "support.type.python, support.function",
+            "settings": {
+              "foreground": "#CD5C5C"
+              // "foreground": "#55aa7f"
+              // "foreground": "#56b6c2" 原版
+            }
+          },
+          {
+            "name": "keyword.operator",
+            "scope": "keyword.operator.arithmetic,keyword.operator.comparison,keyword.operator.decrement,keyword.operator.increment,keyword.operator.relational",
+            "settings": {
+              "fontStyle": ""
+              // "foreground": "#55aa7f"
+            }
+          },
+          {
+            "name": "Python Keyword Control: 就是 if/else/return/try/except",
+            "scope": "keyword.control.import.python, keyword.control.flow.python",
+            "settings": {
+              "fontStyle": ""
+              // "fontStyle": "italic 原本"
+            }
+          },
+          {
+            "name": "not, in, and, is, or",
+            "scope": "keyword.operator.logical.python",
+            "settings": {
+              "fontStyle": "bold"
+              // "fontStyle": "italic 原本"
+            }
+          }
+        ]
+      },
+      "[*Light*]": {
+        "textMateRules": [
+          {
+            "scope": "ref.matchtext",
+            "settings": {
+              "foreground": "#000"
+            }
+          }
+        ]
+      },
+      "[*Dark*]": {
+        "textMateRules": [
+          {
+            "scope": "ref.matchtext",
+            "settings": {
+              "foreground": "#fff"
+            }
+          }
+        ]
+      }
+    }
+  }
+}

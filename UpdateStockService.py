@@ -1,0 +1,113 @@
+import os
+from datetime import datetime, timedelta
+
+import pytz
+import twstock
+import yfinance as yf
+
+import Globals
+import InfomationType as info
+import Tools
+from GetExternalDataService import ExternalDataFactory, IGetExternalData
+from StockInfos import UserInfoDatas
+
+
+class UpdateStockService:
+    def __init__(self) -> None:
+        self.isUpdating: bool = False
+        self._getExternalData: IGetExternalData = ExternalDataFactory.Get_instance()
+
+    def UpdateStocksHandle(self):
+        self.__RunUpdate_sp500()
+
+    def UpdateAllStocksHandle(self, MainUserInfoDatas: UserInfoDatas):
+        self.__runUpdate(MainUserInfoDatas)
+
+    def UpdateADLHandle(self):
+        self.__RunUpDateADL()
+
+    def __runUpdate(self, MainUserInfoDatas: UserInfoDatas):
+        print("Update all stocks start!")
+        end_date = datetime.today() - timedelta(days=1)  # 設定資料起訖日期
+        for key, value in twstock.codes.items():
+            if not self.isUpdating:
+                print(
+                    "Update stocks " + value.code + info.local_type.Taiwan + " be Stop"
+                )
+                return
+            if value.market == "上市" and len(value.code) >= 4:
+                if len(value.code) >= 5 and Tools.check_ETF_stock(value.code) is False:
+                    continue
+                # SQL沒資料抓取一整包
+                start_date = datetime(2005, 1, 1)
+                end_date = datetime.today()  # 設定資料起訖日期
+                df_result = yf.download(
+                    [value.code + info.local_type.Taiwan],
+                    start=start_date,
+                    end=end_date,
+                )
+
+                if df_result.empty:
+                    print("yahoo no data:" + str(value.code + info.local_type.Taiwan))
+                    continue
+
+                df_result = Tools.TidyTicketData(df_result, value.code + ".TW")
+
+                with Globals.MYSQL.server_flask.app_context():
+                    df_result.to_sql(
+                        name=value.code + info.local_type.Taiwan,
+                        con=Globals.MYSQL.MySql_server.engine,
+                        if_exists="replace",
+                    )
+                Globals.READLOAD.load_memery[
+                    os.getcwd() + "/" + "stockInfo" + "/" + value.code
+                ] = df_result
+                Globals.MONGO.saveTable(
+                    str(value.code) + info.local_type.Taiwan, df_result
+                )
+                print("Update stocks " + value.code + info.local_type.Taiwan + " OK!")
+
+        # 存更新日期
+        MainUserInfoDatas.UpdateDate = str(datetime.today())[0:10]
+        print("Update all stocks end!")
+
+    def __RunUpdate_sp500(self):
+        print("Update all sp500 stocks start!")
+        sp500 = Tools.get_SP500_list()
+        for temp in sp500:
+            if not self.isUpdating:
+                print("Update stocks " + temp + " be Stop")
+                return
+
+            # SQL沒資料抓取一整包
+            start_date = datetime(2005, 1, 1)
+            end_date = datetime.today() - timedelta(days=1)  # 設定資料起訖日期
+            tz = pytz.timezone("America/New_York")
+            start_date = tz.localize(start_date)
+            end_date = tz.localize(end_date)
+
+            df_result = yf.download([temp], start=start_date, end=end_date)
+            if df_result.empty:
+                print("yahoo no data:" + str(temp))
+                continue
+            df_result = Tools.TidyTicketData(df_result, temp)
+            with Globals.MYSQL.server_flask.app_context():
+                df_result.to_sql(
+                    name=temp,
+                    con=Globals.MYSQL.MySql_server.engine,
+                    if_exists="replace",
+                )
+            Globals.READLOAD.load_memery[
+                os.getcwd() + "/" + "stockInfo" + "/" + temp
+            ] = df_result
+            Globals.MONGO.saveTable(str(temp), df_result)
+            print("Update stocks " + temp + " OK!")
+        print("Update all stocks end!")
+
+    def __RunUpDateADL(self):
+        print("Update stocks other Info start!")
+        end_date = datetime(
+            datetime.today().year, datetime.today().month, datetime.today().day
+        )  # 設定資料起訖日期
+        self._getExternalData.get_stock_AD_index(end_date)  # 更新騰落
+        print("Update stocks other Info end!")
