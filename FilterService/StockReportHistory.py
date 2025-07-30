@@ -34,13 +34,13 @@ class TReport(IReport):
         return self._name
 
     @abstractmethod
-    def get_ALL_Report(self, date) -> DataFrame:
+    def get_ALL_Report(self, date, base_today=None) -> DataFrame:
         raise NotImplementedError(
             "{} is virutal! Must be overwrited.".format(sys._getframe().f_code.co_name)
         )
 
-    def get_ReportByNumber(self, date, number: int) -> Series:
-        Temp = self.get_ALL_Report(date)
+    def get_ReportByNumber(self, date, number: int, base_today=None) -> Series:
+        Temp = self.get_ALL_Report(date, base_today=base_today)
         try:
             Temp_Result = Temp[Temp.index == number]
             if Temp_Result.empty:
@@ -53,16 +53,16 @@ class TReport(IReport):
                 print("".join([str(date), "的", str(number), "公司尚未成立"]))
             return DataFrame()
 
-    def get_ReportByType(self, date, _type: info.StrEnum) -> Series:
-        Temp = self.get_ALL_Report(date)
+    def get_ReportByType(self, date, _type: info.StrEnum, base_today=None) -> Series:
+        Temp = self.get_ALL_Report(date, base_today=base_today)
         try:
             return Temp[_type.value]
         except Exception:
             print("".join([str(date), "的", self._name, "表沒出"]))
             return DataFrame()
 
-    def get_ReportByTypeAndNumber(self, date, _type: info.StrEnum, number: int):
-        Temp = self.get_ReportByType(date, _type)
+    def get_ReportByTypeAndNumber(self, date, _type: info.StrEnum, number: int, base_today=None):
+        Temp = self.get_ReportByType(date, _type, base_today=base_today)
         try:
             return Temp[number]
         except Exception:
@@ -95,9 +95,11 @@ class Season_Report(AllStockReport):
         super().__init__(name, Unit, GetExternal)
         self._FS_type = _FS_type
 
-    def get_ALL_Report(self, date) -> DataFrame:
+    def get_ALL_Report(self, date, base_today=None) -> DataFrame:
+        import Common.Tools as Tools
+        safe_date = Tools.get_latest_season_report_date(date, base_today)
         return self._main_GetExternalData.get_allstock_financial_statement(
-            date, self._FS_type
+            safe_date, self._FS_type
         )
 
 
@@ -111,15 +113,19 @@ def SeasonReportFactory(
 class Month_Report(AllStockReport):
     """以月為單位的指標歷史資料"""
 
-    def get_ALL_Report(self, date):
-        return self._main_GetExternalData.get_allstock_monthly_report(date)
+    def get_ALL_Report(self, date, base_today=None):
+        import Common.Tools as Tools
+        safe_date = Tools.get_latest_monthly_report_date(date, base_today)
+        return self._main_GetExternalData.get_allstock_monthly_report(safe_date)
 
 
 class Day_Report(AllStockReport):
     """以日為單位的指標歷史資料"""
 
-    def get_ALL_Report(self, date):
-        return self._main_GetExternalData.get_allstock_yield(date)
+    def get_ALL_Report(self, date, base_today=None):
+        import Common.Tools as Tools
+        safe_date = Tools.get_latest_daily_report_date(date, base_today)
+        return self._main_GetExternalData.get_allstock_yield(safe_date)
 
     def Next_date(self, date):
         date = Tools.backWorkDays(date, self._Unit)
@@ -207,11 +213,11 @@ class MR_Growth_Indicator(Indicator):
         super().__init__(name, monthRP._Unit)
         self.monthRP = monthRP
 
-    def get_ALL_Report(self, date):
+    def get_ALL_Report(self, date, base_today=None):
         data_result = DataFrame()
-        MR_now = self.monthRP.get_ReportByType(date, info.Month_type.MR)
+        MR_now = self.monthRP.get_ReportByType(date, info.Month_type.MR, base_today=base_today)
         MR_old = self.monthRP.get_ReportByType(
-            Tools.changeDateMonth(date, -12), info.Month_type.MR
+            Tools.changeDateMonth(date, -12), info.Month_type.MR, base_today=base_today
         )
         if MR_now.empty or MR_old.empty:
             return DataFrame()
@@ -226,11 +232,11 @@ class SR_Growth_Indicator(Indicator):
         super().__init__(name, PLA_RP._Unit)
         self.PLA_RP = PLA_RP
 
-    def get_ALL_Report(self, date):
+    def get_ALL_Report(self, date, base_today=None):
         data_result = DataFrame()
-        SR_now = self.PLA_RP.get_ReportByType(date, info.PLA_type.type_0)
+        SR_now = self.PLA_RP.get_ReportByType(date, info.PLA_type.type_0, base_today=base_today)
         SR_old = self.PLA_RP.get_ReportByType(
-            Tools.changeDateMonth(date, -12), info.PLA_type.type_0
+            Tools.changeDateMonth(date, -12), info.PLA_type.type_0, base_today=base_today
         )
         if SR_now.empty or SR_old.empty:
             return DataFrame()
@@ -245,11 +251,11 @@ class OM_Growth_Indicator(Indicator):
         super().__init__(name, PLA_RP._Unit)
         self.PLA = PLA_RP
 
-    def get_ALL_Report(self, date) -> DataFrame:
+    def get_ALL_Report(self, date, base_today=None) -> DataFrame:
         data_result = DataFrame()
-        OM_now = self.PLA.get_ReportByType(date, info.PLA_type.type_2)
+        OM_now = self.PLA.get_ReportByType(date, info.PLA_type.type_2, base_today=base_today)
         OM_old = self.PLA.get_ReportByType(
-            Tools.changeDateMonth(date, -12), info.PLA_type.type_2
+            Tools.changeDateMonth(date, -12), info.PLA_type.type_2, base_today=base_today
         )
         if OM_now.empty or OM_old.empty:
             return DataFrame()

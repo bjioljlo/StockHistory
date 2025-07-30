@@ -22,13 +22,13 @@ class TStock(IStock):
     """股票歷史資料實作"""
 
     @property
-    def number(self):
+    def number(self) -> str:
         if self._number is None:
             raise
         return self._number
 
     @number.setter
-    def number(self, number: int):
+    def number(self, number: str):
         self._number = number
 
     def __init__(self, number: int = None) -> None:
@@ -104,13 +104,13 @@ class VirtualStockFuc(TStock):
     """對輸入的資訊做處理"""
 
     @property
-    def number(self):
+    def number(self) -> str:
         if self.Stock.number is None:
             raise
         return self.Stock.number
 
     @number.setter
-    def number(self, number: int):
+    def number(self, number: str):
         self.Stock.number = number
 
     def __init__(self, Stock: TStock) -> None:
@@ -282,7 +282,7 @@ class StockPriceBetterMA(VirtualStockFilterFuc):
         )
         result_data = data
         for number, row in data.iterrows():
-            self._Stock.number = int(number)
+            self._Stock.number = str(number)
             Temp_MA = self._Stock.get_PriceByDate(self._date)
             Temp = self._Stock.Stock.get_PriceByDate(self._date)
             if Temp.empty or Temp_MA.empty:
@@ -332,7 +332,7 @@ class StockRecordHigh(VirtualStockFilterFuc):
         result_data = data
         result = DataFrame(columns=["code", "RecordHigh"])
         for number, row in data.iterrows():
-            self._Stock.number = int(number)
+            self._Stock.number = str(number)
             Temp = self._Stock.get_ALL()
             if not Temp:
                 result_data.drop(index=int(number), inplace=True)
@@ -381,7 +381,7 @@ class StockFilter(VirtualStockFilterFuc):
         result_data = data
         result = DataFrame(columns=["code", name])
         for number, row in data.iterrows():
-            self._Stock.number = int(number)
+            self._Stock.number = str(number)
             Temp = self._Stock.get_PriceByDate(date)
             if Temp.empty:
                 result_data.drop(index=int(number), inplace=True)
@@ -423,12 +423,12 @@ class StockFilterInfo(VirtualStockFilterFuc):
         )
         result_data = data
         for number, row in data.iterrows():
-            self._Stock.number = int(number)
+            self._Stock.number = str(number)
             Temp = self._Stock.get_ALL()
             if Temp.empty:
                 result_data.drop(index=int(number), inplace=True)
                 continue
-            if twstock.codes[str(self._Stock.number)].group != groupName:
+            if twstock.codes[self._Stock.number].group != groupName:
                 result_data.drop(index=int(number), inplace=True)
         print(
             "{} / {} is End!".format("StockFilterInfo", sys._getframe().f_code.co_name)

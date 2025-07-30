@@ -26,22 +26,9 @@ class Model_backtest(TModel):
     def backtest(
         self, _recordBackTestParameter: RecordBackTestParameter
     ):  # 月營收回測開始紐
-        # if (
-        #     _recordBackTestParameter.check_monthRP_pick
-        #     == _recordBackTestParameter.check_PER_pick
-        #     == _recordBackTestParameter.check_volume_pick
-        #     is False
-        # ):
-        #     print("都沒選是要回測個毛線！")
-        #     return
-        # elif _recordBackTestParameter.volumeDays < 2:
-        #     print("測均線給1天是怎樣!")
-        #     return
-        # else:
-        #     self.Set_BackTestCheck(_recordBackTestParameter)
         Globals.THREADPOOL.submit_task(
             self.backtestFunc.backtest_monthRP_Up,
-            self.df.draw_BackTestResult,
+            lambda data: self.df.draw_BackTestResult(data, outputFolder="monthRP_Up/"),
             mainParament=_recordBackTestParameter,
         )
         
@@ -49,7 +36,7 @@ class Model_backtest(TModel):
         self.Set_BackTestCheck(_recordBackTestParameter)
         Globals.THREADPOOL.submit_task(
             self.backtestFunc.backtest_PERandPBR,
-            self.df.draw_BackTestResult,
+            lambda data: self.df.draw_BackTestResult(data, outputFolder="PERandPBR/"),
             mainParament=_recordBackTestParameter,
         )
 
@@ -57,7 +44,7 @@ class Model_backtest(TModel):
         self.Set_BackTestCheck(_recordBackTestParameter)
         Globals.THREADPOOL.submit_task(
             self.backtestFunc.backtest_Regular_quota,
-            self.df.draw_BackTestResult,
+            lambda data: self.df.draw_BackTestResult(data, outputFolder="Regular_quota/"),
             mainParament=_recordBackTestParameter,
         )
 
@@ -65,7 +52,7 @@ class Model_backtest(TModel):
         self.Set_BackTestCheck(_recordBackTestParameter)
         Globals.THREADPOOL.submit_task(
             self.backtestFunc.backtest_Record_high,
-            self.df.draw_BackTestResult,
+            lambda data: self.df.draw_BackTestResult(data, outputFolder="Record_high/"),
             mainParament=_recordBackTestParameter,
         )
 
@@ -73,7 +60,7 @@ class Model_backtest(TModel):
         self.Set_BackTestCheck(_recordBackTestParameter)
         Globals.THREADPOOL.submit_task(
             self.backtestFunc.backtest_KD_pick,
-            self.df.draw_BackTestResult,
+            lambda data: self.df.draw_BackTestResult(data, outputFolder="KD_pick/"),
             mainParament=_recordBackTestParameter,
         )
 
@@ -81,6 +68,6 @@ class Model_backtest(TModel):
         self.Set_BackTestCheck(_recordBackTestParameter)
         Globals.THREADPOOL.submit_task(
             self.backtestFunc.backtest_PEG_pick,
-            self.df.draw_BackTestResult,
+            lambda data: self.df.draw_BackTestResult(data, outputFolder="PEG_pick/"),
             mainParament=_recordBackTestParameter,
         )

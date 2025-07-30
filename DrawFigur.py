@@ -105,13 +105,13 @@ class DrawFigur:
         plt.title(stockNum)
         plt.show()
 
-    def draw_BackTestResult(self, _data: DataFrame):
+    def draw_BackTestResult(self, _data: DataFrame, outputFolder: str = ""):
         plt.figure(figsize=(15, 10))
         sns.lineplot(x="date", y="資產比例", data=_data)
         sns.set_style("darkgrid")
         plt.xlabel("date")
         plt.ylabel("%")
-        plt.savefig("回測結果.png")
+        plt.savefig("Datafiles/" + outputFolder + "ReportPic.png")
         plt.close()
 
     def Clear_PICS(self):

@@ -228,7 +228,7 @@ class Controller_main(TController):
             new_thread.start()
         else:
             stock_number = self.__GetView().GetFormUI().input_stockNumber.toPlainText()
-            Stock_RangeDate.number = int(stock_number)
+            Stock_RangeDate.number = stock_number
             Stock_RangeDate.StartDate = date
             m_history = Stock_RangeDate.get_ALL()
             if (

@@ -37,7 +37,7 @@ class TKD_pickFilterData_Test(unittest.TestCase):
         self._BackTestFilterData = BacktestFilterDataFactory(
             BacktestFilterDataType.KD,
             self.BuyStrockFun,
-            BacktestFilterFactory(BacktestFilterType.KD, self.ROE_index_test),
+            BacktestFilterFactory(BacktestFilterType.KD, [self.ROE_index_test]),
             BacktestSignalFactory(BacktestSignalType.KD, OriginalStockTest()),
             datetime.strptime("2019-03-04", "%Y-%m-%d"),
             datetime.strptime("2021-08-07", "%Y-%m-%d"),
