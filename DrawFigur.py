@@ -111,7 +111,7 @@ class DrawFigur:
         sns.set_style("darkgrid")
         plt.xlabel("date")
         plt.ylabel("%")
-        plt.savefig("Datafiles/" + outputFolder + "ReportPic.png")
+        plt.savefig(outputFolder + "ReportPic.png")
         plt.close()
 
     def Clear_PICS(self):

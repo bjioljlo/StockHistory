@@ -3,6 +3,7 @@ from BackTestService.BackTestStock import BackTestStock
 from DrawFigur import DrawFigur
 from Model.Model import TModel
 from Common.Parameter import RecordBackTestParameter
+import os
 
 
 class Model_backtest(TModel):
@@ -22,52 +23,36 @@ class Model_backtest(TModel):
             _recordBackTestParameter.check_ROE_pick,
         )
 
+    def _run_backtest(self, func, folder_prefix: str, _recordBackTestParameter: RecordBackTestParameter, set_check: bool = True):
+        filePath = f"{folder_prefix}_{str(_recordBackTestParameter.date_start.date())}_{str(_recordBackTestParameter.date_end.date())}/"
+        if not os.path.exists(filePath):
+            os.makedirs(filePath)
+        if set_check:
+            self.Set_BackTestCheck(_recordBackTestParameter)
+        Globals.THREADPOOL.submit_task(
+            func,
+            lambda data: self.df.draw_BackTestResult(data, outputFolder=filePath),
+            mainParament=_recordBackTestParameter,
+            folderName=filePath,
+        )
+
     # 第3頁的UI
     def backtest(
         self, _recordBackTestParameter: RecordBackTestParameter
-    ):  # 月營收回測開始紐
-        Globals.THREADPOOL.submit_task(
-            self.backtestFunc.backtest_monthRP_Up,
-            lambda data: self.df.draw_BackTestResult(data, outputFolder="monthRP_Up/"),
-            mainParament=_recordBackTestParameter,
-        )
-        
-    def backtest2(self, _recordBackTestParameter: RecordBackTestParameter):  # PER PBR
-        self.Set_BackTestCheck(_recordBackTestParameter)
-        Globals.THREADPOOL.submit_task(
-            self.backtestFunc.backtest_PERandPBR,
-            lambda data: self.df.draw_BackTestResult(data, outputFolder="PERandPBR/"),
-            mainParament=_recordBackTestParameter,
-        )
+    ):
+        self._run_backtest(self.backtestFunc.backtest_monthRP_Up, "monthRP_Up", _recordBackTestParameter, set_check=False)
 
-    def backtest3(self, _recordBackTestParameter: RecordBackTestParameter):  # 定期定額
-        self.Set_BackTestCheck(_recordBackTestParameter)
-        Globals.THREADPOOL.submit_task(
-            self.backtestFunc.backtest_Regular_quota,
-            lambda data: self.df.draw_BackTestResult(data, outputFolder="Regular_quota/"),
-            mainParament=_recordBackTestParameter,
-        )
+    def backtest2(self, _recordBackTestParameter: RecordBackTestParameter):
+        self._run_backtest(self.backtestFunc.backtest_PERandPBR, "PERandPBR", _recordBackTestParameter)
 
-    def backtest4(self, _recordBackTestParameter: RecordBackTestParameter):  # 創新高
-        self.Set_BackTestCheck(_recordBackTestParameter)
-        Globals.THREADPOOL.submit_task(
-            self.backtestFunc.backtest_Record_high,
-            lambda data: self.df.draw_BackTestResult(data, outputFolder="Record_high/"),
-            mainParament=_recordBackTestParameter,
-        )
+    def backtest3(self, _recordBackTestParameter: RecordBackTestParameter):
+        self._run_backtest(self.backtestFunc.backtest_Regular_quota, "Regular_quota", _recordBackTestParameter)
 
-    def backtest5(self, _recordBackTestParameter: RecordBackTestParameter):  # KD篩選
-        self.Set_BackTestCheck(_recordBackTestParameter)
-        Globals.THREADPOOL.submit_task(
-            self.backtestFunc.backtest_KD_pick,
-            lambda data: self.df.draw_BackTestResult(data, outputFolder="KD_pick/"),
-            mainParament=_recordBackTestParameter,
-        )
+    def backtest4(self, _recordBackTestParameter: RecordBackTestParameter):
+        self._run_backtest(self.backtestFunc.backtest_Record_high, "Record_high", _recordBackTestParameter)
+
+    def backtest5(self, _recordBackTestParameter: RecordBackTestParameter):
+        self._run_backtest(self.backtestFunc.backtest_KD_pick, "KD_pick", _recordBackTestParameter)
 
     def backtest6(self, _recordBackTestParameter: RecordBackTestParameter):  # PEG篩選
-        self.Set_BackTestCheck(_recordBackTestParameter)
-        Globals.THREADPOOL.submit_task(
-            self.backtestFunc.backtest_PEG_pick,
-            lambda data: self.df.draw_BackTestResult(data, outputFolder="PEG_pick/"),
-            mainParament=_recordBackTestParameter,
-        )
+        self._run_backtest(self.backtestFunc.backtest_PEG_pick, "PEG_pick", _recordBackTestParameter)
