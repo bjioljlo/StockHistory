@@ -153,12 +153,11 @@ class Controller_main(TController):
     def button_moveToInput_click(self):
         Index = self.__GetView().GetFormUI().treeView.currentIndex()
         mModel = self.__GetView().GetFormUI().treeView.model()
-        try:
-            data = mModel.item(Index.row(), 0).text()
+        item = mModel.item(Index.row(), 0)
+        if item is not None:
+            data = item.text()
             text = str(data)
             self.__GetView().GetFormUI().input_stockNumber.setPlainText(text)
-        except IndexError:
-            print("")
 
     def button_monthRP_click(self):  # 某股票月營收曲線
         self.__GetModel().monthRP(self.__GetView().Parament)
@@ -294,9 +293,9 @@ class Controller_main(TController):
             print("請先存檔!")
             return
         if self.__GetView().GetFormUI().check_stock.isChecked():
-            self.df.draw_stock(m_history, stockInfo)
+            self.df.draw_stock(m_history, stockInfo.number)
         else:
-            self.df.draw_stock(m_history, stockInfo)
+            self.df.draw_stock(m_history, stockInfo.number)
 
     def check_Volume_isCheck(self, m_history, stockInfo):
         if self.__GetView().GetFormUI().check_volume.isChecked():

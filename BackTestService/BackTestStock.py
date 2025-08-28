@@ -18,7 +18,7 @@ from BackTestService.BackTestInOutStrategy import (
     RecordHigh_backtestInOutStrategy,
     Regular_backTestInOutStrategy,
 )
-from BackTestService.BacktestFilter import (
+from BackTestService.BackTestFilter import (
     BacktestFilterFactory,
     BacktestFilterType,
     Regular_quotatestFilter,
@@ -133,7 +133,7 @@ class BackTestStock:
         )
         Temp_alldata.to_csv(folderName + "backtestAll.csv")
         print("KD值選股-回測時間:", datetime.now() - startTime)
-        return userInfo._TempResultDraw.Data
+        return userInfo
 
     def backtest_PEG_pick(self, mainParament: RecordBackTestParameter, folderName: str = "Datafiles/PEG_pick/"):
         """
@@ -211,7 +211,7 @@ class BackTestStock:
         )
         Temp_alldata.to_csv(folderName + "backtestAll.csv")
         print("PEG選股外加月營收增高-回測時間:", datetime.now() - startTime)
-        return userInfo._TempResultDraw.Data
+        return userInfo
 
     def backtest_Regular_quota(self, mainParament: RecordBackTestParameter, folderName: str = "Datafiles/Regular_quota/"):
         """
@@ -275,7 +275,7 @@ class BackTestStock:
         )
         Temp_alldata.to_csv(folderName + "backtestAll.csv")
         print("定期定額-回測時間:", datetime.now() - startTime)
-        return userInfo._TempResultDraw.Data
+        return userInfo
 
     def backtest_Record_high(self, mainParament: RecordBackTestParameter, folderName: str = "Datafiles/Record_high/"):
         """
@@ -352,8 +352,8 @@ class BackTestStock:
         )
         Temp_alldata.to_csv(folderName + "backtestAll.csv")
         print("創新高-回測時間:", datetime.now() - startTime)
-        return userInfo._TempResultDraw.Data
-
+        return userInfo
+    
     def backtest_PERandPBR(self, mainParament: RecordBackTestParameter, folderName: str = "Datafiles/PERandPBR/"):
         """
         14年14倍
@@ -438,7 +438,7 @@ class BackTestStock:
         )
         Temp_alldata.to_csv(folderName + "backtestAll.csv")
         print("14年14倍-回測時間:", datetime.now() - startTime)
-        return userInfo._TempResultDraw.Data
+        return userInfo
 
     def backtest_monthRP_Up(self, mainParament: RecordBackTestParameter, folderName: str = "Datafiles/monthRP_Up/"):
         """
@@ -517,4 +517,4 @@ class BackTestStock:
         )
         Temp_alldata.to_csv(folderName + "backtestAll.csv")
         print("月營收增高-回測時間:", datetime.now() - startTime)
-        return userInfo._TempResultDraw.Data
+        return userInfo

@@ -9,7 +9,7 @@ from pandas import Series
 
 from Common.StockInfoData import StockInfoData, StockInfoSignalData
 
-from .BacktestFilter import IBacktestFilter
+from .BackTestFilter import IBacktestFilter
 from .BacktestSignal import IBacktestSignal
 
 BuyStockEvent = Callable[[str], bool]

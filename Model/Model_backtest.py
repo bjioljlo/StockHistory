@@ -4,6 +4,7 @@ from DrawFigur import DrawFigur
 from Model.Model import TModel
 from Common.Parameter import RecordBackTestParameter
 import os
+import pandas as pd
 
 
 class Model_backtest(TModel):
@@ -23,7 +24,7 @@ class Model_backtest(TModel):
             _recordBackTestParameter.check_ROE_pick,
         )
 
-    def _run_backtest(self, func, folder_prefix: str, _recordBackTestParameter: RecordBackTestParameter, set_check: bool = True):
+    def _run_backtest(self, func, folder_prefix: str, _recordBackTestParameter: RecordBackTestParameter, resultID:int, set_check: bool = True):
         filePath = f"{folder_prefix}_{str(_recordBackTestParameter.date_start.date())}_{str(_recordBackTestParameter.date_end.date())}/"
         if not os.path.exists(filePath):
             os.makedirs(filePath)
@@ -31,28 +32,44 @@ class Model_backtest(TModel):
             self.Set_BackTestCheck(_recordBackTestParameter)
         Globals.THREADPOOL.submit_task(
             func,
-            lambda data: self.df.draw_BackTestResult(data, outputFolder=filePath),
+            lambda data: _run_backTestcallBack(folder_prefix, data, outputFolder=filePath),
             mainParament=_recordBackTestParameter,
             folderName=filePath,
         )
+        def _run_backTestcallBack(username, data, outputFolder):
+            print("回測結束!")
+            filterdate = data._TempTradeInfo.Data.tail(1).index[0]
+            filterData = data._TempTradeInfo.Data.index == filterdate
+            tempData = data._TempTradeInfo.Data[filterData]
+            
+            new_user_data = {
+                'id': [resultID],
+                'username': [username],
+                'password': ['1234'], 
+                'stocks': [(tempData['號碼'] + '.tw').to_json(orient='records')] 
+            }
+            user_df = pd.DataFrame(new_user_data).reset_index()
+            Globals.MYSQL.upsert_data("user_infos", user_df, key_columns=['username']);  # 回測完後重新連線
+            self.df.draw_BackTestResult(data._TempResultDraw.Data, outputFolder),
+
 
     # 第3頁的UI
     def backtest(
         self, _recordBackTestParameter: RecordBackTestParameter
     ):
-        self._run_backtest(self.backtestFunc.backtest_monthRP_Up, "monthRP_Up", _recordBackTestParameter, set_check=False)
+        self._run_backtest(self.backtestFunc.backtest_monthRP_Up, "monthRP_Up", _recordBackTestParameter, 5, set_check=False)
 
     def backtest2(self, _recordBackTestParameter: RecordBackTestParameter):
-        self._run_backtest(self.backtestFunc.backtest_PERandPBR, "PERandPBR", _recordBackTestParameter)
+        self._run_backtest(self.backtestFunc.backtest_PERandPBR, "PERandPBR", _recordBackTestParameter, 6)
 
     def backtest3(self, _recordBackTestParameter: RecordBackTestParameter):
-        self._run_backtest(self.backtestFunc.backtest_Regular_quota, "Regular_quota", _recordBackTestParameter)
+        self._run_backtest(self.backtestFunc.backtest_Regular_quota, "Regular_quota", _recordBackTestParameter, 7)
 
     def backtest4(self, _recordBackTestParameter: RecordBackTestParameter):
-        self._run_backtest(self.backtestFunc.backtest_Record_high, "Record_high", _recordBackTestParameter)
+        self._run_backtest(self.backtestFunc.backtest_Record_high, "Record_high", _recordBackTestParameter, 8)
 
     def backtest5(self, _recordBackTestParameter: RecordBackTestParameter):
-        self._run_backtest(self.backtestFunc.backtest_KD_pick, "KD_pick", _recordBackTestParameter)
+        self._run_backtest(self.backtestFunc.backtest_KD_pick, "KD_pick", _recordBackTestParameter, 9)
 
     def backtest6(self, _recordBackTestParameter: RecordBackTestParameter):  # PEG篩選
-        self._run_backtest(self.backtestFunc.backtest_PEG_pick, "PEG_pick", _recordBackTestParameter)
+        self._run_backtest(self.backtestFunc.backtest_PEG_pick, "PEG_pick", _recordBackTestParameter, 10)

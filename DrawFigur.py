@@ -15,8 +15,7 @@ class DrawFigur:
         self.panelCount = 0
 
     def draw_stock(
-        self, table: DataFrame, stockInfo: StockInfoData
-    ):  # table = 表 stockInfo = 股票資訊結構
+        self, table: DataFrame, number: int):  # table = 表 stockInfo = 股票資訊結構
         mc = mpf.make_marketcolors(
             up="r", down="g", edge="", wick="inherit", volume="inherit"
         )
@@ -28,28 +27,25 @@ class DrawFigur:
             style=s,
             addplot=self.PICS,
             figsize=(13, 7),
-            title=str(stockInfo.number),
+            title=str(number),
         )
 
     def draw_SMA(
-        self, table: DataFrame, day: int, stockInfo: StockInfoData
-    ):  # table = 表 day = 幾日均線 stockInfo = 股票資訊結構
+        self, table: DataFrame, day: int):  # table = 表 day = 幾日均線 stockInfo = 股票資訊結構
         mclose = talib.SMA(
             np.array(table["Close"]), day
         )  # 用np.array才可以將均線和蠟燭圖放一起
         self.PICS.append(mpf.make_addplot(mclose, panel=0))
 
     def draw_BollingerBands(
-        self, table: DataFrame, day: int, stockInfo: StockInfoData
-    ):  # table = 表 day = 幾日均線 stockInfo = 股票資訊結構
+        self, table: DataFrame):  # table = 表 day = 幾日均線 stockInfo = 股票資訊結構
         upper, middle, lower = talib.BBANDS(np.array(table["Close"]))
         self.PICS.append(mpf.make_addplot(upper, panel=0))
         self.PICS.append(mpf.make_addplot(middle, panel=0))
         self.PICS.append(mpf.make_addplot(lower, panel=0))
 
     def draw_KD(
-        self, table: DataFrame, stockInfo: StockInfoData
-    ):  # table = 表 stockInfo = 股票資訊結構
+        self, table: DataFrame):  # table = 表 stockInfo = 股票資訊結構
         table["k"], table["d"] = talib.STOCH(
             table["High"], table["Low"], table["Close"]
         )
@@ -66,14 +62,12 @@ class DrawFigur:
         )
 
     def draw_Volume(
-        self, table: DataFrame, stockInfo: StockInfoData
-    ):  # table = 表 stockInfo = 股票資訊結構
+        self, table: DataFrame):  # table = 表 stockInfo = 股票資訊結構
         self.show_volume = True
         self.panelCount = self.panelCount + 1
 
     def draw_RSI(
-        self, table: DataFrame, stockInfo: StockInfoData
-    ):  # table = 表 stockInfo = 股票資訊結構
+        self, table: DataFrame):  # table = 表 stockInfo = 股票資訊結構
         mRSI = talib.RSI(np.array(table["Close"]))
         self.panelCount = self.panelCount + 1
         self.PICS.append(mpf.make_addplot(mRSI, panel=self.panelCount, ylabel="RSI"))
