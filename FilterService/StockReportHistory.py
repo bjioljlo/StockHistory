@@ -138,7 +138,8 @@ class ADL_Report(AllStockReport):
     """以日為單位的騰落指標歷史資料(AD)"""
 
     def get_ALL_Report(self, date):
-        return self._main_GetExternalData.get_stock_AD_index(date)
+        # The date parameter is ignored to fetch the full history for cumsum calculation.
+        return self._main_GetExternalData.get_full_ad_index()
 
     def Next_date(self, date):
         date = Tools.backWorkDays(date, self._Unit)
@@ -385,34 +386,41 @@ class ADL_Indicator(Indicator):
     def __init__(self, name: str, AD_RP: ADL_Report) -> None:
         super().__init__(name, AD_RP._Unit)
         self._AD_RP = AD_RP
-        self._endDay: datetime = datetime.strptime("2023-9-25", "%Y-%m-%d")
+        self._adl_data = None  # Cache for the calculated ADL data
+
+    def _calculate_adl(self):
+        """Fetches all up/down data and calculates the cumulative ADL."""
+        print("Calculating full ADL data...")
+        # Get the full table of up/down data
+        daily_ad_data = self._AD_RP.get_ALL_Report(None)
+        if daily_ad_data.empty:
+            self._adl_data = pandas.DataFrame(columns=[self._name])
+            return
+
+        # Ensure data is sorted by date
+        daily_ad_data = daily_ad_data.sort_index()
+
+        # Calculate the daily difference
+        daily_diff = daily_ad_data["上漲"] - daily_ad_data["下跌"]
+        
+        # Calculate the cumulative sum
+        adl_series = daily_diff.cumsum()
+        
+        self._adl_data = pandas.DataFrame(adl_series)
+        self._adl_data.columns = [self._name]
+        print("Full ADL data calculated and cached.")
 
     def get_ALL_Report(self, date, base_today=None):
-        data_result = DataFrame(columns=["Date", self._name]).set_index("Date")
-        ADL_yesterday: int
-        ADL_now = self._AD_RP.get_ALL_Report(date)
-        if ADL_now.empty:
-            return data_result
-        if date == self._endDay:
-            Temp = ADL_now["上漲"][date] - ADL_now["下跌"][date]
-            data_result = pandas.concat(
-                [
-                    data_result,
-                    DataFrame({"Date": [date], self._name: [Temp]}).set_index("Date"),
-                ]
-            )
-        else:
-            ADL_yesterday = ADL_Indicator(self._name, self._AD_RP).get_ALL_Report(
-                self.Next_date(date), base_today=base_today
-            )[self._name][self.Next_date(date)]
-            Temp = ADL_yesterday + (ADL_now["上漲"][date] - ADL_now["下跌"][date])
-            data_result = pandas.concat(
-                [
-                    data_result,
-                    DataFrame({"Date": [date], self._name: [Temp]}).set_index("Date"),
-                ]
-            )
-        return data_result
+        # Calculate and cache the full ADL data if not already done
+        if self._adl_data is None:
+            self._calculate_adl()
+
+        # Return the specific date's data from the cached DataFrame
+        if self._adl_data.empty or date not in self._adl_data.index:
+            return pandas.DataFrame()
+        
+        # Return as a DataFrame with the same structure as the original code
+        return self._adl_data.loc[[date]]
 
     def Next_date(self, date):
         return self._AD_RP.Next_date(date)

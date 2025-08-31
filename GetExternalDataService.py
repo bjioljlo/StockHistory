@@ -49,6 +49,11 @@ class IGetExternalData(ABC):
         """#取得上漲和下跌家數"""
         pass
 
+    @abstractmethod
+    def get_full_ad_index(self) -> pd.DataFrame:
+        """#取得完整的上漲和下跌家數歷史資料"""
+        pass
+
 
 class TGetExternalData(IGetExternalData):
     """讀取外部資料"""
@@ -178,7 +183,7 @@ class TGetExternalData(IGetExternalData):
             m_data.drop(m_data.tail(1).index, inplace=True)
             # 整理一下資料
             m_data.rename(columns={"公司代號": "code"}, inplace=True)
-            m_data[["code"]] = m_data[["code"]].astype(int)
+            m_data[[ "code"]] = m_data[[ "code"]].astype(int)
             m_data.set_index("code", inplace=True)
             # 存到資料庫
             Globals.MYSQL.saveTable(file, m_data)
@@ -207,7 +212,7 @@ class TGetExternalData(IGetExternalData):
 
         try:
             if m_yield.empty and (
-                self.get_stock_history("2330", start)["Volume"][
+                self.get_stock_history("2330", start)[ "Volume"][ 
                     Tools.DateTime2String(start)
                 ]
                 > 0
@@ -243,7 +248,9 @@ class TGetExternalData(IGetExternalData):
         return m_yield
 
     def get_stock_history(
-        self, number: str, start=datetime.strptime("2005-1-1", "%Y-%m-%d")
+        self,
+        number: str,
+        start=datetime.strptime("2005-1-1", "%Y-%m-%d"),
     ) -> pd.DataFrame:
         """#爬某個股票的歷史紀錄"""
         print(
@@ -291,76 +298,98 @@ class TGetExternalData(IGetExternalData):
     def get_stock_AD_index(self, date: datetime, getNew=False):
         """#取得上漲和下跌家數"""
         print("get_stock_AD_index")
-        ADindex_result = pd.DataFrame(columns=["Date", "上漲", "下跌"]).set_index(
-            "Date"
-        )
-        if type(date) is str:
+        if isinstance(date, str):
             date = datetime.strptime(date, "%Y-%m-%d")
 
         time = date
         while time not in self.get_stock_history("2330", time).index:
-            time = Tools.backWorkDays(time, 1)  # 加一天
-        str_date = Tools.DateTime2String(time)
+            time = Tools.backWorkDays(time, 1)
 
+        # --- Start of optimization ---
+        # 1. Try to read from MySQL database first
+        try:
+            ad_index_from_sql = Globals.MYSQL.readStockDay('ad_index')
+            if not ad_index_from_sql.empty and time in ad_index_from_sql.index:
+                print(f"Found AD_index for {time.strftime('%Y-%m-%d')} in MySQL.")
+                return ad_index_from_sql.loc[[time]]
+        except Exception as e:
+            print(f"Could not read AD_index from MySQL, falling back. Error: {e}")
+        # --- End of optimization ---
+
+        # 2. Fallback to original logic (cache/CSV)
+        str_date = Tools.DateTime2String(time)
+        fileName = self.filePath + "/" + self.fileName_index + "/" + "AD_index"
+        ADindex_result = Globals.READLOAD.load_other_file(fileName, "AD_index")
+
+        if ADindex_result.empty and os.path.isfile(fileName + ".csv"):
+            ADindex_result = pd.read_csv(
+                fileName + ".csv", index_col="Date", parse_dates=["Date"]
+            )
+            Globals.READLOAD.Memery[fileName] = ADindex_result
+
+        if not ADindex_result.empty and time in ADindex_result.index:
+            print(f"Found AD_index for {time.strftime('%Y-%m-%d')} in local cache.")
+            return ADindex_result.loc[[time]]
+
+        # 3. If not in DB or cache, calculate it
+        print(f"No data for {time.strftime('%Y-%m-%d')} in DB or cache. Calculating...")
         time_yesterday = Tools.backWorkDays(time, 1)
         while (
             time_yesterday not in self.get_stock_history("2330", time_yesterday).index
         ):
-            time_yesterday = Tools.backWorkDays(time_yesterday, 1)  # 加一天
+            time_yesterday = Tools.backWorkDays(time_yesterday, 1)
         str_yesterday = Tools.DateTime2String(time_yesterday)
-
-        fileName = self.filePath + "/" + self.fileName_index + "/" + "AD_index"
-
-        ADindex_result = Globals.READLOAD.load_other_file(fileName, "AD_index")
-        if ADindex_result.empty:
-            if os.path.isfile(fileName + ".csv"):
-                ADindex_result = pd.read_csv(
-                    fileName + ".csv", index_col="Date", parse_dates=["Date"]
-                )
-                Globals.READLOAD.Memery[fileName] = ADindex_result
-            else:
-                print("no AD_index csv file")
 
         up = 0
         down = 0
-        if not ADindex_result.empty and (ADindex_result.index == time).__contains__(
-            True
-        ):
-            return ADindex_result[ADindex_result.index == time]
         for key, value in StockInfos.ts.codes.items():
             if value.market == "上市" and len(value.code) == 4 and value.type == "股票":
                 if Tools.check_no_use_stock(value.code):
-                    print("get_stock_price: " + str(value.code) + " in no use")
                     continue
                 try:
-                    m_history = self.get_stock_history(value.code, str_yesterday)[
-                        "Close"
-                    ]
+                    m_history = self.get_stock_history(value.code, str_yesterday)[ "Close"]
+                    price_today = m_history.get(str_date)
+                    price_yesterday = m_history.get(str_yesterday)
+
+                    if price_today is not None and price_yesterday is not None:
+                        if price_yesterday < price_today:
+                            up += 1
+                        elif price_yesterday > price_today:
+                            down += 1
                 except Exception:
-                    print("get " + str(value.code) + " info fail!")
+                    # print(f"Could not process stock {value.code}")
                     continue
-                try:
-                    if m_history[str_yesterday] > m_history[str_date]:
-                        down = down + 1
-                    elif m_history[str_yesterday] < m_history[str_date]:
-                        up = up + 1
-                except Exception:
-                    print("get " + str(value.code) + " info fail!")
-                    m_temp = self.get_stock_history("2330", str_yesterday)["Close"]
-                    if not (m_temp.index == time).__contains__(True):
-                        return pd.DataFrame()
-                    m_temp = self.get_stock_history("2330", str_date)["Close"]
-                    if not (m_temp.index == time).__contains__(True):
-                        return pd.DataFrame()
+        
+        print(f"Calculation result for {time.strftime('%Y-%m-%d')}: Up={up}, Down={down}")
+
         ADindex_result_new = pd.DataFrame(
             {"Date": [time], "上漲": [up], "下跌": [down]}
         ).set_index("Date")
-        ADindex_result = pd.concat([ADindex_result, ADindex_result_new])
+
+        # Combine with existing data and save
+        if not ADindex_result.empty:
+            ADindex_result = pd.concat([ADindex_result, ADindex_result_new])
+        else:
+            ADindex_result = ADindex_result_new
+
+        ADindex_result = ADindex_result[~ADindex_result.index.duplicated(keep='last')]
         ADindex_result = ADindex_result.sort_index()
+        
         Globals.MYSQL.saveTable("ad_index", ADindex_result)
         Globals.READLOAD.Memery[fileName] = ADindex_result
-        df = ADindex_result[ADindex_result.index == time]
-        return df
+        
+        return ADindex_result.loc[[time]]
+
+    def get_full_ad_index(self) -> pd.DataFrame:
+        """#取得完整的上漲和下跌家數歷史資料"""
+        print("get_full_ad_index from MySQL")
+        try:
+            ad_index_table = Globals.MYSQL.readStockDay('ad_index')
+            if not ad_index_table.empty:
+                return ad_index_table.sort_index()
+        except Exception as e:
+            print(f"Could not read AD_index from MySQL. Error: {e}")
+        return pd.DataFrame()
 
     def _remove_td(self, column):
         remove_one = column.split("<")
@@ -621,7 +650,10 @@ class TGetExternalData(IGetExternalData):
         return pd.DataFrame(data=data, columns=column)
 
     def _financial_statement(
-        self, year: int, season: int, type: info.FS_type
+        self,
+        year: int,
+        season: int,
+        type: info.FS_type,
     ):  # year = 年 season = 季 type = 財報種類
         myear = year
         if year >= 1000:
@@ -738,18 +770,20 @@ class GetExternalDataTest(TGetExternalData):
                 m_data.drop(m_data.tail(1).index, inplace=True)
                 # 整理一下資料
                 m_data.rename(columns={"公司代號": "code"}, inplace=True)
-                m_data[["code"]] = m_data[["code"]].astype(int)
+                m_data[[ "code"]] = m_data[[ "code"]].astype(int)
                 m_data.set_index("code", inplace=True)
             return m_data
 
     def get_stock_history(
-        self, number: str, start=datetime.strptime("2005-1-1", "%Y-%m-%d")
+        self,
+        number: str,
+        start=datetime.strptime("2005-1-1", "%Y-%m-%d"),
     ) -> pd.DataFrame:
         try:
             return super().get_stock_history(number, start)
         except Exception:
             print(
-                "".join(
+                ".".join(
                     [
                         "取得",
                         str(number),

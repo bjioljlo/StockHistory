@@ -383,23 +383,35 @@ class All_imge:
         if number is None:
             if (self._report._name != "ADL") and (self._report._name != "ADLs"):
                 raise
-        data_result = pd.DataFrame(columns=["Date", self._report._name])
+        
+        results_list = []
+        stock_history_index = self._main_GetExternalData.get_stock_history("2330").index
         start = self._start
         end = self._end
+        
         while start <= end:
-            if end not in self._main_GetExternalData.get_stock_history("2330").index:
+            if end not in stock_history_index:
                 end = self._report.Next_date(end)
                 continue
+            
             if (self._report._name == "ADL") or (self._report._name == "ADLs"):
                 temp = self._report.get_ALL_Report(end)
             else:
                 temp = self._report.get_ReportByNumber(end, number)
+            
             if temp.empty:
                 end = self._report.Next_date(end)
                 continue
+            
             temp.insert(0, "Date", end)
-            data_result = pd.concat([data_result, temp])
+            results_list.append(temp)
             end = self._report.Next_date(end)
+            
+        if not results_list:
+            data_result = pd.DataFrame(columns=["Date", self._report._name])
+        else:
+            data_result = pd.concat(results_list, ignore_index=True)
+
         data_result.set_index("Date", inplace=True)
         return data_result
 
