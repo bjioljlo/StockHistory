@@ -432,16 +432,41 @@ class ADLs_Indicator(Indicator):
     def __init__(self, name: str, AD_RP: ADL_Report) -> None:
         super().__init__(name, AD_RP._Unit)
         self._AD_RP = AD_RP
+        self._adls_data = None  # Cache for the calculated ADLS data
+
+    def _calculate_adls(self):
+        """Fetches all up/down data and calculates the ADL Ratio for all dates."""
+        print("Calculating full ADLS data...")
+        daily_ad_data = self._AD_RP.get_ALL_Report(None)
+        if daily_ad_data.empty:
+            self._adls_data = pandas.DataFrame(columns=[self._name])
+            return
+
+        # Ensure data is sorted by date
+        daily_ad_data = daily_ad_data.sort_index()
+
+        # Calculate the ratio
+        up = daily_ad_data["上漲"]
+        down = daily_ad_data["下跌"]
+        total = up + down
+        # Avoid division by zero
+        ratio = (up / total.where(total != 0, 1)) - 0.5
+        
+        self._adls_data = pandas.DataFrame(ratio)
+        self._adls_data.columns = [self._name]
+        print("Full ADLS data calculated and cached.")
 
     def get_ALL_Report(self, date, base_today=None):
-        data_result = DataFrame()
-        ADLs_today = self._AD_RP.get_ALL_Report(date)
-        if ADLs_today.empty:
-            return DataFrame()
-        data_result[self._name] = (
-            ADLs_today["上漲"] / (ADLs_today["上漲"] + ADLs_today["下跌"])
-        ) - 0.5
-        return data_result
+        # Calculate and cache the full ADLS data if not already done
+        if self._adls_data is None:
+            self._calculate_adls()
+
+        # Return the specific date's data from the cached DataFrame
+        if self._adls_data.empty or date not in self._adls_data.index:
+            return pandas.DataFrame()
+        
+        # Return as a DataFrame with the same structure as the original code
+        return self._adls_data.loc[[date]]
 
     def Next_date(self, date):
         return self._AD_RP.Next_date(date)
