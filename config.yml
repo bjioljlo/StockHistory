@@ -2,28 +2,28 @@
 # Set the 'type' to 'mysql', 'postgresql', or 'sqlite' to select the database.
 database:
   type: mysql
-  
+
   mysql:
-    user: 'demo'
-    password: 'demo123'
-    host: 'localhost'
+    user: "demo"
+    password: "demo123"
+    host: "localhost"
     port: 3307
-    databasename: 'Demo'
+    databasename: "demo"
     # The database name will be passed from the application logic.
-    # default_db_name: 'demo' 
+    # default_db_name: 'demo'
 
   postgresql:
-    user: 'your_pg_user'
-    password: 'your_pg_password'
-    host: 'localhost'
+    user: "your_pg_user"
+    password: "your_pg_password"
+    host: "localhost"
     port: 5432
     # default_db_name: 'your_pg_db'
 
   sqlite:
     # For SQLite, the 'path' is the relative path to the database file.
-    path: 'stock_data.db'
-  
+    path: "stock_data.db"
+
   mongodb:
-    host: 'localhost'
+    host: "localhost"
     port: 27017
-    databasename: 'Demo'
+    databasename: "Demo"
