@@ -1,12 +1,13 @@
 import threading
 from datetime import datetime
+import yaml
 
 import pandas as pd
 import yfinance as yf
 from flask import Flask
 from flask_sqlalchemy import SQLAlchemy
 
-import Tools
+import Common.Tools as Tools
 
 
 class SqlService:
@@ -20,7 +21,7 @@ class SqlService:
         return  self._CantUseStocks
     
     def RunMysql(self):
-        temp_thread = threading.Thread(target=self.__SetMysqlServer, args=["demo"])
+        temp_thread = threading.Thread(target=self.__SetMysqlServer)
         temp_thread.start()
 
     def readStockDay(self, name: str):
@@ -64,6 +65,83 @@ class SqlService:
             print("SQL Error {}".format(e.args))
             return False
 
+    def insert_into_table(self, table_name: str, data_df: pd.DataFrame):
+        """
+        Inserts data from a DataFrame into a specified table.
+
+        Args:
+            table_name (str): The name of the table to insert data into.
+            data_df (pd.DataFrame): The DataFrame containing the data to insert.
+
+        Returns:
+            bool: True if insertion was successful, False otherwise.
+        """
+        if not table_name.islower():
+            table_name = table_name.lower()
+        
+        try:
+            with self.server_flask.app_context():
+                data_df.to_sql(
+                    name=table_name,
+                    con=self.MySql_server.engine,
+                    if_exists="append",  # Use 'append' to insert new rows
+                    index=False          # Do not write DataFrame index as a column
+                )
+                print(f"Successfully inserted {len(data_df)} rows into {table_name}.")
+                return True
+        except Exception as e:
+            print(f"SQL Error during insertion into {table_name}: {e}")
+            return False
+
+    def upsert_data(self, table_name: str, data_df: pd.DataFrame, key_columns: list[str]):
+        """
+        Upserts data into a table. Updates existing rows based on key_columns and inserts new ones.
+        Note: This implementation reads the entire table into memory and is best for small to medium tables.
+
+        Args:
+            table_name (str): The name of the target table.
+            data_df (pd.DataFrame): The new data to upsert.
+            key_columns (list[str]): The list of primary key column names (e.g., ['id']).
+
+        Returns:
+            bool: True if successful, False otherwise.
+        """
+        if not all(col in data_df.columns for col in key_columns):
+            print(f"Error: Key columns {key_columns} not found in the DataFrame.")
+            return False
+
+        if not table_name.islower():
+            table_name = table_name.lower()
+
+        try:
+            with self.server_flask.app_context():
+                with self.MySql_server.engine.begin() as connection:
+                    
+                    try:
+                        existing_df = pd.read_sql_table(table_name, connection)
+                    except Exception:
+                        # Table doesn't exist yet
+                        existing_df = pd.DataFrame(columns=data_df.columns)
+
+                    # Combine old and new data
+                    combined_df = pd.concat([existing_df, data_df], ignore_index=True)
+
+                    # Drop duplicates based on the primary key, keeping the last entry (the new data)
+                    upsert_df = combined_df.drop_duplicates(subset=key_columns, keep='last')
+
+                    # Write the final, merged data back, replacing the entire table
+                    upsert_df.to_sql(
+                        name=table_name,
+                        con=connection,
+                        if_exists='replace',
+                        index=False
+                    )
+                    print(f"Upsert successful for table '{table_name}'. Final row count: {len(upsert_df)}")
+                    return True
+        except Exception as e:
+            print(f"SQL Error during upsert into {table_name}: {e}")
+            return False
+
     def yfInfo(self, name: str):
         if name in self._CantUseStocks:
             print("CantUseStock:" + str(name))
@@ -84,33 +162,51 @@ class SqlService:
                 )
                 print("Update stocks " + name + " OK!")
 
-    def __SetMysqlServer(self, db_name: str):
-        print("SetMysqlServer")
-        # 設定mysql DB
+    def __SetMysqlServer(self):
+        print("Loading database configuration from config.yml")
+        
+        try:
+            with open('config.yml', 'r', encoding='utf-8') as f:
+                config = yaml.safe_load(f)
+        except FileNotFoundError:
+            print("Error: config.yml not found in the project root.")
+            return
+        except yaml.YAMLError as e:
+            print(f"Error parsing config.yml: {e}")
+            return
+
+        db_config = config.get('database', {})
+        db_type = db_config.get('type', 'mysql')
+
+        uri = None
+        if db_type == 'mysql':
+            mysql_config = db_config.get('mysql', {})
+            user = mysql_config.get('user')
+            password = mysql_config.get('password')
+            host = mysql_config.get('host')
+            port = mysql_config.get('port')
+            db_name = mysql_config.get('databasename')
+            uri = f"mysql+pymysql://{user}:{password}@{host}:{port}/{db_name}"
+        elif db_type == 'postgresql':
+            # For PostgreSQL, you might need to run: pip install psycopg2-binary
+            pg_config = db_config.get('postgresql', {})
+            user = pg_config.get('user')
+            password = pg_config.get('password')
+            host = pg_config.get('host')
+            port = pg_config.get('port')
+            db_name = pg_config.get('databasename')
+            uri = f"postgresql://{user}:{password}@{host}:{port}/{db_name}"
+        elif db_type == 'sqlite':
+            sqlite_config = db_config.get('sqlite', {})
+            path = sqlite_config.get('path', 'default.db')
+            uri = f"sqlite:///{path}" # Path is relative to the project root
+        else:
+            print(f"Unsupported database type in config.yml: {db_type}")
+            return
+            
         self.server_flask.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
-        # self.server_flask.config["SQLALCHEMY_DATABASE_URI"] = (
-        #     "mysql+pymysql://"
-        #     + "demo"
-        #     + ":"
-        #     + "demo123"
-        #     + "@"
-        #     + "122.116.102.141"
-        #     + ":"
-        #     + "3307"
-        #     + "/"
-        #     + str(db_name)
-        # )
-        self.server_flask.config["SQLALCHEMY_DATABASE_URI"] = (
-            "mysql+pymysql://"
-            + "demo"
-            + ":"
-            + "~Demo123"
-            + "@"
-            + "127.0.0.1"
-            + ":"
-            + "3307"
-            + "/"
-            + str(db_name)
-        )
-        # 連線mysql DB
+        self.server_flask.config["SQLALCHEMY_DATABASE_URI"] = uri
+        
+        # Connect to the database
         self.MySql_server = SQLAlchemy(self.server_flask)
+        print(f"Successfully configured database: {db_type}")

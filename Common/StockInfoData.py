@@ -10,7 +10,10 @@ class StockInfoData:
         self.name: str = name
         self.number: int = int(number)
         self.type: str = type
-        self.start: datetime = datetime.strptime(start, "%Y/%m/%d")
+        if isinstance(start, str):
+            self.start: datetime = datetime.strptime(start, "%Y/%m/%d")
+        else:
+            self.start: datetime = start
         self.market: str = market
         self.group: str = group
 

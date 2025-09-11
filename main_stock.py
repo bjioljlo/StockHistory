@@ -2,7 +2,8 @@ import sys
 
 from PyQt5 import QtWidgets
 
-import Globals
+import Common.Globals as Globals
+from Common.ConfigService import load_config
 from Controller.MediatorController import Mediator_Controller, controllers
 from DrawFigur import DrawFigur
 from MongoService import MongoService
@@ -12,11 +13,12 @@ from SqlService import SqlService
 from ThreadPool import ThreadPool
 
 app = QtWidgets.QApplication(sys.argv)
+config = load_config()
 Globals.MYSQL = SqlService()
 Globals.MYSQL.RunMysql()
 Globals.DRAWFIGUR = DrawFigur()
 Globals.MONGO = MongoService()
-Globals.MONGO.RunMongoDB()
+Globals.MONGO.RunMongoDB(config['database']['mongodb'])
 Globals.THREADPOOL = ThreadPool()
 Globals.READLOAD = ReadLoadSystem()
 Schedule = ScheduleService()

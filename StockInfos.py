@@ -9,7 +9,7 @@ from datetime import datetime
 import numpy as np
 import twstock as ts  # 抓取台灣股票資料套件
 
-from StockInfoData import StockInfoData
+from Common.StockInfoData import StockInfoData
 
 
 class IStockInfoDatas(ABC):
@@ -17,7 +17,7 @@ class IStockInfoDatas(ABC):
 
     @property
     @abstractmethod
-    def StockList(self) -> dict[str, StockInfoData]:
+    def StockList(self) -> dict[StockInfoData]:
         pass
 
     @abstractmethod
@@ -46,10 +46,10 @@ class TStockInfoDatas(IStockInfoDatas):
 
     def __init__(self) -> None:
         super(TStockInfoDatas, self).__init__()
-        self._Stock_list: dict[str, StockInfoData] = {}
+        self._Stock_list: dict[StockInfoData] = {}
 
     @property
-    def StockList(self) -> dict[str, StockInfoData]:
+    def StockList(self) -> dict[StockInfoData]:
         if self._Stock_list is None:
             raise
         return self._Stock_list
@@ -146,15 +146,18 @@ class UserInfoDatas(TStockInfoDatas):
         return m_Update_date
 
     def _Save_stock_info(self):
-        """存檔追蹤股票"""
-        np.save(self._Save_name, self._Stock_list)
+        """存檔追蹤股票（只存dict，不存物件）"""
+        dict_to_save = {k: v.__dict__ for k, v in self._Stock_list.items()}
+        np.save(self._Save_name, dict_to_save)
 
-    def _Load_stock_info(self) -> dict[str, StockInfoData]:
-        """讀取追蹤股票"""
+    def _Load_stock_info(self) -> dict[StockInfoData]:
+        """讀取追蹤股票（反序列化時手動轉回StockInfoData）"""
         if os.path.isfile(self._FilePath + "/" + self._Save_name):
-            m_stock_list = np.load(self._Save_name, None, True).item()
+            dict_loaded = np.load(self._Save_name, allow_pickle=True).item()
+            m_stock_list = {k: StockInfoData(**v) for k, v in dict_loaded.items()}
         else:
             self._Save_stock_info()
+            m_stock_list = {}
         return m_stock_list
 
     def AddStockInfo(self, number: str):

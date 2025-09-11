@@ -1,0 +1,145 @@
+version: "3.8"
+
+services:
+  mysqlserver:
+    image: mysql:latest
+    container_name: mysqlserver
+    restart: "no"
+    ports:
+      - "3307:3306"
+    environment:
+      MYSQL_ROOT_PASSWORD: b78924
+      MYSQL_DATABASE: demo
+      MYSQL_USER: demo
+      MYSQL_PASSWORD: ~Demo123
+    volumes:
+      - mysql-data:/var/lib/mysql
+    networks:
+      - mybridge
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  mongoserver:
+    image: mongo:latest
+    container_name: mongoserver
+    restart: "no"
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo-db:/data/db
+      - mongo-config:/data/configdb
+    networks:
+      - mybridge
+    environment:
+      MONGO_MAJOR: 7.0
+      MONGO_VERSION: 7.0.12
+    command: mongod
+    healthcheck:
+      test: ["CMD", "mongo", "--eval", "db.runCommand({ ping: 1 })"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  redisserver:
+    image: redis:latest
+    container_name: redisserver
+    restart: "no"
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+    networks:
+      - mybridge
+    environment:
+      REDIS_VERSION: 7.2.4
+      REDIS_DOWNLOAD_URL: http://download.redis.io/releases/redis-7.2.4.tar.gz
+      REDIS_DOWNLOAD_SHA: 8d104c26a154b29fd67d6568b4f375212212ad41e0c2caa3d66480e78dbd3b59
+    command: redis-server
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  mongo-express:
+    image: mongo-express
+    container_name: mongo-express
+    restart: "no"
+    ports:
+      - "8881:8081"
+    networks:
+      - mybridge
+    environment:
+      ME_CONFIG_MONGODB_URL: mongodb://mongoserver:27017
+      ME_CONFIG_BASICAUTH: "false"
+      ME_CONFIG_MONGODB_ENABLE_ADMIN: "true"
+      ME_CONFIG_SITE_SESSIONSECRET: secret
+      VCAP_APP_HOST: 0.0.0.0
+    depends_on:
+      - mongoserver
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8081"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  flaskserver:
+    image: flaskserver:v2
+    container_name: flaskserver
+    restart: "no"
+    ports:
+      - "5000:5000"
+      - "5010:5010"
+    networks:
+      - mybridge
+    working_dir: /FlaskServer
+    command: python runserver.py
+    depends_on:
+      - mysqlserver
+      - redisserver
+      - mongoserver
+    environment:
+      PYTHON_VERSION: 3.13.7
+      PYTHON_SHA256: 5462f9099dfd30e238def83c71d91897d8caa5ff6ebc7a50f14d4802cdaaa79a
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5000"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  golangserver:
+    image: golangserver:v1
+    container_name: golangserver
+    restart: "no"
+    ports:
+      - "8888:8080"
+    networks:
+      - mybridge
+    working_dir: /GolangServer
+    command: ./main
+    depends_on:
+      - mysqlserver
+      - redisserver
+      - mongoserver
+    environment:
+      GOLANG_VERSION: 1.25.0
+      GOTOOLCHAIN: local
+      GOPATH: /go
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  mysql-data:
+  mongo-db:
+  mongo-config:
+  redis-data:
+
+networks:
+  mybridge:
+    external: true

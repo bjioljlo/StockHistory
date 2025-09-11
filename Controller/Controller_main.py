@@ -3,9 +3,9 @@ from datetime import datetime
 
 from PyQt5 import QtCore
 
-import Globals
+import Common.Globals as Globals
 import StockInfos as MainUserDataInfo
-import Tools
+import Common.Tools as Tools
 from DrawFigur import DrawFigur
 from FilterService.GetStockData import Stock_RangeDate
 from GetExternalDataService import TGetExternalData
@@ -153,12 +153,10 @@ class Controller_main(TController):
     def button_moveToInput_click(self):
         Index = self.__GetView().GetFormUI().treeView.currentIndex()
         mModel = self.__GetView().GetFormUI().treeView.model()
-        try:
-            data = mModel.item(Index.row(), 0).text()
-            text = str(data)
-            self.__GetView().GetFormUI().input_stockNumber.setPlainText(text)
-        except IndexError:
-            print("")
+        item = mModel.item(Index.row(), 0)
+        if item is not None:
+            data = item.text()
+            self.__GetView().GetFormUI().input_stockNumber.setPlainText(data)
 
     def button_monthRP_click(self):  # 某股票月營收曲線
         self.__GetModel().monthRP(self.__GetView().Parament)
@@ -228,7 +226,7 @@ class Controller_main(TController):
             new_thread.start()
         else:
             stock_number = self.__GetView().GetFormUI().input_stockNumber.toPlainText()
-            Stock_RangeDate.number = int(stock_number)
+            Stock_RangeDate.number = stock_number
             Stock_RangeDate.StartDate = date
             m_history = Stock_RangeDate.get_ALL()
             if (
@@ -237,23 +235,11 @@ class Controller_main(TController):
             ):
                 mask = m_history.index <= end_date
                 m_history = m_history[mask]
-            self.check_SMA_isCheck(
-                m_history,
-                self.__GetModel().MainUserInfoData.GetStockInfo(stock_number),
-                date,
-            )
-            self.check_Volume_isCheck(
-                m_history, self.__GetModel().MainUserInfoData.GetStockInfo(stock_number)
-            )
-            self.check_KD_isCheck(
-                m_history, self.__GetModel().MainUserInfoData.GetStockInfo(stock_number)
-            )
-            self.check_BollingerBands_isCheck(
-                m_history, self.__GetModel().MainUserInfoData.GetStockInfo(stock_number)
-            )
-            self.check_RSI_isCheck(
-                m_history, self.__GetModel().MainUserInfoData.GetStockInfo(stock_number)
-            )
+            self.check_SMA_isCheck(m_history)
+            self.check_Volume_isCheck(m_history)
+            self.check_KD_isCheck(m_history)
+            self.check_BollingerBands_isCheck(m_history)
+            self.check_RSI_isCheck(m_history)
             self.Check_ADL_isCheck()
             self.Check_ADLs_isCheck()
             self.Check_MACD_isCheck(m_history)
@@ -275,7 +261,7 @@ class Controller_main(TController):
         self.__GetModel().MainUserInfoData.UpdateDate = str(datetime.today())[0:10]
         self.lock.acquire()
 
-    def check_SMA_isCheck(self, m_history, stockInfo, startdate):
+    def check_SMA_isCheck(self, m_history):
         if self.__GetView().GetFormUI().check_SMA.isChecked():
             input_SMA_list = [
                 self.__GetView().GetFormUI().input_SMA1,
@@ -284,7 +270,7 @@ class Controller_main(TController):
             ]
             for i in input_SMA_list:
                 if i.toPlainText() != "":
-                    self.df.draw_SMA(m_history, int(i.toPlainText()), stockInfo)
+                    self.df.draw_SMA(m_history, int(i.toPlainText()))
 
     def check_price_isCheck(self, m_history, stockInfo):
         if type(stockInfo) is str:
@@ -294,25 +280,25 @@ class Controller_main(TController):
             print("請先存檔!")
             return
         if self.__GetView().GetFormUI().check_stock.isChecked():
-            self.df.draw_stock(m_history, stockInfo)
+            self.df.draw_stock(m_history, stockInfo.number)
         else:
-            self.df.draw_stock(m_history, stockInfo)
+            self.df.draw_stock(m_history, stockInfo.number)
 
-    def check_Volume_isCheck(self, m_history, stockInfo):
+    def check_Volume_isCheck(self, m_history):
         if self.__GetView().GetFormUI().check_volume.isChecked():
-            self.df.draw_Volume(m_history, stockInfo)
+            self.df.draw_Volume()
 
-    def check_KD_isCheck(self, m_history, stockInfo):
+    def check_KD_isCheck(self, m_history):
         if self.__GetView().GetFormUI().check_KD.isChecked():
-            self.df.draw_KD(m_history, stockInfo)
+            self.df.draw_KD(m_history)
 
-    def check_BollingerBands_isCheck(self, m_history, stockInfo):
+    def check_BollingerBands_isCheck(self, m_history):
         if self.__GetView().GetFormUI().check_BollingerBands.isChecked():
-            self.df.draw_BollingerBands(m_history, 12, stockInfo)
+            self.df.draw_BollingerBands(m_history)
 
-    def check_RSI_isCheck(self, m_history, stockInfo):
+    def check_RSI_isCheck(self, m_history):
         if self.__GetView().GetFormUI().check_RSI.isChecked():
-            self.df.draw_RSI(m_history, stockInfo)
+            self.df.draw_RSI(m_history)
 
     def Check_ADL_isCheck(self):
         if self.__GetView().GetFormUI().check_ADL.isChecked():
