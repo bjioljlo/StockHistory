@@ -156,8 +156,7 @@ class Controller_main(TController):
         item = mModel.item(Index.row(), 0)
         if item is not None:
             data = item.text()
-            text = str(data)
-            self.__GetView().GetFormUI().input_stockNumber.setPlainText(text)
+            self.__GetView().GetFormUI().input_stockNumber.setPlainText(data)
 
     def button_monthRP_click(self):  # 某股票月營收曲線
         self.__GetModel().monthRP(self.__GetView().Parament)
