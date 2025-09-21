@@ -23,7 +23,7 @@ from BackTestService.BackTestFilter import (
     BacktestFilterType,
     Regular_quotatestFilter,
 )
-from BackTestService.BacktestSignal import (
+from BackTestService.BackTestSignal import (
     BacktestSignalFactory,
     BacktestSignalType,
     TBacktestSignal,
