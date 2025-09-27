@@ -54,6 +54,7 @@ class PickParameter(IParameter):
             self.EPS_up = int(_view.GetFormUI().input_EPS_up.value())
             self.Kind = int(_view.GetFormUI().input_kind.currentIndex())
             self.BetterMA = int(_view.GetFormUI().input_BetterMA.value())
+            self.avg_vol_multiple = float(_view.GetFormUI().input_AvgVolume.value())
 
         except ValueError as e:
             print("ValueError:", e)

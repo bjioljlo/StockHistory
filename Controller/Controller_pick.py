@@ -29,7 +29,7 @@ class Controller_pick(TController):
             self.button_moveToInputFromPick_click
         )  # 設定button功能
         UI_form.button_pick_2.clicked.connect(
-            self.button_monthRP_Up_click
+            self.button_Filter_click
         )  # 設定button功能
         UI_form.treeView_pick.setModel(
             Controller.creat_treeView_model(
@@ -68,6 +68,7 @@ class Controller_pick(TController):
         UI_form.input_MRGR.setValue(0)
         UI_form.input_kind.addItem("無")
         UI_form.input_kind.addItems(self.__GetModel().Groups)
+        UI_form.input_AvgVolume.setValue(0)
 
     def GetEndDate(self) -> datetime:
         pass
@@ -92,10 +93,10 @@ class Controller_pick(TController):
             print("")
 
     # 全部篩選
-    def button_monthRP_Up_click(self):
+    def button_Filter_click(self):
         UI_form = self.__GetView().GetFormUI()
         endDate = self.GetController(controllers.Main).GetEndDate()
-        pick_data = self.__GetModel().monthRP_Up(self.__GetView().Parament, endDate)
+        pick_data = self.__GetModel().RunFilte(self.__GetView().Parament, endDate)
         UI_form.treeView_pick.setModel(
             Controller.creat_treeView_model(
                 UI_form.treeView_pick, Controller.PICK__TITALLIST

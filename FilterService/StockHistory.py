@@ -434,3 +434,47 @@ class StockFilterInfo(VirtualStockFilterFuc):
             "{} / {} is End!".format("StockFilterInfo", sys._getframe().f_code.co_name)
         )
         return result_data
+
+
+class StockAvgVolMultiple(VirtualStockFilterFuc):
+    """檢查是否超過平均成交量的特定倍數"""
+
+    def __init__(self, Stock: SMA_Stock, Data: DataFrame, Date: datetime, Multiple) -> None:
+        self._Stock = Stock
+        self._date = Date
+        self._data = Data
+        self._multiple = Multiple
+
+    def get_ALL(self):
+        return self.get_FilterAvgVolMultiple(self._data)
+    
+    def get_FilterAvgVolMultiple(self, data: DataFrame):
+        print(
+            "{} / {} is End!".format(
+                "FilterAvgVolMultiple", sys._getframe().f_code.co_name
+            )
+        )
+        result_data = data
+        for number, row in data.iterrows():
+            self._Stock.number = str(number)
+            Temp_MA = self._Stock.get_PriceByDate(self._date)
+            Temp = self._Stock.Stock.get_PriceByDate(self._date)
+            if Temp.empty or Temp_MA.empty:
+                result_data.drop(index=int(number), inplace=True)
+                continue
+            if type(Temp) is DataFrame:
+                Temp = Temp[self._Stock._type][self._date]
+            if type(Temp) is Series:
+                Temp = Temp[self._date]
+            if type(Temp_MA) is DataFrame:
+                Temp_MA = Temp_MA[self._Stock._type][self._date]
+            if type(Temp_MA) is Series:
+                Temp_MA = Temp_MA[self._date]
+            if Temp_MA * self._multiple > Temp:
+                result_data.drop(index=int(number), inplace=True)
+        print(
+            "{} / {} is End!".format(
+                "StockPriceBetterMA", sys._getframe().f_code.co_name
+            )
+        )
+        return result_data

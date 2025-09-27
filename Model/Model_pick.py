@@ -29,7 +29,7 @@ class Model_pick(TModel):
                 self._Groups.append(value.group)
 
     # 全部篩選
-    def monthRP_Up(
+    def RunFilte(
         self, RecordPickParameter: RecordPickParameter, endDate: datetime
     ) -> pd.DataFrame:
         date = endDate
@@ -70,6 +70,7 @@ class Model_pick(TModel):
             MRGR = RecordPickParameter.MRGR
             BerMA = RecordPickParameter.BetterMA
             Kind = RecordPickParameter.Kind
+            avg_vol_multiple = RecordPickParameter.avg_vol_multiple
         except Exception:
             print("Get value error")
             return
@@ -205,6 +206,13 @@ class Model_pick(TModel):
                 {"pick": pick_data, "BerMA_data": BerMA_data}
             )
             pick_data = pick_data.dropna(axis=0, how="any")
+        if avg_vol_multiple > 0:
+            mainStockfun.Data = pick_data
+            avg_vol_data = mainStockfun.get_Filter_AvgVol_Multiple(avg_vol_multiple, 10)
+            pick_data = Tools.MixDataFrames(
+                {"pick": pick_data, "avgVolData": avg_vol_data}
+            )
+            pick_data = pick_data.dropna(axis=0, how="any")
         if volum > 0:
             mainStockfun.Data = pick_data
             volume_data = mainStockfun.get_Filter_SMA(
@@ -224,7 +232,7 @@ class Model_pick(TModel):
 
     # 取得各種財報數字篩選
     def get_financial_statement(
-        slef, date, GPM: float = 0, OPR: float = 0, EPS: int = 0, RPS: float = 0
+        self, date, GPM: float = 0, OPR: float = 0, EPS: int = 0, RPS: float = 0
     ) -> pd.DataFrame:
         resultAllFS1 = []
         resultAllFS2 = []

@@ -5,7 +5,7 @@
     }
   ],
   "settings": {
-    "workbench.colorTheme": "Monokai",
+    "workbench.colorTheme": "Radical",
     "editor.tokenColorCustomizations": {
       "[One Dark Pro]": {
         "textMateRules": [

@@ -54,6 +54,7 @@ class RecordPickParameter(IParameter):
         self.EPS_up: int = None
         self.BetterMA: int = None
         self.Kind: int = None
+        self.avg_vol_multiple: float = None
 
 
 class RecordBackTestParameter(IParameter):

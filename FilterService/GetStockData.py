@@ -18,6 +18,7 @@ from .StockHistory import (
     StockFilterInfo,
     StockPriceBetterMA,
     StockRecordHigh,
+    StockAvgVolMultiple,
 )
 from .StockReportHistory import (
     ADL_Indicator,
@@ -113,6 +114,14 @@ class All_Stock_Filters_fuc:
         aSMA = SMA_Stock(OriginalStocStock_main, avgMA, Type)
         aBetterMA = StockPriceBetterMA(aSMA, self.Data, self._date)
         temp = aBetterMA.get_ALL()
+        return temp
+
+    def get_Filter_AvgVol_Multiple(self, multiple: int, avg_days: int):
+        print("get_Filter_AvgVol_Multiple: start")
+        aSMA = SMA_Stock(OriginalStocStock_main, avg_days, info.Price_type.Volume)    
+        aVolFilter = StockAvgVolMultiple(aSMA, self.Data, self._date, multiple)
+        temp = aVolFilter.get_ALL()
+        print("get_Filter_AvgVol_Multiple: end")
         return temp
 
 
