@@ -8,12 +8,13 @@ services:
     ports:
       - "3307:3306"
     environment:
-      MYSQL_ROOT_PASSWORD: b78924
-      MYSQL_DATABASE: demo
-      MYSQL_USER: demo
-      MYSQL_PASSWORD: ~Demo123
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+      MYSQL_DATABASE: ${MYSQL_DATABASE}
+      MYSQL_USER: ${MYSQL_USER}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD}
     volumes:
-      - mysql-data:/var/lib/mysql
+      - ./data/mysql:/var/lib/mysql
+      - ./logs/mysql:/var/log/mysql
     networks:
       - mybridge
     healthcheck:
@@ -29,8 +30,8 @@ services:
     ports:
       - "27017:27017"
     volumes:
-      - mongo-db:/data/db
-      - mongo-config:/data/configdb
+      - ./data/mongo/db:/data/db
+      - ./data/mongo/config:/data/configdb
     networks:
       - mybridge
     environment:
@@ -50,7 +51,8 @@ services:
     ports:
       - "6379:6379"
     volumes:
-      - redis-data:/data
+      - ./data/redis:/data
+      - ./logs/redis:/var/log/redis
     networks:
       - mybridge
     environment:
@@ -93,6 +95,8 @@ services:
     ports:
       - "5000:5000"
       - "5010:5010"
+    volumes:
+      - ./logs/flask:/FlaskServer/logs
     networks:
       - mybridge
     working_dir: /FlaskServer
@@ -116,6 +120,8 @@ services:
     restart: "no"
     ports:
       - "8888:8080"
+    volumes:
+      - ./logs/golang:/GolangServer/logs
     networks:
       - mybridge
     working_dir: /GolangServer
@@ -133,12 +139,6 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
-
-volumes:
-  mysql-data:
-  mongo-db:
-  mongo-config:
-  redis-data:
 
 networks:
   mybridge:

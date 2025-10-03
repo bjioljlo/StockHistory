@@ -25,7 +25,8 @@ class Model_backtest(TModel):
         )
 
     def _run_backtest(self, func, folder_prefix: str, _recordBackTestParameter: RecordBackTestParameter, resultID:int, set_check: bool = True):
-        filePath = f"{folder_prefix}_{str(_recordBackTestParameter.date_start.date())}_{str(_recordBackTestParameter.date_end.date())}/"
+        backTestResultFolderName = "Datafiles"
+        filePath = f"{backTestResultFolderName}/{folder_prefix}_{str(_recordBackTestParameter.date_start.date())}_{str(_recordBackTestParameter.date_end.date())}/"
         if not os.path.exists(filePath):
             os.makedirs(filePath)
         if set_check:

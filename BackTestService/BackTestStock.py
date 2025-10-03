@@ -78,7 +78,7 @@ class BackTestStock:
     def BuyStrockFun(aName: str, aIsBuy: bool):
         pass
 
-    def backtest_KD_pick(self, mainParament: RecordBackTestParameter, folderName: str = "Datafiles/KD_pick/") -> pd.DataFrame:
+    def backtest_KD_pick(self, mainParament: RecordBackTestParameter, folderName: str) -> pd.DataFrame:
         """
         KD值選股
         https://www.finlab.tw/%e7%94%a8kd%e5%80%bc%e9%81%b8%e8%82%a1%ef%bc%9a%e9%82%84%e9%9c%80%e6%90%ad%e9%85%8d%e9%80%99%e4%b8%89%e7%a8%ae%e6%8c%87%e6%a8%99/
@@ -135,7 +135,7 @@ class BackTestStock:
         print("KD值選股-回測時間:", datetime.now() - startTime)
         return userInfo
 
-    def backtest_PEG_pick(self, mainParament: RecordBackTestParameter, folderName: str = "Datafiles/PEG_pick/"):
+    def backtest_PEG_pick(self, mainParament: RecordBackTestParameter, folderName: str):
         """
         PEG選股外加月營收增高
         https://www.finlab.tw/finlab-tw-stock-peg-strategy/#PEG_ding_yi
@@ -213,7 +213,7 @@ class BackTestStock:
         print("PEG選股外加月營收增高-回測時間:", datetime.now() - startTime)
         return userInfo
 
-    def backtest_Regular_quota(self, mainParament: RecordBackTestParameter, folderName: str = "Datafiles/Regular_quota/"):
+    def backtest_Regular_quota(self, mainParament: RecordBackTestParameter, folderName: str):
         """
         定期定額
         """
@@ -277,7 +277,7 @@ class BackTestStock:
         print("定期定額-回測時間:", datetime.now() - startTime)
         return userInfo
 
-    def backtest_Record_high(self, mainParament: RecordBackTestParameter, folderName: str = "Datafiles/Record_high/"):
+    def backtest_Record_high(self, mainParament: RecordBackTestParameter, folderName: str):
         """
         創新高
         https://www.finlab.tw/break-new-high-roe-stock/
@@ -354,7 +354,7 @@ class BackTestStock:
         print("創新高-回測時間:", datetime.now() - startTime)
         return userInfo
     
-    def backtest_PERandPBR(self, mainParament: RecordBackTestParameter, folderName: str = "Datafiles/PERandPBR/"):
+    def backtest_PERandPBR(self, mainParament: RecordBackTestParameter, folderName: str):
         """
         14年14倍
         https://www.finlab.tw/%E6%AF%94%E7%AD%96%E7%95%A5%E7%8B%97%E9%82%84%E8%A6%81%E5%AE%89%E5%85%A8%E7%9A%84%E9%81%B8%E8%82%A1%E7%AD%96%E7%95%A5%EF%BC%81/
@@ -440,7 +440,7 @@ class BackTestStock:
         print("14年14倍-回測時間:", datetime.now() - startTime)
         return userInfo
 
-    def backtest_monthRP_Up(self, mainParament: RecordBackTestParameter, folderName: str = "Datafiles/monthRP_Up/"):
+    def backtest_monthRP_Up(self, mainParament: RecordBackTestParameter, folderName: str):
         """
         # 月營收增高
         # https://www.finlab.tw/%e4%b8%89%e7%a8%ae%e6%9c%88%e7%87%9f%e6%94%b6%e9%80%b2%e9%9a%8e%e7%9c%8b%e6%b3%95/#ji_ji_xuan_gu_cheng_zhang_fa
