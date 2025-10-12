@@ -8,7 +8,7 @@ import StockInfos as MainUserDataInfo
 import Common.Tools as Tools
 from DrawFigur import DrawFigur
 from FilterService.GetStockData import Stock_RangeDate
-from GetExternalDataService import TGetExternalData
+from ExternalService.TGetExternalData import TGetExternalData
 from Model.Model import IModel
 from Model.Model_main import Model_main
 from View.View import IWindow
@@ -62,6 +62,9 @@ class Controller_main(TController):
         )  # 設定button功能
         UI_form.button_runSchedule.clicked.connect(
             self.button_RunSchedule_click
+        )  # 設定button功能
+        UI_form.button_runOtherSchedule.clicked.connect(
+            self.button_RunOtherSchedule_click
         )  # 設定button功能
         UI_form.button_stopSchedule.clicked.connect(
             self.button_StopThreadSchedule_click
@@ -203,6 +206,9 @@ class Controller_main(TController):
     def button_RunSchedule_click(self):
         self.__GetModel().RunSchedule()
 
+    def button_RunOtherSchedule_click(self):
+        self.__GetModel().RunOtherSchedule()
+    
     def button_StopThreadSchedule_click(self):
         self.__GetModel().StopThreadSchedule()
 
@@ -303,6 +309,7 @@ class Controller_main(TController):
     def Check_ADL_isCheck(self):
         if self.__GetView().GetFormUI().check_ADL.isChecked():
             Data_ADL = self.__GetModel().ADL(self.__GetView().Parament)
+            Data_ADL.sort_index(ascending=True, inplace=True)
             self.df.draw_ADL(Data_ADL)
 
     def Check_ADLs_isCheck(self):

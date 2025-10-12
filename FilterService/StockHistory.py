@@ -7,7 +7,7 @@ import twstock
 from pandas import DataFrame, Series, concat
 
 import Common.InfomationType as info
-from GetExternalDataService import ExternalDataFactory, ExternalDataTypeEnum
+from ExternalService.ExternalDataFactory import ExternalDataFactory, ExternalDataTypeEnum
 
 
 class IStock(ABC):

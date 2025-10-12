@@ -9,7 +9,7 @@ import talib
 
 from FilterService.StockHistory import SMA_Stock
 import Common.Tools as Tools
-from FilterService import OriginalStock
+from FilterService.StockHistory import OriginalStock
 import Common.InfomationType as info
 
 class BacktestSignalType(Enum):

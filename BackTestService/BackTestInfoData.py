@@ -5,7 +5,7 @@ from datetime import datetime, timedelta
 from pandas import DataFrame
 
 import Common.Tools as Tools
-from FilterService import OriginalStock
+from FilterService.StockHistory import OriginalStock
 from Common.InfomationType import stock_data_kind
 from Common.StockInfoData import BaseInfoData
 

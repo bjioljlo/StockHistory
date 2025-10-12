@@ -18,6 +18,13 @@
       "program": "${workspaceRoot}/UI/ui2py.py",
       "cwd": "${workspaceFolder}/UI",
       "console": "integratedTerminal"
+    },
+    {
+      "name": "PowerShell: docker-compose up -d",
+      "type": "PowerShell",
+      "request": "launch",
+      "script": "docker-compose up -d",
+      "cwd": "${workspaceFolder}"
     }
   ]
 }

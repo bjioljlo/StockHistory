@@ -2,8 +2,8 @@ import sys
 
 from PyQt5 import QtWidgets
 
-import Common.Globals as Globals
-from Common.ConfigService import load_config
+from Common import Globals
+from Common import ConfigService
 from Controller.MediatorController import Mediator_Controller, controllers
 from DrawFigur import DrawFigur
 from MongoService import MongoService
@@ -13,7 +13,7 @@ from SqlService import SqlService
 from ThreadPool import ThreadPool
 
 app = QtWidgets.QApplication(sys.argv)
-config = load_config()
+config = ConfigService.load_config()
 Globals.MYSQL = SqlService()
 Globals.MYSQL.RunMysql()
 Globals.DRAWFIGUR = DrawFigur()

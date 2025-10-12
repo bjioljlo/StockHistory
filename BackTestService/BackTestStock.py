@@ -28,7 +28,7 @@ from BackTestService.BackTestSignal import (
     BacktestSignalType,
     TBacktestSignal,
 )
-from FilterService import OriginalStockByYahoo
+from FilterService.StockHistory import OriginalStockByYahoo
 from FilterService.StockReportHistory import (
     Day_Report,
     Month_Report,
@@ -39,7 +39,7 @@ from FilterService.StockReportHistory import (
     Season_Report,
     SeasonReportFactory,
 )
-from GetExternalDataService import (
+from ExternalService.ExternalDataFactory import (
     ExternalDataFactory,
     ExternalDataTypeEnum,
 )

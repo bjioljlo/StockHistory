@@ -5,7 +5,7 @@ import pymongo
 import twstock  # 抓取台灣股票資料套件
 from pymongo import MongoClient, database
 
-import Common.Tools as Tools
+from Common import Tools
 
 
 class MongoService:

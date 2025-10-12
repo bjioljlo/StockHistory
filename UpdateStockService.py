@@ -11,7 +11,8 @@ import yfinance as yf
 import Common.Globals as Globals
 import Common.InfomationType as info
 import Common.Tools as Tools
-from GetExternalDataService import ExternalDataFactory, IGetExternalData
+from ExternalService.ExternalDataFactory import ExternalDataFactory
+from ExternalService.IGetExternalData import IGetExternalData
 from StockInfos import UserInfoDatas
 
 
@@ -20,10 +21,10 @@ class UpdateStockService:
         self.isUpdating: bool = False
         self._getExternalData: IGetExternalData = ExternalDataFactory.Get_instance()
 
-    def UpdateStocksHandle(self):
+    def UpdateSP500StocksHandle(self):
         self.__RunUpdate_sp500()
 
-    def UpdateAllStocksHandle(self, MainUserInfoDatas: UserInfoDatas):
+    def UpdateTaiwanStocksHandle(self, MainUserInfoDatas: UserInfoDatas):
         self.__runUpdate(MainUserInfoDatas)
 
     def UpdateADLHandle(self):
@@ -154,5 +155,30 @@ class UpdateStockService:
         end_date = datetime(
             datetime.today().year, datetime.today().month, datetime.today().day
         )  # 設定資料起訖日期
-        self._getExternalData.get_stock_AD_index(end_date)  # 更新騰落
+
+        # 取得近一年的交易日曆 (以2330為基準)
+        print("Fetching trading day calendar for the last year...")
+        start_date_for_calendar = end_date - timedelta(days=366)
+        trading_days_df = self._getExternalData.get_stock_history(
+            "2330", start=start_date_for_calendar
+        )
+        if trading_days_df.empty:
+            print("Could not fetch trading day calendar. Aborting ADL update.")
+            print("Update stocks other Info end!")
+            return
+
+        # The index is a DatetimeIndex, which is efficient for lookups.
+        trading_days = trading_days_df.index
+
+        for i in range(366):
+            date_to_check = end_date - timedelta(days=i)
+
+            # 檢查是否為交易日
+            if date_to_check in trading_days:
+                # 更新騰落，get_stock_AD_index 內部會處理已存在資料的跳過邏輯
+                print(f"Updating ADL for {date_to_check.strftime('%Y-%m-%d')}")
+                self._getExternalData.get_stock_AD_index(date_to_check)
+            else:
+                print(f"Skipping non-trading day: {date_to_check.strftime('%Y-%m-%d')}")
+
         print("Update stocks other Info end!")

@@ -6,9 +6,8 @@ from typing import List
 
 import pandas as pd
 
-from FilterService.GetStockData import All_Stock_Filters_fuc
+from FilterService.GetStockData import All_Stock_Filters_fuc, All_fuc,Indicator
 import Common.Tools as Tools
-from FilterService import All_fuc, Indicator
 import Common.InfomationType as info
 
 

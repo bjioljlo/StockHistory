@@ -1,9 +1,7 @@
 import os
 import sys
 import time
-from abc import ABC, abstractmethod
 from datetime import datetime
-from enum import Enum
 from io import StringIO
 
 import numpy as np
@@ -12,48 +10,9 @@ import requests
 
 import Common.Globals as Globals
 import Common.InfomationType as info
+from IGetExternalData import IGetExternalData
 import StockInfos
 import Common.Tools as Tools
-
-
-class ExternalDataTypeEnum(Enum):
-    Normal = (0,)
-    Test = 1
-
-
-class IGetExternalData(ABC):
-    @abstractmethod
-    def get_allstock_financial_statement(self, start: datetime, type: info.FS_type):
-        """#爬某季所有股票歷史財報"""
-        pass
-
-    @abstractmethod
-    def get_allstock_monthly_report(self, start: datetime):
-        """爬某月所有股票月營收"""
-        pass
-
-    @abstractmethod
-    def get_allstock_yield(self, start: datetime):
-        """#爬某天所有股票殖利率"""
-        pass
-
-    @abstractmethod
-    def get_stock_history(
-        self, number: str, start=datetime.strptime("2005-1-1", "%Y-%m-%d")
-    ) -> pd.DataFrame:
-        """#爬某個股票的歷史紀錄"""
-        pass
-
-    @abstractmethod
-    def get_stock_AD_index(self, date: datetime, getNew=False):
-        """#取得上漲和下跌家數"""
-        pass
-
-    @abstractmethod
-    def get_full_ad_index(self) -> pd.DataFrame:
-        """#取得完整的上漲和下跌家數歷史資料"""
-        pass
-
 
 class TGetExternalData(IGetExternalData):
     """讀取外部資料"""
@@ -347,14 +306,14 @@ class TGetExternalData(IGetExternalData):
                 if Tools.check_no_use_stock(value.code):
                     continue
                 try:
-                    m_history = self.get_stock_history(value.code, str_yesterday)[ "Close"]
-                    price_today = m_history.get(str_date)
-                    price_yesterday = m_history.get(str_yesterday)
+                    m_history = self.get_stock_history(value.code, str_yesterday)
+                    price_Close = round(m_history[ "Close"].get(str_date), 2)
+                    price_Open = round(m_history[ "Open"].get(str_yesterday), 2)
 
-                    if price_today is not None and price_yesterday is not None:
-                        if price_yesterday < price_today:
+                    if price_Close is not None and price_Open is not None:
+                        if price_Open < price_Close:
                             up += 1
-                        elif price_yesterday > price_today:
+                        elif price_Open > price_Close:
                             down += 1
                 except Exception:
                     # print(f"Could not process stock {value.code}")
@@ -375,7 +334,7 @@ class TGetExternalData(IGetExternalData):
         ADindex_result = ADindex_result[~ADindex_result.index.duplicated(keep='last')]
         ADindex_result = ADindex_result.sort_index()
         
-        Globals.MYSQL.saveTable("ad_index", ADindex_result)
+        Globals.MYSQL.saveTable("AD_index", ADindex_result)
         Globals.READLOAD.Memery[fileName] = ADindex_result
         
         return ADindex_result.loc[[time]]
@@ -384,7 +343,7 @@ class TGetExternalData(IGetExternalData):
         """#取得完整的上漲和下跌家數歷史資料"""
         print("get_full_ad_index from MySQL")
         try:
-            ad_index_table = Globals.MYSQL.readStockDay('ad_index')
+            ad_index_table = Globals.MYSQL.readStockDay('AD_index')
             if not ad_index_table.empty:
                 return ad_index_table.sort_index()
         except Exception as e:
@@ -694,182 +653,3 @@ class TGetExternalData(IGetExternalData):
         )
         # 偽停頓
         time.sleep(5)
-
-
-class GetExternalDataTest(TGetExternalData):
-    """測試用爬取股票財務報告 請勿在別的地方使用"""
-
-    # TODO : 要完成其他測試用的GET方法 2025/3/2
-    def get_allstock_monthly_report(self, start: datetime):
-        try:
-            return super().get_allstock_monthly_report(start)
-        except Exception:
-            print(
-                "".join(["{}:取得".format(sys._getframe().f_code.co_name)]),
-                "月營收的資料:",
-                str(start),
-            )
-            if not Tools.Have_MonthRP(start):
-                return pd.DataFrame()
-            m_data = pd.DataFrame()
-            year = start.year
-            file = "monthly_report_" + str(start.year) + "_" + str(start.month)
-            fileName = self.filePath + "/" + self.fileName_monthRP + "/" + file
-
-            if m_data.empty:
-                if not os.path.isfile(fileName + ".csv"):
-                    # 假如是西元，轉成民國
-                    if year > 1990:
-                        year -= 1911
-                    url = (
-                        "https://mops.twse.com.tw/nas/t21/sii/t21sc03_"
-                        + str(year)
-                        + "_"
-                        + str(start.month)
-                        + "_0.html"
-                    )
-                    if year <= 98:
-                        url = (
-                            "https://mops.twse.com.tw/nas/t21/sii/t21sc03_"
-                            + str(year)
-                            + "_"
-                            + str(start.month)
-                            + ".html"
-                        )
-
-                    # 下載該年月的網站，並用pandas轉換成 dataframe
-                    r = requests.get(url, headers=Tools.get_random_Header())
-                    r.encoding = "big5-hkscs"
-
-                    try:
-                        dfs = pd.read_html(StringIO(r.text), encoding="big-5")
-                    except Exception:
-                        return pd.DataFrame()
-
-                    df = pd.concat(
-                        [df for df in dfs if df.shape[1] <= 11 and df.shape[1] > 5]
-                    )
-
-                    if "levels" in dir(df.columns):
-                        df.columns = df.columns.get_level_values(1)
-                        df = df.rename(columns={"公司 代號": "公司代號"})
-                    else:
-                        df = df[list(range(0, 10))]
-                        column_index = df.index[(df[0] == "公司代號")][0]
-                        df.columns = df.iloc[column_index]
-
-                    df["當月營收"] = pd.to_numeric(df["當月營收"], "coerce")
-                    df = df[~df["當月營收"].isnull()]
-                    df = df[df["公司代號"] != "合計"]
-
-                    df.to_csv(fileName + ".csv", index=False)
-                    # 偽停頓
-                    time.sleep(1.5)
-
-                m_data = pd.read_csv(fileName)
-                m_data.drop(m_data.tail(1).index, inplace=True)
-                # 整理一下資料
-                m_data.rename(columns={"公司代號": "code"}, inplace=True)
-                m_data[[ "code"]] = m_data[[ "code"]].astype(int)
-                m_data.set_index("code", inplace=True)
-            return m_data
-
-    def get_stock_history(
-        self,
-        number: str,
-        start=datetime.strptime("2005-1-1", "%Y-%m-%d"),
-    ) -> pd.DataFrame:
-        try:
-            return super().get_stock_history(number, start)
-        except Exception:
-            print(
-                ".".join(
-                    [
-                        "取得",
-                        str(number),
-                        "的資料從",
-                        str(start),
-                        "到今天:{}".format(sys._getframe().f_code.co_name),
-                    ]
-                )
-            )
-            start_time = start
-            if type(start_time) is str:
-                start_time = datetime.strptime(start_time, "%Y-%m-%d")
-            if type(number) is not str:
-                number = str(number)
-            data_time = datetime.strptime("2005-1-1", "%Y-%m-%d")
-            result = pd.DataFrame()
-
-            if not StockInfos.ts.codes.__contains__(number):
-                print("無此檔股票")
-                return result
-            if start_time < data_time:
-                print("日期請大於西元2005年")
-                return result
-            file = str(number)
-            filename = (
-                self.filePath
-                + "\\"
-                + self.fileName_stockInfo
-                + "\\"
-                + file
-                + "_2000-1-1_2021-8-7"
-            )
-            m_history = pd.DataFrame()
-            if not os.path.isfile(filename + ".csv"):
-                return result
-            m_history = pd.read_csv(
-                filename + ".csv", index_col="Date", parse_dates=["Date"]
-            )
-            # 整理一下資料
-            mask = m_history.index >= start_time
-            result = m_history[mask]
-            result = result.dropna(axis=0, how="any")
-            return result
-
-    def get_allstock_financial_statement(self, start: datetime, type: info.FS_type):
-        try:
-            super().get_allstock_financial_statement(start, type)
-        except Exception:
-            Temp_data = pd.DataFrame()
-            season = int(((start.month - 1) / 3) + 1)
-            file = str(start.year) + "-season" + str(season) + "-" + type.value
-            fileName = self.filePath + "/" + self.fileName_season + "/" + file
-            if Temp_data.empty:
-                if os.path.isfile(fileName + ".csv"):
-                    print("已經有" + str(start.month) + "月財務報告")
-                else:
-                    self._financial_statement(start.year, season, type)
-                    print("下載" + str(start.month) + "月財務報告ＯＫ")
-                stock = pd.read_csv(fileName + ".csv")
-                # 整理一下資料
-                stock.rename(columns={"公司代號": "code"}, inplace=True)
-                stock.set_index("code", inplace=True)
-                if info.FS_type.SCF == type:
-                    if stock["投資活動之淨現金流入（流出）"].dtype == object:
-                        stock["投資活動之淨現金流入（流出）"] = pd.to_numeric(
-                            stock["投資活動之淨現金流入（流出）"].str.replace("--", "0")
-                        )
-                    if stock["營業活動之淨現金流入（流出）"].dtype == object:
-                        stock["營業活動之淨現金流入（流出）"] = pd.to_numeric(
-                            stock["營業活動之淨現金流入（流出）"].str.replace("--", "0")
-                        )
-                    if stock["籌資活動之淨現金流入（流出）"].dtype == object:
-                        stock["籌資活動之淨現金流入（流出）"] = pd.to_numeric(
-                            stock["籌資活動之淨現金流入（流出）"].str.replace("--", "0")
-                        )
-            else:
-                stock = Temp_data
-            return stock
-
-
-class ExternalDataFactory:
-    @staticmethod
-    def Get_instance(
-        type: ExternalDataTypeEnum = ExternalDataTypeEnum.Normal,
-    ) -> IGetExternalData:
-        if type == ExternalDataTypeEnum.Test:
-            return GetExternalDataTest()
-        else:
-            return TGetExternalData()

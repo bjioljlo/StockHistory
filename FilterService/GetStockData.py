@@ -6,7 +6,7 @@ from pandas import DataFrame
 
 import Common.InfomationType as info
 import Common.Tools as Tools
-from GetExternalDataService import ExternalDataFactory
+from ExternalService.ExternalDataFactory import ExternalDataFactory
 from Common.InfomationType import stock_data_kind
 
 from .StockHistory import (

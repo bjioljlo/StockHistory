@@ -7,7 +7,7 @@ import yfinance as yf
 from flask import Flask
 from flask_sqlalchemy import SQLAlchemy
 
-import Common.Tools as Tools
+from Common import Tools
 
 
 class SqlService:

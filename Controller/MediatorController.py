@@ -38,11 +38,16 @@ class IMediator_Controller(ABC):
 class Mediator_Controller(IMediator_Controller):
     """controller的中介者"""
 
-    def __init__(self, Schedule: ScheduleService) -> None:
+    def __init__(self, 
+                Schedule: ScheduleService
+                ) -> None:
+        
+        self._schedule: ScheduleService = Schedule
+        
         self._main_controller: IController = Controller_Factory(
             controllers.Main,
-            Main_Window(MyWindow(Schedule.StopThreadSchedule)),
-            Model_main(Schedule),
+            Main_Window(MyWindow(self._schedule.StopThreadSchedule)),
+            Model_main(self._schedule),
             self.GetController,
         )
         self._pick_controller: IController = Controller_Factory(

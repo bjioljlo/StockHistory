@@ -1,13 +1,12 @@
 import sys
 from abc import ABC, abstractmethod
-from datetime import datetime
 
 import pandas
 from pandas import DataFrame, Series
 
 import Common.InfomationType as info
 import Common.Tools as Tools
-from GetExternalDataService import IGetExternalData
+from ExternalService.IGetExternalData import IGetExternalData
 
 from .StockHistory import OriginalStock
 

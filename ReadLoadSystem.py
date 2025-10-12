@@ -74,8 +74,9 @@ class ReadLoadSystem:
                 df = pd.read_csv(
                     fileName + ".csv", index_col="Date", parse_dates=["Date"]
                 )
-            except pd.errors.EmptyDataError:
+            except Exception:
                 print("no " + fileName + " csv file")
+                return df
 
         df = df.dropna(how="any", inplace=False)  # 將某些null欄位去除
         self.load_memery[fileName] = df
