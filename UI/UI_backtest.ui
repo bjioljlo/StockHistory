@@ -63,11 +63,16 @@
    <widget class="QPushButton" name="button_backtest">
     <property name="geometry">
      <rect>
-      <x>412</x>
-      <y>490</y>
-      <width>131</width>
+      <x>20</x>
+      <y>480</y>
+      <width>150</width>
       <height>32</height>
      </rect>
+    </property>
+    <property name="font">
+     <font>
+      <pointsize>12</pointsize>
+     </font>
     </property>
     <property name="text">
      <string>開始月營收回測</string>
@@ -283,7 +288,7 @@
     <property name="geometry">
      <rect>
       <x>220</x>
-      <y>190</y>
+      <y>180</y>
       <width>231</width>
       <height>101</height>
      </rect>
@@ -392,8 +397,8 @@
    <widget class="QScrollArea" name="scrollArea_3">
     <property name="geometry">
      <rect>
-      <x>10</x>
-      <y>190</y>
+      <x>20</x>
+      <y>180</y>
       <width>201</width>
       <height>101</height>
      </rect>
@@ -531,8 +536,8 @@
    <widget class="QScrollArea" name="scrollArea_4">
     <property name="geometry">
      <rect>
-      <x>10</x>
-      <y>300</y>
+      <x>20</x>
+      <y>280</y>
       <width>201</width>
       <height>101</height>
      </rect>
@@ -642,7 +647,7 @@
     <property name="geometry">
      <rect>
       <x>220</x>
-      <y>300</y>
+      <y>280</y>
       <width>231</width>
       <height>101</height>
      </rect>
@@ -751,7 +756,7 @@
    <widget class="QScrollArea" name="scrollArea_6">
     <property name="geometry">
      <rect>
-      <x>460</x>
+      <x>450</x>
       <y>80</y>
       <width>231</width>
       <height>101</height>
@@ -861,11 +866,16 @@
    <widget class="QPushButton" name="button_backtest_2">
     <property name="geometry">
      <rect>
-      <x>550</x>
-      <y>490</y>
-      <width>151</width>
+      <x>20</x>
+      <y>390</y>
+      <width>150</width>
       <height>32</height>
      </rect>
+    </property>
+    <property name="font">
+     <font>
+      <pointsize>12</pointsize>
+     </font>
     </property>
     <property name="text">
      <string>開始回測PER&amp;PBR</string>
@@ -919,11 +929,16 @@
    <widget class="QPushButton" name="button_backtest_3">
     <property name="geometry">
      <rect>
-      <x>560</x>
-      <y>450</y>
-      <width>131</width>
+      <x>170</x>
+      <y>390</y>
+      <width>150</width>
       <height>32</height>
      </rect>
+    </property>
+    <property name="font">
+     <font>
+      <pointsize>12</pointsize>
+     </font>
     </property>
     <property name="text">
      <string>開始定期定額回測</string>
@@ -977,8 +992,8 @@
    <widget class="QScrollArea" name="scrollArea_7">
     <property name="geometry">
      <rect>
-      <x>10</x>
-      <y>410</y>
+      <x>450</x>
+      <y>180</y>
       <width>231</width>
       <height>101</height>
      </rect>
@@ -1087,8 +1102,8 @@
    <widget class="QTextEdit" name="input_buyDay">
     <property name="geometry">
      <rect>
-      <x>570</x>
-      <y>420</y>
+      <x>320</x>
+      <y>390</y>
       <width>51</width>
       <height>21</height>
      </rect>
@@ -1116,8 +1131,8 @@
    <widget class="QLabel" name="label_29">
     <property name="geometry">
      <rect>
-      <x>620</x>
-      <y>420</y>
+      <x>370</x>
+      <y>390</y>
       <width>81</width>
       <height>20</height>
      </rect>
@@ -1132,11 +1147,16 @@
    <widget class="QPushButton" name="button_backtest_4">
     <property name="geometry">
      <rect>
-      <x>280</x>
-      <y>490</y>
-      <width>131</width>
+      <x>20</x>
+      <y>450</y>
+      <width>150</width>
       <height>32</height>
      </rect>
+    </property>
+    <property name="font">
+     <font>
+      <pointsize>12</pointsize>
+     </font>
     </property>
     <property name="text">
      <string>開始創新高回測</string>
@@ -1190,11 +1210,16 @@
    <widget class="QPushButton" name="button_backtest_5">
     <property name="geometry">
      <rect>
-      <x>420</x>
-      <y>450</y>
-      <width>131</width>
+      <x>20</x>
+      <y>510</y>
+      <width>150</width>
       <height>32</height>
      </rect>
+    </property>
+    <property name="font">
+     <font>
+      <pointsize>12</pointsize>
+     </font>
     </property>
     <property name="text">
      <string>開始KD值回測</string>
@@ -1203,11 +1228,16 @@
    <widget class="QPushButton" name="button_backtest_6">
     <property name="geometry">
      <rect>
-      <x>280</x>
-      <y>450</y>
-      <width>131</width>
+      <x>20</x>
+      <y>420</y>
+      <width>150</width>
       <height>32</height>
      </rect>
+    </property>
+    <property name="font">
+     <font>
+      <pointsize>12</pointsize>
+     </font>
     </property>
     <property name="text">
      <string>開始PEG值回測</string>
@@ -1220,7 +1250,7 @@
      <x>0</x>
      <y>0</y>
      <width>800</width>
-     <height>22</height>
+     <height>21</height>
     </rect>
    </property>
   </widget>

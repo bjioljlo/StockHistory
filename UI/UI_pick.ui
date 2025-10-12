@@ -33,6 +33,11 @@
       <height>32</height>
      </rect>
     </property>
+    <property name="font">
+     <font>
+      <pointsize>12</pointsize>
+     </font>
+    </property>
     <property name="text">
      <string>帶入主頁</string>
     </property>
@@ -553,11 +558,16 @@
    <widget class="QPushButton" name="button_openBackWindow">
     <property name="geometry">
      <rect>
-      <x>712</x>
-      <y>450</y>
+      <x>710</x>
+      <y>420</y>
       <width>121</width>
       <height>32</height>
      </rect>
+    </property>
+    <property name="font">
+     <font>
+      <pointsize>12</pointsize>
+     </font>
     </property>
     <property name="text">
      <string>開啟回測視窗</string>
@@ -634,9 +644,9 @@
      <widget class="QSpinBox" name="input_volum">
       <property name="geometry">
        <rect>
-        <x>100</x>
+        <x>110</x>
         <y>30</y>
-        <width>71</width>
+        <width>51</width>
         <height>24</height>
        </rect>
       </property>
@@ -649,25 +659,38 @@
        <rect>
         <x>20</x>
         <y>60</y>
-        <width>71</width>
+        <width>91</width>
         <height>21</height>
        </rect>
       </property>
       <property name="text">
-       <string>10日平均交易量(倍)</string>
+       <string>10日平均交易量</string>
       </property>
      </widget>
      <widget class="QDoubleSpinBox" name="input_AvgVolume">
       <property name="geometry">
        <rect>
-        <x>100</x>
+        <x>110</x>
         <y>60</y>
-        <width>71</width>
+        <width>51</width>
         <height>24</height>
        </rect>
       </property>
       <property name="maximum">
        <double>999.990000000000009</double>
+      </property>
+     </widget>
+     <widget class="QLabel" name="label_42">
+      <property name="geometry">
+       <rect>
+        <x>170</x>
+        <y>60</y>
+        <width>21</width>
+        <height>21</height>
+       </rect>
+      </property>
+      <property name="text">
+       <string>倍</string>
       </property>
      </widget>
     </widget>
@@ -711,9 +734,14 @@
        <rect>
         <x>60</x>
         <y>0</y>
-        <width>101</width>
+        <width>111</width>
         <height>31</height>
        </rect>
+      </property>
+      <property name="font">
+       <font>
+        <pointsize>12</pointsize>
+       </font>
       </property>
       <property name="text">
        <string>股價範圍篩選</string>
@@ -800,11 +828,16 @@
      <widget class="QLabel" name="label_14">
       <property name="geometry">
        <rect>
-        <x>60</x>
+        <x>40</x>
         <y>0</y>
-        <width>101</width>
+        <width>141</width>
         <height>31</height>
        </rect>
+      </property>
+      <property name="font">
+       <font>
+        <pointsize>12</pointsize>
+       </font>
       </property>
       <property name="text">
        <string>股價淨值比篩選</string>
@@ -897,6 +930,11 @@
         <height>31</height>
        </rect>
       </property>
+      <property name="font">
+       <font>
+        <pointsize>12</pointsize>
+       </font>
+      </property>
       <property name="text">
        <string>本益比篩選</string>
       </property>
@@ -982,11 +1020,16 @@
      <widget class="QLabel" name="label_20">
       <property name="geometry">
        <rect>
-        <x>60</x>
+        <x>40</x>
         <y>0</y>
-        <width>101</width>
+        <width>121</width>
         <height>31</height>
        </rect>
+      </property>
+      <property name="font">
+       <font>
+        <pointsize>12</pointsize>
+       </font>
       </property>
       <property name="text">
        <string>股東權益報酬率</string>
@@ -1075,9 +1118,14 @@
        <rect>
         <x>50</x>
         <y>0</y>
-        <width>101</width>
+        <width>121</width>
         <height>31</height>
        </rect>
+      </property>
+      <property name="font">
+       <font>
+        <pointsize>12</pointsize>
+       </font>
       </property>
       <property name="text">
        <string>殖利率範圍篩選</string>
@@ -1170,6 +1218,11 @@
         <height>31</height>
        </rect>
       </property>
+      <property name="font">
+       <font>
+        <pointsize>12</pointsize>
+       </font>
+      </property>
       <property name="text">
        <string>創新高篩選</string>
       </property>
@@ -1255,11 +1308,16 @@
      <widget class="QLabel" name="label_30">
       <property name="geometry">
        <rect>
-        <x>60</x>
+        <x>40</x>
         <y>0</y>
-        <width>101</width>
+        <width>131</width>
         <height>31</height>
        </rect>
+      </property>
+      <property name="font">
+       <font>
+        <pointsize>12</pointsize>
+       </font>
       </property>
       <property name="text">
        <string>本益成長比篩選</string>
@@ -1318,6 +1376,11 @@
       <height>32</height>
      </rect>
     </property>
+    <property name="font">
+     <font>
+      <pointsize>12</pointsize>
+     </font>
+    </property>
     <property name="text">
      <string>帶入價值數值</string>
     </property>
@@ -1330,6 +1393,11 @@
       <width>121</width>
       <height>31</height>
      </rect>
+    </property>
+    <property name="font">
+     <font>
+      <pointsize>12</pointsize>
+     </font>
     </property>
     <property name="text">
      <string>開始篩選</string>

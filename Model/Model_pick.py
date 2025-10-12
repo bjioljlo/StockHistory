@@ -5,7 +5,9 @@ import twstock
 
 import Common.InfomationType as info
 import Common.Tools as Tools
-from FilterService import All_Stock_Filters_fuc, GetStockData, OriginalStockByYahoo
+from FilterService.StockHistory import OriginalStockByYahoo
+from FilterService.GetStockData import All_Stock_Filters_fuc
+from FilterService import GetStockData
 from Model.Model import TModel
 from Common.Parameter import RecordPickParameter
 
