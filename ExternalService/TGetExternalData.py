@@ -8,16 +8,24 @@ import numpy as np
 import pandas as pd
 import requests
 
-import Common.Globals as Globals
 import Common.InfomationType as info
-from IGetExternalData import IGetExternalData
+from ExternalService.IGetExternalData import IGetExternalData
+from MongoService import MongoService
+from ReadLoadSystem import ReadLoadSystem
+from SqlService import SqlService
 import StockInfos
 import Common.Tools as Tools
 
 class TGetExternalData(IGetExternalData):
     """讀取外部資料"""
 
-    def __init__(self) -> None:
+    def __init__(self,
+        sql_service: SqlService,
+        mongo_service: MongoService,
+        read_load_system: ReadLoadSystem) -> None:
+        self._read_load_system = read_load_system
+        self._sql_service = sql_service
+        self._mongo_service = mongo_service
         self.fileName_monthRP: str = "monthRP"
         self.fileName_stockInfo = "stockInfo"
         self.fileName_yield = "yieldInfo"
@@ -42,7 +50,7 @@ class TGetExternalData(IGetExternalData):
             return pd.DataFrame()
         file = str(start.year) + "-season" + str(season) + "-" + type.value
         fileName = self.filePath + "/" + self.fileName_season + "/" + file
-        Temp_data = Globals.READLOAD.load_month_file(fileName, file)  # 去資料庫抓資料
+        Temp_data = self._read_load_system.load_month_file(fileName, file)  # 去資料庫抓資料
 
         if Temp_data.empty:
             if os.path.isfile(fileName + ".csv"):
@@ -67,10 +75,10 @@ class TGetExternalData(IGetExternalData):
                     stock["籌資活動之淨現金流入（流出）"] = pd.to_numeric(
                         stock["籌資活動之淨現金流入（流出）"].str.replace("--", "0")
                     )
-            Globals.MYSQL.saveTable(file, stock)
+            self._sql_service.saveTable(file, stock)
         else:
             stock = Temp_data
-        Globals.READLOAD.Memery[fileName] = stock
+        self._read_load_system.Memery[fileName] = stock
         return stock
 
     def get_allstock_monthly_report(self, start: datetime):
@@ -86,7 +94,7 @@ class TGetExternalData(IGetExternalData):
         year = start.year
         file = "monthly_report_" + str(start.year) + "_" + str(start.month)
         fileName = self.filePath + "/" + self.fileName_monthRP + "/" + file
-        m_data = Globals.READLOAD.load_month_file(fileName, file)  # 去資料庫抓資料
+        m_data = self._read_load_system.load_month_file(fileName, file)  # 去資料庫抓資料
 
         if m_data.empty:
             if not os.path.isfile(fileName + ".csv"):
@@ -145,8 +153,8 @@ class TGetExternalData(IGetExternalData):
             m_data[[ "code"]] = m_data[[ "code"]].astype(int)
             m_data.set_index("code", inplace=True)
             # 存到資料庫
-            Globals.MYSQL.saveTable(file, m_data)
-        Globals.READLOAD.Memery[fileName] = m_data
+            self._sql_service.saveTable(file, m_data)
+        self._read_load_system.Memery[fileName] = m_data
         return m_data
 
     def get_allstock_yield(self, start: datetime):
@@ -167,7 +175,7 @@ class TGetExternalData(IGetExternalData):
         fileName = self.filePath + "/" + self.fileName_yield + "/" + file
         m_yield = pd.DataFrame()
         # 去資料庫抓資料
-        m_yield = Globals.READLOAD.load_month_file(fileName, file)
+        m_yield = self._read_load_system.load_month_file(fileName, file)
 
         try:
             if m_yield.empty and (
@@ -185,7 +193,7 @@ class TGetExternalData(IGetExternalData):
                         + "&selectType=ALL"
                     )
                     response = requests.get(url, Tools.get_random_Header())
-                    Globals.READLOAD.save_stock_file(fileName, response, 1, 2)
+                    self._read_load_system.save_stock_file(fileName, response, 1, 2)
                     # 偽停頓
                     time.sleep(3)
                 try:
@@ -200,10 +208,10 @@ class TGetExternalData(IGetExternalData):
                 m_yield.rename(columns={"證券代號": "code"}, inplace=True)
                 m_yield.set_index("code", inplace=True)
                 # 存到資料庫
-                Globals.MYSQL.saveTable(file, m_yield)
+                self._sql_service.saveTable(file, m_yield)
         except Exception:
             return pd.DataFrame()
-        Globals.READLOAD.Memery[fileName] = m_yield
+        self._read_load_system.Memery[fileName] = m_yield
         return m_yield
 
     def get_stock_history(
@@ -230,7 +238,7 @@ class TGetExternalData(IGetExternalData):
             number = str(number)            
         data_time = datetime.strptime("2005-1-1", "%Y-%m-%d")
         result = pd.DataFrame()
-        if Globals.MYSQL.CantUseStocks.__contains__(str(number) + ".TW"):
+        if self._sql_service.CantUseStocks.__contains__(str(number) + ".TW"):
             print("ItsCantUseStock:" + str(number))
             return result
         if not StockInfos.ts.codes.__contains__(number):
@@ -241,14 +249,14 @@ class TGetExternalData(IGetExternalData):
             return result
         file = str(number)
         filename = self.filePath + "/" + self.fileName_stockInfo + "/" + file
-        m_history = Globals.READLOAD.load_stock_file(filename, file)
+        m_history = self._read_load_system.load_stock_file(filename, file)
         if m_history.empty:
             # 去ＹＦ讀取資料
-            Globals.MYSQL.yfInfo(str(number) + ".TW")
+            self._sql_service.yfInfo(str(number) + ".TW")
             # 偽停頓
             time.sleep(1.5)
-            m_history = Globals.READLOAD.load_stock_file(filename, file)
-            Globals.MONGO.saveTable(str(number) + ".TW", m_history)
+            m_history = self._read_load_system.load_stock_file(filename, file)
+            self._mongo_service.saveTable(str(number) + ".TW", m_history)
         mask = m_history.index >= start_time
         result = m_history[mask]
         result = result.dropna(axis=0, how="any")
@@ -267,7 +275,7 @@ class TGetExternalData(IGetExternalData):
         # --- Start of optimization ---
         # 1. Try to read from MySQL database first
         try:
-            ad_index_from_sql = Globals.MYSQL.readStockDay('ad_index')
+            ad_index_from_sql = self._sql_service.readStockDay('ad_index')
             if not ad_index_from_sql.empty and time in ad_index_from_sql.index:
                 print(f"Found AD_index for {time.strftime('%Y-%m-%d')} in MySQL.")
                 return ad_index_from_sql.loc[[time]]
@@ -278,13 +286,13 @@ class TGetExternalData(IGetExternalData):
         # 2. Fallback to original logic (cache/CSV)
         str_date = Tools.DateTime2String(time)
         fileName = self.filePath + "/" + self.fileName_index + "/" + "AD_index"
-        ADindex_result = Globals.READLOAD.load_other_file(fileName, "AD_index")
+        ADindex_result = self._read_load_system.load_other_file(fileName, "AD_index")
 
         if ADindex_result.empty and os.path.isfile(fileName + ".csv"):
             ADindex_result = pd.read_csv(
                 fileName + ".csv", index_col="Date", parse_dates=["Date"]
             )
-            Globals.READLOAD.Memery[fileName] = ADindex_result
+            self._read_load_system.Memery[fileName] = ADindex_result
 
         if not ADindex_result.empty and time in ADindex_result.index:
             print(f"Found AD_index for {time.strftime('%Y-%m-%d')} in local cache.")
@@ -334,8 +342,8 @@ class TGetExternalData(IGetExternalData):
         ADindex_result = ADindex_result[~ADindex_result.index.duplicated(keep='last')]
         ADindex_result = ADindex_result.sort_index()
         
-        Globals.MYSQL.saveTable("AD_index", ADindex_result)
-        Globals.READLOAD.Memery[fileName] = ADindex_result
+        self._sql_service.saveTable("AD_index", ADindex_result)
+        self._read_load_system.Memery[fileName] = ADindex_result
         
         return ADindex_result.loc[[time]]
 
@@ -343,7 +351,7 @@ class TGetExternalData(IGetExternalData):
         """#取得完整的上漲和下跌家數歷史資料"""
         print("get_full_ad_index from MySQL")
         try:
-            ad_index_table = Globals.MYSQL.readStockDay('AD_index')
+            ad_index_table = self._sql_service.readStockDay('AD_index')
             if not ad_index_table.empty:
                 return ad_index_table.sort_index()
         except Exception as e:

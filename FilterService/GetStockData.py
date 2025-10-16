@@ -6,8 +6,9 @@ from pandas import DataFrame
 
 import Common.InfomationType as info
 import Common.Tools as Tools
-from ExternalService.ExternalDataFactory import ExternalDataFactory
 from Common.InfomationType import stock_data_kind
+from ExternalService.ExternalDataFactory import ExternalDataFactory
+from ExternalService.IGetExternalData import IGetExternalData
 
 from .StockHistory import (
     OriginalStockByYahoo,
@@ -41,13 +42,6 @@ from .StockReportHistory import (
     TReport,
 )
 
-OriginalStocStock_2330 = OriginalStockByYahoo(2330)
-OriginalStocStock_main = OriginalStockByYahoo()
-
-Stock_RangeDate = RangeDate_Stock(OriginalStocStock_main)
-Stock_SMA = SMA_Stock(OriginalStocStock_main)
-Stock_RecordHigh = RecordHigh_Stock(OriginalStocStock_main)
-
 
 class All_Stock_Filters_fuc:
     """增加篩選器在這邊加
@@ -63,9 +57,10 @@ class All_Stock_Filters_fuc:
     def Data(self, data: pd.DataFrame):
         self._data = data
 
-    def __init__(self, Date: datetime, Data: pd.DataFrame) -> None:
+    def __init__(self, Date: datetime, Data: pd.DataFrame, original_stock: OriginalStockByYahoo) -> None:
         self.Data = Data
         self._date = Date
+        self.original_stock = original_stock
 
     def get_Filter(self, Name: str, Max: int, Min: int, Type: info.Price_type):
         print("get_price_rang: start")
@@ -73,7 +68,7 @@ class All_Stock_Filters_fuc:
             print("price range number wrong!" + "Max:" + Max + " min:" + Min)
             return self._date
         aFilter = StockFilter(
-            OriginalStocStock_main, Name, Max, Min, self.Data, self._date, Type
+            self.original_stock, Name, Max, Min, self.Data, self._date, Type
         )
         temp = aFilter.get_ALL()
         print("get_price_rang: end")
@@ -85,7 +80,7 @@ class All_Stock_Filters_fuc:
             print("GroupInfo Name wrong!" + " Input:" + groupName)
             return self._date
         aFilter = StockFilterInfo(
-            OriginalStocStock_main, self.Data, self._date, groupName
+            self.original_stock, self.Data, self._date, groupName
         )
         temp = aFilter.get_ALL()
         print("get_price_rang: end")
@@ -94,7 +89,7 @@ class All_Stock_Filters_fuc:
     def get_Filter_SMA(
         self, Name: str, Max: int, Min: int, avgMA: int, Type: info.Price_type
     ):
-        aSMA = SMA_Stock(OriginalStocStock_main, avgMA, Type)
+        aSMA = SMA_Stock(self.original_stock, avgMA, Type)
         aFilter = StockFilter(aSMA, Name, Max, Min, self.Data, self._date, aSMA._type)
         temp = aFilter.get_ALL()
         return temp
@@ -104,58 +99,64 @@ class All_Stock_Filters_fuc:
     ):
         print("get_RecordHigh: start")
         aRH = StockRecordHigh(
-            Stock_RecordHigh, self._date, flashDay, recordDays, self.Data, atype
+            RecordHigh_Stock(self.original_stock), self._date, flashDay, recordDays, self.Data, atype
         )
         temp = aRH.get_ALL()
         print("get_RecordHigh: end")
         return temp
 
     def get_Filter_BetterMA(self, avgMA: int, Type: info.Price_type):
-        aSMA = SMA_Stock(OriginalStocStock_main, avgMA, Type)
+        aSMA = SMA_Stock(self.original_stock, avgMA, Type)
         aBetterMA = StockPriceBetterMA(aSMA, self.Data, self._date)
         temp = aBetterMA.get_ALL()
         return temp
 
     def get_Filter_AvgVol_Multiple(self, multiple: int, avg_days: int):
         print("get_Filter_AvgVol_Multiple: start")
-        aSMA = SMA_Stock(OriginalStocStock_main, avg_days, info.Price_type.Volume)    
+        aSMA = SMA_Stock(self.original_stock, avg_days, info.Price_type.Volume)
         aVolFilter = StockAvgVolMultiple(aSMA, self.Data, self._date, multiple)
         temp = aVolFilter.get_ALL()
         print("get_Filter_AvgVol_Multiple: end")
         return temp
 
 
-GetExternal = ExternalDataFactory.Get_instance()
+class ReportServices:
+    def __init__(self, external_data_factory:ExternalDataFactory):
+        self.GetExternal = external_data_factory.Get_instance()
+        self.original_stock = OriginalStockByYahoo(externalDataFactory=external_data_factory)
 
-CPL_RP = Season_Report(info.FS_type.CPL.value, 3, GetExternal, info.FS_type.CPL)
-BS_RP = Season_Report(info.FS_type.BS.value, 3, GetExternal, info.FS_type.BS)
-PLA_RP = Season_Report(info.FS_type.PLA.value, 3, GetExternal, info.FS_type.PLA)
-SCF_RP = Season_Report(info.FS_type.SCF.value, 3, GetExternal, info.FS_type.SCF)
-Month_RP = Month_Report("month_RP", 1, GetExternal)  # 月營收
-Yield_RP = Day_Report("yield_RP", 1, GetExternal)
-ADL_RP = ADL_Report("aDL_RP", 1, GetExternal)
+        # Reports
+        self.CPL_RP = Season_Report(info.FS_type.CPL.value, 3, self.GetExternal, info.FS_type.CPL)
+        self.BS_RP = Season_Report(info.FS_type.BS.value, 3, self.GetExternal, info.FS_type.BS)
+        self.PLA_RP = Season_Report(info.FS_type.PLA.value, 3, self.GetExternal, info.FS_type.PLA)
+        self.SCF_RP = Season_Report(info.FS_type.SCF.value, 3, self.GetExternal, info.FS_type.SCF)
+        self.Month_RP = Month_Report("month_RP", 1, self.GetExternal)
+        self.Yield_RP = Day_Report("yield_RP", 1, self.GetExternal)
+        self.ADL_RP = ADL_Report("aDL_RP", 1, self.GetExternal)
 
-ROE_index = ROE_Indicator("ROE", CPL_RP, BS_RP)
-FreeCF_index = FreeCF_Indicator("FreeCF", SCF_RP)
-Debt_index = Debt_Indicator("Debt", BS_RP)
-OM_Growth_index = OM_Growth_Indicator("OM_Growth", PLA_RP)
-MR_Growth_index = MR_Growth_Indicator("MR_Growth", Month_RP)
-SR_Growth_index = SR_Growth_Indicator("SR_Growth", PLA_RP)
-PEG_index = PEG_Indicator("PEG", OM_Growth_index, Yield_RP)
-PER_index = Original_Indicator("PER", Yield_RP, info.Day_type.PER)  # 取得本益比
-PBR_index = Original_Indicator("PBR", Yield_RP, info.Day_type.PBR)  # 取得股價淨值比
-Yield_index = Original_Indicator("Yield", Yield_RP, info.Day_type.Yield)  # 取得殖利率
-EPS_index = Original_Indicator("EPS", CPL_RP, info.CPL_type.EPS)  # 取得EPS
-Month_index = Original_Indicator("Month", Month_RP, info.Month_type.MR)  # 取得月營收
-OCF_index = Original_Indicator("OCF", SCF_RP, info.SCF_type.OCF)  # 營業活動之淨現金流入
-ICF_index = Original_Indicator("ICF", SCF_RP, info.SCF_type.ICF)  # 投資活動之淨現金流入
-OM_index = Original_Indicator("OM", PLA_RP, info.PLA_type.type_2)  # 營業利益率(%)
-OCFPerShare_index = OCFPerShare_Indicator("OCFPerShare", SCF_RP, BS_RP)
-PCF_index = PCF_Indicator(
-    "P/CF", OCFPerShare_index, OriginalStocStock_main, GetExternal
-)
-ADL_index = ADL_Indicator("ADL", ADL_RP)
-ADLs_index = ADLs_Indicator("ADLs", ADL_RP)
+        # Indicators
+        self.ROE_index = ROE_Indicator("ROE", self.CPL_RP, self.BS_RP)
+        self.FreeCF_index = FreeCF_Indicator("FreeCF", self.SCF_RP)
+        self.Debt_index = Debt_Indicator("Debt", self.BS_RP)
+        self.OM_Growth_index = OM_Growth_Indicator("OM_Growth", self.PLA_RP)
+        self.MR_Growth_index = MR_Growth_Indicator("MR_Growth", self.Month_RP)
+        self.SR_Growth_index = SR_Growth_Indicator("SR_Growth", self.PLA_RP)
+        self.PEG_index = PEG_Indicator("PEG", self.OM_Growth_index, self.Yield_RP)
+        self.PER_index = Original_Indicator("PER", self.Yield_RP, info.Day_type.PER)
+        self.PBR_index = Original_Indicator("PBR", self.Yield_RP, info.Day_type.PBR)
+        self.Yield_index = Original_Indicator("Yield", self.Yield_RP, info.Day_type.Yield)
+        self.EPS_index = Original_Indicator("EPS", self.CPL_RP, info.CPL_type.EPS)
+        self.Month_index = Original_Indicator("Month", self.Month_RP, info.Month_type.MR)
+        self.OCF_index = Original_Indicator("OCF", self.SCF_RP, info.SCF_type.OCF)
+        self.ICF_index = Original_Indicator("ICF", self.SCF_RP, info.SCF_type.ICF)
+        self.OM_index = Original_Indicator("OM", self.PLA_RP, info.PLA_type.type_2)
+        self.OCFPerShare_index = OCFPerShare_Indicator("OCFPerShare", self.SCF_RP, self.BS_RP)
+        self.PCF_index = PCF_Indicator(
+            "P/CF", self.OCFPerShare_index, self.original_stock, self.GetExternal
+        )
+        self.ADL_index = ADL_Indicator("ADL", self.ADL_RP)
+        self.ADLs_index = ADLs_Indicator("ADLs", self.ADL_RP)
+        self.RangeDate_Stock = RangeDate_Stock(self.original_stock)
 
 
 # 新增功能的虛擬類別
@@ -358,11 +359,11 @@ class All_imge:
     所有要輸入Indicator類就可以加進來
     """
 
-    def __init__(self, start: datetime, end: datetime, report: Indicator) -> None:
+    def __init__(self, start: datetime, end: datetime, report: Indicator, external_service:IGetExternalData) -> None:
         self._start = start
         self._end = end
         self._report = report
-        self._main_GetExternalData = ExternalDataFactory.Get_instance()
+        self._main_GetExternalData = external_service
 
     @property
     def start(self):
@@ -425,63 +426,64 @@ class All_imge:
         return data_result
 
 
-def get_stock_MA(number: str, date: datetime, MA_day: int):  # 取得某股票某天的均線
-    OriginalStocStock_main.number = number
+def get_stock_MA(number: str, date: datetime, MA_day: int, original_stock: OriginalStockByYahoo):  # 取得某股票某天的均線
+    original_stock.number = number
     Temp_MA = SMA_Stock(
-        OriginalStocStock_main, MA_day, info.Price_type.Close
+        original_stock, MA_day, info.Price_type.Close
     ).get_ALL()[date]
     return Temp_MA
 
 
 def get_stock_price(
-    number: str, date: datetime, kind: stock_data_kind
+    number: str, date: datetime, kind: stock_data_kind, original_stock: OriginalStockByYahoo
 ):  # 取得某股票某天的價格
-    OriginalStocStock_main.number = number
+    original_stock.number = number
     if kind == stock_data_kind.Volume:
-        Stock_SMA.AvgDay = 5
-        Stock_SMA.PriceType = info.Price_type.Volume
-        Temp = Stock_SMA.get_PriceByDate(date)
+        stock_sma = SMA_Stock(original_stock)
+        stock_sma.AvgDay = 5
+        stock_sma.PriceType = info.Price_type.Volume
+        Temp = stock_sma.get_PriceByDate(date)
     else:
-        Temp = OriginalStocStock_main.get_PriceByDateAndType(date, kind)
+        Temp = original_stock.get_PriceByDateAndType(date, kind)
     return Temp
 
 
 # 取得月營收逐步升高的篩選
 def get_monthRP_up(
-    time: datetime, avgNum: int, upNum: int
+    services: ReportServices, time: datetime, avgNum: int, upNum: int
 ):  # time = 取得資料的時間 avgNum = 平滑曲線月份 upNum = 連續成長月份
     print("get_monthRP_up: start:" + str(time))
-    Result = All_fuc(time, Month_index).get_Smooth_Up_Auto(avgNum, upNum)
+    Result = All_fuc(time, services.Month_index).get_Smooth_Up_Auto(avgNum, upNum)
     print("get_monthRP_up: end")
     return Result
 
 
 # 取得本益比篩選 #股價/每股盈餘(EPS)
 def get_PER_range(
-    time: datetime, PER_start, PER_end
+    services: ReportServices, time: datetime, PER_start, PER_end
 ):  # time = 取得資料的時間 PER_start = PER最小值 PER_end PER最大值
     print("get_PER_range: start")
-    Result = All_fuc(time, PER_index).get_Filter_Auto(PER_start, PER_end)
+    Result = All_fuc(time, services.PER_index).get_Filter_Auto(PER_start, PER_end)
     print("get_PER_range: end")
     return Result
 
 
 # 取得本益成長比(PEG)篩選
 def get_PEG_range(
-    time: datetime, PEG_start, PEG_end
+    services: ReportServices, time: datetime, PEG_start, PEG_end
 ):  # time = 取得資料的時間 PEG_start = PEG最小值 PEG_end PEG最大值
     print("get_PEG_range: start")
-    Result = All_fuc(time, PEG_index).get_Filter_Auto(PEG_start, PEG_end)
+    Result = All_fuc(time, services.PEG_index).get_Filter_Auto(PEG_start, PEG_end)
     print("get_PEG_range: end")
     return Result
 
 
 # 取得平均日成交金額篩選
 def get_AVG_value(
-    time: datetime, volume: int, days: int, data: DataFrame
+    time: datetime, volume: int, days: int, data: DataFrame, original_stock: OriginalStockByYahoo
 ):  # time = 取得資料的時間 volume = 平均成交金額 days = 平均天數
     print("get_AVG_value: start")
-    result = All_Stock_Filters_fuc(time, data).get_Filter_SMA(
+    result = All_Stock_Filters_fuc(time, data, original_stock).get_Filter_SMA(
         "volume", 99999999999, volume, days, info.Price_type.Volume
     )
     print("get_AVG_value: end")
@@ -490,27 +492,27 @@ def get_AVG_value(
 
 # 取得股價淨值比篩選  #股價/每股淨值 = PBR
 def get_PBR_range(
-    time: datetime, PBR_start: float, PBR_end: float, data=pd.DataFrame()
+    services: ReportServices, time: datetime, PBR_start: float, PBR_end: float, data=pd.DataFrame()
 ):  # time = 取得資料的時間 PBR_start = PBR最小值 PBR_end PBR最大值
     print("get_PBR_rang: start")
-    Result = All_fuc(time, PBR_index).get_Filter_Auto(PBR_start, PBR_end)
+    Result = All_fuc(time, services.PBR_index).get_Filter_Auto(PBR_start, PBR_end)
     print("get_PBR_rang: end")
     return Result
 
 
 # 取得股東權益報酬率 #ROE(股東權益報酬率) = 稅後淨利/股東權益
 def get_ROE_range(
-    time: datetime, ROE_start, ROE_end, data=pd.DataFrame()
+    services: ReportServices, time: datetime, ROE_start, ROE_end, data=pd.DataFrame()
 ):  # time = 取得資料的時間 ROE_start = ROE最小值 ROE_end ROE最大值
     print("get_ROE_rang: start")
-    Result = All_fuc(time, ROE_index).get_Filter_Auto(ROE_start, ROE_end)
+    Result = All_fuc(time, services.ROE_index).get_Filter_Auto(ROE_start, ROE_end)
     print("get_ROE_rang: end")
     return Result
 
 
 # 取得股價篩選
 def get_price_range(
-    time: datetime, high: int, low: int, data=pd.DataFrame()
+    time: datetime, high: int, low: int, data: DataFrame, original_stock: OriginalStockByYahoo
 ):  # time = 取得資料的時間 high = 最高價 low = 最低價
     print("get_price_rang: start")
     if high == low == 0:
@@ -518,7 +520,7 @@ def get_price_range(
     if high < low or high < 0 or low < 0:
         print("price range number wrong!")
         return data
-    Temp = All_Stock_Filters_fuc(time, data).get_Filter(
+    Temp = All_Stock_Filters_fuc(time, data, original_stock).get_Filter(
         "price", high, low, info.Price_type.Close
     )
     print("get_price_rang: end")
@@ -527,17 +529,17 @@ def get_price_range(
 
 # 取得創新高篩選
 def get_RecordHigh_range(
-    time: datetime, Day: int, RecordHighDay: int, data=pd.DataFrame()
+    time: datetime, Day: int, RecordHighDay: int, data: DataFrame, original_stock: OriginalStockByYahoo
 ):  # time = 取得資料的時間 Day = 往前找多少天的創新高 RecordHighDay = 找創新高的區間
     print("get_RecordHigh: start")
-    result = All_Stock_Filters_fuc(time, data).get_Filter_RecordHigh(
+    result = All_Stock_Filters_fuc(time, data, original_stock).get_Filter_RecordHigh(
         Day, RecordHighDay, info.Price_type.High
     )
     print("get_RecordHigh: end")
     return result
 
 
-def AvgStockPrice(date, vData=pd.DataFrame()):
+def AvgStockPrice(date, original_stock: OriginalStockByYahoo, vData=pd.DataFrame()):
     """平均vData股價"""
     All_price = 0  #
     Count = 0
@@ -547,7 +549,7 @@ def AvgStockPrice(date, vData=pd.DataFrame()):
     for value in range(0, len(vData)):
         Nnumber = str(vData.iloc[value].name)
         Temp_stock_price = get_stock_price(
-            Nnumber, Tools.DateTime2String(date), stock_data_kind.Close
+            Nnumber, Tools.DateTime2String(date), stock_data_kind.Close, original_stock
         )
         if Temp_stock_price is not None:
             All_price = All_price + Temp_stock_price

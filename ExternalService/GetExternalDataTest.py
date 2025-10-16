@@ -8,7 +8,7 @@ import pandas as pd
 import requests
 
 import Common.InfomationType as info
-from TGetExternalData import TGetExternalData
+from ExternalService.TGetExternalData import TGetExternalData
 import StockInfos
 from Common import Tools
 

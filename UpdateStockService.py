@@ -8,18 +8,23 @@ import pytz
 import twstock
 import yfinance as yf
 
-import Common.Globals as Globals
 import Common.InfomationType as info
 import Common.Tools as Tools
 from ExternalService.ExternalDataFactory import ExternalDataFactory
-from ExternalService.IGetExternalData import IGetExternalData
+from MongoService import MongoService
+from ReadLoadSystem import ReadLoadSystem
+from SqlService import SqlService
 from StockInfos import UserInfoDatas
 
 
 class UpdateStockService:
-    def __init__(self) -> None:
+    def __init__(self, sql_service:SqlService, mongo_service:MongoService, read_load_system:ReadLoadSystem) -> None:
         self.isUpdating: bool = False
-        self._getExternalData: IGetExternalData = ExternalDataFactory.Get_instance()
+        self._sql_service = sql_service
+        self._mongo_service = mongo_service
+        self._read_load_system = read_load_system
+        self._getExternalFactory = ExternalDataFactory( 
+            self._sql_service, self._mongo_service, self._read_load_system)
 
     def UpdateSP500StocksHandle(self):
         self.__RunUpdate_sp500()
@@ -42,13 +47,13 @@ class UpdateStockService:
             stock_name, df_result = item
 
             try:
-                with Globals.MYSQL.server_flask.app_context():
+                with self._sql_service.server_flask.app_context():
                     df_result.to_sql(
                         name=stock_name,
-                        con=Globals.MYSQL.MySql_server.engine,
+                        con=self._sql_service.MySql_server.engine,
                         if_exists="replace",
                     )
-                Globals.MONGO.saveTable(stock_name, df_result)
+                self._mongo_service.saveTable(stock_name, df_result)
                 print("Saved " + stock_name + " to DB OK!")
             except Exception as e:
                 print(f"Error saving {stock_name} to DB: {e}")
@@ -92,7 +97,7 @@ class UpdateStockService:
                 df_result = Tools.TidyTicketData(df_result, value.code + ".TW")
                 data_queue.put((stock_name, df_result))
 
-                Globals.READLOAD.load_memery[
+                self._read_load_system.load_memery[
                     os.getcwd() + "/" + "stockInfo" + "/" + value.code
                 ] = df_result
                 print("Download stocks " + stock_name + " OK!")
@@ -139,7 +144,7 @@ class UpdateStockService:
             df_result = Tools.TidyTicketData(df_result, temp)
             data_queue.put((temp, df_result))
 
-            Globals.READLOAD.load_memery[
+            self._read_load_system.load_memery[
                 os.getcwd() + "/" + "stockInfo" + "/" + temp
             ] = df_result
             print("Update stocks " + temp + " OK!")
@@ -159,7 +164,7 @@ class UpdateStockService:
         # 取得近一年的交易日曆 (以2330為基準)
         print("Fetching trading day calendar for the last year...")
         start_date_for_calendar = end_date - timedelta(days=366)
-        trading_days_df = self._getExternalData.get_stock_history(
+        trading_days_df = self._getExternalFactory.Get_instance(self).get_stock_history(
             "2330", start=start_date_for_calendar
         )
         if trading_days_df.empty:
@@ -177,7 +182,7 @@ class UpdateStockService:
             if date_to_check in trading_days:
                 # 更新騰落，get_stock_AD_index 內部會處理已存在資料的跳過邏輯
                 print(f"Updating ADL for {date_to_check.strftime('%Y-%m-%d')}")
-                self._getExternalData.get_stock_AD_index(date_to_check)
+                self._getExternalFactory.Get_instance(self).get_stock_AD_index(date_to_check)
             else:
                 print(f"Skipping non-trading day: {date_to_check.strftime('%Y-%m-%d')}")
 

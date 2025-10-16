@@ -1,8 +1,11 @@
 from enum import Enum
 
-from TGetExternalData import TGetExternalData
-from GetExternalDataTest import GetExternalDataTest
-from IGetExternalData import IGetExternalData
+from ExternalService.TGetExternalData import TGetExternalData
+from ExternalService.GetExternalDataTest import GetExternalDataTest
+from ExternalService.IGetExternalData import IGetExternalData
+from MongoService import MongoService
+from ReadLoadSystem import ReadLoadSystem
+from SqlService import SqlService
 
 
 class ExternalDataTypeEnum(Enum):
@@ -10,11 +13,19 @@ class ExternalDataTypeEnum(Enum):
     Test = 1
 
 class ExternalDataFactory:
-    @staticmethod
-    def Get_instance(
+    def __init__(self,
+        sql_service: SqlService,
+        mongo_service: MongoService,
+        read_load_system: ReadLoadSystem):
+        self._sql_service = sql_service
+        self._mongo_service = mongo_service
+        self._read_load_system = read_load_system
+    def Get_instance(self,
         type: ExternalDataTypeEnum = ExternalDataTypeEnum.Normal,
     ) -> IGetExternalData:
         if type == ExternalDataTypeEnum.Test:
-            return GetExternalDataTest()
+            return GetExternalDataTest(sql_service=self._sql_service, mongo_service=self._mongo_service, 
+                                    read_load_system=self._read_load_system)
         else:
-            return TGetExternalData()
+            return TGetExternalData(sql_service=self._sql_service, mongo_service=self._mongo_service, 
+                                    read_load_system=self._read_load_system)

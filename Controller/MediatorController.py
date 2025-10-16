@@ -1,35 +1,25 @@
 from abc import ABC, abstractmethod
 from datetime import datetime
 
+from FilterService.GetStockData import ReportServices
 from Model.Model_backtest import Model_backtest
 from Model.Model_main import Model_main
 from Model.Model_pick import Model_pick
+from ReadLoadSystem import ReadLoadSystem
 from ScheduleService import ScheduleService
+from SqlService import SqlService
+from ThreadPool import ThreadPool
 from View.View_backtest import BackTest_Window, MyBacktestWindow
 from View.View_main import Main_Window, MyWindow
 from View.View_pick import MyPickWindow, Pick_Window
 
 from .Controller import IController, controllers
 from .ControllerFactory import Controller_Factory
+from DrawFigur import DrawFigur
+from MongoService import MongoService
 
 
 class IMediator_Controller(ABC):
-    @abstractmethod
-    def ShowWindow(self, reciver: controllers):
-        raise NotImplementedError
-
-    @abstractmethod
-    def GetEndDate(self, reciver: controllers) -> datetime:
-        raise NotImplementedError
-
-    @abstractmethod
-    def GetStockNumber(self, reciver: controllers) -> str:
-        raise NotImplementedError
-
-    @abstractmethod
-    def SetStockNumber(self, reciver: controllers, stockNumber: str):
-        raise NotImplementedError
-
     @abstractmethod
     def GetController(self, reciver: controllers) -> IController:
         raise NotImplementedError
@@ -38,28 +28,49 @@ class IMediator_Controller(ABC):
 class Mediator_Controller(IMediator_Controller):
     """controller的中介者"""
 
-    def __init__(self, 
-                Schedule: ScheduleService
-                ) -> None:
-        
-        self._schedule: ScheduleService = Schedule
-        
+    def __init__(
+        self,
+        schedule: ScheduleService,
+        sql_service: SqlService,
+        mongo_service: MongoService,
+        draw_figur_service: DrawFigur,
+        thread_pool: ThreadPool,
+        read_load_system: ReadLoadSystem,
+        report_services: ReportServices,
+    ) -> None:
+        # 1. 將接收到的服務儲存為實例變數
+        self._schedule = schedule
+        self._sql_service = sql_service
+        self._mongo_service = mongo_service
+        self._draw_figur_service = draw_figur_service
+        self._thread_pool = thread_pool
+        self._read_load_system = read_load_system
+        self._report_services = report_services
+
+        # 2. 建立 Controller 時，將依賴傳遞給 Model
         self._main_controller: IController = Controller_Factory(
             controllers.Main,
             Main_Window(MyWindow(self._schedule.StopThreadSchedule)),
-            Model_main(self._schedule),
+            Model_main(schedule=self._schedule, draw_figur_service=self._draw_figur_service, 
+                        external_data_service= self._read_load_system, report_services=self._report_services),
             self.GetController,
+            self._draw_figur_service,
+            report_services=self._report_services
         )
         self._pick_controller: IController = Controller_Factory(
             controllers.Pick,
             Pick_Window(MyPickWindow()),
-            Model_pick(),
+            # 將需要的服務傳給 Model_pick
+            Model_pick(sql_service=self._sql_service, mongo_service=self._mongo_service, external_data_service= self._read_load_system),
             self.GetController,
         )
         self._backtest_controller: IController = Controller_Factory(
             controllers.BackTest,
             BackTest_Window(MyBacktestWindow()),
-            Model_backtest(),
+            # 將需要的服務傳給 Model_backtest
+            Model_backtest(sql_service=self._sql_service, mongo_service=self._mongo_service,
+                        external_data_service= self._read_load_system, draw_figur_service=self._draw_figur_service, 
+                        thread_pool=self._thread_pool),
             self.GetController,
         )
 
@@ -70,45 +81,5 @@ class Mediator_Controller(IMediator_Controller):
             return self._pick_controller
         elif reciver == controllers.BackTest:
             return self._backtest_controller
-        else:
-            print("reciver 錯誤!!")
-
-    def ShowWindow(self, reciver: controllers):
-        if reciver == controllers.Main:
-            self._main_controller.ShowWindow()
-        elif reciver == controllers.Pick:
-            self._pick_controller.ShowWindow()
-        elif reciver == controllers.BackTest:
-            self._backtest_controller.ShowWindow()
-        else:
-            print("reciver 錯誤!!")
-
-    def GetEndDate(self, reciver: controllers) -> datetime:
-        if reciver == controllers.Main:
-            return self._main_controller.GetEndDate()
-        elif reciver == controllers.Pick:
-            return self._pick_controller.GetEndDate()
-        elif reciver == controllers.BackTest:
-            return self._backtest_controller.GetEndDate()
-        else:
-            print("reciver 錯誤!!")
-
-    def GetStockNumber(self, reciver: controllers) -> str:
-        if reciver == controllers.Main:
-            return self._main_controller.GetStockNumber()
-        elif reciver == controllers.Pick:
-            return self._pick_controller.GetStockNumber()
-        elif reciver == controllers.BackTest:
-            return self._backtest_controller.GetStockNumber()
-        else:
-            print("reciver 錯誤!!")
-
-    def SetStockNumber(self, reciver: controllers, stockNumber: str):
-        if reciver == controllers.Main:
-            return self._main_controller.SetStockNumber(stockNumber)
-        elif reciver == controllers.Pick:
-            return self._pick_controller.SetStockNumber(stockNumber)
-        elif reciver == controllers.BackTest:
-            return self._backtest_controller.SetStockNumber(stockNumber)
         else:
             print("reciver 錯誤!!")

@@ -1,24 +1,28 @@
 from datetime import datetime
 
-import Common.Globals as Globals
 import Common.Tools as Tools
 from DrawFigur import DrawFigur
-from FilterService import GetStockData
+from FilterService.GetStockData import ReportServices, All_imge
 from Model.Model import TModel
 from Common.Parameter import RecordMainParameter
 from ScheduleService import ScheduleService
 from StockInfos import UserInfoDatas
 
+from ExternalService.IGetExternalData import IGetExternalData
+
 
 class Model_main(TModel):
-    def __init__(self, _scheduleService: ScheduleService):
+    def __init__(self, schedule: ScheduleService, draw_figur_service: DrawFigur, 
+                    external_data_service: IGetExternalData, report_services: ReportServices) -> None:
         super().__init__()
         self._MainUserInfoData: UserInfoDatas = UserInfoDatas(
             "stock_info_list.npy", "Update_date.npy"
         )
         self._MainUserInfoData._Show_all_stock_info()
-        self._ScheduleService: ScheduleService = _scheduleService
-        self.df: DrawFigur = Globals.DRAWFIGUR
+        self._schedule_service = schedule
+        self._draw_figur_service = draw_figur_service
+        self._external_data_service = external_data_service
+        self._report_services = report_services
 
     @property
     def MainUserInfoData(self):
@@ -44,13 +48,14 @@ class Model_main(TModel):
         ):
             print("還沒15號沒有上個月的資料")
             return
-        main_imge = GetStockData.All_imge(
+        main_imge = All_imge(
             RecordMainParameter.startdate,
             RecordMainParameter.enddate,
-            GetStockData.Month_index,
+            self._report_services.Month_index,
+            self._external_data_service
         )
         data_result = main_imge.get_Chart(RecordMainParameter.number)
-        self.df.draw_RP(
+        self._draw_figur_service.draw_RP(
             data_result,
             RecordMainParameter.number,
             main_imge._report._name,
@@ -66,13 +71,14 @@ class Model_main(TModel):
         if RecordMainParameter.enddate.day == datetime.today().day:
             print("今天還沒過完無資資訊")
             return
-        main_imge = GetStockData.All_imge(
+        main_imge = All_imge(
             RecordMainParameter.startdate,
             RecordMainParameter.enddate,
-            GetStockData.Yield_index,
+            self._report_services.Yield_index,
+            self._external_data_service
         )
         data_result = main_imge.get_Chart(RecordMainParameter.number)
-        self.df.draw_RP(
+        self._draw_figur_service.draw_RP(
             data_result,
             RecordMainParameter.number,
             main_imge._report._name,
@@ -88,13 +94,14 @@ class Model_main(TModel):
         if RecordMainParameter.enddate.day == datetime.today().day:
             print("今天還沒過完無資資訊")
             return
-        main_imge = GetStockData.All_imge(
+        main_imge = All_imge(
             RecordMainParameter.startdate,
             RecordMainParameter.enddate,
-            GetStockData.OM_index,
+            self._report_services.OM_index,
+            self._external_data_service
         )
         data_result = main_imge.get_Chart(RecordMainParameter.number)
-        self.df.draw_RP(
+        self._draw_figur_service.draw_RP(
             data_result,
             RecordMainParameter.number,
             main_imge._report._name,
@@ -110,14 +117,15 @@ class Model_main(TModel):
         if RecordMainParameter.enddate.day == datetime.today().day:
             print("今天還沒過完無資資訊")
             return
-        main_imge = GetStockData.All_imge(
+        main_imge = All_imge(
             RecordMainParameter.startdate,
             RecordMainParameter.enddate,
-            GetStockData.OM_Growth_index,
+            self._report_services.OM_Growth_index,
+            self._external_data_service
         )
         # 取得營業利益率成長率資料(與去年同季相比)
         data_result_up = main_imge.get_Chart(RecordMainParameter.number)
-        self.df.draw_RP(
+        self._draw_figur_service.draw_RP(
             data_result_up,
             RecordMainParameter.number,
             main_imge._report._name,
@@ -134,13 +142,14 @@ class Model_main(TModel):
             print("今天還沒過完無資資訊")
             return
         # 取得ROE資料
-        main_imge = GetStockData.All_imge(
+        main_imge = All_imge(
             RecordMainParameter.startdate,
             RecordMainParameter.enddate,
-            GetStockData.ROE_index,
+            self._report_services.ROE_index,
+            self._external_data_service
         )
         data_result_up = main_imge.get_Chart(RecordMainParameter.number)
-        self.df.draw_RP(
+        self._draw_figur_service.draw_RP(
             data_result_up,
             RecordMainParameter.number,
             main_imge._report._name,
@@ -156,13 +165,14 @@ class Model_main(TModel):
         if RecordMainParameter.enddate.day == datetime.today().day:
             print("今天還沒過完無資資訊")
             return
-        main_imge = GetStockData.All_imge(
+        main_imge = All_imge(
             RecordMainParameter.startdate,
             RecordMainParameter.enddate,
-            GetStockData.OCF_index,
+            self._report_services.OCF_index,
+            self._external_data_service
         )
         data_result = main_imge.get_Chart(RecordMainParameter.number)
-        self.df.draw_RP(
+        self._draw_figur_service.draw_RP(
             data_result,
             RecordMainParameter.number,
             main_imge._report._name,
@@ -178,13 +188,14 @@ class Model_main(TModel):
         if RecordMainParameter.enddate.day == datetime.today().day:
             print("今天還沒過完無資資訊")
             return
-        main_imge = GetStockData.All_imge(
+        main_imge = All_imge(
             RecordMainParameter.startdate,
             RecordMainParameter.enddate,
-            GetStockData.ICF_index,
+            self._report_services.ICF_index,
+            self._external_data_service
         )
         data_result = main_imge.get_Chart(RecordMainParameter.number)
-        self.df.draw_RP(
+        self._draw_figur_service.draw_RP(
             data_result,
             RecordMainParameter.number,
             main_imge._report._name,
@@ -200,13 +211,14 @@ class Model_main(TModel):
         if RecordMainParameter.enddate.day == datetime.today().day:
             print("今天還沒過完無資資訊")
             return
-        main_imge = GetStockData.All_imge(
+        main_imge = All_imge(
             RecordMainParameter.startdate,
             RecordMainParameter.enddate,
-            GetStockData.FreeCF_index,
+            self._report_services.FreeCF_index,
+            self._external_data_service
         )
         data_result = main_imge.get_Chart(RecordMainParameter.number)
-        self.df.draw_RP(
+        self._draw_figur_service.draw_RP(
             data_result,
             RecordMainParameter.number,
             main_imge._report._name,
@@ -222,13 +234,14 @@ class Model_main(TModel):
         if RecordMainParameter.enddate.day == datetime.today().day:
             print("今天還沒過完無資資訊")
             return
-        main_imge = GetStockData.All_imge(
+        main_imge = All_imge(
             RecordMainParameter.startdate,
             RecordMainParameter.enddate,
-            GetStockData.PCF_index,
+            self._report_services.PCF_index,
+            self._external_data_service
         )
         data_result = main_imge.get_Chart(RecordMainParameter.number)
-        self.df.draw_RP(
+        self._draw_figur_service.draw_RP(
             data_result,
             RecordMainParameter.number,
             main_imge._report._name,
@@ -244,13 +257,14 @@ class Model_main(TModel):
         if RecordMainParameter.enddate.day == datetime.today().day:
             print("今天還沒過完無資資訊")
             return
-        main_imge = GetStockData.All_imge(
+        main_imge = All_imge(
             RecordMainParameter.startdate,
             RecordMainParameter.enddate,
-            GetStockData.EPS_index,
+            self._report_services.EPS_index,
+            self._external_data_service
         )
         data_result = main_imge.get_Chart(RecordMainParameter.number)
-        self.df.draw_RP(
+        self._draw_figur_service.draw_RP(
             data_result,
             RecordMainParameter.number,
             main_imge._report._name,
@@ -266,13 +280,14 @@ class Model_main(TModel):
         if RecordMainParameter.enddate.day == datetime.today().day:
             print("今天還沒過完無資資訊")
             return
-        main_imge = GetStockData.All_imge(
+        main_imge = All_imge(
             RecordMainParameter.startdate,
             RecordMainParameter.enddate,
-            GetStockData.Debt_index,
+            self._report_services.Debt_index,
+            self._external_data_service
         )
         data_result = main_imge.get_Chart(RecordMainParameter.number)
-        self.df.draw_RP(
+        self._draw_figur_service.draw_RP(
             data_result,
             RecordMainParameter.number,
             main_imge._report._name,
@@ -285,10 +300,11 @@ class Model_main(TModel):
         if RecordMainParameter.enddate.day == datetime.today().day:
             print("今天還沒過完無資資訊")
             return
-        main_imge = GetStockData.All_imge(
+        main_imge = All_imge(
             RecordMainParameter.startdate,
             RecordMainParameter.enddate,
-            GetStockData.ADL_index,
+            self._report_services.ADL_index,
+            self._external_data_service
         )
         data_result = main_imge.get_Chart()
         return data_result
@@ -298,13 +314,14 @@ class Model_main(TModel):
         if RecordMainParameter.enddate.day == datetime.today().day:
             print("今天還沒過完無資資訊")
             return
-        main_imge = GetStockData.All_imge(
+        main_imge = All_imge(
             RecordMainParameter.startdate,
             RecordMainParameter.enddate,
-            GetStockData.ADLs_index,
+            self._report_services.ADLs_index,
+            self._external_data_service
         )
         data_result = main_imge.get_Chart()
-        self.df.draw_RP(
+        self._draw_figur_service.draw_RP(
             data_result, 0, main_imge._report._name, main_imge._report._name, "ADLs"
         )
 
@@ -315,13 +332,14 @@ class Model_main(TModel):
         if RecordMainParameter.enddate.day == datetime.today().day:
             print("今天還沒過完無資資訊")
             return
-        main_imge = GetStockData.All_imge(
+        main_imge = All_imge(
             RecordMainParameter.startdate,
             RecordMainParameter.enddate,
-            GetStockData.MR_Growth_index,
+            self._report_services.MR_Growth_index,
+            self._external_data_service
         )
         data_result = main_imge.get_Chart(RecordMainParameter.number)
-        self.df.draw_RP(
+        self._draw_figur_service.draw_RP(
             data_result,
             RecordMainParameter.number,
             main_imge._report._name,
@@ -336,13 +354,14 @@ class Model_main(TModel):
         if RecordMainParameter.enddate.day == datetime.today().day:
             print("今天還沒過完無資資訊")
             return
-        main_imge = GetStockData.All_imge(
+        main_imge = All_imge(
             RecordMainParameter.startdate,
             RecordMainParameter.enddate,
-            GetStockData.SR_Growth_index,
+            self._report_services.SR_Growth_index,
+            self._external_data_service
         )
         data_result = main_imge.get_Chart(RecordMainParameter.number)
-        self.df.draw_RP(
+        self._draw_figur_service.draw_RP(
             data_result,
             RecordMainParameter.number,
             main_imge._report._name,
@@ -351,10 +370,10 @@ class Model_main(TModel):
         )
 
     def RunSchedule(self):
-        self._ScheduleService.RunUpdateInfoNow(self.MainUserInfoData)
+        self._schedule_service.RunUpdateInfoNow(self.MainUserInfoData)
 
     def RunOtherSchedule(self):
-        self._ScheduleService.RunOtherInfoNow()
+        self._schedule_service.RunOtherInfoNow()
 
     def StopThreadSchedule(self):
-        self._ScheduleService.StopThreadSchedule()
+        self._schedule_service.StopThreadSchedule()

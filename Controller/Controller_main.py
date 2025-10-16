@@ -3,12 +3,9 @@ from datetime import datetime
 
 from PyQt5 import QtCore
 
-import Common.Globals as Globals
-import StockInfos as MainUserDataInfo
 import Common.Tools as Tools
 from DrawFigur import DrawFigur
-from FilterService.GetStockData import Stock_RangeDate
-from ExternalService.TGetExternalData import TGetExternalData
+from FilterService.GetStockData import ReportServices
 from Model.Model import IModel
 from Model.Model_main import Model_main
 from View.View import IWindow
@@ -20,11 +17,12 @@ from .Controller import MAIN_TITALLIST, TController, controllers, creat_treeView
 
 
 class Controller_main(TController):
-    def __init__(self, _view: IWindow = None, _model: IModel = None) -> None:
+    def __init__(self, draw_figur_service:DrawFigur, report_services: ReportServices, _view: IWindow = None, _model: IModel = None) -> None:
         super().__init__(_view, _model)
         self.Init_Window()
         self.lock = threading.Lock()
-        self.df: DrawFigur = Globals.DRAWFIGUR
+        self._draw_figur_service: DrawFigur = draw_figur_service
+        self._ReportServices = report_services
 
     def __GetView(self) -> Main_Window:
         return self.View
@@ -219,22 +217,14 @@ class Controller_main(TController):
             self.__GetView().GetFormUI().date_endDate.date()
         )
         str_date = Tools.DateTime2String(date)
-        self.df.Clear_PICS()
+        self._draw_figur_service.Clear_PICS()
         if self.__GetView().GetFormUI().input_stockNumber.toPlainText() == "":
-            for key, value in self.__GetModel().MainUserInfoData.StockList.items():
-                TGetExternalData().get_stock_history(key, str_date)
-        elif self.__GetView().GetFormUI().input_stockNumber.toPlainText() == "Update":
-            str_date = [str_date]
-            new_thread = threading.Thread(
-                target=self.Update_StockData_threading, args=str_date
-            )
-            new_thread.setDaemon(True)
-            new_thread.start()
+            print("請輸入股票代號")
         else:
             stock_number = self.__GetView().GetFormUI().input_stockNumber.toPlainText()
-            Stock_RangeDate.number = stock_number
-            Stock_RangeDate.StartDate = date
-            m_history = Stock_RangeDate.get_ALL()
+            self._ReportServices.RangeDate_Stock.number = stock_number
+            self._ReportServices.RangeDate_Stock.StartDate = date
+            m_history = self._ReportServices.RangeDate_Stock.get_ALL()
             if (
                 self.__GetView().GetFormUI().check_ADL.isChecked()
                 or self.__GetView().GetFormUI().check_ADLs.isChecked()
@@ -253,20 +243,6 @@ class Controller_main(TController):
                 m_history, self.__GetModel().MainUserInfoData.GetStockInfo(stock_number)
             )  # 壹定要在最後面檢查
 
-    # 異步更新所有台股資料
-    def Update_StockData_threading(self, str_date):
-        self.lock.acquire()
-        for key, value in MainUserDataInfo.ts.codes.items():
-            if value.market == "上市" and len(value.code) == 4:
-                if Tools.check_no_use_stock(value.code):
-                    print("get_stock_price: " + str(value.code) + " in no use")
-                    continue
-                TGetExternalData().get_stock_history(value.code, str_date)
-                print("get " + str(value.code) + " info susess!")
-        # 存更新日期
-        self.__GetModel().MainUserInfoData.UpdateDate = str(datetime.today())[0:10]
-        self.lock.acquire()
-
     def check_SMA_isCheck(self, m_history):
         if self.__GetView().GetFormUI().check_SMA.isChecked():
             input_SMA_list = [
@@ -276,7 +252,7 @@ class Controller_main(TController):
             ]
             for i in input_SMA_list:
                 if i.toPlainText() != "":
-                    self.df.draw_SMA(m_history, int(i.toPlainText()))
+                    self._draw_figur_service.draw_SMA(m_history, int(i.toPlainText()))
 
     def check_price_isCheck(self, m_history, stockInfo):
         if type(stockInfo) is str:
@@ -286,31 +262,31 @@ class Controller_main(TController):
             print("請先存檔!")
             return
         if self.__GetView().GetFormUI().check_stock.isChecked():
-            self.df.draw_stock(m_history, stockInfo.number)
+            self._draw_figur_service.draw_stock(m_history, stockInfo.number)
         else:
-            self.df.draw_stock(m_history, stockInfo.number)
+            self._draw_figur_service.draw_stock(m_history, stockInfo.number)
 
     def check_Volume_isCheck(self, m_history):
         if self.__GetView().GetFormUI().check_volume.isChecked():
-            self.df.draw_Volume()
+            self._draw_figur_service.draw_Volume()
 
     def check_KD_isCheck(self, m_history):
         if self.__GetView().GetFormUI().check_KD.isChecked():
-            self.df.draw_KD(m_history)
+            self._draw_figur_service.draw_KD(m_history)
 
     def check_BollingerBands_isCheck(self, m_history):
         if self.__GetView().GetFormUI().check_BollingerBands.isChecked():
-            self.df.draw_BollingerBands(m_history)
+            self._draw_figur_service.draw_BollingerBands(m_history)
 
     def check_RSI_isCheck(self, m_history):
         if self.__GetView().GetFormUI().check_RSI.isChecked():
-            self.df.draw_RSI(m_history)
+            self._draw_figur_service.draw_RSI(m_history)
 
     def Check_ADL_isCheck(self):
         if self.__GetView().GetFormUI().check_ADL.isChecked():
             Data_ADL = self.__GetModel().ADL(self.__GetView().Parament)
             Data_ADL.sort_index(ascending=True, inplace=True)
-            self.df.draw_ADL(Data_ADL)
+            self._draw_figur_service.draw_ADL(Data_ADL)
 
     def Check_ADLs_isCheck(self):
         if self.__GetView().GetFormUI().check_ADLs.isChecked():
@@ -318,4 +294,4 @@ class Controller_main(TController):
 
     def Check_MACD_isCheck(self, m_history):
         if self.__GetView().GetFormUI().check_MACD.isChecked():
-            self.df.draw_MACD(m_history)
+            self._draw_figur_service.draw_MACD(m_history)

@@ -3,13 +3,14 @@ import os
 import pandas as pd
 from pandas import DataFrame
 
-import Common.Globals as Globals
 import Common.InfomationType as info
+from SqlService import SqlService
 
 
 class ReadLoadSystem:
-    def __init__(self) -> None:
+    def __init__(self, sqlservice: SqlService) -> None:
         self.load_memery = {}
+        self._sqlservice = sqlservice
 
     @property
     def Memery(self) -> dict:
@@ -36,12 +37,11 @@ class ReadLoadSystem:
 
     def load_stock_file(self, fileName: str, stockName: str = ""):
         """#讀取歷史資料"""
-        global MYSQL
         if fileName in self.load_memery:  # 快取
             return self.load_memery[fileName]
         df = DataFrame()
         if stockName != "":  # mysql
-            df = Globals.MYSQL.readStockDay(stockName + info.local_type.Taiwan)
+            df = self._sqlservice.readStockDay(stockName + info.local_type.Taiwan)
         if df.empty:  # 本機端存檔
             try:
                 df = pd.read_csv(
@@ -51,7 +51,7 @@ class ReadLoadSystem:
                 print("no " + stockName + info.local_type.Taiwan + " csv file")
                 print(Exception)
                 return df
-            Globals.MYSQL.saveTable(stockName + info.local_type.Taiwan, df)
+            self._sqlservice.saveTable(stockName + info.local_type.Taiwan, df)
 
         df = df.dropna(how="any", inplace=False)  # 將某些null欄位去除
         try:
@@ -68,7 +68,7 @@ class ReadLoadSystem:
             return self.load_memery[fileName]
         df = DataFrame()
         if file != "":  # mysql
-            df = Globals.MYSQL.readStockDay(file)
+            df = self._sqlservice.readStockDay(file)
         if df.empty:  # 本機端存檔
             try:
                 df = pd.read_csv(
@@ -93,7 +93,7 @@ class ReadLoadSystem:
             return self.load_memery[fileName]
         df = DataFrame()
         if file != "":
-            df = Globals.MYSQL.readDividendYield(file)
+            df = self._sqlservice.readDividendYield(file)
         if df.empty:
             try:
                 df = pd.read_csv(

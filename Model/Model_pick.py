@@ -10,11 +10,17 @@ from FilterService.GetStockData import All_Stock_Filters_fuc
 from FilterService import GetStockData
 from Model.Model import TModel
 from Common.Parameter import RecordPickParameter
+from ExternalService.IGetExternalData import IGetExternalData
+from MongoService import MongoService
+from SqlService import SqlService
 
 
 class Model_pick(TModel):
-    def __init__(self):
+    def __init__(self, sql_service: SqlService, mongo_service: MongoService, external_data_service: IGetExternalData):
         super().__init__()
+        self._sql_service = sql_service
+        self._mongo_service = mongo_service
+        self._external_data_service = external_data_service
         self._Groups: list[str] = None
         self._setGroups()
 

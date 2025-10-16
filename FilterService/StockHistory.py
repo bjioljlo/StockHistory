@@ -84,17 +84,25 @@ class OriginalStock(TStock):
 
 class OriginalStockByYahoo(OriginalStock):
     """股票一般未處理歷史資料(Yahoo資料)"""
-
+    
+    def __init__(self, externalDataFactory: ExternalDataFactory, number: int = None) -> None:
+        super().__init__(number)
+        self._external_data_fctory = externalDataFactory
+    
     def get_ALL(self) -> DataFrame:
-        main_GetExternalData = ExternalDataFactory.Get_instance()
+        main_GetExternalData = self._external_data_fctory.Get_instance(self)
         return main_GetExternalData.get_stock_history(str(self._number))
 
 
 class OriginalStockTest(OriginalStock):
     """unitTest 用的股票歷史資料其他請勿使用"""
+    
+    def __init__(self, externalDataFactory: ExternalDataFactory, number: int = None) -> None:
+        super().__init__(number)
+        self._external_data_fctory = externalDataFactory
 
     def get_ALL(self) -> DataFrame:
-        main_GetExternalData = ExternalDataFactory.Get_instance(
+        main_GetExternalData = self._external_data_fctory.Get_instance(
             ExternalDataTypeEnum.Test
         )
         return main_GetExternalData.get_stock_history(str(self._number))
