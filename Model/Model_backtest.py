@@ -1,24 +1,23 @@
 from BackTestService.BackTestStock import BackTestStock
 from DrawFigur import DrawFigur
+from ExternalService.ExternalDataFactory import ExternalDataFactory
+from FilterService.StockHistory import OriginalStockByYahoo
 from Model.Model import TModel
 from Common.Parameter import RecordBackTestParameter
 import os
 import pandas as pd
-from ExternalService.IGetExternalData import IGetExternalData
-from MongoService import MongoService
 from SqlService import SqlService
 from ThreadPool import ThreadPool
 
 
 class Model_backtest(TModel):
-    def __init__(self, sql_service: SqlService, mongo_service: MongoService, external_data_service: IGetExternalData, draw_figur_service: DrawFigur, thread_pool: ThreadPool):
+    def __init__(self, sql_service: SqlService, draw_figur_service: DrawFigur, thread_pool: ThreadPool, external_data_factory: ExternalDataFactory) -> None:
         super().__init__()
         self._sql_service = sql_service
-        self._mongo_service = mongo_service
-        self._external_data_service = external_data_service
         self._draw_figur_service = draw_figur_service
         self._thread_pool = thread_pool
-        self.backtestFunc: BackTestStock = BackTestStock()
+        self._external_data_factory = external_data_factory
+        self.backtestFunc = BackTestStock(OriginalStockByYahoo(self._external_data_factory), self._external_data_factory)
 
     def Set_BackTestCheck(self, _recordBackTestParameter: RecordBackTestParameter):
         self.backtestFunc.set_check(

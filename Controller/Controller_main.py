@@ -40,7 +40,7 @@ class Controller_main(TController):
         )  # 設定button功能
         UI_form.treeView.setModel(
             creat_treeView_model(
-                UI_form.treeView, MAIN_TITALLIST, self.__GetModel().MainUserInfoData
+                UI_form.treeView, MAIN_TITALLIST, self.__GetModel().main_user_info_data
             )
         )  # 設定treeView功能
         UI_form.button_moveToInput.clicked.connect(
@@ -89,7 +89,7 @@ class Controller_main(TController):
         UI_form.button_getADLs.clicked.connect(self.button_ADLs_click)
         # #設定日期
         Date = datetime.strptime(
-            self.__GetModel().MainUserInfoData.UpdateDate[0:10], "%Y-%m-%d"
+            self.__GetModel().main_user_info_data.UpdateDate[0:10], "%Y-%m-%d"
         )
         date = QtCore.QDate(Date.year, Date.month, Date.day)
         today = QtCore.QDate(
@@ -111,7 +111,7 @@ class Controller_main(TController):
             QtCore.QDate((yesterday.year), (yesterday.month), (yesterday.day))
         )
         UI_form.input_SMA1.setPlainText("5")
-        UI_form.input_SMA2.setPlainText("20")
+        UI_form.input_SMA2.setPlainText("10")
         UI_form.input_SMA3.setPlainText("60")
 
     def GetEndDate(self) -> datetime:
@@ -132,22 +132,22 @@ class Controller_main(TController):
 
     def button_addStock_click(self):
         stocknum = self.__GetView().GetFormUI().input_stockNumber.toPlainText()
-        self.__GetModel().MainUserInfoData.AddStockInfo(stocknum)
+        self.__GetModel().main_user_info_data.AddStockInfo(stocknum)
         self.__GetView().GetFormUI().treeView.setModel(
             creat_treeView_model(
                 self.__GetView().GetFormUI().treeView,
                 MAIN_TITALLIST,
-                self.__GetModel().MainUserInfoData,
+                self.__GetModel().main_user_info_data,
             )
         )  # 設定treeView功能
 
     def button_deletStock_click(self):
         UI_form = self.__GetView().GetFormUI()
         stocknum = UI_form.input_stockNumber.toPlainText()
-        self.__GetModel().MainUserInfoData.DeletStockInfo(stocknum)
+        self.__GetModel().main_user_info_data.DeletStockInfo(stocknum)
         UI_form.treeView.setModel(
             creat_treeView_model(
-                UI_form.treeView, MAIN_TITALLIST, self.__GetModel().MainUserInfoData
+                UI_form.treeView, MAIN_TITALLIST, self.__GetModel().main_user_info_data
             )
         )  # 設定treeView功能
 
@@ -160,46 +160,46 @@ class Controller_main(TController):
             self.__GetView().GetFormUI().input_stockNumber.setPlainText(data)
 
     def button_monthRP_click(self):  # 某股票月營收曲線
-        self.__GetModel().monthRP(self.__GetView().Parament)
+        self.__GetModel().month_rp(self.__GetView().Parament)
 
     def button_Dividend_yield_click(self):  # 某股票殖利率曲線
-        self.__GetModel().Dividend_yield(self.__GetView().Parament)
+        self.__GetModel().dividend_yield(self.__GetView().Parament)
 
     def button_Operating_Margin_click(self):  # 某股票營業利益率曲線
-        self.__GetModel().Operating_Margin(self.__GetView().Parament)
+        self.__GetModel().operating_margin(self.__GetView().Parament)
 
     def button_Operating_Margin_Ratio_click(self):  # 某股票營業利益成長率曲線
-        self.__GetModel().Operating_Margin_Ratio(self.__GetView().Parament)
+        self.__GetModel().operating_margin_ratio(self.__GetView().Parament)
 
     def button_ROE_Ratio_click(self):  # 某股票ROE曲線
-        self.__GetModel().ROE_Ratio(self.__GetView().Parament)
+        self.__GetModel().roe_ratio(self.__GetView().Parament)
 
     def button_OCF_click(self):  # 某股票營業現金流
-        self.__GetModel().OCF(self.__GetView().Parament)
+        self.__GetModel().ocf(self.__GetView().Parament)
 
     def button_ICF_click(self):  # 某股票投資現金流
-        self.__GetModel().ICF(self.__GetView().Parament)
+        self.__GetModel().icf(self.__GetView().Parament)
 
     def button_FreeSCF_click(self):  # 某股票自由現金流
-        self.__GetModel().FreeSCF(self.__GetView().Parament)
+        self.__GetModel().free_scf(self.__GetView().Parament)
 
     def button_PCF_click(self):  # 某股票股價現金流量比
-        self.__GetModel().PCF(self.__GetView().Parament)
+        self.__GetModel().pcf(self.__GetView().Parament)
 
     def button_EPS_click(self):  # 某股票eps
-        self.__GetModel().EPS(self.__GetView().Parament)
+        self.__GetModel().eps(self.__GetView().Parament)
 
     def button_DebtRatio_click(self):  # 某股票資產負債比率
-        self.__GetModel().DebtRatio(self.__GetView().Parament)
+        self.__GetModel().debt_ratio(self.__GetView().Parament)
 
     def button_MonthRevenueGrowth_click(self):
-        self.__GetModel().MonthRevenueGrowth(self.__GetView().Parament)
+        self.__GetModel().month_revenue_growth(self.__GetView().Parament)
 
     def button_SeasonRevenueGrowth_click(self):
-        self.__GetModel().SeasonRevenueGrowth(self.__GetView().Parament)
+        self.__GetModel().season_revenue_growth(self.__GetView().Parament)
 
     def button_ADLs_click(self):
-        self.__GetModel().ADLs(self.__GetView().Parament)
+        self.__GetModel().adls(self.__GetView().Parament)
 
     def button_RunSchedule_click(self):
         self.__GetModel().RunSchedule()
@@ -240,7 +240,7 @@ class Controller_main(TController):
             self.Check_ADLs_isCheck()
             self.Check_MACD_isCheck(m_history)
             self.check_price_isCheck(
-                m_history, self.__GetModel().MainUserInfoData.GetStockInfo(stock_number)
+                m_history, self.__GetModel().main_user_info_data.GetStockInfo(stock_number)
             )  # 壹定要在最後面檢查
 
     def check_SMA_isCheck(self, m_history):
@@ -284,13 +284,13 @@ class Controller_main(TController):
 
     def Check_ADL_isCheck(self):
         if self.__GetView().GetFormUI().check_ADL.isChecked():
-            Data_ADL = self.__GetModel().ADL(self.__GetView().Parament)
+            Data_ADL = self.__GetModel().adl(self.__GetView().Parament)
             Data_ADL.sort_index(ascending=True, inplace=True)
             self._draw_figur_service.draw_ADL(Data_ADL)
 
     def Check_ADLs_isCheck(self):
         if self.__GetView().GetFormUI().check_ADLs.isChecked():
-            self.__GetModel().ADLs(self.__GetView().Parament)
+            self.__GetModel().adls(self.__GetView().Parament)
 
     def Check_MACD_isCheck(self, m_history):
         if self.__GetView().GetFormUI().check_MACD.isChecked():

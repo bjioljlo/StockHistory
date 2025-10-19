@@ -28,7 +28,8 @@ from BackTestService.BackTestSignal import (
     BacktestSignalType,
     TBacktestSignal,
 )
-from FilterService.StockHistory import OriginalStockByYahoo
+from ExternalService.ExternalDataFactory import ExternalDataFactory
+from FilterService.StockHistory import OriginalStock
 from FilterService.StockReportHistory import (
     Day_Report,
     Month_Report,
@@ -39,16 +40,13 @@ from FilterService.StockReportHistory import (
     Season_Report,
     SeasonReportFactory,
 )
-from ExternalService.ExternalDataFactory import (
-    ExternalDataFactory,
-    ExternalDataTypeEnum,
-)
+
 from Common.Parameter import RecordBackTestParameter
 from Common.StockInfoData import BaseInfoData
 
 
 class BackTestStock:
-    def __init__(self):
+    def __init__(self, original_stock: OriginalStock, external_data_factory: ExternalDataFactory) -> None:
         self.bool_check_monthRP_pick: bool = False
         self.bool_check_PER_pick: bool = False
         self.bool_check_volume_pick: bool = False
@@ -56,6 +54,9 @@ class BackTestStock:
         self.bool_check_price_pick: bool = False
         self.bool_check_PBR_pick: bool = False
         self.bool_check_ROE_pick: bool = False
+        self._original_stock = original_stock
+        self._external_data_factory = external_data_factory
+        
 
     def set_check(
         self,
@@ -87,10 +88,10 @@ class BackTestStock:
             BaseInfoData(
                 mainParament.money_start, mainParament.date_start, mainParament.date_end
             ),
-            OriginalStockByYahoo(),
+            self._original_stock,
             folderName
         )
-        external_data = ExternalDataFactory.Get_instance(ExternalDataTypeEnum.Normal)
+        external_data = self._external_data_factory.Get_instance()
         stocksUsedForExecution = external_data.get_stock_history(
             mainParament.buy_number, mainParament.date_start
         )
@@ -103,12 +104,12 @@ class BackTestStock:
             BacktestFilterDataType.KD,
             self.BuyStrockFun,
             BacktestFilterFactory(BacktestFilterType.KD, [index_ROE]),
-            BacktestSignalFactory(BacktestSignalType.KD, OriginalStockByYahoo()),
+            BacktestSignalFactory(BacktestSignalType.KD, self._original_stock),
             mainParament.date_start,
             mainParament.date_end,
         )
         KDInOutStrategy = KD_BackTestInOutStrategy(
-            userInfo, backTestFilterData, OriginalStockByYahoo()
+            userInfo, backTestFilterData, self._original_stock
         )
         startTime = datetime.now()
         buy_month = mainParament.date_start
@@ -146,10 +147,10 @@ class BackTestStock:
                 mainParament.date_start,
                 mainParament.date_end,
             ),
-            OriginalStockByYahoo(),
+            self._original_stock,
             folderName
         )
-        external_data = ExternalDataFactory.Get_instance(ExternalDataTypeEnum.Normal)
+        external_data = self._external_data_factory.Get_instance()
         stocksUsedForExecution = external_data.get_stock_history(
             mainParament.buy_number, mainParament.date_start
         )
@@ -170,12 +171,12 @@ class BackTestStock:
             BacktestFilterDataType.PEG,
             self.BuyStrockFun,
             BacktestFilterFactory(BacktestFilterType.PEG, [index_PEG, index_MonthUp]),
-            BacktestSignalFactory(BacktestSignalType.PEG, OriginalStockByYahoo()),
+            BacktestSignalFactory(BacktestSignalType.PEG, self._original_stock),
             mainParament.date_start,
             mainParament.date_end,
         )
         PEGInOutStrategy = PEG_BackTestInOutStrategy(
-            userInfo, backTestFilterData, OriginalStockByYahoo()
+            userInfo, backTestFilterData, self._original_stock
         )
         buy_month = mainParament.date_start
         startTime = datetime.now()
@@ -219,11 +220,11 @@ class BackTestStock:
         """
         userInfo = BackTestInfoDataPriceByToday(
             BaseInfoData(0, mainParament.date_start, mainParament.date_end),
-            OriginalStockByYahoo(),
+            self._original_stock,
             folderName
         )
         buy_month = mainParament.date_start
-        external_data = ExternalDataFactory.Get_instance(ExternalDataTypeEnum.Normal)
+        external_data = self._external_data_factory.Get_instance()
         All_data = external_data.get_stock_history(
             mainParament.buy_number, mainParament.date_start
         )
@@ -236,7 +237,7 @@ class BackTestStock:
             mainParament.date_end,
         )
         RegularInOutStrategy = Regular_backTestInOutStrategy(
-            userInfo, backTestFilterData, OriginalStockByYahoo()
+            userInfo, backTestFilterData, self._original_stock
         )
         startTime = datetime.now()
         for index, row in All_data.iterrows():
@@ -287,10 +288,10 @@ class BackTestStock:
             BaseInfoData(
                 mainParament.money_start, mainParament.date_start, mainParament.date_end
             ),
-            OriginalStockByYahoo(),
+            self._original_stock,
             folderName
         )
-        external_data = ExternalDataFactory.Get_instance(ExternalDataTypeEnum.Normal)
+        external_data = self._external_data_factory.Get_instance()
         All_data = external_data.get_stock_history(
             mainParament.buy_number, mainParament.date_start
         )
@@ -309,17 +310,17 @@ class BackTestStock:
             BacktestFilterDataType.RecordHigh,
             self.BuyStrockFun,
             BacktestFilterFactory(
-                BacktestFilterType.RecordHigh, [index_ROE, index_PBR]
+                BacktestFilterType.RecordHigh, [index_ROE, index_PBR, self._original_stock]
             ),
             BacktestSignalFactory(
-                BacktestSignalType.RecordHigh, OriginalStockByYahoo()
+                BacktestSignalType.RecordHigh, self._original_stock
             ),
             mainParament.date_start,
             mainParament.date_end,
         )
 
         RecordHighInOutStrategy = RecordHigh_backtestInOutStrategy(
-            userInfo, backTestFilterData, OriginalStockByYahoo()
+            userInfo, backTestFilterData, self._original_stock
         )
         startTime = datetime.now()
         for index, row in All_data.iterrows():
@@ -365,10 +366,10 @@ class BackTestStock:
             BaseInfoData(
                 mainParament.money_start, mainParament.date_start, mainParament.date_end
             ),
-            OriginalStockByYahoo(),
+            self._original_stock,
             folderName
         )
-        external_data = ExternalDataFactory.Get_instance(ExternalDataTypeEnum.Normal)
+        external_data = self._external_data_factory.Get_instance()
         All_data = external_data.get_stock_history(
             mainParament.buy_number, mainParament.date_start
         )
@@ -382,12 +383,12 @@ class BackTestStock:
             BacktestFilterDataType.PERandPBR,
             self.BuyStrockFun,
             BacktestFilterFactory(BacktestFilterType.PERandPBR, [index_PER, index_PBR]),
-            BacktestSignalFactory(BacktestSignalType.PERandPBR, OriginalStockByYahoo()),
+            BacktestSignalFactory(BacktestSignalType.PERandPBR, self._original_stock),
             mainParament.date_start,
             mainParament.date_end,
         )
         PERandPBRInOutStrategy = PERandPBR_BackTestInOutStrategy(
-            userInfo, backTestFilterData, OriginalStockByYahoo()
+            userInfo, backTestFilterData, self._original_stock
         )
         startTime = datetime.now()
         for index, row in All_data.iterrows():
@@ -450,10 +451,10 @@ class BackTestStock:
             BaseInfoData(
                 mainParament.money_start, mainParament.date_start, mainParament.date_end
             ),
-            OriginalStockByYahoo(),
+            self._original_stock,
             folderName
         )
-        external_data = ExternalDataFactory.Get_instance(ExternalDataTypeEnum.Normal)
+        external_data = self._external_data_factory.Get_instance()
         All_data = external_data.get_stock_history(
             mainParament.buy_number, mainParament.date_start
         )
@@ -473,12 +474,12 @@ class BackTestStock:
             BacktestFilterDataType.MonthRP_Up,
             self.BuyStrockFun,
             BacktestFilterFactory(BacktestFilterType.MonthRP_Up, [Month_index, index_ROE, index_PER, index_PBR]),
-            BacktestSignalFactory(BacktestSignalType.MonthRP_Up, OriginalStockByYahoo()),
+            BacktestSignalFactory(BacktestSignalType.MonthRP_Up, self._original_stock),
             mainParament.date_start,
             mainParament.date_end,
         )
         MonthRpUpInOutStrategy = MonthRpUp_backtestInOutStrategy(
-            userInfo, backTestFilterData, OriginalStockByYahoo()
+            userInfo, backTestFilterData, self._original_stock
         )
         startTime = datetime.now()
         for index, row in All_data.iterrows():

@@ -9,6 +9,7 @@ import pandas as pd
 from FilterService.GetStockData import All_Stock_Filters_fuc, All_fuc,Indicator
 import Common.Tools as Tools
 import Common.InfomationType as info
+from FilterService.StockHistory import OriginalStock
 
 
 class BacktestFilterType(Enum):
@@ -121,6 +122,7 @@ class RecordHigh_pickBacktestFilter(TBacktestFilter):
     def __init__(self, _indicators: List[Indicator]) -> None:
         self.ROE_Indicator: Indicator = _indicators[0]
         self.PBR_indicator: Indicator = _indicators[1]
+        self._original_stock: OriginalStock = _indicators[2]
 
     def RunFilter(self, Date: datetime):
         Result_data = {}
@@ -135,18 +137,18 @@ class RecordHigh_pickBacktestFilter(TBacktestFilter):
         ).get_Filter_Auto(10000, 1)
         Result = Tools.MixDataFrames(Result_data)
         Result_data["RecordHigh"] = All_Stock_Filters_fuc(
-            Date, Result
+            Date, Result, self._original_stock
         ).get_Filter_RecordHigh(
             60,
             1,
             info.Price_type.High,
         )
         Result = Tools.MixDataFrames(Result_data)
-        Result_data["price"] = All_Stock_Filters_fuc(Date, Result).get_Filter(
+        Result_data["price"] = All_Stock_Filters_fuc(Date, Result, self._original_stock).get_Filter(
             "price", 2000, 7, info.Price_type.Close
         )
         Result = Tools.MixDataFrames(Result_data)
-        Result_data["volume"] = All_Stock_Filters_fuc(Date, Result).get_Filter_SMA(
+        Result_data["volume"] = All_Stock_Filters_fuc(Date, Result, self._original_stock).get_Filter_SMA(
             "volume", 99999999999, 500000, 5, info.Price_type.Volume
         )
         Result = Tools.MixDataFrames(Result_data)

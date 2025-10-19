@@ -7,7 +7,6 @@ from Controller.MediatorController import Mediator_Controller, controllers
 from DrawFigur import DrawFigur
 from ExternalService.ExternalDataFactory import ExternalDataFactory
 from FilterService.GetStockData import ReportServices
-from FilterService.StockHistory import OriginalStockByYahoo
 from MongoService import MongoService
 from ReadLoadSystem import ReadLoadSystem
 from ScheduleService import ScheduleService
@@ -44,8 +43,8 @@ mediator_controller = Mediator_Controller(
     mongo_service=mongo_service,
     draw_figur_service=draw_figur_service,
     thread_pool=thread_pool_service,
-    read_load_system=read_load_system,
-    report_services=report_services
+    report_services=report_services,
+    external_data_factory=external_data_factory
 )
 
 mediator_controller.GetController(controllers.Main).ShowWindow()

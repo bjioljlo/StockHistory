@@ -5,24 +5,21 @@ import twstock
 
 import Common.InfomationType as info
 import Common.Tools as Tools
+from ExternalService.ExternalDataFactory import ExternalDataFactory
 from FilterService.StockHistory import OriginalStockByYahoo
 from FilterService.GetStockData import All_Stock_Filters_fuc
 from FilterService import GetStockData
 from Model.Model import TModel
 from Common.Parameter import RecordPickParameter
-from ExternalService.IGetExternalData import IGetExternalData
-from MongoService import MongoService
-from SqlService import SqlService
 
 
 class Model_pick(TModel):
-    def __init__(self, sql_service: SqlService, mongo_service: MongoService, external_data_service: IGetExternalData):
+    def __init__(self, external_data_factory: ExternalDataFactory):
         super().__init__()
-        self._sql_service = sql_service
-        self._mongo_service = mongo_service
-        self._external_data_service = external_data_service
+        self._external_data_factory = external_data_factory
         self._Groups: list[str] = None
         self._setGroups()
+        self._reportService = GetStockData.ReportServices(self._external_data_factory)
 
     @property
     def Groups(self) -> list[str]:
@@ -42,7 +39,7 @@ class Model_pick(TModel):
     ) -> pd.DataFrame:
         date = endDate
         while (
-            OriginalStockByYahoo(2330).get_PriceByDateAndType(
+            OriginalStockByYahoo(self._external_data_factory, 2330).get_PriceByDateAndType(
                 date, info.Price_type.Close
             )
             is None
@@ -95,39 +92,39 @@ class Model_pick(TModel):
 
         FS_data = self.get_financial_statement(date, GPM, OPR, EPS, RPS)
 
-        mainStockfun = All_Stock_Filters_fuc(date, FS_data)
-        mainfun = GetStockData.All_fuc(date, GetStockData.Month_index)
+        mainStockfun = All_Stock_Filters_fuc(date, FS_data, OriginalStockByYahoo(self._external_data_factory))
+        mainfun = GetStockData.All_fuc(date,  self._reportService.Month_index)
         result_data = mainfun.get_Smooth_Up_Auto(monthRP_smoothAVG, monthRP_UpMpnth)
 
-        mainfun.report = GetStockData.PBR_index
+        mainfun.report =  self._reportService.PBR_index
         BOOK_data = mainfun.get_Filter_Auto(PBR_high, PBR_low)
 
-        mainfun.report = GetStockData.PER_index
+        mainfun.report =  self._reportService.PER_index
         PER_data = mainfun.get_Filter_Auto(PER_high, PER_low)
 
-        mainfun.report = GetStockData.ROE_index
+        mainfun.report =  self._reportService.ROE_index
         ROE_data = mainfun.get_Filter_Auto(ROE_high, ROE_low)
         ROE_Up_data = mainfun.get_Up_Auto(ROE_up)
 
-        mainfun.report = GetStockData.Yield_index
+        mainfun.report =  self._reportService.Yield_index
         yield_data = mainfun.get_Filter_Auto(yiled_high, yiled_low)
 
-        mainfun.report = GetStockData.OM_Growth_index
+        mainfun.report =  self._reportService.OM_Growth_index
         OMGR_data = mainfun.get_Up_Auto(OMGR)
 
-        mainfun.report = GetStockData.PEG_index
+        mainfun.report =  self._reportService.PEG_index
         PEG_data = mainfun.get_Filter_Auto(PEG_high, PEG_low)
 
-        mainfun.report = GetStockData.FreeCF_index
+        mainfun.report =  self._reportService.FreeCF_index
         FCF_data = mainfun.get_Up_Auto(FCF)
 
-        mainfun.report = GetStockData.EPS_index
+        mainfun.report =  self._reportService.EPS_index
         EPS_up_data = mainfun.get_Up_Auto(EPS_up)
 
-        mainfun.report = GetStockData.SR_Growth_index
+        mainfun.report =  self._reportService.SR_Growth_index
         SRGR_data = mainfun.get_Up_Auto(SRGR)
 
-        mainfun.report = GetStockData.MR_Growth_index
+        mainfun.report =  self._reportService.MR_Growth_index
         MRGR_data = mainfun.get_Up_Auto(MRGR)
 
         pick_data = FS_data
@@ -247,9 +244,10 @@ class Model_pick(TModel):
         resultAllFS3 = []
         this = pd.DataFrame()
         volume_date = date
+        
         for i in range(12):
             try:
-                this = GetStockData.PLA_RP.get_ALL_Report(volume_date, base_today=volume_date)
+                this =  self._reportService.PLA_RP.get_ALL_Report(volume_date, base_today=volume_date)
                 if this.empty:
                     volume_date = Tools.changeDateMonth(volume_date, -1)
                     continue
@@ -263,11 +261,11 @@ class Model_pick(TModel):
         this2 = this["營業利益率(%)"] > float(OPR)
         resultAllFS1 = this[this1 & this2]
 
-        this = GetStockData.BS_RP.get_ALL_Report(volume_date, base_today=volume_date)
+        this =  self._reportService.BS_RP.get_ALL_Report(volume_date, base_today=volume_date)
         this1 = this["每股參考淨值"] > float(RPS)
         resultAllFS2 = this[this1]
 
-        this = GetStockData.CPL_RP.get_ALL_Report(volume_date, base_today=volume_date)
+        this =  self._reportService.CPL_RP.get_ALL_Report(volume_date, base_today=volume_date)
         this1 = this["基本每股盈餘（元）"] > float(EPS)
         resultAllFS3 = this[this1]
 

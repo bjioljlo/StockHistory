@@ -11,6 +11,7 @@ from ExternalService.ExternalDataFactory import ExternalDataFactory
 from ExternalService.IGetExternalData import IGetExternalData
 
 from .StockHistory import (
+    OriginalStock,
     OriginalStockByYahoo,
     RangeDate_Stock,
     RecordHigh_Stock,
@@ -57,7 +58,7 @@ class All_Stock_Filters_fuc:
     def Data(self, data: pd.DataFrame):
         self._data = data
 
-    def __init__(self, Date: datetime, Data: pd.DataFrame, original_stock: OriginalStockByYahoo) -> None:
+    def __init__(self, Date: datetime, Data: pd.DataFrame, original_stock: OriginalStock) -> None:
         self.Data = Data
         self._date = Date
         self.original_stock = original_stock

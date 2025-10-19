@@ -1,11 +1,10 @@
 from abc import ABC, abstractmethod
-from datetime import datetime
 
+from ExternalService.ExternalDataFactory import ExternalDataFactory
 from FilterService.GetStockData import ReportServices
 from Model.Model_backtest import Model_backtest
 from Model.Model_main import Model_main
 from Model.Model_pick import Model_pick
-from ReadLoadSystem import ReadLoadSystem
 from ScheduleService import ScheduleService
 from SqlService import SqlService
 from ThreadPool import ThreadPool
@@ -35,8 +34,8 @@ class Mediator_Controller(IMediator_Controller):
         mongo_service: MongoService,
         draw_figur_service: DrawFigur,
         thread_pool: ThreadPool,
-        read_load_system: ReadLoadSystem,
         report_services: ReportServices,
+        external_data_factory: ExternalDataFactory
     ) -> None:
         # 1. 將接收到的服務儲存為實例變數
         self._schedule = schedule
@@ -44,15 +43,15 @@ class Mediator_Controller(IMediator_Controller):
         self._mongo_service = mongo_service
         self._draw_figur_service = draw_figur_service
         self._thread_pool = thread_pool
-        self._read_load_system = read_load_system
         self._report_services = report_services
+        self._report_factory = external_data_factory
 
         # 2. 建立 Controller 時，將依賴傳遞給 Model
         self._main_controller: IController = Controller_Factory(
             controllers.Main,
             Main_Window(MyWindow(self._schedule.StopThreadSchedule)),
             Model_main(schedule=self._schedule, draw_figur_service=self._draw_figur_service, 
-                        external_data_service= self._read_load_system, report_services=self._report_services),
+                        external_data_service=self._report_factory.Get_instance(), report_services=self._report_services),
             self.GetController,
             self._draw_figur_service,
             report_services=self._report_services
@@ -61,16 +60,15 @@ class Mediator_Controller(IMediator_Controller):
             controllers.Pick,
             Pick_Window(MyPickWindow()),
             # 將需要的服務傳給 Model_pick
-            Model_pick(sql_service=self._sql_service, mongo_service=self._mongo_service, external_data_service= self._read_load_system),
+            Model_pick(external_data_factory= self._report_factory),
             self.GetController,
         )
         self._backtest_controller: IController = Controller_Factory(
             controllers.BackTest,
             BackTest_Window(MyBacktestWindow()),
             # 將需要的服務傳給 Model_backtest
-            Model_backtest(sql_service=self._sql_service, mongo_service=self._mongo_service,
-                        external_data_service= self._read_load_system, draw_figur_service=self._draw_figur_service, 
-                        thread_pool=self._thread_pool),
+            Model_backtest(sql_service=self._sql_service, draw_figur_service=self._draw_figur_service, 
+                        thread_pool=self._thread_pool, external_data_factory=self._report_factory),
             self.GetController,
         )
 
