@@ -5,6 +5,9 @@ services:
     image: mysql:latest
     container_name: mysqlserver
     restart: "no"
+    command:
+      - "mysqld"
+      - "--local-infile=1"
     ports:
       - "3307:3306"
     environment:
@@ -130,6 +133,7 @@ services:
       - mysqlserver
       - redisserver
       - mongoserver
+      - flaskserver
     environment:
       GOLANG_VERSION: 1.25.0
       GOTOOLCHAIN: local

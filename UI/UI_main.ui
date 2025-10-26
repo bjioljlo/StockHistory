@@ -480,7 +480,7 @@
      <rect>
       <x>10</x>
       <y>430</y>
-      <width>111</width>
+      <width>151</width>
       <height>32</height>
      </rect>
     </property>
@@ -490,7 +490,7 @@
      </font>
     </property>
     <property name="text">
-     <string>開始股票更新</string>
+     <string>開始股票更新至DB</string>
     </property>
    </widget>
    <widget class="QPushButton" name="button_stopSchedule">
@@ -498,7 +498,7 @@
      <rect>
       <x>10</x>
       <y>470</y>
-      <width>261</width>
+      <width>121</width>
       <height>32</height>
      </rect>
     </property>
@@ -788,7 +788,7 @@
    <widget class="QPushButton" name="button_runOtherSchedule">
     <property name="geometry">
      <rect>
-      <x>120</x>
+      <x>160</x>
       <y>430</y>
       <width>151</width>
       <height>32</height>
@@ -801,6 +801,37 @@
     </property>
     <property name="text">
      <string>開始其他指標更新</string>
+    </property>
+   </widget>
+   <widget class="QProgressBar" name="progressBar_UpdateStock">
+    <property name="geometry">
+     <rect>
+      <x>10</x>
+      <y>510</y>
+      <width>411</width>
+      <height>23</height>
+     </rect>
+    </property>
+    <property name="value">
+     <number>24</number>
+    </property>
+   </widget>
+   <widget class="QPushButton" name="button_runSyncToMongo">
+    <property name="geometry">
+     <rect>
+      <x>130</x>
+      <y>470</y>
+      <width>181</width>
+      <height>32</height>
+     </rect>
+    </property>
+    <property name="font">
+     <font>
+      <pointsize>12</pointsize>
+     </font>
+    </property>
+    <property name="text">
+     <string>開始從DB更新MongoDB</string>
     </property>
    </widget>
   </widget>

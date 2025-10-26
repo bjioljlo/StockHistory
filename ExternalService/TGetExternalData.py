@@ -235,7 +235,7 @@ class TGetExternalData(IGetExternalData):
         if type(start_time) is str:
             start_time = datetime.strptime(start_time, "%Y-%m-%d")
         if type(number) is not str:
-            number = str(number)            
+            number = str(number)
         data_time = datetime.strptime("2005-1-1", "%Y-%m-%d")
         result = pd.DataFrame()
         if self._sql_service.CantUseStocks.__contains__(str(number) + ".TW"):
@@ -247,16 +247,81 @@ class TGetExternalData(IGetExternalData):
         if start_time < data_time:
             print("日期請大於西元2005年")
             return result
+
         file = str(number)
         filename = self.filePath + "/" + self.fileName_stockInfo + "/" + file
-        m_history = self._read_load_system.load_stock_file(filename, file)
+        stock_id = str(number)
+        if ".TW" not in stock_id:
+            stock_id += ".TW"
+
+        m_history = pd.DataFrame()
+
+        # 1. Memory
+        if filename in self._read_load_system.Memery:
+            m_history = self._read_load_system.Memery[filename]
+        
+        if not m_history.empty:
+            print(f"Data for {stock_id} loaded from Memory.")
+        else:
+            # 2. MongoDB
+            print(f"Data for {stock_id} not in Memory, trying MongoDB.")
+            try:
+                collection = self._mongo_service.mongodb[stock_id.lower()]
+                cursor = collection.find()
+                m_history = pd.DataFrame(list(cursor))
+                if not m_history.empty:
+                    print(f"Data for {stock_id} loaded from MongoDB, caching to Memory.")
+                    if '_id' in m_history.columns:
+                        m_history = m_history.drop('_id', axis=1)
+                    if 'Date' in m_history.columns:
+                        m_history['Date'] = pd.to_datetime(m_history['Date'])
+                        m_history = m_history.set_index('Date')
+                    elif 'index' in m_history.columns:
+                        m_history['Date'] = pd.to_datetime(m_history['index'])
+                        m_history = m_history.set_index('Date').drop('index', axis=1)
+                    self._read_load_system.Memery[filename] = m_history
+            except Exception as e:
+                print(f"Could not read from MongoDB. Error: {e}")
+                m_history = pd.DataFrame()
+
         if m_history.empty:
-            # 去ＹＦ讀取資料
-            self._sql_service.yfInfo(str(number) + ".TW")
-            # 偽停頓
+            # 3. MySQL
+            print(f"Data for {stock_id} not in MongoDB, trying MySQL.")
+            m_history = self._sql_service.readStockDay(stock_id)
+            if not m_history.empty:
+                print(f"Data for {stock_id} loaded from MySQL, caching to Mongo and Memory.")
+                self._mongo_service.saveTable(stock_id, m_history)
+                self._read_load_system.Memery[filename] = m_history
+
+        if m_history.empty:
+            # 4. Local File
+            print(f"Data for {stock_id} not in MySQL, trying Local File.")
+            try:
+                m_history = pd.read_csv(filename + ".csv", index_col="Date", parse_dates=["Date"])
+                if not m_history.empty:
+                    print(f"Data for {stock_id} loaded from Local File, caching to MySQL, Mongo, and Memory.")
+                    self._sql_service.saveTable(stock_id, m_history)
+                    self._mongo_service.saveTable(stock_id, m_history)
+                    self._read_load_system.Memery[filename] = m_history
+            except Exception:
+                m_history = pd.DataFrame()
+
+        if m_history.empty:
+            # 5. Yahoo Finance
+            print(f"Data for {stock_id} not in any cache, fetching from Yahoo Finance.")
+            self._sql_service.yfInfo(stock_id)
             time.sleep(1.5)
-            m_history = self._read_load_system.load_stock_file(filename, file)
-            self._mongo_service.saveTable(str(number) + ".TW", m_history)
+            m_history = self._sql_service.readStockDay(stock_id)
+
+            if not m_history.empty:
+                print(f"Data for {stock_id} loaded from Yahoo->MySQL, caching to other systems.")
+                self._mongo_service.saveTable(stock_id, m_history)
+                self._read_load_system.Memery[filename] = m_history
+
+        if m_history.empty:
+            print(f"Could not retrieve data for {stock_id} from any source.")
+            return pd.DataFrame()
+
         mask = m_history.index >= start_time
         result = m_history[mask]
         result = result.dropna(axis=0, how="any")

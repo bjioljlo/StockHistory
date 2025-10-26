@@ -6,6 +6,7 @@ import pandas as pd
 import yfinance as yf
 from flask import Flask
 from flask_sqlalchemy import SQLAlchemy
+from sqlalchemy import inspect
 
 from Common import Tools
 
@@ -142,6 +143,22 @@ class SqlService:
             print(f"SQL Error during upsert into {table_name}: {e}")
             return False
 
+    def get_all_table_names(self) -> list[str]:
+        """
+        Retrieves a list of all table names in the database.
+
+        Returns:
+            list[str]: A list of table names.
+        """
+        try:
+            with self.server_flask.app_context():
+                with self.MySql_server.engine.connect() as connection:
+                    inspector = inspect(connection)
+                    return inspector.get_table_names()
+        except Exception as e:
+            print(f"SQL Error getting table names: {e}")
+            return []
+
     def yfInfo(self, name: str):
         if name in self._CantUseStocks:
             print("CantUseStock:" + str(name))
@@ -186,7 +203,7 @@ class SqlService:
             host = mysql_config.get('host')
             port = mysql_config.get('port')
             db_name = mysql_config.get('databasename')
-            uri = f"mysql+pymysql://{user}:{password}@{host}:{port}/{db_name}"
+            uri = f"mysql+pymysql://{user}:{password}@{host}:{port}/{db_name}?local_infile=1"
         elif db_type == 'postgresql':
             # For PostgreSQL, you might need to run: pip install psycopg2-binary
             pg_config = db_config.get('postgresql', {})

@@ -61,6 +61,9 @@ class Controller_main(TController):
         UI_form.button_runSchedule.clicked.connect(
             self.button_RunSchedule_click
         )  # 設定button功能
+        UI_form.button_runSyncToMongo.clicked.connect(
+            self.button_RunSyncToMongo_click
+        )  # 設定button功能
         UI_form.button_runOtherSchedule.clicked.connect(
             self.button_RunOtherSchedule_click
         )  # 設定button功能
@@ -203,6 +206,9 @@ class Controller_main(TController):
 
     def button_RunSchedule_click(self):
         self.__GetModel().RunSchedule()
+        
+    def button_RunSyncToMongo_click(self):
+        self.__GetModel().RunSyncToMongo()    
 
     def button_RunOtherSchedule_click(self):
         self.__GetModel().RunOtherSchedule()

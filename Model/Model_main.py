@@ -209,6 +209,9 @@ class Model_main(TModel):
     def RunSchedule(self):
         self._schedule_service.RunUpdateInfoNow(self.main_user_info_data)
 
+    def RunSyncToMongo(self):
+        self._schedule_service.RunSyncToMongo()
+
     def RunOtherSchedule(self):
         self._schedule_service.RunOtherInfoNow()
 
