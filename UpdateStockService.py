@@ -28,15 +28,33 @@ class UpdateStockService:
         self._getExternalFactory = ExternalDataFactory( 
             self._sql_service, self._mongo_service, self._read_load_system)
 
-    def UpdateSP500StocksHandle(self):
-        self.__RunUpdate_sp500()
+    def UpdateSP500StocksHandle(self, MainUserInfoDatas: UserInfoDatas):
+        self.__RunUpdate_sp500(MainUserInfoDatas)
 
     def UpdateTaiwanStocksHandle(self, MainUserInfoDatas: UserInfoDatas):
         self.__runUpdate(MainUserInfoDatas)
 
     def UpdateADLHandle(self):
         self.__RunUpDateADL()
+        
+    def UpdateMongoHandle(self):
+        all_tables = self._sql_service.get_all_table_names()
+        
+        for table_name in all_tables:
+            self._sync_table_to_mongo(table_name)
 
+    def _sync_table_to_mongo(self, table_name: str):
+        """
+        Reads a table from MySQL and saves it to MongoDB.
+        """
+        print(f"Syncing table {table_name} to MongoDB...")
+        df = self._sql_service.readStockDay(table_name)
+        if not df.empty:
+            self._mongo_service.saveTable(table_name, df)
+            print(f"Successfully synced table {table_name} to MongoDB.")
+        else:
+            print(f"Skipping empty table: {table_name}")
+    
     def _replace_stock_data(self, stock_name: str, df_result: pd.DataFrame) -> bool:
         """
         Saves a DataFrame to a MySQL table using pandas.to_sql, overwriting the existing table.
@@ -142,6 +160,7 @@ class UpdateStockService:
 
     def __runUpdate(self, MainUserInfoDatas: UserInfoDatas, callback=None):
         print("Update all TW stocks start! Fetching and Saving will run concurrently.")  
+        MainUserInfoDatas.UpdateDate = str(datetime(2025, 10, 23))[0:10]
         data_queue = queue.Queue()
         save_thread = threading.Thread(
             target=self._save_stock_data_to_db, args=(data_queue,)
@@ -163,7 +182,7 @@ class UpdateStockService:
             df_check = self._getExternalFactory.Get_instance(self).get_stock_history(
                 value.code, start=start_date
             )
-            if not df_check.empty and start_date in df_check.index:
+            if not df_check.empty or start_date in df_check.index:
                 fetch_start_date = start_date
             else:
                 fetch_start_date = datetime(2005, 1, 1)
@@ -198,7 +217,7 @@ class UpdateStockService:
         MainUserInfoDatas.UpdateDate = str(datetime.today())[0:10]
         print("TW stocks update process initiated. Fetching and saving are running in the background.")
 
-    def __RunUpdate_sp500(self):
+    def __RunUpdate_sp500(self, MainUserInfoDatas: UserInfoDatas):
         print("Update all sp500 stocks start! Fetching and Saving will run concurrently.")
         data_queue = queue.Queue()
         save_thread = threading.Thread(
@@ -206,6 +225,8 @@ class UpdateStockService:
         )
         save_thread.daemon = True
         save_thread.start()
+        
+        start_date = datetime.strptime(MainUserInfoDatas.UpdateDate, "%Y-%m-%d")
 
         sp500 = Tools.get_SP500_list()
         for temp in sp500:
@@ -213,11 +234,22 @@ class UpdateStockService:
                 print("Update stocks " + temp + " be Stop")
                 data_queue.put(None)
                 break
-
-            start_date = datetime(2005, 1, 1)
+            
+            df_check = self._getExternalFactory.Get_instance(self).get_stock_history(
+                temp, start=start_date
+            )
+            if not df_check.empty or start_date in df_check.index:
+                fetch_start_date = start_date
+            else:
+                fetch_start_date = datetime(2005, 1, 1)
+            
+            if fetch_start_date >= end_date:
+                print("Date time is same " + str(temp) + " " + str(fetch_start_date))
+                continue
+            
             end_date = datetime.today() - timedelta(days=1)
             tz = pytz.timezone("America/New_York")
-            start_date_localized = tz.localize(start_date)
+            start_date_localized = tz.localize(fetch_start_date)
             end_date_localized = tz.localize(end_date)
 
             df_result = yf.download([temp], start=start_date_localized, end=end_date_localized)
