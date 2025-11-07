@@ -1,9 +1,6 @@
-import os
-
 import pandas as pd
 from pandas import DataFrame
 
-import Common.InfomationType as info
 from SqlService import SqlService
 
 
@@ -15,6 +12,9 @@ class ReadLoadSystem:
     @property
     def Memery(self) -> dict:
         return self.load_memery
+    
+    def clear_memery(self):
+        self.load_memery = {}
 
     def save_stock_file(
         self, fileName: str, stockData, start_index: int = 0, end_index: int = 0
@@ -35,33 +35,6 @@ class ReadLoadSystem:
                 pos = pos + 1
                 f.writelines(stringText[pos:pos2])
 
-    def load_stock_file(self, fileName: str, stockName: str = ""):
-        """#讀取歷史資料"""
-        if fileName in self.load_memery:  # 快取
-            return self.load_memery[fileName]
-        df = DataFrame()
-        if stockName != "":  # mysql
-            df = self._sqlservice.readStockDay(stockName + info.local_type.Taiwan)
-        if df.empty:  # 本機端存檔
-            try:
-                df = pd.read_csv(
-                    fileName + ".csv", index_col="Date", parse_dates=["Date"]
-                )
-            except Exception:
-                print("no " + stockName + info.local_type.Taiwan + " csv file")
-                print(Exception)
-                return df
-            self._sqlservice.saveTable(stockName + info.local_type.Taiwan, df)
-
-        df = df.dropna(how="any", inplace=False)  # 將某些null欄位去除
-        try:
-            df["Volume"] = df["Volume"].astype("int")
-        except Exception:
-            print("no Volume" + Exception)
-
-        self.load_memery[fileName] = df
-        return df
-
     def load_other_file(self, fileName: str, file: str = ""):
         """#讀取資料"""
         if fileName in self.load_memery:  # 快取
@@ -81,11 +54,6 @@ class ReadLoadSystem:
         df = df.dropna(how="any", inplace=False)  # 將某些null欄位去除
         self.load_memery[fileName] = df
         return df
-
-    def delet_stock_file(self, fileName: str):
-        """#刪除歷史資料"""
-        if os.path.isfile(fileName):
-            os.remove(fileName)
 
     def load_month_file(self, fileName: str, file: str = ""):
         """#讀取月資料"""

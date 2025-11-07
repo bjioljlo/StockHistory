@@ -215,6 +215,7 @@ class UpdateStockService:
 
         data_queue.put(None)
         MainUserInfoDatas.UpdateDate = str(datetime.today())[0:10]
+        self._read_load_system.clear_memery()
         print("TW stocks update process initiated. Fetching and saving are running in the background.")
 
     def __RunUpdate_sp500(self, MainUserInfoDatas: UserInfoDatas):
@@ -227,6 +228,7 @@ class UpdateStockService:
         save_thread.start()
         
         start_date = datetime.strptime(MainUserInfoDatas.UpdateDate, "%Y-%m-%d")
+        end_date = datetime.today() - timedelta(days=1)
 
         sp500 = Tools.get_SP500_list()
         for temp in sp500:
@@ -247,7 +249,6 @@ class UpdateStockService:
                 print("Date time is same " + str(temp) + " " + str(fetch_start_date))
                 continue
             
-            end_date = datetime.today() - timedelta(days=1)
             tz = pytz.timezone("America/New_York")
             start_date_localized = tz.localize(fetch_start_date)
             end_date_localized = tz.localize(end_date)

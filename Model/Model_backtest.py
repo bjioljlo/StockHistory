@@ -45,9 +45,9 @@ class Model_backtest(TModel):
         )
         def _run_backTestcallBack(username, data, outputFolder):
             print("回測結束!")
-            filterdate = data._TempTradeInfo.Data.tail(1).index[0]
-            filterData = data._TempTradeInfo.Data.index == filterdate
-            tempData = data._TempTradeInfo.Data[filterData]
+            filterdate = data._TempTradeHandInfo.Data.tail(1).index[0]
+            filterData = data._TempTradeHandInfo.Data.index == filterdate
+            tempData = data._TempTradeHandInfo.Data[filterData]
             
             new_user_data = {
                 'id': [resultID],

@@ -398,13 +398,18 @@ class StockFilter(VirtualStockFilterFuc):
                 Temp = Temp[atype][date]
             if type(Temp) is Series:
                 Temp = Temp[date]
-            if Temp > max or Temp < min:
-                result_data.drop(index=int(number), inplace=True)
-            else:
-                result = concat(
-                    [result, DataFrame({"code": number, name: Temp}, index=[1])],
-                    ignore_index=True,
-                )
+            if type(Temp) is []:
+                Temp = Temp[date]
+            try:
+                if Temp > max or Temp < min:
+                    result_data.drop(index=int(number), inplace=True)
+                else:
+                    result = concat(
+                        [result, DataFrame({"code": number, name: Temp}, index=[1])],
+                        ignore_index=True,
+                    )
+            except Exception:
+                continue
         print("{} / {} is End!".format("StockFilter", sys._getframe().f_code.co_name))
         result.set_index("code", inplace=True)
         return result

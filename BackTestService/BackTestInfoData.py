@@ -103,8 +103,8 @@ class TBackTestInfoData(IBackTestInfoData):
         self._TempResultAll: IBackTestRecord = BackTestRecord_indexWithDate(
             ["date", "股票資產", "剩餘現金", "總資產"], _folderName + "backtest_asset"
         )
-        self._TempTradeInfo: IBackTestRecord = BackTestRecord_indexWithDate(
-            ["date", "號碼", "數量", "均價"],  _folderName + "backtest_trade"
+        self._TempTradeHandInfo: IBackTestRecord = BackTestRecord_indexWithDate(
+            ["date", "號碼", "數量", "均價"],  _folderName + "backtest_inHand"
         )
 
     def _GetUserStockAsset(self) -> int:
@@ -175,7 +175,7 @@ class TBackTestInfoData(IBackTestInfoData):
     def RunFinish(self):
         self._TempResultDraw.RunFinish()
         self._TempResultAll.RunFinish()
-        self._TempTradeInfo.RunFinish()
+        self._TempTradeHandInfo.RunFinish()
 
     def RecordUserInfo(self):
         self._TempResultDraw.RunRecord(
@@ -193,7 +193,7 @@ class TBackTestInfoData(IBackTestInfoData):
             ]
         )
         for key, value in self._HandleStock.items():
-            self._TempTradeInfo.RunRecord(
+            self._TempTradeHandInfo.RunRecord(
                 [self._BaseInfoData.now_day, key, value.Amount, value.Price]
             )
 
