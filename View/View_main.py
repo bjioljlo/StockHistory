@@ -11,6 +11,12 @@ class Main_Window(TWindow):
         super().__init__()
         self.FormUI = Ui_Window
 
+    def set_progress(self, value):
+        if value >= 0 and self.FormUI.progressBar_UpdateStock.isHidden():
+            self.FormUI.progressBar_UpdateStock.setVisible(True)
+        
+        self.FormUI.progressBar_UpdateStock.setValue(value)
+
     def GetFormUI(self) -> Ui_MainWindow:
         return self.FormUI
 

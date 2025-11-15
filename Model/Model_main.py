@@ -206,17 +206,17 @@ class Model_main(TModel):
             "Season Revenue Growth",
         )
 
-    def RunSchedule(self):
-        self._schedule_service.RunUpdateInfoNow(self.main_user_info_data)
+    def RunSchedule(self, progress_callback=None):
+        self._schedule_service.RunUpdateInfoNow(self.main_user_info_data, progress_callback)
         
-    def RunUpdateInfoNow_sp500(self):
-        self._schedule_service.RunUpdateInfoNow_sp500(self.main_user_info_data)
+    def RunUpdateInfoNow_sp500(self, progress_callback=None):
+        self._schedule_service.RunUpdateInfoNow_sp500(self.main_user_info_data, progress_callback)
 
-    def RunSyncToMongo(self):
-        self._schedule_service.RunSyncToMongo()
+    def RunSyncToMongo(self, progress_callback=None):
+        self._schedule_service.RunSyncToMongo(progress_callback)
 
-    def RunOtherSchedule(self):
-        self._schedule_service.RunUpdateADLNow()
+    def RunOtherSchedule(self, progress_callback=None):
+        self._schedule_service.RunUpdateADLNow(progress_callback)
 
     def StopThreadSchedule(self):
         self._schedule_service.StopThreadSchedule()

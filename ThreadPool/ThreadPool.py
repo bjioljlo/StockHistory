@@ -114,16 +114,18 @@ class ThreadPool:
 
     def _execute_task(self, scheduled_task: ScheduledTask) -> Any:
         """執行一個排程任務，並提交到線程池"""
+        # 將 callback 添加到 kwargs 中，以便任務可以在執行過程中調用它
+        kwargs = scheduled_task.kwargs.copy()
+        if scheduled_task.callback:
+            kwargs['callback'] = scheduled_task.callback
+        
         # 提交任務到線程池
         future = self.executor.submit(
             self._wrap_task,
             scheduled_task.task,
             *scheduled_task.args,
-            **scheduled_task.kwargs,
+            **kwargs,
         )
-        # 如果有回調函數，則添加完成時的回調
-        if scheduled_task.callback:
-            future.add_done_callback(lambda f: scheduled_task.callback(f.result()))
         return future
 
     def _wrap_task(self, task: Callable, *args, **kwargs) -> Any:

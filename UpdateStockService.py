@@ -28,20 +28,23 @@ class UpdateStockService:
         self._getExternalFactory = ExternalDataFactory( 
             self._sql_service, self._mongo_service, self._read_load_system)
 
-    def UpdateSP500StocksHandle(self, MainUserInfoDatas: UserInfoDatas):
-        self.__RunUpdate_sp500(MainUserInfoDatas)
+    def UpdateSP500StocksHandle(self, MainUserInfoDatas: UserInfoDatas, callback=None):
+        self.__RunUpdate_sp500(MainUserInfoDatas, callback)
 
-    def UpdateTaiwanStocksHandle(self, MainUserInfoDatas: UserInfoDatas):
-        self.__runUpdate(MainUserInfoDatas)
+    def UpdateTaiwanStocksHandle(self, MainUserInfoDatas: UserInfoDatas, callback=None):
+        self.__runUpdate(MainUserInfoDatas, callback)
 
-    def UpdateADLHandle(self):
-        self.__RunUpDateADL()
+    def UpdateADLHandle(self, callback=None):
+        self.__RunUpDateADL(callback)
         
-    def UpdateMongoHandle(self):
+    def UpdateMongoHandle(self, callback=None):
         all_tables = self._sql_service.get_all_table_names()
-        
-        for table_name in all_tables:
+        total_tables = len(all_tables)
+        for i, table_name in enumerate(all_tables):
             self._sync_table_to_mongo(table_name)
+            if callback:
+                progress = int((i + 1) / total_tables * 100)
+                callback(progress)
 
     def _sync_table_to_mongo(self, table_name: str):
         """
@@ -218,7 +221,7 @@ class UpdateStockService:
         self._read_load_system.clear_memery()
         print("TW stocks update process initiated. Fetching and saving are running in the background.")
 
-    def __RunUpdate_sp500(self, MainUserInfoDatas: UserInfoDatas):
+    def __RunUpdate_sp500(self, MainUserInfoDatas: UserInfoDatas, callback=None):
         print("Update all sp500 stocks start! Fetching and Saving will run concurrently.")
         data_queue = queue.Queue()
         save_thread = threading.Thread(
@@ -231,7 +234,8 @@ class UpdateStockService:
         end_date = datetime.today() - timedelta(days=1)
 
         sp500 = Tools.get_SP500_list()
-        for temp in sp500:
+        total_stocks = len(sp500)
+        for i, temp in enumerate(sp500):
             if not self.isUpdating:
                 print("Update stocks " + temp + " be Stop")
                 data_queue.put(None)
@@ -247,6 +251,9 @@ class UpdateStockService:
             
             if fetch_start_date >= end_date:
                 print("Date time is same " + str(temp) + " " + str(fetch_start_date))
+                if callback:
+                    progress = int((i + 1) / total_stocks * 100)
+                    callback(progress)
                 continue
             
             tz = pytz.timezone("America/New_York")
@@ -256,6 +263,9 @@ class UpdateStockService:
             df_result = yf.download([temp], start=start_date_localized, end=end_date_localized)
             if df_result.empty:
                 print("yahoo no data:" + str(temp))
+                if callback:
+                    progress = int((i + 1) / total_stocks * 100)
+                    callback(progress)
                 continue
 
             df_result = Tools.TidyTicketData(df_result, temp)
@@ -265,12 +275,15 @@ class UpdateStockService:
                 os.getcwd() + "/" + "stockInfo" + "/" + temp
             ] = df_result
             print("Update stocks " + temp + " OK!")
+            if callback:
+                progress = int((i + 1) / total_stocks * 100)
+                callback(progress)
             time.sleep(0.3)
 
         data_queue.put(None)
         print("SP500 stocks update process initiated. Fetching and saving are running in the background.")
 
-    def __RunUpDateADL(self):
+    def __RunUpDateADL(self, callback=None):
         print("Update stocks other Info start!")
         end_date = datetime(
             datetime.today().year, datetime.today().month, datetime.today().day
@@ -300,5 +313,9 @@ class UpdateStockService:
                 self._getExternalFactory.Get_instance(self).get_stock_AD_index(date_to_check)
             else:
                 print(f"Skipping non-trading day: {date_to_check.strftime('%Y-%m-%d')}")
+            
+            if callback:
+                progress = int((i + 1) / 366 * 100)
+                callback(progress)
 
         print("Update stocks other Info end!")

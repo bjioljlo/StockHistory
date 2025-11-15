@@ -133,6 +133,12 @@ class Controller_main(TController):
     def SetStockNumber(self, stockNumber: str):
         self.__GetView().GetFormUI().input_stockNumber.setText(stockNumber)
 
+    def _get_progress_callback(self):
+        self.__GetView().set_progress(0)
+        def callback(progress):
+            self.__GetView().set_progress(progress)
+        return callback
+
     def button_openPickWindow_click(self):
         self.GetController(controllers.Pick).ShowWindow()
 
@@ -208,16 +214,16 @@ class Controller_main(TController):
         self.__GetModel().adls(self.__GetView().Parament)
 
     def button_RunSchedule_click(self):
-        self.__GetModel().RunSchedule()
+        self.__GetModel().RunSchedule(self._get_progress_callback())
         
     def button_UpdateInfoNow_sp500_click(self):
-        self.__GetModel().RunUpdateInfoNow_sp500()
+        self.__GetModel().RunUpdateInfoNow_sp500(self._get_progress_callback())
         
     def button_RunSyncToMongo_click(self):
-        self.__GetModel().RunSyncToMongo()    
+        self.__GetModel().RunSyncToMongo(self._get_progress_callback())    
 
     def button_RunOtherSchedule_click(self):
-        self.__GetModel().RunOtherSchedule()
+        self.__GetModel().RunOtherSchedule(self._get_progress_callback())
     
     def button_StopThreadSchedule_click(self):
         self.__GetModel().StopThreadSchedule()
