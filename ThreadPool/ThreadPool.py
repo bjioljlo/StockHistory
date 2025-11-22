@@ -10,15 +10,17 @@ class ScheduledTask:
     def __init__(
         self,
         task: Callable,
-        callback: Callable[[Any], None] = None,
+        finishCallback: Callable[[Any], None] = None,
         delay: float = None,
         interval: float = None,
         repeat: bool = False,
+        progressCallback: Callable[[float], None] = None,
         *args,
         **kwargs,
     ):
         self.task = task
-        self.callback = callback
+        self.finishCallback = finishCallback
+        self.progressCallback = progressCallback
         self.delay = delay
         self.interval = interval
         self.repeat = repeat
@@ -68,10 +70,11 @@ class ThreadPool:
     def submit_task(
         self,
         task: Callable,
-        callback: Callable[[Any], None] = None,
+        finishCallback: Callable[[Any], None] = None,
         delay: float = None,
         interval: float = None,
         repeat: bool = False,
+        progressCallback: Callable[[float], None] = None,
         *args,
         **kwargs,
     ) -> None:
@@ -87,7 +90,7 @@ class ThreadPool:
             *args, **kwargs: 傳遞給任務的參數。
         """
         scheduled_task = ScheduledTask(
-            task, callback, delay, interval, repeat, *args, **kwargs
+            task, finishCallback, delay, interval, repeat, progressCallback, *args, **kwargs
         )
         with self.schedule_lock:
             self.scheduled_tasks.append(scheduled_task)
@@ -116,8 +119,8 @@ class ThreadPool:
         """執行一個排程任務，並提交到線程池"""
         # 將 callback 添加到 kwargs 中，以便任務可以在執行過程中調用它
         kwargs = scheduled_task.kwargs.copy()
-        if scheduled_task.callback:
-            kwargs['callback'] = scheduled_task.callback
+        if scheduled_task.progressCallback:
+            kwargs['callback'] = scheduled_task.progressCallback
         
         # 提交任務到線程池
         future = self.executor.submit(
@@ -126,6 +129,9 @@ class ThreadPool:
             *scheduled_task.args,
             **kwargs,
         )
+        # 如果有回調函數，則添加完成時的回調
+        if scheduled_task.finishCallback:
+            future.add_done_callback(lambda f: scheduled_task.finishCallback(f.result()))
         return future
 
     def _wrap_task(self, task: Callable, *args, **kwargs) -> Any:

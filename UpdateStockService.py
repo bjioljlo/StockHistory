@@ -52,9 +52,13 @@ class UpdateStockService:
         """
         print(f"Syncing table {table_name} to MongoDB...")
         df = self._sql_service.readStockDay(table_name)
+        if df.empty:
+            df = self._sql_service.readDividendYield(table_name)
+        
         if not df.empty:
             self._mongo_service.saveTable(table_name, df)
             print(f"Successfully synced table {table_name} to MongoDB.")
+            
         else:
             print(f"Skipping empty table: {table_name}")
     
