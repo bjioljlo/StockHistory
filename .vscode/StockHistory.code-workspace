@@ -186,6 +186,10 @@
           }
         ]
       }
-    }
+    },
+    "codium.codeCompletion.enable": true,
+    "qodo.enable": true,
+    "qodo.contextFile": "AGENTS.md",
+    "qodo.enableProjectContext": true
   }
 }
