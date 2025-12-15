@@ -1,7 +1,7 @@
 # non_blocking_threadpool/test_threadpool.py
 import unittest
 import time
-from ThreadPool import ThreadPool
+from src.ThreadPool import ThreadPool
 
 
 class TestNonBlockingThreadPool(unittest.TestCase):

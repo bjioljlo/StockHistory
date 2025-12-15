@@ -2,9 +2,10 @@ import unittest
 from datetime import datetime
 
 from unittest.mock import patch, MagicMock
-from BackTestService.BackTestInfoData import BackTestInfoDataPriceByToday
-from FilterService.StockHistory import OriginalStockTest
-from Common.StockInfoData import BaseInfoData
+from src.BackTestService.BackTestInfoData import BackTestInfoDataPriceByToday
+from src.FilterService.StockHistory import OriginalStockTest
+from src.ExternalService.ExternalDataFactory import ExternalDataFactory, ExternalDataTypeEnum
+from src.Common.StockInfoData import BaseInfoData
 
 
 class BackTestInfoDataPriceByToday_test(unittest.TestCase):
@@ -14,7 +15,11 @@ class BackTestInfoDataPriceByToday_test(unittest.TestCase):
             datetime.strptime("2020-03-06", "%Y-%m-%d"),
             datetime.strptime("2021-03-04", "%Y-%m-%d"),
         )
-        self._OriginalStockTest = OriginalStockTest()
+        # 建立測試用 ExternalDataFactory 並傳給 OriginalStockTest
+        test_factory = ExternalDataFactory(
+            sql_service=None, mongo_service=None, read_load_system=None
+        )
+        self._OriginalStockTest = OriginalStockTest(test_factory)
         # Patch get_PriceByDateAndType，讓 2330 的價格固定為 315
         patcher = patch.object(self._OriginalStockTest, 'get_PriceByDateAndType', return_value=315)
         self.addCleanup(patcher.stop)
@@ -110,7 +115,7 @@ class BackTestInfoDataPriceByToday_test(unittest.TestCase):
         self.BackTestInfoDataPriceByToday_test._TempTradeHandInfo.RunFinish.assert_called_once()
 
     def test_UserStockAsset_and_UserAllAsset(self):
-        import Common.Tools as Tools
+        from src.Common import Tools
         self.BackTestInfoDataPriceByToday_test._HandleStock = {}
         self.BackTestInfoDataPriceByToday_test.BuyStock("2330", 1000)
         stock_asset = self.BackTestInfoDataPriceByToday_test.UserStockAsset

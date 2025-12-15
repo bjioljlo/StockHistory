@@ -78,6 +78,6 @@ StockHistory 是一個基於 Python 和 PyQt5 的綜合性股票數據管理與�
    - 錯誤處理
 
 ## 相關文件
-1. [開發指南](DEVELOPMENT_GUIDE_TW.md) - 詳細的開發指引和規範
-2. [專案概述](PROJECT_CONTEXT_TW.md) - 專案架構和核心組件說明
-3. [README](README_TW.md) - 專案簡介和快速開始指南
+1. [開發指南](DEVELOPMENT_GUIDE.md) - 詳細的開發指引和規範
+2. [專案概述](PROJECT_CONTEXT.md) - 專案架構和核心組件說明
+3. [README](README.md) - 專案簡介和快速開始指南

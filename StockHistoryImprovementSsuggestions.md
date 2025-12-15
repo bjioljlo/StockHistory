@@ -22,6 +22,28 @@
     - **避免命名衝突**: 可以有效避免與 Python 內建或第三方套件的命名衝突。
     - **易於打包**: 未來若要將專案打包成可安裝的套件，`src` 結構會非常方便。
 
+**執行任務 (Tasks):**
+- [x] 建立 `src` 目錄
+- [x] 將 `BackTestService` 目錄移至 `src/`
+- [x] 將 `Common` 目錄移至 `src/`
+- [x] 將 `Controller` 目錄移至 `src/`
+- [x] 將 `ExternalService` 目錄移至 `src/`
+- [x] 將 `FilterService` 目錄移至 `src/`
+- [x] 將 `Model` 目錄移至 `src/`
+- [x] 將 `ThreadPool` 目錄移至 `src/`
+- [x] 將 `View` 目錄移至 `src/`
+- [x] 將 `DrawFigur.py` 移至 `src/`
+- [x] 將 `main_stock.py` 移至 `src/`
+- [x] 將 `MongoService.py` 移至 `src/`
+- [x] 將 `ReadLoadSystem.py` 移至 `src/`
+- [x] 將 `ScheduleService.py` 移至 `src/`
+- [x] 將 `SqlService.py` 移至 `src/`
+- [x] 將 `StockInfos.py` 移至 `src/`
+- [x] 將 `telegram_bot.py` 移至 `src/`
+- [x] 將 `UpdateStockService.py` 移至 `src/`
+- [x] 修正所有因檔案移動而失效的 `import` 敘述（含 `src` 與 `UnitTest`，`py -3 -m compileall src`、`py -3 -m pytest UnitTest` 皆通過）
+- [x] 更新相關設定檔 (如 `docker-compose.yml`, `.vscode/launch.json`) 中的路徑（目前僅有 `docker-compose.yml`，路徑已與現有結構相容，無需修改；暫無 `.vscode/launch.json`）
+
 ---
 
 ### 2. 依賴管理

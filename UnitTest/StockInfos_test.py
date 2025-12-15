@@ -1,6 +1,6 @@
 import unittest
 
-from StockInfos import PickInfoDatas
+from src.StockInfos import PickInfoDatas
 
 
 class PickInfoDatas_test(unittest.TestCase):
