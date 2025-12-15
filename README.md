@@ -13,11 +13,17 @@
 
 ## 快速開始
 ```bash
-# 安裝依賴套件
+# 1. 建議使用 pip-tools 管理依賴（可選，但推薦）
+pip install pip-tools
+
+# 產生/更新鎖定版本的 requirements.txt
+pip-compile requirements.in dev-requirements.in --output-file=requirements.txt
+
+# 2. 安裝依賴套件
 pip install -r requirements.txt
 
-# 啟動應用程式
-python main_stock.py
+# 3. 啟動應用程式（在專案根目錄下執行）
+py -3 -m src.main_stock
 ```
 
 ## 文件

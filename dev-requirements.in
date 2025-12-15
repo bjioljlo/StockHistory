@@ -1,0 +1,14 @@
+# Development-only dependencies for StockHistory
+# Install together with requirements.txt for full dev environment.
+
+flake8==7.1.2
+freezegun==1.5.0
+iniconfig==2.0.0
+mccabe==0.7.0
+mock==5.1.0
+pluggy==1.5.0
+pycodestyle==2.12.1
+pyflakes==3.2.0
+pytest==8.2.0
+
+

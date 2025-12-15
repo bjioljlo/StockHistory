@@ -56,6 +56,14 @@
     - **Poetry** 或 **PDM**: 這些工具使用 `pyproject.toml` 檔案來管理依賴，可以清晰地分離正式依賴和開發依賴，並能鎖定依賴版本 (`poetry.lock` / `pdm.lock`)，確保在任何環境下都能建立出完全相同的執行環境。
     - **pip-tools**: 如果不想更換工具鏈，可以使用 `pip-tools`。您可以建立 `requirements.in` (正式依賴) 和 `dev-requirements.in` (開發依賴)，然後用指令自動生成對應的 `requirements.txt` 檔案。
 
+**執行任務 (Tasks):**
+- [x] 盤點現有 `requirements.txt`，區分正式依賴與開發/測試依賴
+- [x] 建立 `requirements.in` 並只保留正式執行環境依賴
+- [x] 建立 `dev-requirements.in` 並只保留開發/測試工具（pytest、flake8 等）
+- [x] 在 `requirements.txt` 中標註使用 `pip-tools` 的推薦更新流程
+- [x] 在 `README.md` 更新安裝與啟動流程（含 `pip-compile` 與 `py -3 -m src.main_stock`）
+- [x] 在 `DEVELOPMENT_GUIDE.md` 更新依賴安裝、啟動與測試流程，統一使用新的指令
+
 ---
 
 ### 3. 容器化 (Docker)

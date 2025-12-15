@@ -8,8 +8,15 @@
 - MongoDB (選用)
 - TA-Lib 技術分析函式庫 (需單獨安裝)
 
-### 安裝步驟
+### 安裝步驟（建議使用 pip-tools 管理依賴）
 ```bash
+# 1. 安裝 pip-tools（建議全域或虛擬環境內）
+pip install pip-tools
+
+# 2. 由來源檔產生鎖定版本的 requirements.txt
+pip-compile requirements.in dev-requirements.in --output-file=requirements.txt
+
+# 3. 安裝專案依賴
 pip install -r requirements.txt
 ```
 
@@ -20,7 +27,7 @@ pip install -r requirements.txt
 
 ### 啟動應用程式
 ```bash
-python main_stock.py
+py -3 -m src.main_stock
 ```
 
 ## 開發流程
@@ -46,7 +53,11 @@ python main_stock.py
 
 ### 測試
 ```bash
-pytest UnitTest/
+# 僅安裝開發/測試依賴（若尚未安裝）
+pip install -r requirements.txt
+
+# 執行單元測試
+py -3 -m pytest UnitTest/
 ```
 
 ## 重要設計模式
