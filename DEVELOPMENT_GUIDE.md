@@ -25,9 +25,15 @@ pip install -r requirements.txt
 2. 在 `.env` 檔案中設置環境變數
 3. 確保資料庫服務正在運行
 
-### 啟動應用程式
+### 啟動應用程式（本機）
 ```bash
 py -3 -m src.main_stock
+```
+
+### 使用 Docker 啟動（選用）
+```bash
+# 在專案根目錄
+docker-compose up --build stockhistory-app
 ```
 
 ## 開發流程

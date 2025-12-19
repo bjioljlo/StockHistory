@@ -26,6 +26,18 @@ pip install -r requirements.txt
 py -3 -m src.main_stock
 ```
 
+## 使用 Docker 啟動（選用）
+
+```bash
+# 建議先準備好 .env 檔案（可參考 docker-compose.yml 內的環境變數說明）
+
+# 建立並啟動所有服務（MySQL/Mongo/Redis/Flask/Golang/StockHistory）
+docker-compose up --build
+
+# 僅啟動 StockHistory 應用（其他服務已在背景跑）
+docker-compose up --build stockhistory-app
+```
+
 ## 文件
 - [專案概述](PROJECT_CONTEXT_TW.md) - 系統架構與元件說明
 - [開發指南](DEVELOPMENT_GUIDE_TW.md) - 環境設置與開發指引

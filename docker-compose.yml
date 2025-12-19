@@ -1,5 +1,3 @@
-version: "3.8"
-
 services:
   mysqlserver:
     image: mysql:latest
@@ -68,6 +66,22 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
+
+  stockhistory-app:
+    build: .
+    container_name: stockhistory-app
+    restart: "no"
+    depends_on:
+      - mysqlserver
+      - mongoserver
+      - redisserver
+    environment:
+      # 建議實際值放在 .env 檔案中
+      PYTHONUNBUFFERED: "1"
+    networks:
+      - mybridge
+    working_dir: /app
+    command: python3 -m src.main_stock
 
   mongo-express:
     image: mongo-express

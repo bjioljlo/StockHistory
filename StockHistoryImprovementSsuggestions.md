@@ -78,6 +78,14 @@
     - 有效利用 Docker 的快取機制來加速映像檔建置。
 - **環境變數管理**: 敏感資訊 (如資料庫密碼、API 金鑰) 不應寫死在 `config.yml` 或 `docker-compose.yml` 中。應改為透過環境變數傳入容器。可以在 `docker-compose.yml` 中使用 `.env` 檔案來載入這些變數。
 
+**執行任務 (Tasks):**
+- [x] 新增 Python 應用的 `Dockerfile`，設定合適的 `WORKDIR` 與啟動指令（`python -m src.main_stock`），並改用非 root 使用者
+- [x] 在 `docker-compose.yml` 中新增 `stockhistory-app` 服務，與 MySQL/MongoDB/Redis 同一個網路
+- [x] 在 `README.md` 新增「使用 Docker 啟動」章節，說明如何 `docker-compose up --build` 啟動整套服務或僅啟動 `stockhistory-app`
+- [x] 在 `DEVELOPMENT_GUIDE.md` 補充 Docker 啟動方式，與本機啟動並存
+- [ ] 調整 `Dockerfile` 為 multi-stage build 以縮小映像大小（目前為單階段，效能已可接受，未來若正式部署再優化）
+- [ ] 將敏感設定全面改由 `.env` 與環境變數管理（目前 `docker-compose.yml` 已支援 `.env`，但 `config.yml` 尚待整理）
+
 ```yaml
 # docker-compose.yml
 services:
