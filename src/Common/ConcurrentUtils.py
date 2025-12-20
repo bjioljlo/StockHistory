@@ -46,7 +46,34 @@ class ConcurrentUtils:
         """
         future = self.executor.submit(task, *args, **kwargs)
         if result_callback:
-            future.add_done_callback(lambda f: result_callback(f.result()))
+            def callback_wrapper(f):
+                try:
+                    result = f.result()
+                    result_callback(result)
+                except Exception as e:
+                    print(f"Error in task callback: {e}")
+                    import traceback
+                    traceback.print_exc()
+            future.add_done_callback(callback_wrapper)
+        with self.futures_lock:
+            self.futures.append(future)
+        return future
+
+    def submit_task_with_callback(self, task: Callable, callback: Callable[[Future], None] = None, *args, **kwargs) -> Future:
+        """
+        提交任務到執行緒池，可選 Future 回調函數。
+
+        Args:
+            task (Callable): 要執行的任務函數
+            callback (Callable): Future 完成後的回調函數，可選（接收 Future 物件）
+            *args, **kwargs: 傳遞給任務的參數
+
+        Returns:
+            Future: 任務的 Future 物件
+        """
+        future = self.executor.submit(task, *args, **kwargs)
+        if callback:
+            future.add_done_callback(callback)
         with self.futures_lock:
             self.futures.append(future)
         return future

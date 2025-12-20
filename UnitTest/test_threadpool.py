@@ -34,9 +34,12 @@ class TestConcurrentUtils(unittest.TestCase):
         def callback(result):
             callback_result.append(result)
 
-        def simple_task(x):
+        def simple_task(x, callback=None):
             time.sleep(0.1)
-            return x * 2
+            result = x * 2
+            if callback:
+                callback(result)
+            return result
 
         self.concurrent_utils.submit_task(simple_task, callback, x=5)
         time.sleep(0.2)  # 給予足夠時間完成

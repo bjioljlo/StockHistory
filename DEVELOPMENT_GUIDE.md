@@ -64,6 +64,12 @@ pip install -r requirements.txt
 
 # 執行單元測試
 py -3 -m pytest UnitTest/
+
+# 執行測試覆蓋率分析
+py -3 -m pytest UnitTest/ --cov=src --cov-report=html
+
+# 生成覆蓋率報告（在 htmlcov/ 目錄中查看）
+# 使用 pytest-mock 進行更完善的 mocking 測試
 ```
 
 ## 重要設計模式

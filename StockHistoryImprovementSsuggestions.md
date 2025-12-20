@@ -158,3 +158,10 @@ MONGO_PASSWORD=your_secret_password
 **建議:**
 - **測試覆蓋率**: 引入 `pytest-cov` 套件來計算測試覆蓋率。這能幫助您了解哪些程式碼路徑尚未被測試覆蓋。
 - **Mocking**: 測試與外部服務 (如資料庫、外部 API) 互動的程式碼時，應使用 `unittest.mock` 或 `pytest-mock` 來模擬這些外部依賴，使單元測試更快速、更獨立。
+
+**執行任務 (Tasks):**
+- [x] 在 `dev-requirements.in` 中添加 `pytest-cov` 和 `pytest-mock` 套件
+- [x] 在 `DEVELOPMENT_GUIDE.md` 更新測試流程，說明如何執行覆蓋率分析和使用 mocking
+- [x] 檢查現有測試，識別需要 mocking 的外部依賴（如資料庫連接、API 調用）
+- [x] 重構部分測試以使用 `pytest-mock` 進行更好的隔離測試
+- [x] 執行覆蓋率測試並分析結果，確保關鍵路徑被覆蓋
