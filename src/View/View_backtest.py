@@ -1,17 +1,16 @@
-from PyQt5 import QtWidgets
+from PyQt5 import QtWidgets, uic
 
 from src.Common import Tools
 from src.Common.Parameter import RecordBackTestParameter
-from UI.UI_backtest import Ui_MainWindow3
 from src.View.View import TWindow
 
 
 class BackTest_Window(TWindow):
-    def __init__(self, Ui_Window: Ui_MainWindow3):
+    def __init__(self, Ui_Window: QtWidgets.QMainWindow):
         super().__init__()
         self.FormUI = Ui_Window
 
-    def GetFormUI(self) -> Ui_MainWindow3:
+    def GetFormUI(self) -> QtWidgets.QMainWindow:
         return self.FormUI
 
     @property
@@ -59,7 +58,7 @@ class BackTestParameter(RecordBackTestParameter):
 
 
 # 回測畫面
-class MyBacktestWindow(QtWidgets.QMainWindow, Ui_MainWindow3):
+class MyBacktestWindow(QtWidgets.QMainWindow):
     def __init__(self):
         super(MyBacktestWindow, self).__init__()
-        self.setupUi(self)
+        uic.loadUi('UI/UI_backtest.ui', self)

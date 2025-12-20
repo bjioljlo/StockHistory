@@ -1,16 +1,15 @@
-from PyQt5 import QtWidgets
+from PyQt5 import QtWidgets, uic
 
 from src.Common.Parameter import IParameter
-from UI.UI_pick import Ui_MainWindow2
 from src.View.View import TWindow
 
 
 class Pick_Window(TWindow):
-    def __init__(self, Ui_Window: Ui_MainWindow2):
+    def __init__(self, Ui_Window: QtWidgets.QMainWindow):
         super().__init__()
         self.FormUI = Ui_Window
 
-    def GetFormUI(self) -> Ui_MainWindow2:
+    def GetFormUI(self) -> QtWidgets.QMainWindow:
         return self.FormUI
 
     @property
@@ -61,7 +60,7 @@ class PickParameter(IParameter):
 
 
 # 挑股票畫面
-class MyPickWindow(QtWidgets.QMainWindow, Ui_MainWindow2):
+class MyPickWindow(QtWidgets.QMainWindow):
     def __init__(self):
         super(MyPickWindow, self).__init__()
-        self.setupUi(self)
+        uic.loadUi('UI/UI_pick.ui', self)

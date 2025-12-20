@@ -140,6 +140,14 @@ MONGO_PASSWORD=your_secret_password
     - 可以將 `ui2py.py` 的邏輯整合到建置流程或 Makefile/`justfile` 中，確保每次修改 `.ui` 檔案後都能自動產生最新的 `.py` 檔案。
     - **動態載入 `.ui` 檔案**: 另一種更靈活的方式是在執行階段動態載入 `.ui` 檔案，而不是轉換成 `.py`。`PyQt` 和 `PySide` 都支援這種方式。這樣可以讓 UI 設計師和開發者更好地協作，修改 UI 不再需要重新產生 Python 程式碼。
 
+**執行任務 (Tasks):**
+- [x] 修改所有 MyWindow 類別（MyWindow, MyBacktestWindow, MyPickWindow）以動態載入 .ui 檔案，使用 uic.loadUi 替換 setupUi
+- [x] 移除 View 檔案中對 Ui_ 類別的 import
+- [x] 移除 UI/ 目錄中的生成 .py 檔案（UI_main.py, UI_backtest.py, UI_pick.py）
+- [x] 刪除或更新 ui2py.py 腳本，使其成為可選的工具
+- [x] 測試 UI 功能正常運作
+- [x] 更新相關文檔
+
 ---
 
 ### 6. 測試

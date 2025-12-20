@@ -1,23 +1,22 @@
-from PyQt5 import QtWidgets
+from PyQt5 import QtWidgets, uic
 
 from src.Common import Tools
 from src.Common.Parameter import RecordMainParameter
-from UI.UI_main import Ui_MainWindow
 from src.View.View import TWindow
 
 
 class Main_Window(TWindow):
-    def __init__(self, Ui_Window: Ui_MainWindow):
+    def __init__(self, Ui_Window: QtWidgets.QMainWindow):
         super().__init__()
         self.FormUI = Ui_Window
 
     def set_progress(self, value):
         if value >= 0 and self.FormUI.progressBar_UpdateStock.isHidden():
             self.FormUI.progressBar_UpdateStock.setVisible(True)
-        
+
         self.FormUI.progressBar_UpdateStock.setValue(value)
 
-    def GetFormUI(self) -> Ui_MainWindow:
+    def GetFormUI(self) -> QtWidgets.QMainWindow:
         return self.FormUI
 
     @property
@@ -40,10 +39,10 @@ class MainParameter(RecordMainParameter):
 
 
 # 主畫面
-class MyWindow(QtWidgets.QMainWindow, Ui_MainWindow):
+class MyWindow(QtWidgets.QMainWindow):
     def __init__(self, _closeEvent):
         super(MyWindow, self).__init__()
-        self.setupUi(self)
+        uic.loadUi('UI/UI_main.ui', self)
         self.closeFuction = _closeEvent
 
     def closeEvent(self, event):
