@@ -4,18 +4,18 @@ from src.ExternalService.ExternalDataFactory import ExternalDataFactory
 from src.FilterService.StockHistory import OriginalStockByYahoo
 from src.Model.Model import TModel
 from src.Common.Parameter import RecordBackTestParameter
+from src.Common.ConcurrentUtils import ConcurrentUtils
 import os
 import pandas as pd
 from src.SqlService import SqlService
-from src.ThreadPool import ThreadPool
 
 
 class Model_backtest(TModel):
-    def __init__(self, sql_service: SqlService, draw_figur_service: DrawFigur, thread_pool: ThreadPool, external_data_factory: ExternalDataFactory) -> None:
+    def __init__(self, sql_service: SqlService, draw_figur_service: DrawFigur, concurrent_utils: ConcurrentUtils, external_data_factory: ExternalDataFactory) -> None:
         super().__init__()
         self._sql_service = sql_service
         self._draw_figur_service = draw_figur_service
-        self._thread_pool = thread_pool
+        self._concurrent_utils = concurrent_utils
         self._external_data_factory = external_data_factory
         self.backtestFunc = BackTestStock(OriginalStockByYahoo(self._external_data_factory), self._external_data_factory)
 
@@ -37,7 +37,7 @@ class Model_backtest(TModel):
             os.makedirs(filePath)
         if set_check:
             self.Set_BackTestCheck(_recordBackTestParameter)
-        self._thread_pool.submit_task(
+        self._concurrent_utils.submit_task_with_result_callback(
             func,
             lambda data: _run_backTestcallBack(folder_prefix, data, outputFolder=filePath),
             mainParament=_recordBackTestParameter,

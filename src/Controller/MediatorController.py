@@ -7,7 +7,7 @@ from src.Model.Model_main import Model_main
 from src.Model.Model_pick import Model_pick
 from src.ScheduleService import ScheduleService
 from src.SqlService import SqlService
-from src.ThreadPool import ThreadPool
+from src.Common.ConcurrentUtils import ConcurrentUtils
 from src.View.View_backtest import BackTest_Window, MyBacktestWindow
 from src.View.View_main import Main_Window, MyWindow
 from src.View.View_pick import MyPickWindow, Pick_Window
@@ -33,7 +33,7 @@ class Mediator_Controller(IMediator_Controller):
         sql_service: SqlService,
         mongo_service: MongoService,
         draw_figur_service: DrawFigur,
-        thread_pool: ThreadPool,
+        concurrent_utils: ConcurrentUtils,
         report_services: ReportServices,
         external_data_factory: ExternalDataFactory
     ) -> None:
@@ -42,7 +42,7 @@ class Mediator_Controller(IMediator_Controller):
         self._sql_service = sql_service
         self._mongo_service = mongo_service
         self._draw_figur_service = draw_figur_service
-        self._thread_pool = thread_pool
+        self._concurrent_utils = concurrent_utils
         self._report_services = report_services
         self._report_factory = external_data_factory
 
@@ -67,8 +67,8 @@ class Mediator_Controller(IMediator_Controller):
             controllers.BackTest,
             BackTest_Window(MyBacktestWindow()),
             # 將需要的服務傳給 Model_backtest
-            Model_backtest(sql_service=self._sql_service, draw_figur_service=self._draw_figur_service, 
-                        thread_pool=self._thread_pool, external_data_factory=self._report_factory),
+            Model_backtest(sql_service=self._sql_service, draw_figur_service=self._draw_figur_service,
+                        concurrent_utils=self._concurrent_utils, external_data_factory=self._report_factory),
             self.GetController,
         )
 

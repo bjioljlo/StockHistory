@@ -10,6 +10,7 @@ if PROJECT_ROOT not in sys.path:
     sys.path.insert(0, PROJECT_ROOT)
 
 from src.Common.ConfigService import load_config
+from src.Common.ConcurrentUtils import ConcurrentUtils
 from src.Controller.MediatorController import Mediator_Controller, controllers
 from src.DrawFigur import DrawFigur
 from src.ExternalService.ExternalDataFactory import ExternalDataFactory
@@ -18,7 +19,6 @@ from src.MongoService import MongoService
 from src.ReadLoadSystem import ReadLoadSystem
 from src.ScheduleService import ScheduleService
 from src.SqlService import SqlService
-from src.ThreadPool import ThreadPool
 from src.UpdateStockService import UpdateStockService
 
 app = QtWidgets.QApplication(sys.argv)
@@ -30,7 +30,7 @@ sql_service.RunMysql()
 mongo_service = MongoService()
 mongo_service.RunMongoDB(config['database']['mongodb'])
 draw_figur_service = DrawFigur()
-thread_pool_service = ThreadPool()
+concurrent_utils = ConcurrentUtils()
 read_load_system = ReadLoadSystem(sqlservice=sql_service)
 
 external_data_factory = ExternalDataFactory(
@@ -41,7 +41,7 @@ external_data_factory = ExternalDataFactory(
 report_services = ReportServices(external_data_factory=external_data_factory)
 
 updateStock_service = UpdateStockService(sql_service=sql_service, mongo_service=mongo_service, read_load_system=read_load_system)
-schedule_service = ScheduleService(thread_pool=thread_pool_service, update_stockService=updateStock_service)
+schedule_service = ScheduleService(concurrent_utils=concurrent_utils, update_stockService=updateStock_service)
 
 # 2. Inject all services into the Mediator_Controller
 mediator_controller = Mediator_Controller(
@@ -49,7 +49,7 @@ mediator_controller = Mediator_Controller(
     sql_service=sql_service,
     mongo_service=mongo_service,
     draw_figur_service=draw_figur_service,
-    thread_pool=thread_pool_service,
+    concurrent_utils=concurrent_utils,
     report_services=report_services,
     external_data_factory=external_data_factory
 )

@@ -116,6 +116,18 @@ MONGO_PASSWORD=your_secret_password
 
 只有在 `concurrent.futures` 無法滿足極端效能或特殊功能需求時，才考慮自定義實作。
 
+**執行任務 (Tasks):**
+- [x] 分析所有 ThreadPool 的使用情況，確定哪些功能是必要的
+- [x] 建立一個簡單的 ConcurrentUtils 模組，使用 concurrent.futures 提供基本功能
+- [x] 重構 ScheduleService.py，將 enable_queue_mode 和 submit_task 替換為直接使用 ThreadPoolExecutor 和手動順序管理
+- [x] 重構 Model_backtest.py，將 submit_task 替換為 executor.submit 和 add_done_callback
+- [x] 重構 main_stock.py 和 MediatorController.py 的初始化和使用
+- [x] 更新 UnitTest/test_threadpool.py 以測試新的實現
+- [x] 移除 src/ThreadPool 目錄
+- [x] 修正所有 import 語句，移除對 ThreadPool 的引用
+- [x] 運行測試確保功能正常（`py -3 -m pytest UnitTest`）
+- [x] 運行編譯檢查確保無語法錯誤（`py -3 -m compileall src`）
+
 ---
 
 ### 5. 使用者介面 (UI)
