@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>576</width>
-    <height>626</height>
+    <width>590</width>
+    <height>607</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -68,6 +68,11 @@
       <height>20</height>
      </rect>
     </property>
+    <property name="font">
+     <font>
+      <pointsize>12</pointsize>
+     </font>
+    </property>
     <property name="text">
      <string>股票編號:</string>
     </property>
@@ -80,6 +85,11 @@
       <width>110</width>
       <height>32</height>
      </rect>
+    </property>
+    <property name="font">
+     <font>
+      <pointsize>12</pointsize>
+     </font>
     </property>
     <property name="text">
      <string>新增</string>
@@ -94,6 +104,11 @@
       <height>32</height>
      </rect>
     </property>
+    <property name="font">
+     <font>
+      <pointsize>12</pointsize>
+     </font>
+    </property>
     <property name="text">
      <string>移除</string>
     </property>
@@ -107,6 +122,11 @@
       <height>32</height>
      </rect>
     </property>
+    <property name="font">
+     <font>
+      <pointsize>12</pointsize>
+     </font>
+    </property>
     <property name="text">
      <string>帶入</string>
     </property>
@@ -119,6 +139,11 @@
       <width>113</width>
       <height>32</height>
      </rect>
+    </property>
+    <property name="font">
+     <font>
+      <pointsize>12</pointsize>
+     </font>
     </property>
     <property name="text">
      <string>歷史股價紀錄</string>
@@ -309,11 +334,16 @@
    <widget class="QPushButton" name="button_openPickWindow">
     <property name="geometry">
      <rect>
-      <x>10</x>
-      <y>480</y>
+      <x>130</x>
+      <y>310</y>
       <width>113</width>
       <height>32</height>
      </rect>
+    </property>
+    <property name="font">
+     <font>
+      <pointsize>12</pointsize>
+     </font>
     </property>
     <property name="text">
      <string>開啟選股視窗</string>
@@ -322,11 +352,16 @@
    <widget class="QPushButton" name="button_getMonthRP">
     <property name="geometry">
      <rect>
-      <x>300</x>
-      <y>340</y>
-      <width>113</width>
+      <x>282</x>
+      <y>330</y>
+      <width>131</width>
       <height>32</height>
      </rect>
+    </property>
+    <property name="font">
+     <font>
+      <pointsize>12</pointsize>
+     </font>
     </property>
     <property name="text">
      <string>歷史月營收紀錄</string>
@@ -443,37 +478,52 @@
    <widget class="QPushButton" name="button_runSchedule">
     <property name="geometry">
      <rect>
-      <x>0</x>
-      <y>520</y>
+      <x>10</x>
+      <y>430</y>
       <width>151</width>
       <height>32</height>
      </rect>
     </property>
+    <property name="font">
+     <font>
+      <pointsize>12</pointsize>
+     </font>
+    </property>
     <property name="text">
-     <string>mysql股票Update</string>
+     <string>開始股票更新至DB</string>
     </property>
    </widget>
    <widget class="QPushButton" name="button_stopSchedule">
     <property name="geometry">
      <rect>
-      <x>150</x>
-      <y>520</y>
-      <width>161</width>
+      <x>10</x>
+      <y>470</y>
+      <width>121</width>
       <height>32</height>
      </rect>
     </property>
+    <property name="font">
+     <font>
+      <pointsize>12</pointsize>
+     </font>
+    </property>
     <property name="text">
-     <string>mysql股票Update Stop</string>
+     <string>所有更新停止</string>
     </property>
    </widget>
    <widget class="QPushButton" name="button_getDividend_yield">
     <property name="geometry">
      <rect>
-      <x>300</x>
-      <y>310</y>
-      <width>113</width>
+      <x>282</x>
+      <y>300</y>
+      <width>131</width>
       <height>32</height>
      </rect>
+    </property>
+    <property name="font">
+     <font>
+      <pointsize>12</pointsize>
+     </font>
     </property>
     <property name="text">
      <string>歷史殖利率紀錄</string>
@@ -503,6 +553,11 @@
        <height>32</height>
       </rect>
      </property>
+     <property name="font">
+      <font>
+       <pointsize>12</pointsize>
+      </font>
+     </property>
      <property name="text">
       <string>自由現金流紀錄</string>
      </property>
@@ -515,6 +570,11 @@
        <width>141</width>
        <height>32</height>
       </rect>
+     </property>
+     <property name="font">
+      <font>
+       <pointsize>12</pointsize>
+      </font>
      </property>
      <property name="text">
       <string>營業現金流紀錄</string>
@@ -529,6 +589,11 @@
        <height>32</height>
       </rect>
      </property>
+     <property name="font">
+      <font>
+       <pointsize>12</pointsize>
+      </font>
+     </property>
      <property name="text">
       <string>投資現金流紀錄</string>
      </property>
@@ -541,6 +606,11 @@
        <width>141</width>
        <height>31</height>
       </rect>
+     </property>
+     <property name="font">
+      <font>
+       <pointsize>12</pointsize>
+      </font>
      </property>
      <property name="text">
       <string>股價現金流量比率</string>
@@ -555,6 +625,11 @@
        <height>32</height>
       </rect>
      </property>
+     <property name="font">
+      <font>
+       <pointsize>12</pointsize>
+      </font>
+     </property>
      <property name="text">
       <string>歷史ROE紀錄</string>
      </property>
@@ -567,6 +642,11 @@
        <width>141</width>
        <height>32</height>
       </rect>
+     </property>
+     <property name="font">
+      <font>
+       <pointsize>12</pointsize>
+      </font>
      </property>
      <property name="text">
       <string>營業利益率紀錄</string>
@@ -581,6 +661,11 @@
        <height>32</height>
       </rect>
      </property>
+     <property name="font">
+      <font>
+       <pointsize>12</pointsize>
+      </font>
+     </property>
      <property name="text">
       <string>營業利益成長率</string>
      </property>
@@ -589,7 +674,7 @@
      <property name="geometry">
       <rect>
        <x>10</x>
-       <y>10</y>
+       <y>0</y>
        <width>121</width>
        <height>21</height>
       </rect>
@@ -618,6 +703,11 @@
        <height>32</height>
       </rect>
      </property>
+     <property name="font">
+      <font>
+       <pointsize>12</pointsize>
+      </font>
+     </property>
      <property name="text">
       <string>歷史EPS紀錄</string>
      </property>
@@ -630,6 +720,11 @@
        <width>141</width>
        <height>32</height>
       </rect>
+     </property>
+     <property name="font">
+      <font>
+       <pointsize>12</pointsize>
+      </font>
      </property>
      <property name="text">
       <string>歷史資產負債率</string>
@@ -644,6 +739,11 @@
        <height>32</height>
       </rect>
      </property>
+     <property name="font">
+      <font>
+       <pointsize>12</pointsize>
+      </font>
+     </property>
      <property name="text">
       <string>季營收成長</string>
      </property>
@@ -653,10 +753,15 @@
     <property name="geometry">
      <rect>
       <x>300</x>
-      <y>370</y>
+      <y>360</y>
       <width>113</width>
       <height>31</height>
      </rect>
+    </property>
+    <property name="font">
+     <font>
+      <pointsize>12</pointsize>
+     </font>
     </property>
     <property name="text">
      <string>月營收成長</string>
@@ -666,13 +771,85 @@
     <property name="geometry">
      <rect>
       <x>300</x>
-      <y>400</y>
+      <y>390</y>
       <width>113</width>
       <height>32</height>
      </rect>
     </property>
+    <property name="font">
+     <font>
+      <pointsize>12</pointsize>
+     </font>
+    </property>
     <property name="text">
      <string>歷史騰落數值</string>
+    </property>
+   </widget>
+   <widget class="QPushButton" name="button_runOtherSchedule">
+    <property name="geometry">
+     <rect>
+      <x>160</x>
+      <y>430</y>
+      <width>151</width>
+      <height>32</height>
+     </rect>
+    </property>
+    <property name="font">
+     <font>
+      <pointsize>12</pointsize>
+     </font>
+    </property>
+    <property name="text">
+     <string>開始其他指標更新</string>
+    </property>
+   </widget>
+   <widget class="QProgressBar" name="progressBar_UpdateStock">
+    <property name="geometry">
+     <rect>
+      <x>10</x>
+      <y>510</y>
+      <width>411</width>
+      <height>23</height>
+     </rect>
+    </property>
+    <property name="value">
+     <number>24</number>
+    </property>
+   </widget>
+   <widget class="QPushButton" name="button_runSyncToMongo">
+    <property name="geometry">
+     <rect>
+      <x>130</x>
+      <y>470</y>
+      <width>181</width>
+      <height>32</height>
+     </rect>
+    </property>
+    <property name="font">
+     <font>
+      <pointsize>12</pointsize>
+     </font>
+    </property>
+    <property name="text">
+     <string>開始從DB更新MongoDB</string>
+    </property>
+   </widget>
+   <widget class="QPushButton" name="button_runSP500">
+    <property name="geometry">
+     <rect>
+      <x>10</x>
+      <y>390</y>
+      <width>151</width>
+      <height>32</height>
+     </rect>
+    </property>
+    <property name="font">
+     <font>
+      <pointsize>12</pointsize>
+     </font>
+    </property>
+    <property name="text">
+     <string>開始美股更新至DB</string>
     </property>
    </widget>
   </widget>
@@ -681,7 +858,7 @@
     <rect>
      <x>0</x>
      <y>0</y>
-     <width>576</width>
+     <width>590</width>
      <height>21</height>
     </rect>
    </property>

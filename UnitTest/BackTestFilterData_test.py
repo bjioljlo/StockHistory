@@ -1,24 +1,18 @@
 import unittest
 from datetime import datetime
-import Common.Tools as Tools
+from src.Common import Tools
 
-import Common.InfomationType as info
-from BackTestService.BackTestFilterData import (
+from src.Common import InfomationType as info
+from src.BackTestService.BackTestFilterData import (
     BacktestFilterDataFactory,
     BacktestFilterDataType,
 )
-from BackTestService.BacktestFilter import (
-    BacktestFilterFactory,
-    BacktestFilterType,
-)
-from BackTestService.BacktestSignal import (
-    BacktestSignalFactory,
-    BacktestSignalType,
-)
-from FilterService.GetStockData import ROE_Indicator
-from FilterService.StockHistory import OriginalStockTest
-from FilterService.StockReportHistory import SeasonReportFactory
-from GetExternalDataService import ExternalDataFactory, ExternalDataTypeEnum
+from src.BackTestService.BackTestFilter import BacktestFilterFactory, BacktestFilterType
+from src.BackTestService.BackTestSignal import BacktestSignalFactory, BacktestSignalType
+from src.FilterService.GetStockData import ROE_Indicator
+from src.FilterService.StockHistory import OriginalStockTest
+from src.FilterService.StockReportHistory import SeasonReportFactory
+from src.ExternalService.ExternalDataFactory import ExternalDataFactory, ExternalDataTypeEnum
 
 
 class TKD_pickFilterData_Test(unittest.TestCase):
@@ -26,7 +20,11 @@ class TKD_pickFilterData_Test(unittest.TestCase):
         pass
 
     def setUp(self) -> None:
-        self._external_data = ExternalDataFactory.Get_instance(
+        # 建立測試用 ExternalDataFactory 並取用測試資料源
+        self._external_factory = ExternalDataFactory(
+            sql_service=None, mongo_service=None, read_load_system=None
+        )
+        self._external_data = self._external_factory.Get_instance(
             ExternalDataTypeEnum.Test
         )
         self.ROE_index_test = ROE_Indicator(
@@ -38,7 +36,9 @@ class TKD_pickFilterData_Test(unittest.TestCase):
             BacktestFilterDataType.KD,
             self.BuyStrockFun,
             BacktestFilterFactory(BacktestFilterType.KD, [self.ROE_index_test]),
-            BacktestSignalFactory(BacktestSignalType.KD, OriginalStockTest()),
+            BacktestSignalFactory(
+                BacktestSignalType.KD, OriginalStockTest(self._external_factory)
+            ),
             datetime.strptime("2019-03-04", "%Y-%m-%d"),
             datetime.strptime("2021-08-07", "%Y-%m-%d"),
         )

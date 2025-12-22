@@ -8,7 +8,7 @@
       "name": "Python: main_stock.py",
       "type": "debugpy",
       "request": "launch",
-      "program": "${workspaceRoot}/main_stock.py",
+      "program": "${workspaceRoot}/src/main_stock.py",
       "console": "integratedTerminal"
     },
     {
@@ -18,6 +18,13 @@
       "program": "${workspaceRoot}/UI/ui2py.py",
       "cwd": "${workspaceFolder}/UI",
       "console": "integratedTerminal"
+    },
+    {
+      "name": "PowerShell: docker-compose up -d",
+      "type": "PowerShell",
+      "request": "launch",
+      "script": "docker-compose up -d",
+      "cwd": "${workspaceFolder}"
     }
   ]
 }
