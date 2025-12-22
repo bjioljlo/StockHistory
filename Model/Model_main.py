@@ -1,11 +1,11 @@
 from datetime import datetime
 
-import Globals
-import Tools
+import Common.Globals as Globals
+import Common.Tools as Tools
 from DrawFigur import DrawFigur
 from FilterService import GetStockData
 from Model.Model import TModel
-from Parameter import RecordMainParameter
+from Common.Parameter import RecordMainParameter
 from ScheduleService import ScheduleService
 from StockInfos import UserInfoDatas
 

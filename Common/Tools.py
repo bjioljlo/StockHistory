@@ -13,6 +13,32 @@ SEASON_RP_TIME_DAY = [15, 31, 14, 31]
 NO_USE_STOCK = [2025]
 FIVE_WORD_ETF = ["00692", "00878", "00646", "00881", "00733"]
 
+def get_latest_season_report_date(now_day: datetime, base_today: datetime = None) -> datetime:
+    """
+    從 now_day 開始往前推，找到最近一個已公告的季報資料日
+    """
+    check_date = now_day
+    while not CheckFS_season(check_date, base_today):
+        check_date = changeDateMonth(check_date, -3)
+    return check_date
+
+def get_latest_monthly_report_date(now_day: datetime, base_today: datetime = None) -> datetime:
+    """
+    從 now_day 開始往前推，找到最近一個已公告的月營收月份
+    """
+    check_date = now_day.replace(day=1)  # 先回到當月1號
+    while not Have_MonthRP(check_date, base_today):
+        check_date = changeDateMonth(check_date, -1)
+    return check_date
+
+def get_latest_daily_report_date(now_day: datetime, base_today: datetime = None) -> datetime:
+    """
+    從 now_day 開始往前推，找到最近一個已公告的日報資料日
+    """
+    check_date = now_day
+    while not Have_DayRP(check_date, base_today):
+        check_date = backWorkDays(check_date, 1)
+    return check_date
 
 def changeDateMonth(date: datetime, change_month: int) -> datetime:
     temp_month = date.month + change_month
@@ -165,18 +191,20 @@ def get_SP500_list():  # 取得S&P500股票清單
     return stk_list
 
 
-def CheckFS_season(date):  # 檢查當季資料出來沒
+def CheckFS_season(date, base_today: datetime = None):  # 檢查當季資料出來沒
+    if base_today is None:
+        base_today = datetime.now()
     season = int(((date.month - 1) / 3) + 1)
     year = int(date.year)
     if season == 4:
-        if datetime.today() > datetime(
+        if base_today >= datetime(
             year + 1, SEASON_RP_TIME_MONTH[season - 1], SEASON_RP_TIME_DAY[season - 1]
         ):
             return True
         else:
             return False
     else:
-        if datetime.today() > datetime(
+        if base_today >= datetime(
             year, SEASON_RP_TIME_MONTH[season - 1], SEASON_RP_TIME_DAY[season - 1]
         ):
             return True
@@ -184,25 +212,30 @@ def CheckFS_season(date):  # 檢查當季資料出來沒
             return False
 
 
-def Have_MonthRP(date: datetime):  # 檢查當下月營收資料
+def Have_MonthRP(date: datetime, base_today: datetime = None):  # 檢查當下月營收資料
+    if base_today is None:
+        base_today = datetime.now()
     if (
-        date.month == datetime.now().month and date.year == datetime.now().year
+        date.month == base_today.month and date.year == base_today.year
     ):  # 當月還沒出
         return False
     if (
-        date.year == datetime.now().year
-        and int(date.month) == int(changeDateMonth(datetime.today(), -1).month)
-        and (int(datetime.today().day)) < 15
+        date.year == base_today.year
+        and int(date.month) == int(changeDateMonth(base_today, -1).month)
+        and (int(base_today.day)) < 15
     ):  # 還沒超過15號
+        print(str(date) + "還沒超過15號資料未出")
         return False
     return True
 
 
-def Have_DayRP(date: datetime):  # 檢查當下日營收資料
+def Have_DayRP(date: datetime, base_today: datetime = None):  # 檢查當下日營收資料
+    if base_today is None:
+        base_today = datetime.now()
     if (
-        date.month >= datetime.now().month
-        and date.year >= datetime.now().year
-        and date.day >= datetime.now().day
+        date.month >= base_today.month
+        and date.year >= base_today.year
+        and date.day >= base_today.day
     ):
         print(str(date) + "的日期不對，資料未出")
         return False

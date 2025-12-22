@@ -5,9 +5,9 @@ import pytz
 import twstock
 import yfinance as yf
 
-import Globals
-import InfomationType as info
-import Tools
+import Common.Globals as Globals
+import Common.InfomationType as info
+import Common.Tools as Tools
 from GetExternalDataService import ExternalDataFactory, IGetExternalData
 from StockInfos import UserInfoDatas
 

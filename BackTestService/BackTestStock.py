@@ -2,8 +2,8 @@ from datetime import datetime
 
 import pandas as pd
 
-import InfomationType as info
-import Tools
+import Common.InfomationType as info
+import Common.Tools as Tools
 
 from BackTestService.BackTestFilterData import (
     BacktestFilterDataFactory,
@@ -18,12 +18,12 @@ from BackTestService.BackTestInOutStrategy import (
     RecordHigh_backtestInOutStrategy,
     Regular_backTestInOutStrategy,
 )
-from BackTestService.BacktestFilter import (
+from BackTestService.BackTestFilter import (
     BacktestFilterFactory,
     BacktestFilterType,
     Regular_quotatestFilter,
 )
-from BackTestService.BacktestSignal import (
+from BackTestService.BackTestSignal import (
     BacktestSignalFactory,
     BacktestSignalType,
     TBacktestSignal,
@@ -43,8 +43,8 @@ from GetExternalDataService import (
     ExternalDataFactory,
     ExternalDataTypeEnum,
 )
-from Parameter import RecordBackTestParameter
-from StockInfoData import BaseInfoData
+from Common.Parameter import RecordBackTestParameter
+from Common.StockInfoData import BaseInfoData
 
 
 class BackTestStock:
@@ -78,7 +78,7 @@ class BackTestStock:
     def BuyStrockFun(aName: str, aIsBuy: bool):
         pass
 
-    def backtest_KD_pick(self, mainParament: RecordBackTestParameter) -> pd.DataFrame:
+    def backtest_KD_pick(self, mainParament: RecordBackTestParameter, folderName: str = "Datafiles/KD_pick/") -> pd.DataFrame:
         """
         KD值選股
         https://www.finlab.tw/%e7%94%a8kd%e5%80%bc%e9%81%b8%e8%82%a1%ef%bc%9a%e9%82%84%e9%9c%80%e6%90%ad%e9%85%8d%e9%80%99%e4%b8%89%e7%a8%ae%e6%8c%87%e6%a8%99/
@@ -88,6 +88,7 @@ class BackTestStock:
                 mainParament.money_start, mainParament.date_start, mainParament.date_end
             ),
             OriginalStockByYahoo(),
+            folderName
         )
         external_data = ExternalDataFactory.Get_instance(ExternalDataTypeEnum.Normal)
         stocksUsedForExecution = external_data.get_stock_history(
@@ -121,7 +122,7 @@ class BackTestStock:
                 buy_month = Tools.changeDateMonth(buy_month, 3)
             KDInOutStrategy.Record()
         # 最後總結算
-        KDInOutStrategy.Finish()
+        KDInOutStrategy.Finish(folderName)
         userInfo.RunFinish()
         Temp_alldata = Tools.MixDataFrames(
             {"draw": userInfo._TempResultDraw.Data, "pick": KDInOutStrategy.ResultPick},
@@ -130,11 +131,11 @@ class BackTestStock:
         Temp_alldata = Tools.MixDataFrames(
             {"all": Temp_alldata, "userinfo": userInfo._TempResultAll.Data}, "date"
         )
-        Temp_alldata.to_csv("backtestAll.csv")
+        Temp_alldata.to_csv(folderName + "backtestAll.csv")
         print("KD值選股-回測時間:", datetime.now() - startTime)
-        return userInfo._TempResultDraw.Data
+        return userInfo
 
-    def backtest_PEG_pick(self, mainParament: RecordBackTestParameter):
+    def backtest_PEG_pick(self, mainParament: RecordBackTestParameter, folderName: str = "Datafiles/PEG_pick/"):
         """
         PEG選股外加月營收增高
         https://www.finlab.tw/finlab-tw-stock-peg-strategy/#PEG_ding_yi
@@ -146,6 +147,7 @@ class BackTestStock:
                 mainParament.date_end,
             ),
             OriginalStockByYahoo(),
+            folderName
         )
         external_data = ExternalDataFactory.Get_instance(ExternalDataTypeEnum.Normal)
         stocksUsedForExecution = external_data.get_stock_history(
@@ -195,7 +197,7 @@ class BackTestStock:
             # 更新資訊
             PEGInOutStrategy.Record()
         # 最後總結算
-        PEGInOutStrategy.Finish()
+        PEGInOutStrategy.Finish(folderName)
         userInfo.RunFinish()
         Temp_alldata = Tools.MixDataFrames(
             {
@@ -207,17 +209,18 @@ class BackTestStock:
         Temp_alldata = Tools.MixDataFrames(
             {"all": Temp_alldata, "userinfo": userInfo._TempResultAll.Data}, "date"
         )
-        Temp_alldata.to_csv("backtestAll.csv")
+        Temp_alldata.to_csv(folderName + "backtestAll.csv")
         print("PEG選股外加月營收增高-回測時間:", datetime.now() - startTime)
-        return userInfo._TempResultDraw.Data
+        return userInfo
 
-    def backtest_Regular_quota(self, mainParament: RecordBackTestParameter):
+    def backtest_Regular_quota(self, mainParament: RecordBackTestParameter, folderName: str = "Datafiles/Regular_quota/"):
         """
         定期定額
         """
         userInfo = BackTestInfoDataPriceByToday(
             BaseInfoData(0, mainParament.date_start, mainParament.date_end),
             OriginalStockByYahoo(),
+            folderName
         )
         buy_month = mainParament.date_start
         external_data = ExternalDataFactory.Get_instance(ExternalDataTypeEnum.Normal)
@@ -258,7 +261,7 @@ class BackTestStock:
                 # 更新資訊--------------------------------------
                 RegularInOutStrategy.Record()
         # 最後總結算----------------------------
-        RegularInOutStrategy.Finish()
+        RegularInOutStrategy.Finish(folderName)
         userInfo.RunFinish()
         Temp_alldata = Tools.MixDataFrames(
             {
@@ -270,11 +273,11 @@ class BackTestStock:
         Temp_alldata = Tools.MixDataFrames(
             {"all": Temp_alldata, "userinfo": userInfo._TempResultAll.Data}, "date"
         )
-        Temp_alldata.to_csv("backtestAll.csv")
+        Temp_alldata.to_csv(folderName + "backtestAll.csv")
         print("定期定額-回測時間:", datetime.now() - startTime)
-        return userInfo._TempResultDraw.Data
+        return userInfo
 
-    def backtest_Record_high(self, mainParament: RecordBackTestParameter):
+    def backtest_Record_high(self, mainParament: RecordBackTestParameter, folderName: str = "Datafiles/Record_high/"):
         """
         創新高
         https://www.finlab.tw/break-new-high-roe-stock/
@@ -285,6 +288,7 @@ class BackTestStock:
                 mainParament.money_start, mainParament.date_start, mainParament.date_end
             ),
             OriginalStockByYahoo(),
+            folderName
         )
         external_data = ExternalDataFactory.Get_instance(ExternalDataTypeEnum.Normal)
         All_data = external_data.get_stock_history(
@@ -334,7 +338,7 @@ class BackTestStock:
             # 更新資訊--------------------------------------
             RecordHighInOutStrategy.Record()
         # 最後總結算
-        RecordHighInOutStrategy.Finish()
+        RecordHighInOutStrategy.Finish(folderName)
         userInfo.RunFinish()
         Temp_alldata = Tools.MixDataFrames(
             {
@@ -346,11 +350,11 @@ class BackTestStock:
         Temp_alldata = Tools.MixDataFrames(
             {"all": Temp_alldata, "userinfo": userInfo._TempResultAll.Data}, "date"
         )
-        Temp_alldata.to_csv("backtestAll.csv")
+        Temp_alldata.to_csv(folderName + "backtestAll.csv")
         print("創新高-回測時間:", datetime.now() - startTime)
-        return userInfo._TempResultDraw.Data
-
-    def backtest_PERandPBR(self, mainParament: RecordBackTestParameter):
+        return userInfo
+    
+    def backtest_PERandPBR(self, mainParament: RecordBackTestParameter, folderName: str = "Datafiles/PERandPBR/"):
         """
         14年14倍
         https://www.finlab.tw/%E6%AF%94%E7%AD%96%E7%95%A5%E7%8B%97%E9%82%84%E8%A6%81%E5%AE%89%E5%85%A8%E7%9A%84%E9%81%B8%E8%82%A1%E7%AD%96%E7%95%A5%EF%BC%81/
@@ -362,6 +366,7 @@ class BackTestStock:
                 mainParament.money_start, mainParament.date_start, mainParament.date_end
             ),
             OriginalStockByYahoo(),
+            folderName
         )
         external_data = ExternalDataFactory.Get_instance(ExternalDataTypeEnum.Normal)
         All_data = external_data.get_stock_history(
@@ -419,7 +424,7 @@ class BackTestStock:
             PERandPBRInOutStrategy.Record()
             Temp_changeDays = Temp_changeDays - 1
         # 最後總結算
-        PERandPBRInOutStrategy.Finish()
+        PERandPBRInOutStrategy.Finish(folderName)
         userInfo.RunFinish()
         Temp_alldata = Tools.MixDataFrames(
             {
@@ -431,11 +436,11 @@ class BackTestStock:
         Temp_alldata = Tools.MixDataFrames(
             {"all": Temp_alldata, "userinfo": userInfo._TempResultAll.Data}, "date"
         )
-        Temp_alldata.to_csv("backtestAll.csv")
+        Temp_alldata.to_csv(folderName + "backtestAll.csv")
         print("14年14倍-回測時間:", datetime.now() - startTime)
-        return userInfo._TempResultDraw.Data
+        return userInfo
 
-    def backtest_monthRP_Up(self, mainParament: RecordBackTestParameter):
+    def backtest_monthRP_Up(self, mainParament: RecordBackTestParameter, folderName: str = "Datafiles/monthRP_Up/"):
         """
         # 月營收增高
         # https://www.finlab.tw/%e4%b8%89%e7%a8%ae%e6%9c%88%e7%87%9f%e6%94%b6%e9%80%b2%e9%9a%8e%e7%9c%8b%e6%b3%95/#ji_ji_xuan_gu_cheng_zhang_fa
@@ -446,6 +451,7 @@ class BackTestStock:
                 mainParament.money_start, mainParament.date_start, mainParament.date_end
             ),
             OriginalStockByYahoo(),
+            folderName
         )
         external_data = ExternalDataFactory.Get_instance(ExternalDataTypeEnum.Normal)
         All_data = external_data.get_stock_history(
@@ -497,7 +503,7 @@ class BackTestStock:
             else:
                 Temp_change = Temp_change - 1
         # 最後總結算----------------------------
-        MonthRpUpInOutStrategy.Finish()
+        MonthRpUpInOutStrategy.Finish(folderName)
         userInfo.RunFinish()
         Temp_alldata = Tools.MixDataFrames(
             {
@@ -509,6 +515,6 @@ class BackTestStock:
         Temp_alldata = Tools.MixDataFrames(
             {"all": Temp_alldata, "userinfo": userInfo._TempResultAll.Data}, "date"
         )
-        Temp_alldata.to_csv("backtestAll.csv")
+        Temp_alldata.to_csv(folderName + "backtestAll.csv")
         print("月營收增高-回測時間:", datetime.now() - startTime)
-        return userInfo._TempResultDraw.Data
+        return userInfo

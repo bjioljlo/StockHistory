@@ -3,11 +3,11 @@ from datetime import datetime, timedelta
 import pandas as pd
 import twstock
 
-import InfomationType as info
-import Tools
+import Common.InfomationType as info
+import Common.Tools as Tools
 from FilterService import All_Stock_Filters_fuc, GetStockData, OriginalStockByYahoo
 from Model.Model import TModel
-from Parameter import RecordPickParameter
+from Common.Parameter import RecordPickParameter
 
 
 class Model_pick(TModel):
@@ -233,7 +233,7 @@ class Model_pick(TModel):
         volume_date = date
         for i in range(12):
             try:
-                this = GetStockData.PLA_RP.get_ALL_Report(volume_date)
+                this = GetStockData.PLA_RP.get_ALL_Report(volume_date, base_today=volume_date)
                 if this.empty:
                     volume_date = Tools.changeDateMonth(volume_date, -1)
                     continue
@@ -247,11 +247,11 @@ class Model_pick(TModel):
         this2 = this["營業利益率(%)"] > float(OPR)
         resultAllFS1 = this[this1 & this2]
 
-        this = GetStockData.BS_RP.get_ALL_Report(volume_date)
+        this = GetStockData.BS_RP.get_ALL_Report(volume_date, base_today=volume_date)
         this1 = this["每股參考淨值"] > float(RPS)
         resultAllFS2 = this[this1]
 
-        this = GetStockData.CPL_RP.get_ALL_Report(volume_date)
+        this = GetStockData.CPL_RP.get_ALL_Report(volume_date, base_today=volume_date)
         this1 = this["基本每股盈餘（元）"] > float(EPS)
         resultAllFS3 = this[this1]
 

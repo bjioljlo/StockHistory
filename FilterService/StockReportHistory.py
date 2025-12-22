@@ -5,8 +5,8 @@ from datetime import datetime
 import pandas
 from pandas import DataFrame, Series
 
-import InfomationType as info
-import Tools
+import Common.InfomationType as info
+import Common.Tools as Tools
 from GetExternalDataService import IGetExternalData
 
 from .StockHistory import OriginalStock
@@ -34,13 +34,13 @@ class TReport(IReport):
         return self._name
 
     @abstractmethod
-    def get_ALL_Report(self, date) -> DataFrame:
+    def get_ALL_Report(self, date, base_today=None) -> DataFrame:
         raise NotImplementedError(
             "{} is virutal! Must be overwrited.".format(sys._getframe().f_code.co_name)
         )
 
-    def get_ReportByNumber(self, date, number: int) -> Series:
-        Temp = self.get_ALL_Report(date)
+    def get_ReportByNumber(self, date, number: int, base_today=None) -> Series:
+        Temp = self.get_ALL_Report(date, base_today=base_today)
         try:
             Temp_Result = Temp[Temp.index == number]
             if Temp_Result.empty:
@@ -53,16 +53,16 @@ class TReport(IReport):
                 print("".join([str(date), "的", str(number), "公司尚未成立"]))
             return DataFrame()
 
-    def get_ReportByType(self, date, _type: info.StrEnum) -> Series:
-        Temp = self.get_ALL_Report(date)
+    def get_ReportByType(self, date, _type: info.StrEnum, base_today=None) -> Series:
+        Temp = self.get_ALL_Report(date, base_today=base_today)
         try:
             return Temp[_type.value]
         except Exception:
             print("".join([str(date), "的", self._name, "表沒出"]))
             return DataFrame()
 
-    def get_ReportByTypeAndNumber(self, date, _type: info.StrEnum, number: int):
-        Temp = self.get_ReportByType(date, _type)
+    def get_ReportByTypeAndNumber(self, date, _type: info.StrEnum, number: int, base_today=None):
+        Temp = self.get_ReportByType(date, _type, base_today=base_today)
         try:
             return Temp[number]
         except Exception:
@@ -95,9 +95,11 @@ class Season_Report(AllStockReport):
         super().__init__(name, Unit, GetExternal)
         self._FS_type = _FS_type
 
-    def get_ALL_Report(self, date) -> DataFrame:
+    def get_ALL_Report(self, date, base_today=None) -> DataFrame:
+        import Common.Tools as Tools
+        safe_date = Tools.get_latest_season_report_date(date, base_today)
         return self._main_GetExternalData.get_allstock_financial_statement(
-            date, self._FS_type
+            safe_date, self._FS_type
         )
 
 
@@ -111,15 +113,19 @@ def SeasonReportFactory(
 class Month_Report(AllStockReport):
     """以月為單位的指標歷史資料"""
 
-    def get_ALL_Report(self, date):
-        return self._main_GetExternalData.get_allstock_monthly_report(date)
+    def get_ALL_Report(self, date, base_today=None):
+        import Common.Tools as Tools
+        safe_date = Tools.get_latest_monthly_report_date(date, base_today)
+        return self._main_GetExternalData.get_allstock_monthly_report(safe_date)
 
 
 class Day_Report(AllStockReport):
     """以日為單位的指標歷史資料"""
 
-    def get_ALL_Report(self, date):
-        return self._main_GetExternalData.get_allstock_yield(date)
+    def get_ALL_Report(self, date, base_today=None):
+        import Common.Tools as Tools
+        safe_date = Tools.get_latest_daily_report_date(date, base_today)
+        return self._main_GetExternalData.get_allstock_yield(safe_date)
 
     def Next_date(self, date):
         date = Tools.backWorkDays(date, self._Unit)
@@ -132,7 +138,8 @@ class ADL_Report(AllStockReport):
     """以日為單位的騰落指標歷史資料(AD)"""
 
     def get_ALL_Report(self, date):
-        return self._main_GetExternalData.get_stock_AD_index(date)
+        # The date parameter is ignored to fetch the full history for cumsum calculation.
+        return self._main_GetExternalData.get_full_ad_index()
 
     def Next_date(self, date):
         date = Tools.backWorkDays(date, self._Unit)
@@ -156,10 +163,10 @@ class ROE_Indicator(Indicator):
         self.CPL = CPL_RP
         self.BS = BS_RP
 
-    def get_ALL_Report(self, date) -> DataFrame:
+    def get_ALL_Report(self, date, base_today=None) -> DataFrame:
         table_result = DataFrame()
-        table_CPL = self.CPL.get_ReportByType(date, info.CPL_type.type_0)
-        table_BS = self.BS.get_ReportByType(date, info.BS_type.type_3)
+        table_CPL = self.CPL.get_ReportByType(date, info.CPL_type.type_0, base_today=base_today)
+        table_BS = self.BS.get_ReportByType(date, info.BS_type.type_3, base_today=base_today)
         if table_BS.empty or table_CPL.empty:
             return DataFrame()
         table_result[self._name] = round((table_CPL / table_BS), 4) * 100
@@ -173,10 +180,10 @@ class FreeCF_Indicator(Indicator):
         super().__init__(name, SCF_RP._Unit)
         self.SCF = SCF_RP
 
-    def get_ALL_Report(self, date) -> DataFrame:
+    def get_ALL_Report(self, date, base_today=None) -> DataFrame:
         table_result = DataFrame()
-        table_ICF = self.SCF.get_ReportByType(date, info.SCF_type.ICF)
-        table_OCF = self.SCF.get_ReportByType(date, info.SCF_type.OCF)
+        table_ICF = self.SCF.get_ReportByType(date, info.SCF_type.ICF, base_today=base_today)
+        table_OCF = self.SCF.get_ReportByType(date, info.SCF_type.OCF, base_today=base_today)
         if table_ICF.empty or table_OCF.empty:
             return DataFrame()
         table_result[self._name] = table_ICF + table_OCF
@@ -190,10 +197,10 @@ class Debt_Indicator(Indicator):
         super().__init__(name, BS_RP._Unit)
         self.BS = BS_RP
 
-    def get_ALL_Report(self, date) -> DataFrame:
+    def get_ALL_Report(self, date, base_today=None) -> DataFrame:
         table_result = DataFrame()
-        table_Assets = self.BS.get_ReportByType(date, info.BS_type.type_0)
-        table_Debt = self.BS.get_ReportByType(date, info.BS_type.type_1)
+        table_Assets = self.BS.get_ReportByType(date, info.BS_type.type_0, base_today=base_today)
+        table_Debt = self.BS.get_ReportByType(date, info.BS_type.type_1, base_today=base_today)
         if table_Debt.empty or table_Assets.empty:
             return DataFrame()
         table_result[self._name] = table_Debt / table_Assets
@@ -207,11 +214,11 @@ class MR_Growth_Indicator(Indicator):
         super().__init__(name, monthRP._Unit)
         self.monthRP = monthRP
 
-    def get_ALL_Report(self, date):
+    def get_ALL_Report(self, date, base_today=None):
         data_result = DataFrame()
-        MR_now = self.monthRP.get_ReportByType(date, info.Month_type.MR)
+        MR_now = self.monthRP.get_ReportByType(date, info.Month_type.MR, base_today=base_today)
         MR_old = self.monthRP.get_ReportByType(
-            Tools.changeDateMonth(date, -12), info.Month_type.MR
+            Tools.changeDateMonth(date, -12), info.Month_type.MR, base_today=base_today
         )
         if MR_now.empty or MR_old.empty:
             return DataFrame()
@@ -226,11 +233,11 @@ class SR_Growth_Indicator(Indicator):
         super().__init__(name, PLA_RP._Unit)
         self.PLA_RP = PLA_RP
 
-    def get_ALL_Report(self, date):
+    def get_ALL_Report(self, date, base_today=None):
         data_result = DataFrame()
-        SR_now = self.PLA_RP.get_ReportByType(date, info.PLA_type.type_0)
+        SR_now = self.PLA_RP.get_ReportByType(date, info.PLA_type.type_0, base_today=base_today)
         SR_old = self.PLA_RP.get_ReportByType(
-            Tools.changeDateMonth(date, -12), info.PLA_type.type_0
+            Tools.changeDateMonth(date, -12), info.PLA_type.type_0, base_today=base_today
         )
         if SR_now.empty or SR_old.empty:
             return DataFrame()
@@ -245,11 +252,11 @@ class OM_Growth_Indicator(Indicator):
         super().__init__(name, PLA_RP._Unit)
         self.PLA = PLA_RP
 
-    def get_ALL_Report(self, date) -> DataFrame:
+    def get_ALL_Report(self, date, base_today=None) -> DataFrame:
         data_result = DataFrame()
-        OM_now = self.PLA.get_ReportByType(date, info.PLA_type.type_2)
+        OM_now = self.PLA.get_ReportByType(date, info.PLA_type.type_2, base_today=base_today)
         OM_old = self.PLA.get_ReportByType(
-            Tools.changeDateMonth(date, -12), info.PLA_type.type_2
+            Tools.changeDateMonth(date, -12), info.PLA_type.type_2, base_today=base_today
         )
         if OM_now.empty or OM_old.empty:
             return DataFrame()
@@ -267,10 +274,10 @@ class PEG_Indicator(Indicator):
         self.Yield = Yield_RP
         self.OM_Growth = OM_Growth
 
-    def get_ALL_Report(self, date) -> DataFrame:
+    def get_ALL_Report(self, date, base_today=None) -> DataFrame:
         table_result = DataFrame()
-        table_PE = self.Yield.get_ReportByType(date, info.Day_type.PER)
-        table_OM_Growth = self.OM_Growth.get_ALL_Report(date)
+        table_PE = self.Yield.get_ReportByType(date, info.Day_type.PER, base_today=base_today)
+        table_OM_Growth = self.OM_Growth.get_ALL_Report(date, base_today=base_today)
         if table_OM_Growth.empty or table_PE.empty:
             return DataFrame()
         table_result[self._name] = table_PE / table_OM_Growth[self.OM_Growth._name]
@@ -285,10 +292,10 @@ class OCFPerShare_Indicator(Indicator):
         self.SCF_RP = SCF_RP
         self.BS_RP = BS_RP
 
-    def get_ALL_Report(self, date):
+    def get_ALL_Report(self, date, base_today=None):
         table_result = DataFrame()
-        table_OCF = self.SCF_RP.get_ReportByType(date, info.SCF_type.OCF)
-        table_BS = self.BS_RP.get_ReportByType(date, info.BS_type.type_2)
+        table_OCF = self.SCF_RP.get_ReportByType(date, info.SCF_type.OCF, base_today=base_today)
+        table_BS = self.BS_RP.get_ReportByType(date, info.BS_type.type_2, base_today=base_today)
         if table_OCF.empty or table_BS.empty:
             return DataFrame()
         table_result[self._name] = table_OCF / table_BS
@@ -311,11 +318,11 @@ class PCF_Indicator(Indicator):
         self._StockPrice = StockPrice
         self._main_GetExternalData = GetExternal
 
-    def get_ALL_Report(self, date):
+    def get_ALL_Report(self, date, base_today=None):
         if self._number is None:
-            raise TypeError("please set number! type now:" + self._number)
+            raise TypeError("please set number! type now:" + str(self._number))
         table_result = DataFrame()
-        table_OCFPerShare = self.OCFPerShare.get_ReportByNumber(date, self._number)
+        table_OCFPerShare = self.OCFPerShare.get_ReportByNumber(date, self._number, base_today=base_today)
         if table_OCFPerShare.empty:
             return DataFrame()
         self._StockPrice.number = self._number
@@ -354,9 +361,9 @@ class Original_Indicator(Indicator):
         self._Report = Report
         self._type = type
 
-    def get_ALL_Report(self, date) -> DataFrame:
+    def get_ALL_Report(self, date, base_today=None) -> DataFrame:
         table_result = DataFrame()
-        table_temp = self._Report.get_ReportByType(date, self._type)
+        table_temp = self._Report.get_ReportByType(date, self._type, base_today=base_today)
         if table_temp.empty:
             return DataFrame()
         table_result[self._name] = table_temp
@@ -379,34 +386,41 @@ class ADL_Indicator(Indicator):
     def __init__(self, name: str, AD_RP: ADL_Report) -> None:
         super().__init__(name, AD_RP._Unit)
         self._AD_RP = AD_RP
-        self._endDay: datetime = datetime.strptime("2023-9-25", "%Y-%m-%d")
+        self._adl_data = None  # Cache for the calculated ADL data
 
-    def get_ALL_Report(self, date):
-        data_result = DataFrame(columns=["Date", self._name]).set_index("Date")
-        ADL_yesterday: int
-        ADL_now = self._AD_RP.get_ALL_Report(date)
-        if ADL_now.empty:
-            return data_result
-        if date == self._endDay:
-            Temp = ADL_now["上漲"][date] - ADL_now["下跌"][date]
-            data_result = pandas.concat(
-                [
-                    data_result,
-                    DataFrame({"Date": [date], self._name: [Temp]}).set_index("Date"),
-                ]
-            )
-        else:
-            ADL_yesterday = ADL_Indicator(self._name, self._AD_RP).get_ALL_Report(
-                self.Next_date(date)
-            )[self._name][self.Next_date(date)]
-            Temp = ADL_yesterday + (ADL_now["上漲"][date] - ADL_now["下跌"][date])
-            data_result = pandas.concat(
-                [
-                    data_result,
-                    DataFrame({"Date": [date], self._name: [Temp]}).set_index("Date"),
-                ]
-            )
-        return data_result
+    def _calculate_adl(self):
+        """Fetches all up/down data and calculates the cumulative ADL."""
+        print("Calculating full ADL data...")
+        # Get the full table of up/down data
+        daily_ad_data = self._AD_RP.get_ALL_Report(None)
+        if daily_ad_data.empty:
+            self._adl_data = pandas.DataFrame(columns=[self._name])
+            return
+
+        # Ensure data is sorted by date
+        daily_ad_data = daily_ad_data.sort_index()
+
+        # Calculate the daily difference
+        daily_diff = daily_ad_data["上漲"] - daily_ad_data["下跌"]
+        
+        # Calculate the cumulative sum
+        adl_series = daily_diff.cumsum()
+        
+        self._adl_data = pandas.DataFrame(adl_series)
+        self._adl_data.columns = [self._name]
+        print("Full ADL data calculated and cached.")
+
+    def get_ALL_Report(self, date, base_today=None):
+        # Calculate and cache the full ADL data if not already done
+        if self._adl_data is None:
+            self._calculate_adl()
+
+        # Return the specific date's data from the cached DataFrame
+        if self._adl_data.empty or date not in self._adl_data.index:
+            return pandas.DataFrame()
+        
+        # Return as a DataFrame with the same structure as the original code
+        return self._adl_data.loc[[date]]
 
     def Next_date(self, date):
         return self._AD_RP.Next_date(date)
@@ -418,16 +432,41 @@ class ADLs_Indicator(Indicator):
     def __init__(self, name: str, AD_RP: ADL_Report) -> None:
         super().__init__(name, AD_RP._Unit)
         self._AD_RP = AD_RP
+        self._adls_data = None  # Cache for the calculated ADLS data
 
-    def get_ALL_Report(self, date):
-        data_result = DataFrame()
-        ADLs_today = self._AD_RP.get_ALL_Report(date)
-        if ADLs_today.empty:
-            return DataFrame()
-        data_result[self._name] = (
-            ADLs_today["上漲"] / (ADLs_today["上漲"] + ADLs_today["下跌"])
-        ) - 0.5
-        return data_result
+    def _calculate_adls(self):
+        """Fetches all up/down data and calculates the ADL Ratio for all dates."""
+        print("Calculating full ADLS data...")
+        daily_ad_data = self._AD_RP.get_ALL_Report(None)
+        if daily_ad_data.empty:
+            self._adls_data = pandas.DataFrame(columns=[self._name])
+            return
+
+        # Ensure data is sorted by date
+        daily_ad_data = daily_ad_data.sort_index()
+
+        # Calculate the ratio
+        up = daily_ad_data["上漲"]
+        down = daily_ad_data["下跌"]
+        total = up + down
+        # Avoid division by zero
+        ratio = (up / total.where(total != 0, 1)) - 0.5
+        
+        self._adls_data = pandas.DataFrame(ratio)
+        self._adls_data.columns = [self._name]
+        print("Full ADLS data calculated and cached.")
+
+    def get_ALL_Report(self, date, base_today=None):
+        # Calculate and cache the full ADLS data if not already done
+        if self._adls_data is None:
+            self._calculate_adls()
+
+        # Return the specific date's data from the cached DataFrame
+        if self._adls_data.empty or date not in self._adls_data.index:
+            return pandas.DataFrame()
+        
+        # Return as a DataFrame with the same structure as the original code
+        return self._adls_data.loc[[date]]
 
     def Next_date(self, date):
         return self._AD_RP.Next_date(date)

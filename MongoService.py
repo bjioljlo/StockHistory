@@ -5,7 +5,7 @@ import pymongo
 import twstock  # 抓取台灣股票資料套件
 from pymongo import MongoClient, database
 
-import Tools
+import Common.Tools as Tools
 
 
 class MongoService:
@@ -13,8 +13,9 @@ class MongoService:
         self.mongoConnect: MongoClient = None
         self.mongodb: database = None
 
-    def RunMongoDB(self):
-        temp_thread = threading.Thread(target=self._SetMongoServer, args=["Demo"])
+    def RunMongoDB(self, config):
+        db_name = config['databasename']
+        temp_thread = threading.Thread(target=self._SetMongoServer, args=[db_name, config])
         temp_thread.start()
 
     def saveTable(self, _name: str, _df=pd.DataFrame()):
@@ -31,9 +32,9 @@ class MongoService:
             print("Mongo Error {}".format(e.args))
             return dataframe
 
-    def _SetMongoServer(self, db_name: str):
+    def _SetMongoServer(self, db_name: str, config):
         print("SetMongoServer")
-        _connectStr = "mongodb://localhost:27017/"
+        _connectStr = f"mongodb://{config['host']}:{config['port']}/"
         self.mongoConnect = pymongo.MongoClient(_connectStr)
         self.mongodb = self.mongoConnect[db_name]
 

@@ -7,10 +7,10 @@ from typing import Callable
 import twstock as ts  # 抓取台灣股票資料套件
 from pandas import Series
 
-from StockInfoData import StockInfoData, StockInfoSignalData
+from Common.StockInfoData import StockInfoData, StockInfoSignalData
 
-from .BacktestFilter import IBacktestFilter
-from .BacktestSignal import IBacktestSignal
+from .BackTestFilter import IBacktestFilter
+from .BackTestSignal import IBacktestSignal
 
 BuyStockEvent = Callable[[str], bool]
 

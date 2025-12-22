@@ -6,8 +6,8 @@ import pandas as pd
 from FilterService.StockHistory import OriginalStock
 from BackTestService.BackTestFilterData import IBackTestFilterData
 from BackTestService.BackTestInfoData import IBackTestInfoData
-from InfomationType import stock_data_kind
-import Tools
+from Common.InfomationType import stock_data_kind
+import Common.Tools as Tools
 
 
 class IBackTestInOutStrategy(ABC):
@@ -51,11 +51,10 @@ class IBackTestInOutStrategy(ABC):
         )
 
     @abstractmethod
-    def Finish(self):
+    def Finish(self, folderName: str = ""):
         raise NotImplementedError(
             "{} is virutal! Must be overwrited.".format(sys._getframe().f_code.co_name)
         )
-
 
 class TBacktestInOutStrategy(IBackTestInOutStrategy):
     def __init__(
@@ -173,16 +172,15 @@ class TBacktestInOutStrategy(IBackTestInOutStrategy):
             )
             self._userInfo.RecordUserInfo()
 
-    def Finish(self):
+    def Finish(self, folderName: str = ""):
         self._result_pick.set_index("date", inplace=True)
         if not self._buy_data.empty:
             buy_data = self._buy_data.set_index("date")
-            buy_data.to_csv("buy.csv")
+            buy_data.to_csv(folderName + "buy.csv")
         if not self._sell_data.empty:
             sell_data = self._sell_data.set_index("date")
-            sell_data.to_csv("sell.csv")
-
-
+            sell_data.to_csv(folderName + "sell.csv")
+            
 class PERandPBR_BackTestInOutStrategy(TBacktestInOutStrategy):
     def Run(self):
         super().Run()
@@ -197,7 +195,6 @@ class PERandPBR_BackTestInOutStrategy(TBacktestInOutStrategy):
 
     def In(self):
         super().In()
-
 
 class PEG_BackTestInOutStrategy(TBacktestInOutStrategy):
     def __init__(
@@ -300,16 +297,6 @@ class PEG_BackTestInOutStrategy(TBacktestInOutStrategy):
             )
             self._userInfo.RecordUserInfo()
 
-    def Finish(self):
-        self._result_pick.set_index("date", inplace=True)
-        if not self._buy_data.empty:
-            buy_data = self._buy_data.set_index("date")
-            buy_data.to_csv("buy.csv")
-        if not self._sell_data.empty:
-            sell_data = self._sell_data.set_index("date")
-            sell_data.to_csv("sell.csv")
-
-
 class KD_BackTestInOutStrategy(TBacktestInOutStrategy):
     def Run(self):
         self._has_trade = False
@@ -399,21 +386,11 @@ class KD_BackTestInOutStrategy(TBacktestInOutStrategy):
             )
             self._userInfo.RecordUserInfo()
 
-    def Finish(self):
-        self._result_pick.set_index("date", inplace=True)
-        if not self._buy_data.empty:
-            buy_data = self._buy_data.set_index("date")
-            buy_data.to_csv("buy.csv")
-        if not self._sell_data.empty:
-            sell_data = self._sell_data.set_index("date")
-            sell_data.to_csv("sell.csv")
-
-
 class Regular_backTestInOutStrategy(TBacktestInOutStrategy):
     def In(self):
         self._buy_numbers = self._backTestFilterData.ShouldBuyStocks()
         for number in self._buy_numbers:
-            self._original_stock.number = int(number)
+            self._original_stock.number = number
             price = self._original_stock.get_PriceByDateAndType(
                 self._userInfo.BaseInfoData.now_day, stock_data_kind.Close
             )
@@ -421,7 +398,7 @@ class Regular_backTestInOutStrategy(TBacktestInOutStrategy):
                 self._userInfo.BaseInfoData.now_money, price
             )
             if self._userInfo.BuyStock(
-                str(self._original_stock.number), Temp_stockNumber
+                self._original_stock.number, Temp_stockNumber
             ):
                 self._has_trade = True
                 

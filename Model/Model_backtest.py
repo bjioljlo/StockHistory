@@ -1,8 +1,10 @@
-import Globals
-from BackTestService import BackTestStock
+import Common.Globals as Globals
+from BackTestService.BackTestStock import BackTestStock
 from DrawFigur import DrawFigur
 from Model.Model import TModel
-from Parameter import RecordBackTestParameter
+from Common.Parameter import RecordBackTestParameter
+import os
+import pandas as pd
 
 
 class Model_backtest(TModel):
@@ -22,65 +24,52 @@ class Model_backtest(TModel):
             _recordBackTestParameter.check_ROE_pick,
         )
 
+    def _run_backtest(self, func, folder_prefix: str, _recordBackTestParameter: RecordBackTestParameter, resultID:int, set_check: bool = True):
+        filePath = f"{folder_prefix}_{str(_recordBackTestParameter.date_start.date())}_{str(_recordBackTestParameter.date_end.date())}/"
+        if not os.path.exists(filePath):
+            os.makedirs(filePath)
+        if set_check:
+            self.Set_BackTestCheck(_recordBackTestParameter)
+        Globals.THREADPOOL.submit_task(
+            func,
+            lambda data: _run_backTestcallBack(folder_prefix, data, outputFolder=filePath),
+            mainParament=_recordBackTestParameter,
+            folderName=filePath,
+        )
+        def _run_backTestcallBack(username, data, outputFolder):
+            print("回測結束!")
+            filterdate = data._TempTradeInfo.Data.tail(1).index[0]
+            filterData = data._TempTradeInfo.Data.index == filterdate
+            tempData = data._TempTradeInfo.Data[filterData]
+            
+            new_user_data = {
+                'id': [resultID],
+                'username': [username],
+                'password': ['1234'], 
+                'stocks': [(tempData['號碼'] + '.tw').to_json(orient='records')] 
+            }
+            user_df = pd.DataFrame(new_user_data).reset_index()
+            Globals.MYSQL.upsert_data("user_infos", user_df, key_columns=['username']);  # 回測完後重新連線
+            self.df.draw_BackTestResult(data._TempResultDraw.Data, outputFolder),
+
+
     # 第3頁的UI
     def backtest(
         self, _recordBackTestParameter: RecordBackTestParameter
-    ):  # 月營收回測開始紐
-        # if (
-        #     _recordBackTestParameter.check_monthRP_pick
-        #     == _recordBackTestParameter.check_PER_pick
-        #     == _recordBackTestParameter.check_volume_pick
-        #     is False
-        # ):
-        #     print("都沒選是要回測個毛線！")
-        #     return
-        # elif _recordBackTestParameter.volumeDays < 2:
-        #     print("測均線給1天是怎樣!")
-        #     return
-        # else:
-        #     self.Set_BackTestCheck(_recordBackTestParameter)
-        Globals.THREADPOOL.submit_task(
-            self.backtestFunc.backtest_monthRP_Up,
-            self.df.draw_BackTestResult,
-            mainParament=_recordBackTestParameter,
-        )
-        
-    def backtest2(self, _recordBackTestParameter: RecordBackTestParameter):  # PER PBR
-        self.Set_BackTestCheck(_recordBackTestParameter)
-        Globals.THREADPOOL.submit_task(
-            self.backtestFunc.backtest_PERandPBR,
-            self.df.draw_BackTestResult,
-            mainParament=_recordBackTestParameter,
-        )
+    ):
+        self._run_backtest(self.backtestFunc.backtest_monthRP_Up, "monthRP_Up", _recordBackTestParameter, 5, set_check=False)
 
-    def backtest3(self, _recordBackTestParameter: RecordBackTestParameter):  # 定期定額
-        self.Set_BackTestCheck(_recordBackTestParameter)
-        Globals.THREADPOOL.submit_task(
-            self.backtestFunc.backtest_Regular_quota,
-            self.df.draw_BackTestResult,
-            mainParament=_recordBackTestParameter,
-        )
+    def backtest2(self, _recordBackTestParameter: RecordBackTestParameter):
+        self._run_backtest(self.backtestFunc.backtest_PERandPBR, "PERandPBR", _recordBackTestParameter, 6)
 
-    def backtest4(self, _recordBackTestParameter: RecordBackTestParameter):  # 創新高
-        self.Set_BackTestCheck(_recordBackTestParameter)
-        Globals.THREADPOOL.submit_task(
-            self.backtestFunc.backtest_Record_high,
-            self.df.draw_BackTestResult,
-            mainParament=_recordBackTestParameter,
-        )
+    def backtest3(self, _recordBackTestParameter: RecordBackTestParameter):
+        self._run_backtest(self.backtestFunc.backtest_Regular_quota, "Regular_quota", _recordBackTestParameter, 7)
 
-    def backtest5(self, _recordBackTestParameter: RecordBackTestParameter):  # KD篩選
-        self.Set_BackTestCheck(_recordBackTestParameter)
-        Globals.THREADPOOL.submit_task(
-            self.backtestFunc.backtest_KD_pick,
-            self.df.draw_BackTestResult,
-            mainParament=_recordBackTestParameter,
-        )
+    def backtest4(self, _recordBackTestParameter: RecordBackTestParameter):
+        self._run_backtest(self.backtestFunc.backtest_Record_high, "Record_high", _recordBackTestParameter, 8)
+
+    def backtest5(self, _recordBackTestParameter: RecordBackTestParameter):
+        self._run_backtest(self.backtestFunc.backtest_KD_pick, "KD_pick", _recordBackTestParameter, 9)
 
     def backtest6(self, _recordBackTestParameter: RecordBackTestParameter):  # PEG篩選
-        self.Set_BackTestCheck(_recordBackTestParameter)
-        Globals.THREADPOOL.submit_task(
-            self.backtestFunc.backtest_PEG_pick,
-            self.df.draw_BackTestResult,
-            mainParament=_recordBackTestParameter,
-        )
+        self._run_backtest(self.backtestFunc.backtest_PEG_pick, "PEG_pick", _recordBackTestParameter, 10)

@@ -1,4 +1,4 @@
-import Globals
+import Common.Globals as Globals
 from StockInfos import UserInfoDatas
 from UpdateStockService import UpdateStockService
 

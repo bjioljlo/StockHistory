@@ -4,10 +4,10 @@ from datetime import datetime, timedelta
 
 from pandas import DataFrame
 
-import Tools
+import Common.Tools as Tools
 from FilterService import OriginalStock
-from InfomationType import stock_data_kind
-from StockInfoData import BaseInfoData
+from Common.InfomationType import stock_data_kind
+from Common.StockInfoData import BaseInfoData
 
 from .BackTestRecord import BackTestRecord_indexWithDate, IBackTestRecord
 from .StockInfoDataInHand import IStockInfoDataInHand, StockInfoDataInHandFactory
@@ -91,20 +91,20 @@ class TBackTestInfoData(IBackTestInfoData):
     """回測資訊實作"""
 
     def __init__(
-        self, _baseInfoData: BaseInfoData, _getStockPrice: OriginalStock
+        self, _baseInfoData: BaseInfoData, _getStockPrice: OriginalStock, _folderName: str
     ) -> None:
         super(TBackTestInfoData, self).__init__()
         self._BaseInfoData: BaseInfoData = _baseInfoData
         self._HandleStock: dict[str, IStockInfoDataInHand] = {}  # 手持股票
         self._GetStockPrice: OriginalStock = _getStockPrice
         self._TempResultDraw: IBackTestRecord = BackTestRecord_indexWithDate(
-            ["date", "資產比例"], "backtest_data"
+            ["date", "資產比例"],  _folderName + "backtest_data"
         )
         self._TempResultAll: IBackTestRecord = BackTestRecord_indexWithDate(
-            ["date", "股票資產", "剩餘現金", "總資產"], "backtest_asset"
+            ["date", "股票資產", "剩餘現金", "總資產"], _folderName + "backtest_asset"
         )
         self._TempTradeInfo: IBackTestRecord = BackTestRecord_indexWithDate(
-            ["date", "號碼", "數量", "均價"], "backtest_trade"
+            ["date", "號碼", "數量", "均價"],  _folderName + "backtest_trade"
         )
 
     def _GetUserStockAsset(self) -> int:
