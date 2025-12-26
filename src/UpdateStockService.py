@@ -12,6 +12,7 @@ from sqlalchemy import text
 
 from src.Common import InfomationType as info
 from src.Common import Tools
+from src.Common.DataValidationService import DataValidationService
 from src.ExternalService.ExternalDataFactory import ExternalDataFactory
 from src.MongoService import MongoService
 from src.ReadLoadSystem import ReadLoadSystem
@@ -20,13 +21,14 @@ from src.StockInfos import UserInfoDatas
 
 
 class UpdateStockService:
-    def __init__(self, sql_service:SqlService, mongo_service: MongoService, read_load_system:ReadLoadSystem) -> None:
+    def __init__(self, sql_service:SqlService, mongo_service: MongoService, read_load_system:ReadLoadSystem, config: dict = None) -> None:
         self.isUpdating: bool = False
         self._sql_service = sql_service
         self._mongo_service = mongo_service
         self._read_load_system = read_load_system
-        self._getExternalFactory = ExternalDataFactory( 
+        self._getExternalFactory = ExternalDataFactory(
             self._sql_service, self._mongo_service, self._read_load_system)
+        self._data_validator = DataValidationService(config) if config else None
 
     def UpdateSP500StocksHandle(self, MainUserInfoDatas: UserInfoDatas, callback=None):
         self.__RunUpdate_sp500(MainUserInfoDatas, callback)

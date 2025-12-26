@@ -78,6 +78,17 @@ services:
     environment:
       # 建議實際值放在 .env 檔案中
       PYTHONUNBUFFERED: "1"
+      APP_ENV: "${APP_ENV:-production}"
+      MYSQL_USER: "${MYSQL_USER}"
+      MYSQL_PASSWORD: "${MYSQL_PASSWORD}"
+      MYSQL_HOST: "mysqlserver"
+      MYSQL_PORT: "3306"
+      MYSQL_DATABASE: "${MYSQL_DATABASE:-stock_data}"
+      MONGO_HOST: "mongoserver"
+      MONGO_PORT: "27017"
+      MONGO_DATABASE: "${MONGO_DATABASE:-stock_data}"
+      MONGO_USERNAME: "${MONGO_USERNAME:-}"
+      MONGO_PASSWORD: "${MONGO_PASSWORD:-}"
     networks:
       - mybridge
     working_dir: /app

@@ -6,9 +6,11 @@ import pandas as pd
 import yfinance as yf
 from flask import Flask
 from flask_sqlalchemy import SQLAlchemy
-from sqlalchemy import inspect
+from sqlalchemy import inspect, create_engine
+from sqlalchemy.pool import QueuePool
 
 from src.Common import Tools
+from src.Common.ConfigService import load_config, get_config_path
 
 
 class SqlService:
@@ -180,22 +182,20 @@ class SqlService:
                 print("Update stocks " + name + " OK!")
 
     def __SetMysqlServer(self):
-        print("Loading database configuration from config.yml")
-        
+        print("Loading database configuration...")
+
         try:
-            with open('config.yml', 'r', encoding='utf-8') as f:
-                config = yaml.safe_load(f)
-        except FileNotFoundError:
-            print("Error: config.yml not found in the project root.")
-            return
-        except yaml.YAMLError as e:
-            print(f"Error parsing config.yml: {e}")
+            config = load_config(get_config_path())
+        except Exception as e:
+            print(f"Error loading configuration: {e}")
             return
 
         db_config = config.get('database', {})
         db_type = db_config.get('type', 'mysql')
 
         uri = None
+        pool_config = {}
+
         if db_type == 'mysql':
             mysql_config = db_config.get('mysql', {})
             user = mysql_config.get('user')
@@ -203,7 +203,18 @@ class SqlService:
             host = mysql_config.get('host')
             port = mysql_config.get('port')
             db_name = mysql_config.get('databasename')
+
+            # Connection pool settings
+            pool_config = {
+                'pool_size': mysql_config.get('pool_size', 5),
+                'max_overflow': mysql_config.get('max_overflow', 10),
+                'pool_timeout': mysql_config.get('pool_timeout', 30),
+                'pool_recycle': mysql_config.get('pool_recycle', 3600),
+                'pool_pre_ping': True
+            }
+
             uri = f"mysql+pymysql://{user}:{password}@{host}:{port}/{db_name}?local_infile=1"
+
         elif db_type == 'postgresql':
             # For PostgreSQL, you might need to run: pip install psycopg2-binary
             pg_config = db_config.get('postgresql', {})
@@ -212,18 +223,31 @@ class SqlService:
             host = pg_config.get('host')
             port = pg_config.get('port')
             db_name = pg_config.get('databasename')
+
+            # Connection pool settings for PostgreSQL
+            pool_config = {
+                'pool_size': pg_config.get('pool_size', 5),
+                'max_overflow': pg_config.get('max_overflow', 10),
+                'pool_timeout': pg_config.get('pool_timeout', 30),
+                'pool_recycle': pg_config.get('pool_recycle', 3600),
+                'pool_pre_ping': True
+            }
+
             uri = f"postgresql://{user}:{password}@{host}:{port}/{db_name}"
+
         elif db_type == 'sqlite':
             sqlite_config = db_config.get('sqlite', {})
             path = sqlite_config.get('path', 'default.db')
             uri = f"sqlite:///{path}" # Path is relative to the project root
         else:
-            print(f"Unsupported database type in config.yml: {db_type}")
+            print(f"Unsupported database type: {db_type}")
             return
-            
+
+        # Configure Flask-SQLAlchemy with connection pooling
         self.server_flask.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
         self.server_flask.config["SQLALCHEMY_DATABASE_URI"] = uri
-        
+        self.server_flask.config["SQLALCHEMY_ENGINE_OPTIONS"] = pool_config
+
         # Connect to the database
         self.MySql_server = SQLAlchemy(self.server_flask)
-        print(f"Successfully configured database: {db_type}")
+        print(f"Successfully configured database: {db_type} with connection pooling")

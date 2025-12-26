@@ -9,7 +9,7 @@ PROJECT_ROOT = os.path.dirname(CURRENT_DIR)
 if PROJECT_ROOT not in sys.path:
     sys.path.insert(0, PROJECT_ROOT)
 
-from src.Common.ConfigService import load_config
+from src.Common.ConfigService import load_config, get_config_path
 from src.Common.ConcurrentUtils import ConcurrentUtils
 from src.Controller.MediatorController import Mediator_Controller, controllers
 from src.DrawFigur import DrawFigur
@@ -22,7 +22,7 @@ from src.SqlService import SqlService
 from src.UpdateStockService import UpdateStockService
 
 app = QtWidgets.QApplication(sys.argv)
-config = load_config()
+config = load_config(get_config_path())
 
 # 1. Initialize all services
 sql_service = SqlService()
