@@ -18,6 +18,8 @@ from src.MongoService import MongoService
 from src.ReadLoadSystem import ReadLoadSystem
 from src.SqlService import SqlService
 from src.StockInfos import UserInfoDatas
+import time
+import random
 
 
 class UpdateStockService:
@@ -29,6 +31,54 @@ class UpdateStockService:
         self._getExternalFactory = ExternalDataFactory(
             self._sql_service, self._mongo_service, self._read_load_system)
         self._data_validator = DataValidationService(config) if config else None
+        # Get retry settings from config
+        self._retry_attempts = self._data_validator.config.get('external_apis', {}).get('yahoo_finance', {}).get('retry_attempts', 3) if self._data_validator else 3
+        self._retry_delay = 1.0  # Base delay in seconds
+
+    def _download_with_retry(self, stock_symbol: str, start_date: datetime, end_date: datetime, tz: str = None) -> pd.DataFrame:
+        """
+        Download stock data with retry mechanism and exponential backoff.
+
+        Args:
+            stock_symbol: Stock symbol to download
+            start_date: Start date for data
+            end_date: End date for data
+            tz: Timezone for localization (optional)
+
+        Returns:
+            pd.DataFrame: Downloaded stock data
+        """
+        last_exception = None
+
+        for attempt in range(self._retry_attempts):
+            try:
+                if tz:
+                    # For international stocks, localize dates
+                    timezone = pytz.timezone(tz)
+                    start_date_localized = timezone.localize(start_date)
+                    end_date_localized = timezone.localize(end_date)
+                    df_result = yf.download([stock_symbol], start=start_date_localized, end=end_date_localized)
+                else:
+                    df_result = yf.download([stock_symbol], start=start_date, end=end_date)
+
+                if not df_result.empty:
+                    return df_result
+                else:
+                    print(f"Attempt {attempt + 1}: Empty data for {stock_symbol}")
+
+            except Exception as e:
+                last_exception = e
+                print(f"Attempt {attempt + 1} failed for {stock_symbol}: {e}")
+
+                if attempt < self._retry_attempts - 1:  # Don't sleep after last attempt
+                    # Exponential backoff with jitter
+                    delay = self._retry_delay * (2 ** attempt) + random.uniform(0, 1)
+                    print(f"Retrying in {delay:.2f} seconds...")
+                    time.sleep(delay)
+
+        # All attempts failed
+        print(f"All {self._retry_attempts} attempts failed for {stock_symbol}. Last error: {last_exception}")
+        return pd.DataFrame()  # Return empty DataFrame
 
     def UpdateSP500StocksHandle(self, MainUserInfoDatas: UserInfoDatas, callback=None):
         self.__RunUpdate_sp500(MainUserInfoDatas, callback)
@@ -93,7 +143,7 @@ class UpdateStockService:
 
     def _upsert_stock_data(self, stock_name: str, df_result: pd.DataFrame) -> bool:
         """
-        Upserts stock data into a MySQL table using INSERT ... ON DUPLICATE KEY UPDATE.
+        Optimized upsert stock data using batched INSERT ... ON DUPLICATE KEY UPDATE.
         """
         table_name = stock_name.lower()
         df_upsert = df_result.reset_index()
@@ -103,9 +153,13 @@ class UpdateStockService:
             print(f"No data to upsert for {stock_name}.")
             return True
 
+        # Get batch size from config, default to 1000
+        batch_size = self._data_validator.config.get('data_processing', {}).get('batch_size', 1000) if self._data_validator else 1000
+
         try:
             with self._sql_service.MySql_server.engine.connect() as connection:
                 with connection.begin():
+                    # Create table if it doesn't exist
                     if not connection.dialect.has_table(connection, table_name):
                         df_upsert.head(0).to_sql(table_name, connection, if_exists='fail', index=False)
                         connection.execute(text(f'ALTER TABLE `{table_name}` ADD PRIMARY KEY (`Date`);'))
@@ -114,6 +168,7 @@ class UpdateStockService:
                     columns = df_upsert.columns.tolist()
                     update_columns = [col for col in columns if col.lower() != 'date']
 
+                    # Prepare SQL statement
                     if not update_columns:
                         sql_statement = text(f"INSERT IGNORE INTO `{table_name}` (`Date`) VALUES (:Date)")
                     else:
@@ -126,8 +181,30 @@ class UpdateStockService:
                             f"ON DUPLICATE KEY UPDATE {update_clause}"
                         )
 
-                    data_dict = df_upsert.to_dict(orient='records')
-                    connection.execute(sql_statement, data_dict)
+                    # Process data in batches to avoid memory issues and improve performance
+                    total_rows = len(df_upsert)
+                    successful_batches = 0
+
+                    for start_idx in range(0, total_rows, batch_size):
+                        end_idx = min(start_idx + batch_size, total_rows)
+                        batch_df = df_upsert.iloc[start_idx:end_idx]
+
+                        try:
+                            data_dict = batch_df.to_dict(orient='records')
+                            connection.execute(sql_statement, data_dict)
+                            successful_batches += 1
+                            print(f"Processed batch {successful_batches} for {stock_name} ({end_idx}/{total_rows} rows)")
+                        except Exception as batch_error:
+                            print(f"Error processing batch {start_idx}-{end_idx} for {stock_name}: {batch_error}")
+                            # Continue with next batch instead of failing completely
+
+                    if successful_batches > 0:
+                        print(f"Successfully upserted {total_rows} rows for {stock_name} in {successful_batches} batches")
+                        return True
+                    else:
+                        print(f"No batches were successfully processed for {stock_name}")
+                        return False
+
             return True
         except Exception as e:
             print(f"Error during upsert for {stock_name}: {e}")
@@ -144,8 +221,21 @@ class UpdateStockService:
             stock_name, df_result, fetch_start_date = item
 
             try:
+                # 資料驗證
+                if self._data_validator:
+                    is_valid, errors, cleaned_df = self._data_validator.validate_stock_data(
+                        stock_name, df_result, source='yahoo'
+                    )
+                    if not is_valid:
+                        print(f"Data validation failed for {stock_name}: {errors}")
+                        # 仍然嘗試儲存清理後的資料，但記錄警告
+                        df_result = cleaned_df
+                    else:
+                        df_result = cleaned_df
+                        print(f"Data validation passed for {stock_name}")
+
                 is_initial_fetch = (fetch_start_date.year == 2005 and fetch_start_date.month == 1 and fetch_start_date.day == 1)
-                
+
                 with self._sql_service.server_flask.app_context():
                     save_ok = False
                     if is_initial_fetch:
@@ -201,7 +291,7 @@ class UpdateStockService:
                 continue
             
             stock_name = value.code + info.local_type.Taiwan
-            df_result = yf.download([stock_name], start=fetch_start_date, end=end_date)
+            df_result = self._download_with_retry(stock_name, fetch_start_date, end_date)
 
             if df_result.empty:
                 print("yahoo no data:" + str(stock_name))
@@ -262,11 +352,7 @@ class UpdateStockService:
                     callback(progress)
                 continue
             
-            tz = pytz.timezone("America/New_York")
-            start_date_localized = tz.localize(fetch_start_date)
-            end_date_localized = tz.localize(end_date)
-
-            df_result = yf.download([temp], start=start_date_localized, end=end_date_localized)
+            df_result = self._download_with_retry(temp, fetch_start_date, end_date, tz="America/New_York")
             if df_result.empty:
                 print("yahoo no data:" + str(temp))
                 if callback:

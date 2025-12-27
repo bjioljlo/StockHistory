@@ -11,6 +11,7 @@ if PROJECT_ROOT not in sys.path:
 
 from src.Common.ConfigService import load_config, get_config_path
 from src.Common.ConcurrentUtils import ConcurrentUtils
+from src.Common.DataCleanupService import DataCleanupService
 from src.Controller.MediatorController import Mediator_Controller, controllers
 from src.DrawFigur import DrawFigur
 from src.ExternalService.ExternalDataFactory import ExternalDataFactory
@@ -40,7 +41,7 @@ external_data_factory = ExternalDataFactory(
 )
 report_services = ReportServices(external_data_factory=external_data_factory)
 
-updateStock_service = UpdateStockService(sql_service=sql_service, mongo_service=mongo_service, read_load_system=read_load_system)
+updateStock_service = UpdateStockService(sql_service=sql_service, mongo_service=mongo_service, read_load_system=read_load_system, config=config)
 schedule_service = ScheduleService(concurrent_utils=concurrent_utils, update_stockService=updateStock_service)
 
 # 2. Inject all services into the Mediator_Controller
