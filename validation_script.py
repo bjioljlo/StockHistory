@@ -216,12 +216,13 @@ class DataValidator:
         cursor = self.connection.cursor()
 
         try:
-            # 檢查 OHLC 邏輯
+            # 檢查 OHLC 邏輯：確保 open 和 close 在 [low, high] 區間內
             cursor.execute("""
                 SELECT COUNT(*) as invalid_ohlc
                 FROM stock_daily_prices
-                WHERE NOT (low <= open AND low <= close AND low <= high
-                      AND high >= open AND high >= close)
+                WHERE NOT (low <= open AND open <= high
+                      AND low <= close AND close <= high
+                      AND low <= high)
             """)
 
             invalid_ohlc = cursor.fetchone()[0]
@@ -269,7 +270,8 @@ class DataValidator:
             indexes = cursor.fetchall()
 
             index_names = [idx[2] for idx in indexes]
-            required_indexes = ['PRIMARY', 'unique_symbol_date', 'idx_symbol', 'idx_market', 'idx_date']
+            # 更新索引檢查：複合主鍵 (symbol, date) 已涵蓋 unique_symbol_date 和 idx_symbol
+            required_indexes = ['PRIMARY', 'idx_market', 'idx_date']
 
             missing_indexes = [idx for idx in required_indexes if idx not in index_names]
             if missing_indexes:
@@ -321,27 +323,27 @@ class DataValidator:
         summary = results['summary']
         if 'new_table' in summary:
             nt = summary['new_table']
-            print("
-📈 基本統計:"            print(f"  總記錄數: {nt['total_rows']:,}")
+            print("📈 基本統計:" )
+            print(f"  總記錄數: {nt['total_rows']:,}")
             print(f"  唯一股票數: {nt['unique_symbols']:,}")
             print(f"  市場數: {nt['markets']}")
             print(f"  日期範圍: {nt['date_range']}")
 
         if 'market_distribution' in summary:
-            print("
-🌍 市場分佈:"            for market, count in summary['market_distribution'].items():
+            print("🌍 市場分佈:")
+            for market, count in summary['market_distribution'].items():
                 print(f"  {market}: {count:,}")
 
         if 'top_symbols' in summary:
-            print("
-🏆 資料最豐富的股票:"            for symbol in summary['top_symbols'][:5]:
+            print("🏆 資料最豐富的股票:")
+            for symbol in summary['top_symbols'][:5]:
                 print(f"  {symbol['symbol']} ({symbol['market']}): {symbol['records']:,} 記錄")
 
         # 問題
         issues = results['issues']
         if issues:
-            print("
-⚠️ 發現的問題:"            for i, issue in enumerate(issues, 1):
+            print("⚠️ 發現的問題:")
+            for i, issue in enumerate(issues, 1):
                 print(f"  {i}. {issue}")
         else:
             print("\n✅ 未發現重大問題")
@@ -349,8 +351,8 @@ class DataValidator:
         # 建議
         recommendations = results['recommendations']
         if recommendations:
-            print("
-💡 建議:"            for rec in recommendations:
+            print("💡 建議:")
+            for rec in recommendations:
                 print(f"  • {rec}")
 
         print("\n" + "="*50)

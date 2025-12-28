@@ -38,6 +38,76 @@ docker-compose up --build
 docker-compose up --build stockhistory-app
 ```
 
+## 資料備份與恢復
+
+系統提供完整的資料備份與災難恢復功能，支援 MySQL、MongoDB 和 Redis 資料庫的自動備份。
+
+### 自動備份
+```bash
+# 使用備份排程器（推薦）
+./backup_scheduler.bat
+
+# 或直接執行Python腳本
+python -m src.Common.BackupService --type full
+```
+
+### 手動備份特定服務
+```bash
+# 備份MySQL資料庫
+python -m src.Common.BackupService --type mysql
+
+# 備份MongoDB資料庫
+python -m src.Common.BackupService --type mongodb
+
+# 備份Redis資料
+python -m src.Common.BackupService --type redis
+```
+
+### 資料恢復
+```bash
+# 從最新備份恢復所有服務
+python -m src.Common.RestoreService --type full
+
+# 從特定備份檔案恢復
+python -m src.Common.RestoreService --type mysql --file ./backups/mysql_backup_20231228_143000.sql.gz
+
+# 列出所有可用備份
+python -m src.Common.RestoreService --list
+```
+
+### 資料歸檔
+```bash
+# 執行自動歸檔（歸檔3年前資料）
+python -m src.Common.ArchivalService --auto
+
+# 壓縮舊日誌檔案
+python -m src.Common.ArchivalService --compress-logs
+
+# 查看歸檔統計
+python -m src.Common.ArchivalService --stats
+```
+
+### Windows 任務排程器設定
+1. 開啟任務排程器 (taskschd.msc)
+2. 建立新任務
+3. 設定觸發器為每日凌晨2:00
+4. 設定動作為啟動程式：`backup_scheduler.bat`
+5. 設定工作目錄為專案根目錄
+
+### 雲端備份設定
+在 `config.yml` 中設定雲端備份：
+
+```yaml
+cloud_backup:
+  enabled: true
+  provider: aws_s3  # 或 azure_blob
+  bucket_name: your-backup-bucket
+  key_prefix: backups/
+  aws_access_key_id: your_access_key
+  aws_secret_access_key: your_secret_key
+  aws_region: us-east-1
+```
+
 ## 文件
 - [專案概述](PROJECT_CONTEXT_TW.md) - 系統架構與元件說明
 - [開發指南](DEVELOPMENT_GUIDE_TW.md) - 環境設置與開發指引

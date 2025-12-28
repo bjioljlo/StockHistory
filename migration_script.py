@@ -109,7 +109,6 @@ class DatabaseMigrator:
 
         create_table_sql = """
         CREATE TABLE IF NOT EXISTS stock_daily_prices (
-            id BIGINT AUTO_INCREMENT PRIMARY KEY,
             symbol VARCHAR(20) NOT NULL COMMENT '股票代碼',
             market VARCHAR(10) NOT NULL COMMENT '市場類型: TW/US/HK',
             date DATE NOT NULL COMMENT '交易日期',
@@ -121,12 +120,24 @@ class DatabaseMigrator:
             volume BIGINT COMMENT '成交量',
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
             updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-            UNIQUE KEY unique_symbol_date (symbol, date),
-            INDEX idx_symbol (symbol),
+            PRIMARY KEY (symbol, date),
             INDEX idx_market (market),
-            INDEX idx_date (date),
-            INDEX idx_symbol_date (symbol, date)
-        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='統一股票日線資料表';
+            INDEX idx_date (date)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
+        COMMENT='統一股票日線資料表 - 按年份分區'
+        PARTITION BY RANGE (YEAR(date)) (
+            PARTITION p2015 VALUES LESS THAN (2016),
+            PARTITION p2016 VALUES LESS THAN (2017),
+            PARTITION p2017 VALUES LESS THAN (2018),
+            PARTITION p2018 VALUES LESS THAN (2019),
+            PARTITION p2019 VALUES LESS THAN (2020),
+            PARTITION p2020 VALUES LESS THAN (2021),
+            PARTITION p2021 VALUES LESS THAN (2022),
+            PARTITION p2022 VALUES LESS THAN (2023),
+            PARTITION p2023 VALUES LESS THAN (2024),
+            PARTITION p2024 VALUES LESS THAN (2025),
+            PARTITION p_future VALUES LESS THAN MAXVALUE
+        );
         """
 
         cursor = self.connection.cursor()

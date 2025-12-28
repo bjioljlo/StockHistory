@@ -27,3 +27,27 @@ database:
     host: "localhost"
     port: 27017
     databasename: "Demo"
+
+# Cloud backup configuration
+# Set 'enabled' to true to enable cloud backup
+cloud_backup:
+  enabled: false
+  provider: aws_s3  # Options: aws_s3, azure_blob
+
+  # AWS S3 configuration
+  aws_s3:
+    bucket_name: "your-stockhistory-backups"
+    key_prefix: "backups/"
+    access_key_id: "your_aws_access_key_id"
+    secret_access_key: "your_aws_secret_access_key"
+    region: "us-east-1"
+
+  # Azure Blob Storage configuration
+  azure_blob:
+    container_name: "stockhistory-backups"
+    connection_string: "your_azure_connection_string"
+
+# Backup settings
+backup:
+  retention_days: 7  # Number of days to keep local backups
+  auto_compress_logs: true  # Automatically compress old log files
