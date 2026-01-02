@@ -277,12 +277,29 @@ class DataValidator:
             if missing_indexes:
                 issues.append(f"缺少索引: {', '.join(missing_indexes)}")
 
-            # 檢查表格大小
+            # 檢查表格大小和分區狀態
             cursor.execute("SELECT COUNT(*) FROM stock_daily_prices")
             total_rows = cursor.fetchone()[0]
 
-            if total_rows > 1000000:  # 超過100萬行
-                issues.append(f"表格過大 ({total_rows} 行)，建議考慮分區")
+            # 檢查是否已經分區
+            cursor.execute("""
+                SELECT COUNT(*) as partition_count
+                FROM INFORMATION_SCHEMA.PARTITIONS
+                WHERE TABLE_NAME = 'stock_daily_prices'
+                AND TABLE_SCHEMA = %s
+                AND PARTITION_NAME IS NOT NULL
+            """, (self.config.database,))
+
+            partition_count = cursor.fetchone()[0]
+
+            if partition_count > 0:
+                logger.info(f"表格已分區 ({partition_count} 個分區)")
+                # 如果已經分區，檢查每個分區的大小（簡單檢查）
+                if total_rows > 5000000:  # 如果總行數超過500萬，即使分區也可能需要優化
+                    issues.append(f"表格過大 ({total_rows} 行，即使已分區也建議進一步優化)")
+            else:
+                if total_rows > 1000000:  # 超過100萬行且未分區
+                    issues.append(f"表格過大 ({total_rows} 行)，建議考慮分區")
 
         finally:
             cursor.close()
@@ -316,26 +333,26 @@ class DataValidator:
     def print_validation_report(self, results: Dict[str, Any]):
         """列印驗證報告"""
         print("\n" + "="*50)
-        print("📊 資料驗證報告")
+        print("資料驗證報告")
         print("="*50)
 
         # 總結
         summary = results['summary']
         if 'new_table' in summary:
             nt = summary['new_table']
-            print("📈 基本統計:" )
+            print("基本統計:" )
             print(f"  總記錄數: {nt['total_rows']:,}")
             print(f"  唯一股票數: {nt['unique_symbols']:,}")
             print(f"  市場數: {nt['markets']}")
             print(f"  日期範圍: {nt['date_range']}")
 
         if 'market_distribution' in summary:
-            print("🌍 市場分佈:")
+            print("市場分佈:")
             for market, count in summary['market_distribution'].items():
                 print(f"  {market}: {count:,}")
 
         if 'top_symbols' in summary:
-            print("🏆 資料最豐富的股票:")
+            print("資料最豐富的股票:")
             for symbol in summary['top_symbols'][:5]:
                 print(f"  {symbol['symbol']} ({symbol['market']}): {symbol['records']:,} 記錄")
 
