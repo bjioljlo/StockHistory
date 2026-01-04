@@ -9,6 +9,7 @@ PROJECT_ROOT = os.path.dirname(CURRENT_DIR)
 if PROJECT_ROOT not in sys.path:
     sys.path.insert(0, PROJECT_ROOT)
 
+from src.Common.CacheService import HybridCacheService
 from src.Common.ConfigService import load_config, get_config_path
 from src.Common.ConcurrentUtils import ConcurrentUtils
 from src.Common.DataCleanupService import DataCleanupService
@@ -34,15 +35,24 @@ draw_figur_service = DrawFigur()
 concurrent_utils = ConcurrentUtils()
 read_load_system = ReadLoadSystem(sqlservice=sql_service)
 
+# Initialize hybrid cache service (Redis L1 + MongoDB L2)
+cache_service = HybridCacheService(
+    mongo_service=mongo_service,
+    sql_service=sql_service,
+    config_path=get_config_path(),
+    cache_size=100  # 快取 100 支熱門股票
+)
+
 external_data_factory = ExternalDataFactory(
     sql_service=sql_service,
     mongo_service=mongo_service,
-    read_load_system=read_load_system
+    read_load_system=read_load_system,
+    cache_service=cache_service  # 注入快取服務
 )
 report_services = ReportServices(external_data_factory=external_data_factory)
 
-updateStock_service = UpdateStockService(sql_service=sql_service, mongo_service=mongo_service, read_load_system=read_load_system, config=config)
-schedule_service = ScheduleService(concurrent_utils=concurrent_utils, update_stockService=updateStock_service)
+updateStock_service = UpdateStockService(sql_service=sql_service, mongo_service=mongo_service, read_load_system=read_load_system, config=config, cache_service=cache_service)
+schedule_service = ScheduleService(concurrent_utils=concurrent_utils, update_stockService=updateStock_service, cache_service=cache_service)
 
 # 2. Inject all services into the Mediator_Controller
 mediator_controller = Mediator_Controller(

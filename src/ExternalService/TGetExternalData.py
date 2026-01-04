@@ -22,10 +22,12 @@ class TGetExternalData(IGetExternalData):
     def __init__(self,
         sql_service: SqlService,
         mongo_service: MongoService,
-        read_load_system: ReadLoadSystem) -> None:
+        read_load_system: ReadLoadSystem,
+        cache_service=None) -> None:
         self._read_load_system = read_load_system
         self._sql_service = sql_service
         self._mongo_service = mongo_service
+        self._cache_service = cache_service
         self.fileName_monthRP: str = "monthRP"
         self.fileName_stockInfo = "stockInfo"
         self.fileName_yield = "yieldInfo"
@@ -219,7 +221,7 @@ class TGetExternalData(IGetExternalData):
         number: str,
         start=datetime.strptime("2005-1-1", "%Y-%m-%d"),
     ) -> pd.DataFrame:
-        """#爬某個股票的歷史紀錄"""
+        """#爬某個股票的歷史紀錄，加入快取統計"""
         print(
             "".join(
                 [
@@ -231,9 +233,19 @@ class TGetExternalData(IGetExternalData):
                 ]
             )
         )
-        start_time = start
-        if type(start_time) is str:
-            start_time = datetime.strptime(start_time, "%Y-%m-%d")
+
+        # 記錄查詢統計
+        if self._cache_service:
+            self._cache_service.record_query(number)
+
+        # 確保 start_time 是 datetime 類型
+        if isinstance(start, str):
+            start_time = datetime.strptime(start, "%Y-%m-%d")
+        elif isinstance(start, datetime):
+            start_time = start
+        else:
+            start_time = datetime.strptime("2005-1-1", "%Y-%m-%d")
+
         if type(number) is not str:
             number = str(number)
         data_time = datetime.strptime("2005-1-1", "%Y-%m-%d")
@@ -254,78 +266,122 @@ class TGetExternalData(IGetExternalData):
         if ".TW" not in stock_id:
             stock_id += ".TW"
 
-        m_history = pd.DataFrame()
+        # 使用新的混合快取服務 (Redis L1 + MongoDB L2)
+        if self._cache_service:
+            print(f"Using hybrid cache service for {stock_id}")
+            m_history = self._cache_service.get_stock_data(stock_id)
 
-        # 1. Memory
-        if filename in self._read_load_system.Memery:
-            m_history = self._read_load_system.Memery[filename]
-        
-        if not m_history.empty:
-            print(f"Data for {stock_id} loaded from Memory.")
+            if m_history is not None and not m_history.empty:
+                print(f"Data for {stock_id} loaded from hybrid cache.")
+                # 同步到 Memory 快取以保持向後相容
+                self._read_load_system.Memery[filename] = m_history
+            else:
+                print(f"Data for {stock_id} not in hybrid cache, trying other sources.")
+                # 如果快取中沒有，則從其他來源獲取
+                m_history = self._get_data_from_sources(stock_id, filename)
+
+                # 將新獲取的資料存到混合快取中
+                if m_history is not None and not m_history.empty:
+                    self._cache_service.set_stock_data(stock_id, m_history)
         else:
-            # 2. MongoDB
-            print(f"Data for {stock_id} not in Memory, trying MongoDB.")
-            try:
-                collection = self._mongo_service.mongodb[stock_id.lower()]
-                cursor = collection.find()
-                m_history = pd.DataFrame(list(cursor))
-                if not m_history.empty:
-                    print(f"Data for {stock_id} loaded from MongoDB, caching to Memory.")
-                    if '_id' in m_history.columns:
-                        m_history = m_history.drop('_id', axis=1)
-                    if 'Date' in m_history.columns:
-                        m_history['Date'] = pd.to_datetime(m_history['Date'])
-                        m_history = m_history.set_index('Date')
-                    elif 'index' in m_history.columns:
-                        m_history['Date'] = pd.to_datetime(m_history['index'])
-                        m_history = m_history.set_index('Date').drop('index', axis=1)
-                    self._read_load_system.Memery[filename] = m_history
-            except Exception as e:
-                print(f"Could not read from MongoDB. Error: {e}")
-                m_history = pd.DataFrame()
-
-        if m_history.empty:
-            # 3. MySQL
-            print(f"Data for {stock_id} not in MongoDB, trying MySQL.")
-            m_history = self._sql_service.readStockDay(stock_id)
-            if not m_history.empty:
-                print(f"Data for {stock_id} loaded from MySQL, caching to Mongo and Memory.")
-                self._mongo_service.saveTable(stock_id, m_history)
-                self._read_load_system.Memery[filename] = m_history
-
-        if m_history.empty:
-            # 4. Local File
-            print(f"Data for {stock_id} not in MySQL, trying Local File.")
-            try:
-                m_history = pd.read_csv(filename + ".csv", index_col="Date", parse_dates=["Date"])
-                if not m_history.empty:
-                    print(f"Data for {stock_id} loaded from Local File, caching to MySQL, Mongo, and Memory.")
-                    self._sql_service.saveTable(stock_id, m_history)
-                    self._mongo_service.saveTable(stock_id, m_history)
-                    self._read_load_system.Memery[filename] = m_history
-            except Exception:
-                m_history = pd.DataFrame()
-
-        if m_history.empty:
-            # 5. Yahoo Finance
-            print(f"Data for {stock_id} not in any cache, fetching from Yahoo Finance.")
-            self._sql_service.yfInfo(stock_id)
-            time.sleep(1.5)
-            m_history = self._sql_service.readStockDay(stock_id)
-
-            if not m_history.empty:
-                print(f"Data for {stock_id} loaded from Yahoo->MySQL, caching to other systems.")
-                self._mongo_service.saveTable(stock_id, m_history)
-                self._read_load_system.Memery[filename] = m_history
+            # 回退到原有的快取邏輯 (如果快取服務不可用)
+            print(f"Hybrid cache service not available, using legacy cache for {stock_id}")
+            m_history = self._get_data_from_sources(stock_id, filename)
 
         if m_history.empty:
             print(f"Could not retrieve data for {stock_id} from any source.")
             return pd.DataFrame()
 
+        # 確保索引是 DatetimeIndex 並進行日期比較
+        if not isinstance(m_history.index, pd.DatetimeIndex):
+            m_history.index = pd.to_datetime(m_history.index)
+
+        # 進行日期比較
         mask = m_history.index >= start_time
         result = m_history[mask]
+        # 填充 Adj Close 的 NaN 值為 0
+        if 'Adj Close' in result.columns:
+            result['Adj Close'] = result['Adj Close'].fillna(0)
         result = result.dropna(axis=0, how="any")
+
+        # 在成功獲取資料後，檢查是否需要更新快取
+        if not result.empty and self._cache_service:
+            # 非同步更新快取（避免阻塞主要讀取流程）
+            import threading
+            threading.Thread(
+                target=self._cache_service.update_mongo_cache,
+                daemon=True
+            ).start()
+
         return result
+
+    def _get_data_from_sources(self, stock_id: str, filename: str) -> pd.DataFrame:
+        """從各種來源獲取資料的原有邏輯"""
+        m_history = pd.DataFrame()
+
+        # 1. Memory
+        if filename in self._read_load_system.Memery:
+            m_history = self._read_load_system.Memery[filename]
+
+        if not m_history.empty:
+            print(f"Data for {stock_id} loaded from Memory.")
+            return m_history
+
+        # 2. MongoDB (直接從集合讀取)
+        print(f"Data for {stock_id} not in Memory, trying MongoDB.")
+        try:
+            collection = self._mongo_service.mongodb[stock_id.lower()]
+            cursor = collection.find()
+            m_history = pd.DataFrame(list(cursor))
+            if not m_history.empty:
+                print(f"Data for {stock_id} loaded from MongoDB, caching to Memory.")
+                if '_id' in m_history.columns:
+                    m_history = m_history.drop('_id', axis=1)
+                if 'Date' in m_history.columns:
+                    m_history['Date'] = pd.to_datetime(m_history['Date'])
+                    m_history = m_history.set_index('Date')
+                elif 'index' in m_history.columns:
+                    m_history['Date'] = pd.to_datetime(m_history['index'])
+                    m_history = m_history.set_index('Date').drop('index', axis=1)
+                self._read_load_system.Memery[filename] = m_history
+                return m_history
+        except Exception as e:
+            print(f"Could not read from MongoDB. Error: {e}")
+
+        # 3. MySQL
+        print(f"Data for {stock_id} not in MongoDB, trying MySQL.")
+        m_history = self._sql_service.readStockDay(stock_id)
+        if not m_history.empty:
+            print(f"Data for {stock_id} loaded from MySQL, caching to Mongo and Memory.")
+            self._mongo_service.saveTable(stock_id, m_history)
+            self._read_load_system.Memery[filename] = m_history
+            return m_history
+
+        # 4. Local File
+        print(f"Data for {stock_id} not in MySQL, trying Local File.")
+        try:
+            m_history = pd.read_csv(filename + ".csv", index_col="Date", parse_dates=["Date"])
+            if not m_history.empty:
+                print(f"Data for {stock_id} loaded from Local File, caching to MySQL, Mongo, and Memory.")
+                self._sql_service.saveTable(stock_id, m_history)
+                self._mongo_service.saveTable(stock_id, m_history)
+                self._read_load_system.Memery[filename] = m_history
+                return m_history
+        except Exception:
+            pass
+
+        # 5. Yahoo Finance
+        print(f"Data for {stock_id} not in any cache, fetching from Yahoo Finance.")
+        self._sql_service.yfInfo(stock_id)
+        time.sleep(1.5)
+        m_history = self._sql_service.readStockDay(stock_id)
+
+        if not m_history.empty:
+            print(f"Data for {stock_id} loaded from Yahoo->MySQL, caching to other systems.")
+            self._mongo_service.saveTable(stock_id, m_history)
+            self._read_load_system.Memery[filename] = m_history
+
+        return m_history
 
     def get_stock_AD_index(self, date: datetime, getNew=False):
         """#取得上漲和下跌家數"""
@@ -334,13 +390,13 @@ class TGetExternalData(IGetExternalData):
             date = datetime.strptime(date, "%Y-%m-%d")
 
         time = date
-        while time not in self.get_stock_history("2330", time).index:
+        while time not in self.get_stock_history("2330").index:
             time = Tools.backWorkDays(time, 1)
 
         # --- Start of optimization ---
-        # 1. Try to read from MySQL database first
+        # 1. Try to read from MySQL database first (AD_index is still a separate table)
         try:
-            ad_index_from_sql = self._sql_service.readStockDay('ad_index')
+            ad_index_from_sql = self._sql_service.readDividendYield('ad_index')  # AD_index 使用不同的讀取方法
             if not ad_index_from_sql.empty and time in ad_index_from_sql.index:
                 print(f"Found AD_index for {time.strftime('%Y-%m-%d')} in MySQL.")
                 return ad_index_from_sql.loc[[time]]
@@ -391,7 +447,7 @@ class TGetExternalData(IGetExternalData):
                 except Exception:
                     # print(f"Could not process stock {value.code}")
                     continue
-        
+
         print(f"Calculation result for {time.strftime('%Y-%m-%d')}: Up={up}, Down={down}")
 
         ADindex_result_new = pd.DataFrame(
@@ -406,10 +462,10 @@ class TGetExternalData(IGetExternalData):
 
         ADindex_result = ADindex_result[~ADindex_result.index.duplicated(keep='last')]
         ADindex_result = ADindex_result.sort_index()
-        
+
         self._sql_service.saveTable("AD_index", ADindex_result)
         self._read_load_system.Memery[fileName] = ADindex_result
-        
+
         return ADindex_result.loc[[time]]
 
     def get_full_ad_index(self) -> pd.DataFrame:

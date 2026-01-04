@@ -23,13 +23,14 @@ import random
 
 
 class UpdateStockService:
-    def __init__(self, sql_service:SqlService, mongo_service: MongoService, read_load_system:ReadLoadSystem, config: dict = None) -> None:
+    def __init__(self, sql_service:SqlService, mongo_service: MongoService, read_load_system:ReadLoadSystem, config: dict = None, cache_service=None) -> None:
         self.isUpdating: bool = False
         self._sql_service = sql_service
         self._mongo_service = mongo_service
         self._read_load_system = read_load_system
+        self._cache_service = cache_service
         self._getExternalFactory = ExternalDataFactory(
-            self._sql_service, self._mongo_service, self._read_load_system)
+            self._sql_service, self._mongo_service, self._read_load_system, cache_service)
         self._data_validator = DataValidationService(config) if config else None
         # Get retry settings from config
         self._retry_attempts = self._data_validator.config.get('external_apis', {}).get('yahoo_finance', {}).get('retry_attempts', 3) if self._data_validator else 3
@@ -103,112 +104,138 @@ class UpdateStockService:
         Reads a table from MySQL and saves it to MongoDB.
         """
         print(f"Syncing table {table_name} to MongoDB...")
-        df = self._sql_service.readStockDay(table_name)
-        if df.empty:
+
+        df = pd.DataFrame()
+
+        # 特殊處理股票資料表格
+        if table_name.lower() == 'stock_daily_prices':
+            # 對於統一的股票表格，我們需要為每個股票創建單獨的集合
+            print("Syncing unified stock_daily_prices table to MongoDB collections...")
+            self._sync_unified_stock_table_to_mongo()
+            return
+        elif table_name.lower() in ['ad_index']:
+            # AD_index 是特殊的索引表格
             df = self._sql_service.readDividendYield(table_name)
-        
+        else:
+            # 其他非股票表格使用原有的邏輯
+            df = self._sql_service.readStockDay(table_name)
+            if df.empty:
+                df = self._sql_service.readDividendYield(table_name)
+
         if not df.empty:
             self._mongo_service.saveTable(table_name, df)
             print(f"Successfully synced table {table_name} to MongoDB.")
-            
+
         else:
             print(f"Skipping empty table: {table_name}")
+
+    def _sync_unified_stock_table_to_mongo(self):
+        """
+        將統一的 stock_daily_prices 表格同步到 MongoDB 的各個股票集合中
+        """
+        try:
+            # 從統一表格獲取所有唯一的股票代碼
+            query = "SELECT DISTINCT symbol FROM stock_daily_prices"
+            with self._sql_service.server_flask.app_context():
+                unique_symbols_df = pd.read_sql(query, con=self._sql_service.MySql_server.engine)
+
+            if unique_symbols_df.empty:
+                print("No symbols found in stock_daily_prices table")
+                return
+
+            total_symbols = len(unique_symbols_df)
+            print(f"Found {total_symbols} unique symbols to sync")
+
+            for i, row in unique_symbols_df.iterrows():
+                symbol = row['symbol']
+                print(f"Syncing symbol {symbol} ({i+1}/{total_symbols})...")
+
+                # 從統一表格讀取該股票的所有資料
+                df = self._sql_service.readStockDay(symbol)
+                if not df.empty:
+                    self._mongo_service.saveTable(symbol.lower(), df)
+                    print(f"Successfully synced {symbol} to MongoDB")
+                else:
+                    print(f"No data found for symbol {symbol}")
+
+        except Exception as e:
+            print(f"Error syncing unified stock table to MongoDB: {e}")
     
     def _replace_stock_data(self, stock_name: str, df_result: pd.DataFrame) -> bool:
         """
-        Saves a DataFrame to a MySQL table using pandas.to_sql, overwriting the existing table.
+        Saves a DataFrame to the unified stock_daily_prices table, overwriting existing data for this stock.
         """
-        table_name = stock_name.lower()
-        df_to_write = df_result.reset_index()
-        df_to_write.columns = [c.replace(' ', '_') for c in df_to_write.columns]
-
-        if df_to_write.empty:
+        if df_result.empty:
             print(f"No data to replace for {stock_name}.")
             return True
 
         try:
-            with self._sql_service.MySql_server.engine.connect() as connection:
-                with connection.begin():
-                    df_to_write.to_sql(
-                        name=table_name,
-                        con=connection,
-                        if_exists='replace',
-                        index=False
-                    )
-                    connection.execute(text(f'ALTER TABLE `{table_name}` ADD PRIMARY KEY (`Date`);'))
-            return True
+            # 準備資料格式以適應統一表格
+            symbol = stock_name.upper().replace('.TW', '').replace('.US', '').replace('.HK', '')
+            market = self._determine_market(stock_name)
+
+            df_to_write = df_result.reset_index()
+            df_to_write['symbol'] = symbol
+            df_to_write['market'] = market
+            df_to_write = df_to_write.rename(columns={
+                'Date': 'date',
+                'Open': 'open',
+                'High': 'high',
+                'Low': 'low',
+                'Close': 'close',
+                'Adj Close': 'adj_close',
+                'Volume': 'volume'
+            })
+
+            # 使用SqlService的新方法插入資料
+            return self._sql_service._insert_stock_data_to_unified_table(df_to_write)
+
         except Exception as e:
             print(f"Error during table replace for {stock_name}: {e}")
             return False
 
     def _upsert_stock_data(self, stock_name: str, df_result: pd.DataFrame) -> bool:
         """
-        Optimized upsert stock data using batched INSERT ... ON DUPLICATE KEY UPDATE.
+        Upsert stock data to the unified stock_daily_prices table.
         """
-        table_name = stock_name.lower()
-        df_upsert = df_result.reset_index()
-        df_upsert.columns = [c.replace(' ', '_') for c in df_upsert.columns]
-
-        if df_upsert.empty:
+        if df_result.empty:
             print(f"No data to upsert for {stock_name}.")
             return True
 
-        # Get batch size from config, default to 1000
-        batch_size = self._data_validator.config.get('data_processing', {}).get('batch_size', 1000) if self._data_validator else 1000
-
         try:
-            with self._sql_service.MySql_server.engine.connect() as connection:
-                with connection.begin():
-                    # Create table if it doesn't exist
-                    if not connection.dialect.has_table(connection, table_name):
-                        df_upsert.head(0).to_sql(table_name, connection, if_exists='fail', index=False)
-                        connection.execute(text(f'ALTER TABLE `{table_name}` ADD PRIMARY KEY (`Date`);'))
-                        print(f"Created table `{table_name}` with primary key on `Date`.")
+            # 準備資料格式以適應統一表格
+            symbol = stock_name.upper().replace('.TW', '').replace('.US', '').replace('.HK', '')
+            market = self._determine_market(stock_name)
 
-                    columns = df_upsert.columns.tolist()
-                    update_columns = [col for col in columns if col.lower() != 'date']
+            df_upsert = df_result.reset_index()
+            df_upsert['symbol'] = symbol
+            df_upsert['market'] = market
+            df_upsert = df_upsert.rename(columns={
+                'Date': 'date',
+                'Open': 'open',
+                'High': 'high',
+                'Low': 'low',
+                'Close': 'close',
+                'Adj Close': 'adj_close',
+                'Volume': 'volume'
+            })
 
-                    # Prepare SQL statement
-                    if not update_columns:
-                        sql_statement = text(f"INSERT IGNORE INTO `{table_name}` (`Date`) VALUES (:Date)")
-                    else:
-                        cols_str = ", ".join([f"`{col}`" for col in columns])
-                        placeholders = ", ".join([f":{col}" for col in columns])
-                        update_clause = ", ".join([f"`{col}` = VALUES(`{col}`)" for col in update_columns])
-                        sql_statement = text(
-                            f"INSERT INTO `{table_name}` ({cols_str}) "
-                            f"VALUES ({placeholders}) "
-                            f"ON DUPLICATE KEY UPDATE {update_clause}"
-                        )
+            # 使用SqlService的新方法插入資料（它會處理重複鍵更新）
+            return self._sql_service._insert_stock_data_to_unified_table(df_upsert)
 
-                    # Process data in batches to avoid memory issues and improve performance
-                    total_rows = len(df_upsert)
-                    successful_batches = 0
-
-                    for start_idx in range(0, total_rows, batch_size):
-                        end_idx = min(start_idx + batch_size, total_rows)
-                        batch_df = df_upsert.iloc[start_idx:end_idx]
-
-                        try:
-                            data_dict = batch_df.to_dict(orient='records')
-                            connection.execute(sql_statement, data_dict)
-                            successful_batches += 1
-                            print(f"Processed batch {successful_batches} for {stock_name} ({end_idx}/{total_rows} rows)")
-                        except Exception as batch_error:
-                            print(f"Error processing batch {start_idx}-{end_idx} for {stock_name}: {batch_error}")
-                            # Continue with next batch instead of failing completely
-
-                    if successful_batches > 0:
-                        print(f"Successfully upserted {total_rows} rows for {stock_name} in {successful_batches} batches")
-                        return True
-                    else:
-                        print(f"No batches were successfully processed for {stock_name}")
-                        return False
-
-            return True
         except Exception as e:
             print(f"Error during upsert for {stock_name}: {e}")
             return False
+
+    def _determine_market(self, stock_name: str) -> str:
+        """確定市場類型"""
+        name_lower = stock_name.lower()
+        if name_lower.endswith('.tw') or (name_lower.replace('.tw', '').isdigit() and len(name_lower.replace('.tw', '')) >= 4):
+            return 'TW'
+        elif len(name_lower) <= 5 and not name_lower.replace('.', '').isdigit():
+            return 'US'
+        else:
+            return 'OTHER'
 
     def _save_stock_data_to_db(self, data_queue: queue.Queue):
         print("Starting database save thread...")
@@ -247,6 +274,20 @@ class UpdateStockService:
 
                     if save_ok:
                         print("Saved " + stock_name + " to DB OK!")
+
+                        # 更新 MongoDB 快取（如果是熱門股票）
+                        if self._cache_service:
+                            hot_stocks = self._cache_service.get_hot_stocks()
+                            if stock_name.upper().replace('.TW', '').replace('.US', '').replace('.HK', '') in hot_stocks:
+                                try:
+                                    # 確保 DataFrame 索引是 DatetimeIndex，避免 datetime.date 編碼問題
+                                    df_to_cache = df_result.copy()
+                                    if not isinstance(df_to_cache.index, pd.DatetimeIndex):
+                                        df_to_cache.index = pd.to_datetime(df_to_cache.index)
+                                    self._mongo_service.saveTable(stock_name.lower(), df_to_cache)
+                                    print(f"Updated cache for hot stock: {stock_name}")
+                                except Exception as e:
+                                    print(f"Failed to update cache for {stock_name}: {e}")
                     else:
                         print(f"Failed to save {stock_name} to SQL DB.")
 

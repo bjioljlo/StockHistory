@@ -24,7 +24,16 @@ class MongoService:
             _name = _name.lower()
         try:
             df = _df.copy()
-            df.reset_index(inplace=True)
+
+            # 處理日期索引：將 DatetimeIndex 重置並轉換為字符串格式
+            if isinstance(df.index, pd.DatetimeIndex):
+                df.reset_index(inplace=True)
+                # 確保日期欄位是字符串格式，MongoDB 才能正確儲存
+                if 'Date' in df.columns:
+                    df['Date'] = df['Date'].astype(str)
+            else:
+                df.reset_index(inplace=True)
+
             _clo = self.mongodb[_name]
             _clo.drop()
             _clo.insert_many(df.to_dict("records"))
