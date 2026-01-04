@@ -108,10 +108,48 @@ cloud_backup:
   aws_region: us-east-1
 ```
 
+## 專案結構
+
+```
+StockHistory/
+├── src/                    # 主要程式碼
+├── scripts/                # 工具腳本
+│   ├── development/        # 開發工具
+│   ├── migration/          # 資料遷移腳本
+│   ├── production/         # 生產環境腳本
+│   └── utilities/          # 通用工具
+├── tests/                  # 測試檔案
+│   ├── unit/              # 單元測試
+│   └── integration/       # 整合測試
+├── docs/                   # 專案文檔
+│   ├── plans/             # 專案計劃
+│   └── guides/            # 使用指南
+├── UI/                     # 使用者介面檔案
+├── data/                   # 資料檔案
+├── logs/                   # 日誌檔案
+└── backups/               # 備份檔案
+```
+
 ## 文件
-- [專案概述](PROJECT_CONTEXT_TW.md) - 系統架構與元件說明
-- [開發指南](DEVELOPMENT_GUIDE_TW.md) - 環境設置與開發指引
-- [單元測試指南](DEVELOPMENT_GUIDE_TW.md#單元測試指南) - 測試規範與最佳實踐
+
+### 📚 專案文檔
+- [專案概述](docs/guides/PROJECT_CONTEXT.md) - 系統架構與元件說明
+- [開發指南](docs/guides/DEVELOPMENT_GUIDE.md) - 環境設置與開發指引
+- [效能優化指南](docs/guides/PERFORMANCE_OPTIMIZATION_GUIDE.md) - 效能調優技術
+
+### 🛠️ 工具腳本
+- [腳本目錄說明](scripts/README.md) - 各類工具腳本的組織結構
+- [測試說明](tests/README.md) - 測試框架與執行指南
+- [文檔目錄說明](docs/README.md) - 專案文檔的組織結構
+
+### 📋 專案計劃
+- [報告SQL優化計劃](docs/plans/reports_sql_optimization_plan.md) - 股票報告數據優化方案
+- [改進建議](docs/plans/StockHistoryImprovementSsuggestions.md) - 系統改進建議
+
+### 🤖 系統整合
+- [代理架構說明](docs/guides/AGENTS.md) - 多代理系統設計
+- [MongoDB快取實現](docs/guides/MONGODB_CACHE_IMPLEMENTATION.md) - 快取機制詳解
+- [備份策略](docs/guides/backup_strategy.md) - 資料備份方案
 
 ## 系統需求
 - Python 3.8 或更新版本
@@ -128,4 +166,19 @@ cloud_backup:
 如發現任何問題，請提交 [Issue](https://github.com/yourusername/StockHistory/issues)
 
 ## 貢獻指南
-我們歡迎任何形式的貢獻！請先閱讀 [開發指南](DEVELOPMENT_GUIDE_TW.md) 和 [貢獻指南](CONTRIBUTING_TW.md) 後發送 Pull Request。
+我們歡迎任何形式的貢獻！請先閱讀 [開發指南](docs/guides/DEVELOPMENT_GUIDE.md) 和 [效能優化指南](docs/guides/PERFORMANCE_OPTIMIZATION_GUIDE.md) 後發送 Pull Request。
+
+## 測試執行
+```bash
+# 執行所有測試
+pytest
+
+# 執行單元測試
+pytest tests/unit/
+
+# 執行整合測試
+pytest tests/integration/
+
+# 產生覆蓋率報告
+pytest --cov=src --cov-report=html
+```
