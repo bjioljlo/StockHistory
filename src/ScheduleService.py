@@ -32,23 +32,9 @@ class ScheduleService:
             progress_callback
         )
 
-    def RunUpdateADLNow(self, progress_callback=None):
-        self.updateStockService.isUpdating = True
-        self.concurrent_utils.submit_task(
-            self.updateStockService.UpdateADLHandle,
-            progress_callback
-        )
-
     def RunOtherSchedule(self, progress_callback=None):
         """執行其他排程任務，包括快取維護"""
         print("Update stocks other Info start!")
-
-        # 現有的 ADL 更新邏輯
-        self.updateStockService.isUpdating = True
-        self.concurrent_utils.submit_task(
-            self.updateStockService.UpdateADLHandle,
-            progress_callback
-        )
 
         # 新增：快取維護
         if self.cache_service:
@@ -63,6 +49,13 @@ class ScheduleService:
                 self.cache_service.cleanup_cold_mongo_cache()
 
             print("Cache maintenance completed!")
+
+        # 現有的 ADL 更新邏輯
+        self.updateStockService.isUpdating = True
+        self.concurrent_utils.submit_task(
+            self.updateStockService.UpdateADLHandle,
+            progress_callback
+        )
 
         print("Update stocks other Info end!")
 

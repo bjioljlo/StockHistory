@@ -100,8 +100,8 @@ class ReportDataMigrator:
             try:
                 logger.info(f"Processing {csv_file}")
 
-                # 讀取CSV檔案
-                df = pd.read_csv(csv_file, encoding='utf-8')
+                # 讀取CSV檔案，嘗試多種編碼
+                df = self._read_csv_with_encoding_detection(csv_file)
 
                 # 數據清理和轉換
                 df_cleaned = self._clean_dividend_yield_data(df, csv_file)
@@ -319,16 +319,7 @@ class ReportDataMigrator:
                 INDEX idx_symbol_date (symbol, date),
                 INDEX idx_dividend_yield (dividend_yield),
                 INDEX idx_pe_ratio (pe_ratio)
-            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
-            PARTITION BY RANGE (YEAR(date)) (
-                PARTITION p2020 VALUES LESS THAN (2021),
-                PARTITION p2021 VALUES LESS THAN (2022),
-                PARTITION p2022 VALUES LESS THAN (2023),
-                PARTITION p2023 VALUES LESS THAN (2024),
-                PARTITION p2024 VALUES LESS THAN (2025),
-                PARTITION p2025 VALUES LESS THAN (2026),
-                PARTITION p_future VALUES LESS THAN MAXVALUE
-            );
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
             """,
 
             # 月報表格
@@ -354,16 +345,7 @@ class ReportDataMigrator:
                 INDEX idx_symbol_period (symbol, report_year, report_month),
                 INDEX idx_revenue_current_month (revenue_current_month),
                 INDEX idx_revenue_ytd (revenue_ytd)
-            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
-            PARTITION BY RANGE (report_year) (
-                PARTITION p2020 VALUES LESS THAN (2021),
-                PARTITION p2021 VALUES LESS THAN (2022),
-                PARTITION p2022 VALUES LESS THAN (2023),
-                PARTITION p2023 VALUES LESS THAN (2024),
-                PARTITION p2024 VALUES LESS THAN (2025),
-                PARTITION p2025 VALUES LESS THAN (2026),
-                PARTITION p_future VALUES LESS THAN MAXVALUE
-            );
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
             """,
 
             # 季報表格
@@ -397,16 +379,7 @@ class ReportDataMigrator:
                 INDEX idx_symbol_period (symbol, report_year, report_season),
                 INDEX idx_revenue (revenue),
                 INDEX idx_net_margin (net_margin)
-            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
-            PARTITION BY RANGE (report_year) (
-                PARTITION p2020 VALUES LESS THAN (2021),
-                PARTITION p2021 VALUES LESS THAN (2022),
-                PARTITION p2022 VALUES LESS THAN (2023),
-                PARTITION p2023 VALUES LESS THAN (2024),
-                PARTITION p2024 VALUES LESS THAN (2025),
-                PARTITION p2025 VALUES LESS THAN (2026),
-                PARTITION p_future VALUES LESS THAN MAXVALUE
-            );
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
             """
         ]
 
@@ -648,12 +621,38 @@ class ReportDataMigrator:
         required_columns = ['symbol', 'company_name', 'report_year', 'report_season', 'report_type', 'raw_data']
         return df_cleaned[required_columns] if all(col in df_cleaned.columns for col in required_columns) else pd.DataFrame()
 
+    def _read_csv_with_encoding_detection(self, file_path: str) -> pd.DataFrame:
+        """使用多種編碼方式讀取CSV文件"""
+        encodings_to_try = ['utf-8', 'big5', 'gbk', 'cp950', 'latin1']
+
+        for encoding in encodings_to_try:
+            try:
+                logger.debug(f"Trying to read {file_path} with encoding: {encoding}")
+                df = pd.read_csv(file_path, encoding=encoding)
+                logger.info(f"Successfully read {file_path} with encoding: {encoding}")
+                return df
+            except UnicodeDecodeError:
+                logger.debug(f"Failed to read {file_path} with encoding: {encoding}")
+                continue
+            except Exception as e:
+                logger.debug(f"Error reading {file_path} with encoding {encoding}: {e}")
+                continue
+
+        # 如果所有編碼都失敗，嘗試不指定編碼
+        try:
+            logger.warning(f"All encodings failed for {file_path}, trying without encoding specification")
+            df = pd.read_csv(file_path)
+            return df
+        except Exception as e:
+            logger.error(f"Failed to read {file_path} with any encoding: {e}")
+            raise
+
 
 def main():
     """主程式"""
     parser = argparse.ArgumentParser(description='股票報告數據遷移工具')
     parser.add_argument('--type', choices=['dividend_yield', 'monthly_reports', 'quarterly_reports'],
-                       required=True, help='遷移數據類型')
+                       help='遷移數據類型')
     parser.add_argument('--start-date', help='開始日期 (YYYY-MM-DD，適用於股息殖利率)')
     parser.add_argument('--end-date', help='結束日期 (YYYY-MM-DD，適用於股息殖利率)')
     parser.add_argument('--start-year', type=int, help='開始年份 (適用於月報和季報)')
@@ -673,6 +672,7 @@ def main():
             logger.info("Creating database tables...")
             migrator.create_tables_if_not_exists()
             logger.info("Tables created successfully")
+            return
 
         if args.validate:
             # 驗證模式
@@ -682,6 +682,9 @@ def main():
             return
 
         # 遷移模式
+        if not args.type:
+            parser.error("--type is required for migration operations")
+
         if args.type == 'dividend_yield':
             if not args.start_date or not args.end_date:
                 parser.error("--start-date and --end-date are required for dividend_yield migration")

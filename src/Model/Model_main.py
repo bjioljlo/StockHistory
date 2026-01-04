@@ -216,7 +216,7 @@ class Model_main(TModel):
         self._schedule_service.RunSyncToMongo(progress_callback)
 
     def RunOtherSchedule(self, progress_callback=None):
-        self._schedule_service.RunUpdateADLNow(progress_callback)
+        self._schedule_service.RunOtherSchedule(progress_callback)
 
     def StopThreadSchedule(self):
         self._schedule_service.StopThreadSchedule()
