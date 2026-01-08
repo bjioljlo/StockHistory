@@ -53,8 +53,8 @@ class ReportDataMigrator:
         db_uri = self._build_db_uri()
         self.engine = create_engine(db_uri, echo=False)
 
-        # 批次處理大小
-        self.batch_size = self.config.get('migration', {}).get('batch_size', 1000)
+        # 批次處理大小 - 季報使用較小的批次以避免記憶體問題
+        self.batch_size = self.config.get('migration', {}).get('batch_size', 500)
 
         # 數據目錄配置
         self.yield_dir = self.data_config.get('yield_dir', 'yieldInfo')
@@ -179,26 +179,43 @@ class ReportDataMigrator:
         return result
 
     def migrate_quarterly_reports(self, start_year: int = None, end_year: int = None,
-                                 dry_run: bool = False) -> Dict[str, Any]:
+                                 dry_run: bool = False, quarterly_type: str = None) -> Dict[str, Any]:
         """遷移季報數據"""
         logger.info(f"Starting quarterly reports migration from year {start_year} to {end_year}")
+        if quarterly_type:
+            logger.info(f"Processing specific quarterly type: {quarterly_type}")
+        else:
+            logger.info("Processing all quarterly report types: PLA, BS, CPL, SCF")
 
         total_processed = 0
         total_inserted = 0
         errors = []
 
-        # 處理不同類型的季報
-        report_types = ['PLA', 'BS', 'CPL', 'SCF']
+        # 根據參數決定處理的報表類型
+        if quarterly_type:
+            report_types = [quarterly_type]
+        else:
+            report_types = ['PLA', 'BS', 'CPL', 'SCF']
+
+        # 映射文件類型到實際的文件名模式
+        type_mapping = {
+            'PLA': 'profit-and-loss-analysis-summary',
+            'BS': 'balance-sheet',
+            'CPL': 'consolidated-profit-and-loss-summary',
+            'SCF': 'statement-of-cash-flows'
+        }
 
         for report_type in report_types:
             logger.info(f"Processing {report_type} reports")
-            csv_files = self._get_csv_files(self.season_dir, f'season.*{report_type}', start_year, end_year)
+            file_pattern = type_mapping.get(report_type, report_type)
+            csv_files = self._get_csv_files(self.season_dir, f'season.*{file_pattern}', start_year, end_year)
 
             for csv_file in csv_files:
                 try:
                     logger.info(f"Processing {csv_file}")
 
-                    df = pd.read_csv(csv_file, encoding='utf-8')
+                    # 使用編碼檢測讀取季報文件
+                    df = self._read_csv_with_encoding_detection(csv_file)
                     df_cleaned = self._clean_quarterly_report_data(df, csv_file, report_type)
 
                     if not df_cleaned.empty:
@@ -348,7 +365,7 @@ class ReportDataMigrator:
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
             """,
 
-            # 季報表格
+            # 季報表格 - 更新以支持PLA和CPL的不同欄位
             """
             CREATE TABLE IF NOT EXISTS quarterly_reports (
                 id BIGINT AUTO_INCREMENT PRIMARY KEY,
@@ -357,18 +374,30 @@ class ReportDataMigrator:
                 report_year INT NOT NULL COMMENT '報表年份',
                 report_season INT NOT NULL COMMENT '報表季別(1-4)',
                 report_type ENUM('PLA', 'BS', 'CPL', 'SCF') NOT NULL COMMENT '報表類型',
+
+                -- PLA欄位 (損益分析表)
                 revenue BIGINT COMMENT '營業收入',
-                gross_margin DECIMAL(5,2) COMMENT '毛利率(%)',
-                operating_margin DECIMAL(5,2) COMMENT '營業利益率(%)',
-                pre_tax_margin DECIMAL(5,2) COMMENT '稅前純益率(%)',
-                net_margin DECIMAL(5,2) COMMENT '稅後純益率(%)',
+                gross_margin DECIMAL(10,2) COMMENT '毛利率(%)',
+                operating_margin DECIMAL(10,2) COMMENT '營業利益率(%)',
+                pre_tax_margin DECIMAL(10,2) COMMENT '稅前純益率(%)',
+                net_margin DECIMAL(10,2) COMMENT '稅後純益率(%)',
+
+                -- CPL欄位 (合併損益表)
+                consolidated_net_income BIGINT COMMENT '合併淨利',
+                consolidated_eps DECIMAL(5,2) COMMENT '每股盈餘',
+
+                -- BS欄位 (資產負債表)
                 total_assets BIGINT COMMENT '總資產',
                 total_liabilities BIGINT COMMENT '總負債',
                 equity BIGINT COMMENT '股東權益',
+                capital BIGINT COMMENT '股本',
+                book_value_per_share DECIMAL(10,2) COMMENT '每股參考淨值',
+
+                -- SCF欄位 (現金流量表)
                 operating_cash_flow BIGINT COMMENT '營業現金流量',
                 investing_cash_flow BIGINT COMMENT '投資現金流量',
                 financing_cash_flow BIGINT COMMENT '融資現金流量',
-                raw_data JSON COMMENT '原始數據存儲',
+
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
 
@@ -378,7 +407,8 @@ class ReportDataMigrator:
                 INDEX idx_type (report_type),
                 INDEX idx_symbol_period (symbol, report_year, report_season),
                 INDEX idx_revenue (revenue),
-                INDEX idx_net_margin (net_margin)
+                INDEX idx_net_margin (net_margin),
+                INDEX idx_consolidated_net_income (consolidated_net_income)
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
             """
         ]
@@ -394,13 +424,26 @@ class ReportDataMigrator:
             raise
 
     def _batch_insert(self, table_name: str, df: pd.DataFrame) -> int:
-        """批次插入資料"""
+        """批次插入資料 - 改進版：更好的錯誤處理"""
         if df.empty:
             return 0
 
         try:
+            # 確保所有欄位都存在於資料庫表格中，如果不存在則跳過
+            inspector = inspect(self.engine)
+            table_columns = [col['name'] for col in inspector.get_columns(table_name)]
+
+            # 只保留資料庫表格中存在的欄位
+            df_to_insert = df[[col for col in df.columns if col in table_columns]]
+
+            if df_to_insert.empty:
+                logger.warning(f"No valid columns found in dataframe for table {table_name}")
+                return 0
+
+            logger.info(f"Inserting {len(df_to_insert)} records with columns: {list(df_to_insert.columns)}")
+
             # 使用pandas to_sql進行批量插入
-            df.to_sql(
+            df_to_insert.to_sql(
                 name=table_name,
                 con=self.engine,
                 if_exists='append',
@@ -408,9 +451,17 @@ class ReportDataMigrator:
                 method='multi',
                 chunksize=self.batch_size
             )
-            return len(df)
+            return len(df_to_insert)
         except Exception as e:
             logger.error(f"Batch insert failed for {table_name}: {e}")
+            logger.error(f"DataFrame columns: {list(df.columns)}")
+            # 嘗試獲取表格結構以提供更多資訊
+            try:
+                inspector = inspect(self.engine)
+                table_columns = [col['name'] for col in inspector.get_columns(table_name)]
+                logger.error(f"Table columns: {table_columns}")
+            except Exception as inspect_error:
+                logger.error(f"Could not inspect table structure: {inspect_error}")
             raise
 
     def _get_csv_files(self, directory: str, pattern: str, start_filter=None, end_filter=None) -> List[str]:
@@ -427,7 +478,17 @@ class ReportDataMigrator:
         elif 'monthly_report' in pattern:
             files = glob.glob(os.path.join(directory, 'monthly_report_*.csv'))
         else:
-            files = glob.glob(os.path.join(directory, f'*-{pattern}.csv'))
+            # 對於season文件，使用更靈活的匹配
+            if 'profit-and-loss-analysis-summary' in pattern:
+                files = glob.glob(os.path.join(directory, '*profit-and-loss-analysis-summary.csv'))
+            elif 'balance-sheet' in pattern:
+                files = glob.glob(os.path.join(directory, '*balance-sheet.csv'))
+            elif 'consolidated-profit-and-loss-summary' in pattern:
+                files = glob.glob(os.path.join(directory, '*consolidated-profit-and-loss-summary.csv'))
+            elif 'statement-of-cash-flows' in pattern:
+                files = glob.glob(os.path.join(directory, '*statement-of-cash-flows.csv'))
+            else:
+                files = glob.glob(os.path.join(directory, f'*-{pattern}.csv'))
 
         logger.info(f"Found {len(files)} files matching pattern '{pattern}' in {directory}")
 
@@ -504,7 +565,20 @@ class ReportDataMigrator:
         df_cleaned['symbol'] = df_cleaned['symbol'].astype(str).str.strip()
 
         required_columns = ['symbol', 'date', 'company_name', 'pe_ratio', 'dividend_yield', 'pb_ratio']
-        return df_cleaned[required_columns] if all(col in df_cleaned.columns for col in required_columns) else pd.DataFrame()
+        # 只選擇實際存在的欄位，避免因為缺失欄位而丟棄整個數據集
+        available_columns = [col for col in required_columns if col in df_cleaned.columns]
+        if not available_columns:
+            logger.warning("No valid columns found, skipping")
+            return pd.DataFrame()
+
+        # 確保至少有基本欄位
+        base_columns = ['symbol', 'date', 'company_name']
+        base_available = [col for col in base_columns if col in df_cleaned.columns]
+        if len(base_available) < len(base_columns):
+            logger.warning("Missing required base columns, skipping")
+            return pd.DataFrame()
+
+        return df_cleaned[available_columns]
 
     def _clean_monthly_report_data(self, df: pd.DataFrame, source_file: str) -> pd.DataFrame:
         """清理月報數據"""
@@ -548,78 +622,208 @@ class ReportDataMigrator:
                           'revenue_current_month', 'revenue_last_month',
                           'revenue_last_year_same_month', 'revenue_ytd',
                           'revenue_last_year_ytd', 'notes']
-        return df_cleaned[required_columns] if all(col in df_cleaned.columns for col in required_columns) else pd.DataFrame()
+
+        # 只選擇實際存在的欄位，避免因為缺失欄位而丟棄整個數據集
+        available_columns = [col for col in required_columns if col in df_cleaned.columns]
+        if not available_columns:
+            logger.warning("No valid columns found, skipping")
+            return pd.DataFrame()
+
+        # 確保至少有基本欄位
+        base_columns = ['symbol', 'company_name', 'report_year', 'report_month']
+        base_available = [col for col in base_columns if col in df_cleaned.columns]
+        if len(base_available) < len(base_columns):
+            logger.warning("Missing required base columns, skipping")
+            return pd.DataFrame()
+
+        return df_cleaned[available_columns]
+
+    def _get_column_mapping(self, report_type: str) -> Dict[str, List[str]]:
+        """獲取靈活的欄位映射，支持多個可能的欄位名稱"""
+        # 基本欄位映射（所有報表類型都需要）
+        base_mappings = {
+            'symbol': ['公司代號', '代號', '股票代號', '證券代號', '股票代碼', 'symbol', 'Symbol'],
+            'company_name': ['公司名稱', '名稱', '公司', 'company', 'Company', 'company_name']
+        }
+
+        # 根據報表類型添加特定欄位映射
+        if report_type == 'PLA':
+            # 損益表欄位
+            pla_mappings = {
+                'revenue': ['營業收入', '收入', '營收', 'revenue', 'Revenue', '營業收入淨額'],
+                'gross_margin': ['毛利率(%)', '毛利率', 'gross_margin', 'Gross Margin'],
+                'operating_margin': ['營業利益率(%)', '營業利益率', 'operating_margin', 'Operating Margin'],
+                'pre_tax_margin': ['稅前純益率(%)', '稅前純益率', 'pre_tax_margin', 'Pre-tax Margin'],
+                'net_margin': ['稅後純益率(%)', '稅後純益率', 'net_margin', 'Net Margin', '純益率']
+            }
+            base_mappings.update(pla_mappings)
+
+        elif report_type == 'BS':
+            # 資產負債表欄位
+            bs_mappings = {
+                'total_assets': ['資產總額', '總資產', '資產總計', 'total_assets', 'Total Assets'],
+                'total_liabilities': ['負債總額', '總負債', '負債總計', 'total_liabilities', 'Total Liabilities'],
+                'equity': ['權益總額', '股東權益', '權益', 'equity', 'Equity', '股東權益總額'],
+                'capital': ['股本', 'capital', 'Capital'],
+                'book_value_per_share': ['每股參考淨值', '每股淨值', 'book_value_per_share', 'Book Value Per Share']
+            }
+            base_mappings.update(bs_mappings)
+
+        elif report_type == 'CPL':
+            # 合併損益表欄位（和PLA類似）
+            cpl_mappings = {
+                'revenue': [
+                    '營業收入', '收入', '營收', 'revenue', 'Revenue', '營業收入淨額', '合併營業收入',
+                    '營業收入合計', '合併營業收入淨額', 'Xlq`B]|^'  # 加入實際的亂碼欄位名稱
+                ],
+                'gross_margin': ['毛利率(%)', '毛利率', 'gross_margin', 'Gross Margin'],
+                'operating_margin': ['營業利益率(%)', '營業利益率', 'operating_margin', 'Operating Margin'],
+                'pre_tax_margin': ['稅前純益率(%)', '稅前純益率', 'pre_tax_margin', 'Pre-tax Margin'],
+                'net_margin': [
+                    '稅後純益率(%)', '稅後純益率', 'net_margin', 'Net Margin', '純益率',
+                    '򥻨CѬվl]^'  # 加入實際的亂碼欄位名稱
+                ]
+            }
+            base_mappings.update(cpl_mappings)
+
+        elif report_type == 'SCF':
+            # 現金流量表欄位
+            scf_mappings = {
+                'operating_cash_flow': [
+                    '營業活動之淨現金流入（流出）',
+                    '營業現金流量',
+                    'operating_cash_flow',
+                    'Operating Cash Flow',
+                    '營業活動現金流量'
+                ],
+                'investing_cash_flow': [
+                    '投資活動之淨現金流入（流出）',
+                    '投資現金流量',
+                    'investing_cash_flow',
+                    'Investing Cash Flow',
+                    '投資活動現金流量'
+                ],
+                'financing_cash_flow': [
+                    '籌資活動之淨現金流入（流出）',
+                    '融資現金流量',
+                    'financing_cash_flow',
+                    'Financing Cash Flow',
+                    '籌資活動現金流量'
+                ]
+            }
+            base_mappings.update(scf_mappings)
+
+        return base_mappings
+
+    def _apply_flexible_column_mapping(self, df: pd.DataFrame, mappings: Dict[str, List[str]]) -> pd.DataFrame:
+        """應用靈活的欄位映射"""
+        df_mapped = df.copy()
+        rename_dict = {}
+
+        # 記錄哪些欄位已經被映射，避免重複映射
+        used_columns = set()
+
+        for target_col, possible_names in mappings.items():
+            for possible_name in possible_names:
+                if possible_name in df_mapped.columns and possible_name not in used_columns:
+                    rename_dict[possible_name] = target_col
+                    used_columns.add(possible_name)
+                    logger.debug(f"Mapped column '{possible_name}' to '{target_col}'")
+                    break  # 找到第一個匹配的就停止
+
+        df_mapped = df_mapped.rename(columns=rename_dict)
+        return df_mapped
 
     def _clean_quarterly_report_data(self, df: pd.DataFrame, source_file: str, report_type: str) -> pd.DataFrame:
-        """清理季報數據"""
+        """清理季報數據 - 支持不同報表類型的欄位映射"""
         if df.empty:
+            logger.warning(f"Empty dataframe for {source_file}, skipping")
             return df
+
+        logger.info(f"Cleaning quarterly report data for {report_type} from {source_file}")
+        logger.info(f"Columns: {list(df.columns)}")
 
         # 從檔案名提取年季
         filename = os.path.basename(source_file)
         # 格式: 2023-season1-PLA.csv
         parts = filename.replace('.csv', '').split('-')
-        year = int(parts[0])
-        season = int(parts[1].replace('season', ''))
+        if len(parts) < 2:
+            logger.error(f"Invalid filename format: {filename}")
+            return pd.DataFrame()
+
+        try:
+            year = int(parts[0])
+            season = int(parts[1].replace('season', ''))
+        except (ValueError, IndexError) as e:
+            logger.error(f"Failed to parse year/season from filename {filename}: {e}")
+            return pd.DataFrame()
 
         df_cleaned = df.copy()
+
+        # 應用靈活的欄位映射（包括symbol和company_name的處理）
+        mappings = self._get_column_mapping(report_type)
+        df_cleaned = self._apply_flexible_column_mapping(df_cleaned, mappings)
+
         df_cleaned['report_year'] = year
         df_cleaned['report_season'] = season
         df_cleaned['report_type'] = report_type
 
-        # 重新命名欄位 (根據不同報表類型)
-        base_mapping = {
-            '公司代號': 'symbol',
-            '公司名稱': 'company_name'
-        }
-
-        if report_type == 'PLA':
-            # 損益表欄位
-            pla_mapping = {
-                '營業收入': 'revenue',
-                '毛利率(%)': 'gross_margin',
-                '營業利益率(%)': 'operating_margin',
-                '稅前純益率(%)': 'pre_tax_margin',
-                '稅後純益率(%)': 'net_margin'
+        # 根據報表類型進行額外的欄位名稱映射
+        if report_type == 'CPL':
+            # CPL欄位名稱映射：將標準化的英文欄位映射到資料庫欄位
+            column_mapping = {
+                'net_income': 'consolidated_net_income',  # CPL的淨利欄位
+                'eps': 'consolidated_eps'  # CPL的每股盈餘欄位
             }
-            base_mapping.update(pla_mapping)
-        elif report_type == 'BS':
-            # 資產負債表欄位
-            bs_mapping = {
-                '總資產': 'total_assets',
-                '總負債': 'total_liabilities',
-                '股東權益': 'equity'
-            }
-            base_mapping.update(bs_mapping)
-        elif report_type == 'CPL':
-            # 現金流量表欄位
-            cpl_mapping = {
-                '營業活動之淨現金流入（流出）': 'operating_cash_flow',
-                '投資活動之淨現金流入（流出）': 'investing_cash_flow',
-                '籌資活動之淨現金流入（流出）': 'financing_cash_flow',
-                '期初現金及約當現金': 'beginning_cash',
-                '期末現金及約當現金': 'ending_cash',
-                '本期淨現金流入（流出）': 'net_cash_flow',
-                '資產負債表帳列之現金及約當現金': 'cash_and_equivalents'
-            }
-            base_mapping.update(cpl_mapping)
+            df_cleaned = df_cleaned.rename(columns=column_mapping)
+            logger.info(f"Applied CPL column mapping: {column_mapping}")
 
-        df_cleaned = df_cleaned.rename(columns=base_mapping)
+        # 數據類型轉換 - 只轉換數值欄位
+        numeric_columns = []
+        for col in df_cleaned.columns:
+            if col not in ['symbol', 'company_name', 'report_type']:
+                # 嘗試轉換為數值，如果成功則加入數值欄位列表
+                try:
+                    pd.to_numeric(df_cleaned[col], errors='coerce')
+                    numeric_columns.append(col)
+                except:
+                    pass  # 不是數值欄位，跳過
 
-        # 數據類型轉換
-        numeric_columns = [col for col in df_cleaned.columns if col not in ['symbol', 'company_name', 'report_type']]
         for col in numeric_columns:
-            if col in df_cleaned.columns:
-                df_cleaned[col] = pd.to_numeric(df_cleaned[col], errors='coerce')
+            df_cleaned[col] = pd.to_numeric(df_cleaned[col], errors='coerce')
 
-        df_cleaned = df_cleaned.dropna(subset=['symbol'])
-        df_cleaned['symbol'] = df_cleaned['symbol'].astype(str).str.strip()
+        # 清理股票代號
+        if 'symbol' in df_cleaned.columns:
+            df_cleaned = df_cleaned.dropna(subset=['symbol'])
+            df_cleaned['symbol'] = df_cleaned['symbol'].astype(str).str.strip()
+            # 移除空字串
+            df_cleaned = df_cleaned[df_cleaned['symbol'] != '']
+        else:
+            logger.warning(f"No symbol column found for {report_type}, skipping")
+            return pd.DataFrame()
 
-        # 存儲原始數據作為JSON
-        df_cleaned['raw_data'] = df.to_json(orient='records', force_ascii=False)
+        # 基本欄位檢查 - 只需要股票代號和年季資訊
+        required_base_columns = ['symbol', 'report_year', 'report_season', 'report_type']
+        missing_base_columns = [col for col in required_base_columns if col not in df_cleaned.columns]
 
-        required_columns = ['symbol', 'company_name', 'report_year', 'report_season', 'report_type', 'raw_data']
-        return df_cleaned[required_columns] if all(col in df_cleaned.columns for col in required_columns) else pd.DataFrame()
+        if missing_base_columns:
+            logger.warning(f"Missing required base columns {missing_base_columns} for {report_type}, skipping")
+            return pd.DataFrame()
+
+        # 清理公司名稱（如果存在）
+        if 'company_name' in df_cleaned.columns:
+            df_cleaned['company_name'] = df_cleaned['company_name'].astype(str).str.strip()
+
+        # 去除重複記錄（基於唯一鍵：symbol, report_year, report_season, report_type）
+        initial_count = len(df_cleaned)
+        df_cleaned = df_cleaned.drop_duplicates(subset=['symbol', 'report_year', 'report_season', 'report_type'])
+        final_count = len(df_cleaned)
+
+        if initial_count > final_count:
+            logger.warning(f"Removed {initial_count - final_count} duplicate records from {report_type} data")
+
+        logger.info(f"Successfully cleaned {final_count} records for {report_type}")
+        return df_cleaned
 
     def _read_csv_with_encoding_detection(self, file_path: str) -> pd.DataFrame:
         """使用多種編碼方式讀取CSV文件"""
@@ -653,6 +857,8 @@ def main():
     parser = argparse.ArgumentParser(description='股票報告數據遷移工具')
     parser.add_argument('--type', choices=['dividend_yield', 'monthly_reports', 'quarterly_reports'],
                        help='遷移數據類型')
+    parser.add_argument('--quarterly-type', choices=['PLA', 'BS', 'CPL', 'SCF'],
+                       help='季報類型 (當type=quarterly_reports時使用)')
     parser.add_argument('--start-date', help='開始日期 (YYYY-MM-DD，適用於股息殖利率)')
     parser.add_argument('--end-date', help='結束日期 (YYYY-MM-DD，適用於股息殖利率)')
     parser.add_argument('--start-year', type=int, help='開始年份 (適用於月報和季報)')
@@ -698,7 +904,7 @@ def main():
         elif args.type == 'quarterly_reports':
             if not args.start_year or not args.end_year:
                 parser.error("--start-year and --end-year are required for quarterly_reports migration")
-            result = migrator.migrate_quarterly_reports(args.start_year, args.end_year, args.dry_run)
+            result = migrator.migrate_quarterly_reports(args.start_year, args.end_year, args.dry_run, args.quarterly_type)
 
         # 輸出結果
         print(f"Migration completed successfully: {result}")

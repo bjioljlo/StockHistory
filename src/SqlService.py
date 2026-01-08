@@ -1,5 +1,6 @@
 import threading
 from datetime import datetime
+from typing import Dict, Any
 import yaml
 
 import pandas as pd
@@ -365,3 +366,362 @@ class SqlService:
         # Connect to the database
         self.MySql_server = SQLAlchemy(self.server_flask)
         print(f"Successfully configured database: {db_type} with connection pooling")
+
+    # ===== 新增的優化查詢方法 =====
+
+    def read_dividend_yield(self, symbol: str = None, start_date: str = None,
+                           end_date: str = None, limit: int = 1000) -> pd.DataFrame:
+        """
+        從統一的dividend_yield表格讀取股息殖利率數據
+
+        Args:
+            symbol: 股票代號，為None時返回所有股票
+            start_date: 開始日期 (YYYY-MM-DD)
+            end_date: 結束日期 (YYYY-MM-DD)
+            limit: 返回記錄數量限制
+
+        Returns:
+            pd.DataFrame: 股息殖利率數據
+        """
+        if self.MySql_server is None:
+            print("Database connection not initialized")
+            return pd.DataFrame()
+
+        try:
+            with self.server_flask.app_context():
+                # 建構查詢條件
+                conditions = []
+                params = {}
+
+                if symbol:
+                    symbol = symbol.upper().replace('.TW', '').replace('.US', '').replace('.HK', '')
+                    conditions.append("symbol = :symbol")
+                    params['symbol'] = symbol
+
+                if start_date:
+                    conditions.append("date >= :start_date")
+                    params['start_date'] = start_date
+
+                if end_date:
+                    conditions.append("date <= :end_date")
+                    params['end_date'] = end_date
+
+                where_clause = " AND ".join(conditions) if conditions else "1=1"
+
+                query = """
+                SELECT symbol, date, company_name, pe_ratio, dividend_yield, pb_ratio
+                FROM dividend_yield
+                WHERE """ + where_clause + """
+                ORDER BY symbol, date DESC
+                LIMIT """ + str(limit)
+
+                # 如果有參數，使用參數化查詢，否則直接執行
+                if params:
+                    df = pd.read_sql(query, con=self.MySql_server.engine, params=params)
+                else:
+                    df = pd.read_sql(query, con=self.MySql_server.engine)
+                return df
+
+        except Exception as e:
+            print(f"SQL Error in read_dividend_yield: {e}")
+            return pd.DataFrame()
+
+    def read_monthly_reports(self, symbol: str = None, start_year: int = None,
+                           end_year: int = None, limit: int = 1000) -> pd.DataFrame:
+        """
+        從統一的monthly_reports表格讀取月報數據
+
+        Args:
+            symbol: 股票代號，為None時返回所有股票
+            start_year: 開始年份
+            end_year: 結束年份
+            limit: 返回記錄數量限制
+
+        Returns:
+            pd.DataFrame: 月報數據
+        """
+        if self.MySql_server is None:
+            print("Database connection not initialized")
+            return pd.DataFrame()
+
+        try:
+            with self.server_flask.app_context():
+                # 建構查詢條件
+                conditions = []
+                params = {}
+
+                if symbol:
+                    symbol = symbol.upper().replace('.TW', '').replace('.US', '').replace('.HK', '')
+                    conditions.append("symbol = :symbol")
+                    params['symbol'] = symbol
+
+                if start_year:
+                    conditions.append("report_year >= :start_year")
+                    params['start_year'] = start_year
+
+                if end_year:
+                    conditions.append("report_year <= :end_year")
+                    params['end_year'] = end_year
+
+                where_clause = " AND ".join(conditions) if conditions else "1=1"
+
+                query = """
+                SELECT symbol, company_name, report_year, report_month,
+                       revenue_current_month, revenue_last_month,
+                       revenue_last_year_same_month, revenue_ytd,
+                       revenue_last_year_ytd, notes
+                FROM monthly_reports
+                WHERE """ + where_clause + """
+                ORDER BY symbol, report_year DESC, report_month DESC
+                LIMIT """ + str(limit)
+
+                # 如果有參數，使用參數化查詢，否則直接執行
+                if params:
+                    df = pd.read_sql(query, con=self.MySql_server.engine, params=params)
+                else:
+                    df = pd.read_sql(query, con=self.MySql_server.engine)
+                return df
+
+        except Exception as e:
+            print(f"SQL Error in read_monthly_reports: {e}")
+            return pd.DataFrame()
+
+    def read_quarterly_reports(self, symbol: str = None, report_type: str = None,
+                             start_year: int = None, end_year: int = None,
+                             limit: int = 1000) -> pd.DataFrame:
+        """
+        從統一的quarterly_reports表格讀取季報數據
+
+        Args:
+            symbol: 股票代號，為None時返回所有股票
+            report_type: 報表類型 ('PLA', 'BS', 'CPL', 'SCF')
+            start_year: 開始年份
+            end_year: 結束年份
+            limit: 返回記錄數量限制
+
+        Returns:
+            pd.DataFrame: 季報數據
+        """
+        if self.MySql_server is None:
+            print("Database connection not initialized")
+            return pd.DataFrame()
+
+        try:
+            with self.server_flask.app_context():
+                # 建構查詢條件
+                conditions = []
+                params = {}
+
+                if symbol:
+                    symbol = symbol.upper().replace('.TW', '').replace('.US', '').replace('.HK', '')
+                    conditions.append("symbol = :symbol")
+                    params['symbol'] = symbol
+
+                if report_type:
+                    conditions.append("report_type = :report_type")
+                    params['report_type'] = report_type.upper()
+
+                if start_year:
+                    conditions.append("report_year >= :start_year")
+                    params['start_year'] = start_year
+
+                if end_year:
+                    conditions.append("report_year <= :end_year")
+                    params['end_year'] = end_year
+
+                where_clause = " AND ".join(conditions) if conditions else "1=1"
+
+                query = """
+                SELECT symbol, company_name, report_year, report_season, report_type,
+                       revenue, gross_margin, operating_margin, pre_tax_margin, net_margin,
+                       consolidated_net_income, consolidated_eps,
+                       total_assets, total_liabilities, equity, capital, book_value_per_share,
+                       operating_cash_flow, investing_cash_flow, financing_cash_flow
+                FROM quarterly_reports
+                WHERE """ + where_clause + """
+                ORDER BY symbol, report_year DESC, report_season DESC
+                LIMIT """ + str(limit)
+
+                # 如果有參數，使用參數化查詢，否則直接執行
+                if params:
+                    df = pd.read_sql(query, con=self.MySql_server.engine, params=params)
+                else:
+                    df = pd.read_sql(query, con=self.MySql_server.engine)
+                return df
+
+        except Exception as e:
+            print(f"SQL Error in read_quarterly_reports: {e}")
+            return pd.DataFrame()
+
+    def get_dividend_yield_stats(self, symbol: str = None, date: str = None) -> Dict[str, Any]:
+        """
+        獲取股息殖利率統計信息
+
+        Args:
+            symbol: 股票代號，為None時返回整體統計
+            date: 指定日期，為None時返回最新數據
+
+        Returns:
+            Dict: 統計信息 (平均殖利率、最高、最低等)
+        """
+        if self.MySql_server is None:
+            print("Database connection not initialized")
+            return {}
+
+        try:
+            with self.server_flask.app_context():
+                if symbol:
+                    symbol = symbol.upper().replace('.TW', '').replace('.US', '').replace('.HK', '')
+
+                # 確定查詢日期
+                date_condition = ""
+                params = {}
+                if date:
+                    date_condition = "AND date = :date"
+                    params['date'] = date
+                else:
+                    date_condition = "AND date = (SELECT MAX(date) FROM dividend_yield)"
+
+                if symbol:
+                    date_condition += " AND symbol = :symbol"
+                    params['symbol'] = symbol
+
+                query = f"""
+                SELECT
+                    COUNT(*) as total_records,
+                    AVG(dividend_yield) as avg_yield,
+                    MAX(dividend_yield) as max_yield,
+                    MIN(dividend_yield) as min_yield,
+                    AVG(pe_ratio) as avg_pe,
+                    AVG(pb_ratio) as avg_pb
+                FROM dividend_yield
+                WHERE dividend_yield > 0 {date_condition}
+                """
+
+                result = pd.read_sql(query, con=self.MySql_server.engine, params=params)
+
+                if result.empty:
+                    return {}
+
+                row = result.iloc[0]
+                return {
+                    'total_records': int(row['total_records']),
+                    'avg_yield': round(float(row['avg_yield'] or 0), 2),
+                    'max_yield': round(float(row['max_yield'] or 0), 2),
+                    'min_yield': round(float(row['min_yield'] or 0), 2),
+                    'avg_pe': round(float(row['avg_pe'] or 0), 2),
+                    'avg_pb': round(float(row['avg_pb'] or 0), 2)
+                }
+
+        except Exception as e:
+            print(f"SQL Error in get_dividend_yield_stats: {e}")
+            return {}
+
+    def get_monthly_revenue_trend(self, symbol: str, years: int = 3) -> pd.DataFrame:
+        """
+        獲取月營收趨勢數據
+
+        Args:
+            symbol: 股票代號
+            years: 分析年數
+
+        Returns:
+            pd.DataFrame: 營收趨勢數據 (年份, 月份, 營收, 增長率)
+        """
+        if self.MySql_server is None:
+            print("Database connection not initialized")
+            return pd.DataFrame()
+
+        try:
+            with self.server_flask.app_context():
+                symbol = symbol.upper().replace('.TW', '').replace('.US', '').replace('.HK', '')
+
+                query = f"""
+                SELECT
+                    report_year,
+                    report_month,
+                    revenue_current_month,
+                    LAG(revenue_current_month, 12) OVER (ORDER BY report_year, report_month) as last_year_revenue,
+                    CASE
+                        WHEN LAG(revenue_current_month, 12) OVER (ORDER BY report_year, report_month) > 0
+                        THEN ROUND(
+                            (revenue_current_month - LAG(revenue_current_month, 12) OVER (ORDER BY report_year, report_month))
+                            / LAG(revenue_current_month, 12) OVER (ORDER BY report_year, report_month) * 100, 2
+                        )
+                        ELSE NULL
+                    END as growth_rate
+                FROM monthly_reports
+                WHERE symbol = :symbol
+                  AND report_year >= YEAR(CURDATE()) - :years
+                ORDER BY report_year DESC, report_month DESC
+                """
+
+                df = pd.read_sql(query, con=self.MySql_server.engine,
+                               params={'symbol': symbol, 'years': years})
+                return df
+
+        except Exception as e:
+            print(f"SQL Error in get_monthly_revenue_trend: {e}")
+            return pd.DataFrame()
+
+    def get_quarterly_financial_summary(self, symbol: str, year: int = None) -> Dict[str, Any]:
+        """
+        獲取季財務報表摘要
+
+        Args:
+            symbol: 股票代號
+            year: 指定年份，為None時返回最新年份
+
+        Returns:
+            Dict: 財務摘要 (收入、利潤、資產負債等)
+        """
+        if self.MySql_server is None:
+            print("Database connection not initialized")
+            return {}
+
+        try:
+            with self.server_flask.app_context():
+                symbol = symbol.upper().replace('.TW', '').replace('.US', '').replace('.HK', '')
+
+                # 確定年份
+                year_condition = ""
+                params = {'symbol': symbol}
+                if year:
+                    year_condition = "AND report_year = :year"
+                    params['year'] = year
+                else:
+                    year_condition = "AND report_year = (SELECT MAX(report_year) FROM quarterly_reports WHERE symbol = :symbol)"
+
+                # 獲取損益表數據
+                pla_query = f"""
+                SELECT report_season, revenue, net_margin
+                FROM quarterly_reports
+                WHERE symbol = :symbol {year_condition} AND report_type = 'PLA'
+                ORDER BY report_season
+                """
+
+                pla_df = pd.read_sql(pla_query, con=self.MySql_server.engine, params=params)
+
+                # 獲取資產負債表數據
+                bs_query = f"""
+                SELECT report_season, total_assets, total_liabilities, equity
+                FROM quarterly_reports
+                WHERE symbol = :symbol {year_condition} AND report_type = 'BS'
+                ORDER BY report_season
+                """
+
+                bs_df = pd.read_sql(bs_query, con=self.MySql_server.engine, params=params)
+
+                # 合併數據
+                result = {
+                    'symbol': symbol,
+                    'year': year,
+                    'pla_data': pla_df.to_dict('records') if not pla_df.empty else [],
+                    'bs_data': bs_df.to_dict('records') if not bs_df.empty else []
+                }
+
+                return result
+
+        except Exception as e:
+            print(f"SQL Error in get_quarterly_financial_summary: {e}")
+            return {}
