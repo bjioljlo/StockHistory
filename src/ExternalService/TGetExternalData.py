@@ -15,6 +15,8 @@ from src.ReadLoadSystem import ReadLoadSystem
 from src.SqlService import SqlService
 import src.StockInfos as StockInfos
 from src.Common import Tools
+from src.Common.CacheService import HybridCacheService
+
 
 class TGetExternalData(IGetExternalData):
     """讀取外部資料"""
@@ -23,7 +25,7 @@ class TGetExternalData(IGetExternalData):
         sql_service: SqlService,
         mongo_service: MongoService,
         read_load_system: ReadLoadSystem,
-        cache_service=None) -> None:
+        cache_service: HybridCacheService) -> None:
         self._read_load_system = read_load_system
         self._sql_service = sql_service
         self._mongo_service = mongo_service
@@ -253,7 +255,8 @@ class TGetExternalData(IGetExternalData):
         if self._sql_service.CantUseStocks.__contains__(str(number) + ".TW"):
             print("ItsCantUseStock:" + str(number))
             return result
-        if not StockInfos.ts.codes.__contains__(number):
+        # Only check Taiwan stock codes for Taiwanese stocks
+        if (number.replace('.TW', '').isdigit() or number.endswith('.TW')) and not StockInfos.ts.codes.__contains__(number):
             print("無此檔股票")
             return result
         if start_time < data_time:
@@ -262,9 +265,8 @@ class TGetExternalData(IGetExternalData):
 
         file = str(number)
         filename = self.filePath + "/" + self.fileName_stockInfo + "/" + file
-        stock_id = str(number)
-        if ".TW" not in stock_id:
-            stock_id += ".TW"
+        # 統一處理stock_id，移除可能的後綴，與數據庫和快取保持一致
+        stock_id = str(number).upper().replace('.TW', '').replace('.US', '').replace('.HK', '')
 
         # 使用新的混合快取服務 (Redis L1 + MongoDB L2)
         if self._cache_service:

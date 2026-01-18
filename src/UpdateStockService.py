@@ -31,7 +31,9 @@ class UpdateStockService:
         self._cache_service = cache_service
         self._getExternalFactory = ExternalDataFactory(
             self._sql_service, self._mongo_service, self._read_load_system, cache_service)
-        self._data_validator = DataValidationService(config) if config else None
+        # 總是創建數據驗證器，即使沒有config也使用默認配置
+        default_config = config if config else {'app': {'data_validation': True}}
+        self._data_validator = DataValidationService(default_config)
         # Get retry settings from config
         self._retry_attempts = self._data_validator.config.get('external_apis', {}).get('yahoo_finance', {}).get('retry_attempts', 3) if self._data_validator else 3
         self._retry_delay = 1.0  # Base delay in seconds
@@ -237,6 +239,55 @@ class UpdateStockService:
         else:
             return 'OTHER'
 
+    def _basic_data_cleanup(self, df: pd.DataFrame, stock_code: str) -> pd.DataFrame:
+        """基本的數據清理 - 在沒有數據驗證器時使用"""
+        try:
+            if df.empty:
+                return df
+
+            # 移除重複的索引
+            df = df[~df.index.duplicated(keep='last')]
+
+            # 排序索引
+            df = df.sort_index()
+
+            # 處理無限值和NaN
+            import numpy as np
+            numeric_columns = ['Open', 'High', 'Low', 'Close', 'Volume']
+            for col in numeric_columns:
+                if col in df.columns:
+                    # 將無限值替換為NaN
+                    df[col] = df[col].replace([np.inf, -np.inf], np.nan)
+                    # 向前填充NaN值（限制為5個交易日）
+                    df[col] = df[col].fillna(method='ffill', limit=5)
+
+            # 移除所有值都是NaN的行
+            df = df.dropna(how='all')
+
+            # 移除成交量為負數的行
+            if 'Volume' in df.columns:
+                df = df[df['Volume'] >= 0]
+
+            # 確保價格欄位為正數
+            price_columns = ['Open', 'High', 'Low', 'Close']
+            for col in price_columns:
+                if col in df.columns:
+                    df = df[df[col] > 0]
+
+            # 檢查清理後是否還有NaN值
+            nan_counts = df.isna().sum()
+            total_nans = nan_counts.sum()
+            if total_nans > 0:
+                print(f"Warning: {stock_code} still has {total_nans} NaN values after cleanup")
+                # 對於剩下的NaN值，用0填充
+                df = df.fillna(0)
+
+            return df
+
+        except Exception as e:
+            print(f"Error in basic data cleanup for {stock_code}: {e}")
+            return df
+
     def _save_stock_data_to_db(self, data_queue: queue.Queue):
         print("Starting database save thread...")
         while True:
@@ -248,7 +299,7 @@ class UpdateStockService:
             stock_name, df_result, fetch_start_date = item
 
             try:
-                # 資料驗證
+                # 資料驗證和清理
                 if self._data_validator:
                     is_valid, errors, cleaned_df = self._data_validator.validate_stock_data(
                         stock_name, df_result, source='yahoo'
@@ -260,6 +311,10 @@ class UpdateStockService:
                     else:
                         df_result = cleaned_df
                         print(f"Data validation passed for {stock_name}")
+                else:
+                    # 如果沒有數據驗證器，手動進行基本清理
+                    print(f"No data validator available for {stock_name}, performing basic cleanup")
+                    df_result = self._basic_data_cleanup(df_result, stock_name)
 
                 is_initial_fetch = (fetch_start_date.year == 2005 and fetch_start_date.month == 1 and fetch_start_date.day == 1)
 
@@ -275,19 +330,19 @@ class UpdateStockService:
                     if save_ok:
                         print("Saved " + stock_name + " to DB OK!")
 
-                        # 更新 MongoDB 快取（如果是熱門股票）
+                        # 更新快取以確保讀取到最新資料
                         if self._cache_service:
-                            hot_stocks = self._cache_service.get_hot_stocks()
-                            if stock_name.upper().replace('.TW', '').replace('.US', '').replace('.HK', '') in hot_stocks:
-                                try:
-                                    # 確保 DataFrame 索引是 DatetimeIndex，避免 datetime.date 編碼問題
-                                    df_to_cache = df_result.copy()
-                                    if not isinstance(df_to_cache.index, pd.DatetimeIndex):
-                                        df_to_cache.index = pd.to_datetime(df_to_cache.index)
-                                    self._mongo_service.saveTable(stock_name.lower(), df_to_cache)
-                                    print(f"Updated cache for hot stock: {stock_name}")
-                                except Exception as e:
-                                    print(f"Failed to update cache for {stock_name}: {e}")
+                            try:
+                                # 清除該股票的 Redis 快取
+                                stock_symbol = stock_name.upper().replace('.TW', '').replace('.US', '').replace('.HK', '')
+                                self._cache_service.invalidate_stock_cache(stock_symbol)
+
+                                # 將新數據寫入快取（在數據更新成功後寫入）
+                                #self._cache_service.set_stock_data(stock_symbol, df_result)
+
+                                print(f"Updated cache for {stock_name} with new data")
+                            except Exception as e:
+                                print(f"Failed to update cache for {stock_name}: {e}")
                     else:
                         print(f"Failed to save {stock_name} to SQL DB.")
 
@@ -322,8 +377,10 @@ class UpdateStockService:
             df_check = self._getExternalFactory.Get_instance(self).get_stock_history(
                 value.code, start=start_date
             )
-            if not df_check.empty or start_date in df_check.index:
-                fetch_start_date = start_date
+            if not df_check.empty:
+                # 有本地數據，取最新日期 +1 天開始，避免重複下載
+                latest_date = df_check.index.max()
+                fetch_start_date = latest_date + timedelta(days=1)
             else:
                 fetch_start_date = datetime(2005, 1, 1)
             
@@ -344,9 +401,6 @@ class UpdateStockService:
             df_result = Tools.TidyTicketData(df_result, value.code + ".TW")
             data_queue.put((stock_name, df_result, fetch_start_date))
 
-            self._read_load_system.load_memery[
-                os.getcwd() + "/" + "stockInfo" + "/" + value.code
-            ] = df_result
             print("Download stocks " + stock_name + " OK!")
             if callback:
                 progress = int((i + 1) / total_stocks * 100)
@@ -355,7 +409,6 @@ class UpdateStockService:
 
         data_queue.put(None)
         MainUserInfoDatas.UpdateDate = str(datetime.today())[0:10]
-        self._read_load_system.clear_memery()
         print("TW stocks update process initiated. Fetching and saving are running in the background.")
 
     def __RunUpdate_sp500(self, MainUserInfoDatas: UserInfoDatas, callback=None):
@@ -367,8 +420,8 @@ class UpdateStockService:
         save_thread.daemon = True
         save_thread.start()
         
-        start_date = datetime.strptime(MainUserInfoDatas.UpdateDate, "%Y-%m-%d")
-        end_date = datetime.today() - timedelta(days=1)
+        start_date = datetime.strptime(MainUserInfoDatas.UpdateDate, "%Y-%m-%d") - timedelta(days=1)
+        end_date = datetime.today()
 
         sp500 = Tools.get_SP500_list()
         total_stocks = len(sp500)
@@ -381,8 +434,10 @@ class UpdateStockService:
             df_check = self._getExternalFactory.Get_instance(self).get_stock_history(
                 temp, start=start_date
             )
-            if not df_check.empty or start_date in df_check.index:
-                fetch_start_date = start_date
+            if not df_check.empty:
+                # 有本地數據，取最新日期 +1 天開始，避免重複下載
+                latest_date = df_check.index.max()
+                fetch_start_date = latest_date + timedelta(days=1)
             else:
                 fetch_start_date = datetime(2005, 1, 1)
             
@@ -404,9 +459,6 @@ class UpdateStockService:
             df_result = Tools.TidyTicketData(df_result, temp)
             data_queue.put((temp, df_result, start_date))
 
-            self._read_load_system.load_memery[
-                os.getcwd() + "/" + "stockInfo" + "/" + temp
-            ] = df_result
             print("Update stocks " + temp + " OK!")
             if callback:
                 progress = int((i + 1) / total_stocks * 100)

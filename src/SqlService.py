@@ -7,8 +7,7 @@ import pandas as pd
 import yfinance as yf
 from flask import Flask
 from flask_sqlalchemy import SQLAlchemy
-from sqlalchemy import inspect, create_engine, text
-from sqlalchemy.pool import QueuePool
+from sqlalchemy import inspect, text
 
 from src.Common import Tools
 from src.Common.ConfigService import load_config, get_config_path
@@ -233,68 +232,46 @@ class SqlService:
             return False
 
         try:
-            print("Attempting batch insertion to unified table...")
+            print(f"Inserting {len(df)} rows to unified table using upsert...")
             with self.server_flask.app_context():
-                # 確保不插入 DataFrame 的 index
-                df_to_insert = df.copy()
-                if df_to_insert.index.name is not None or 'index' in df_to_insert.columns:
-                    df_to_insert = df_to_insert.reset_index(drop=True)
+                with self.MySql_server.engine.begin() as connection:
+                    success_count = 0
+                    for _, row in df.iterrows():
+                        insert_sql = text("""
+                        INSERT INTO stock_daily_prices (symbol, market, date, open, high, low, close, adj_close, volume)
+                        VALUES (:symbol, :market, :date, :open, :high, :low, :close, :adj_close, :volume)
+                        ON DUPLICATE KEY UPDATE
+                        open = VALUES(open),
+                        high = VALUES(high),
+                        low = VALUES(low),
+                        close = VALUES(close),
+                        adj_close = VALUES(adj_close),
+                        volume = VALUES(volume),
+                        updated_at = CURRENT_TIMESTAMP
+                        """)
 
-                # 使用 pandas 的 to_sql 方法配合 method='multi' 來處理批量插入
-                df_to_insert.to_sql(
-                    name='stock_daily_prices',
-                    con=self.MySql_server.engine,
-                    if_exists='append',
-                    index=False,
-                    method='multi',
-                    chunksize=1000
-                )
-                print(f"Successfully inserted {len(df_to_insert)} rows via batch insertion")
-                return True
+                        # 處理 NaN 值，並確保欄位名稱正確
+                        row_dict = {}
+                        for col in ['symbol', 'market', 'date', 'open', 'high', 'low', 'close', 'adj_close', 'volume']:
+                            value = row[col] if col in row.index else None
+                            if pd.isna(value) or value is None:
+                                # 對於數值欄位，使用 0 作為預設值
+                                if col in ['open', 'high', 'low', 'close', 'adj_close', 'volume']:
+                                    row_dict[col] = 0.0 if col != 'volume' else 0
+                                else:
+                                    row_dict[col] = None
+                            else:
+                                row_dict[col] = value
+
+                        connection.execute(insert_sql, row_dict)
+                        success_count += 1
+
+                    print(f"Successfully inserted/updated {success_count} rows to unified table")
+            return True
 
         except Exception as e:
-            print(f"Batch insertion failed: {e}")
-            # 如果批量插入失敗，嘗試逐行處理（較慢但更可靠）
-            try:
-                print("Falling back to row-by-row insertion...")
-                with self.server_flask.app_context():
-                    with self.MySql_server.engine.begin() as connection:
-                        success_count = 0
-                        for _, row in df.iterrows():
-                            insert_sql = text("""
-                            INSERT INTO stock_daily_prices (symbol, market, date, open, high, low, close, adj_close, volume)
-                            VALUES (:symbol, :market, :date, :open, :high, :low, :close, :adj_close, :volume)
-                            ON DUPLICATE KEY UPDATE
-                            open = VALUES(open),
-                            high = VALUES(high),
-                            low = VALUES(low),
-                            close = VALUES(close),
-                            adj_close = VALUES(adj_close),
-                            volume = VALUES(volume),
-                            updated_at = CURRENT_TIMESTAMP
-                            """)
-
-                            # 處理 NaN 值，並確保欄位名稱正確
-                            row_dict = {}
-                            for col in ['symbol', 'market', 'date', 'open', 'high', 'low', 'close', 'adj_close', 'volume']:
-                                value = row[col] if col in row.index else None
-                                if pd.isna(value) or value is None:
-                                    # 對於數值欄位，使用 0 作為預設值
-                                    if col in ['open', 'high', 'low', 'close', 'adj_close', 'volume']:
-                                        row_dict[col] = 0.0 if col != 'volume' else 0
-                                    else:
-                                        row_dict[col] = None
-                                else:
-                                    row_dict[col] = value
-
-                            connection.execute(insert_sql, row_dict)
-                            success_count += 1
-
-                        print(f"Successfully inserted {success_count} rows via row-by-row insertion")
-                return True
-            except Exception as fallback_error:
-                print(f"Fallback insertion also failed: {fallback_error}")
-                return False
+            print(f"Insertion failed: {e}")
+            return False
 
     def __SetMysqlServer(self):
         print("Loading database configuration...")

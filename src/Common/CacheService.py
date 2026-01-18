@@ -8,13 +8,14 @@
 
 import json
 import logging
-import hashlib
 import threading
 from datetime import datetime, timedelta
-from typing import Dict, List, Optional, Any
+from typing import Any, Dict, List, Optional
+
+import pandas as pd
 import redis
 import yaml
-import pandas as pd
+
 
 class HybridCacheService:
     """混合快取服務：Redis + MongoDB"""
@@ -219,7 +220,7 @@ class HybridCacheService:
         """從 MongoDB 獲取股票資料"""
         try:
             # 檢查 MongoDB 連線是否已初始化
-            if not self.mongo_service or not self.mongo_service.mongodb:
+            if not self.mongo_service or self.mongo_service.mongodb is None:
                 self.logger.warning("MongoDB connection not initialized")
                 return None
 
@@ -262,6 +263,10 @@ class HybridCacheService:
         print("Cleaning up cold MongoDB cache entries...")
 
         try:
+            if not self.mongo_service or self.mongo_service.mongodb is None:
+                print("MongoDB connection not available")
+                return
+
             db = self.mongo_service.mongodb
             collections = db.list_collection_names()
 
@@ -295,6 +300,9 @@ class HybridCacheService:
         """
         統一的股票資料獲取介面
         優先順序：Redis (L1) → MongoDB (L2)
+
+        Args:
+            stock_symbol: 股票代碼
         """
         # 1. 嘗試從 Redis L1 快取獲取
         redis_key = self._generate_cache_key("stock", stock_symbol)
@@ -316,7 +324,7 @@ class HybridCacheService:
         # 2. 嘗試從 MongoDB L2 智慧快取獲取
         mongo_data = self.get_mongo_cache(stock_symbol)
         if mongo_data is not None and not mongo_data.empty:
-            # 同步到 Redis L1 快取（確保索引轉換為字符串）
+            # 同步到 Redis L1 快取
             index_list = [str(idx) for idx in mongo_data.index] if not mongo_data.index.equals(range(len(mongo_data))) else None
             self.set_redis_cache(redis_key, {
                 'data': mongo_data.values.tolist(),
@@ -362,8 +370,16 @@ class HybridCacheService:
         redis_key = self._generate_cache_key("stock", stock_symbol)
         self.delete_redis_cache(redis_key)
 
-        # 也可以選擇從 MongoDB 刪除，但通常保留作為智慧快取
-        self.logger.info(f"Invalidated cache for {stock_symbol}")
+        # 刪除 MongoDB L2 快取
+        try:
+            if self.mongo_service and self.mongo_service.mongodb is not None:
+                collection = self.mongo_service.mongodb[stock_symbol.lower()]
+                collection.drop()
+                self.logger.info(f"Dropped MongoDB cache collection for {stock_symbol}")
+        except Exception as e:
+            self.logger.warning(f"Failed to drop MongoDB cache for {stock_symbol}: {e}")
+
+        self.logger.info(f"Invalidated all cache for {stock_symbol}")
 
     def get_cache_stats(self) -> Dict[str, Any]:
         """獲取完整快取統計"""
@@ -391,24 +407,27 @@ class HybridCacheService:
                 stats['redis'] = {'status': 'error', 'message': str(e)}
 
         # MongoDB 統計
-        try:
-            db = self.mongo_service.mongodb
-            collections = db.list_collection_names()
-            stock_collections = [
-                col for col in collections
-                if not col.startswith('system.') and col not in ['ad_index']
-            ]
+        if not self.mongo_service or self.mongo_service.mongodb is None:
+            stats['mongodb'] = {'status': 'disconnected', 'message': 'MongoDB service not available'}
+        else:
+            try:
+                db = self.mongo_service.mongodb
+                collections = db.list_collection_names()
+                stock_collections = [
+                    col for col in collections
+                    if not col.startswith('system.') and col not in ['ad_index']
+                ]
 
-            total_docs = sum(db[col].count_documents({}) for col in stock_collections)
+                total_docs = sum(db[col].count_documents({}) for col in stock_collections)
 
-            stats['mongodb'] = {
-                'status': 'connected',
-                'cached_stocks': len(stock_collections),
-                'total_documents': total_docs,
-                'last_update': self.last_mongo_update.isoformat()
-            }
-        except Exception as e:
-            stats['mongodb'] = {'status': 'error', 'message': str(e)}
+                stats['mongodb'] = {
+                    'status': 'connected',
+                    'cached_stocks': len(stock_collections),
+                    'total_documents': total_docs,
+                    'last_update': self.last_mongo_update.isoformat()
+                }
+            except Exception as e:
+                stats['mongodb'] = {'status': 'error', 'message': str(e)}
 
         return stats
 
@@ -427,21 +446,25 @@ class HybridCacheService:
                 redis_ok = False
 
         # 清除 MongoDB 快取集合
-        try:
-            db = self.mongo_service.mongodb
-            collections = db.list_collection_names()
-            stock_collections = [
-                col for col in collections
-                if not col.startswith('system.') and col not in ['ad_index']
-            ]
-
-            for collection in stock_collections:
-                db.drop_collection(collection)
-
-            self.logger.info(f"Cleared {len(stock_collections)} MongoDB cache collections")
-        except Exception as e:
-            self.logger.error(f"Failed to clear MongoDB cache: {e}")
+        if not self.mongo_service or self.mongo_service.mongodb is None:
+            self.logger.warning("MongoDB service not available for cache clearing")
             mongo_ok = False
+        else:
+            try:
+                db = self.mongo_service.mongodb
+                collections = db.list_collection_names()
+                stock_collections = [
+                    col for col in collections
+                    if not col.startswith('system.') and col not in ['ad_index']
+                ]
+
+                for collection in stock_collections:
+                    db.drop_collection(collection)
+
+                self.logger.info(f"Cleared {len(stock_collections)} MongoDB cache collections")
+            except Exception as e:
+                self.logger.error(f"Failed to clear MongoDB cache: {e}")
+                mongo_ok = False
 
         return redis_ok and mongo_ok
 
@@ -471,13 +494,17 @@ class HybridCacheService:
             health['overall_status'] = 'degraded'
 
         # MongoDB 健康檢查
-        try:
-            db = self.mongo_service.mongodb
-            db.command('ping')
-            health['mongodb'] = {'status': 'healthy'}
-        except Exception as e:
-            health['mongodb'] = {'status': 'unhealthy', 'message': str(e)}
+        if not self.mongo_service or self.mongo_service.mongodb is None:
+            health['mongodb'] = {'status': 'disabled', 'message': 'MongoDB service not available'}
             health['overall_status'] = 'degraded'
+        else:
+            try:
+                db = self.mongo_service.mongodb
+                db.command('ping')
+                health['mongodb'] = {'status': 'healthy'}
+            except Exception as e:
+                health['mongodb'] = {'status': 'unhealthy', 'message': str(e)}
+                health['overall_status'] = 'degraded'
 
         return health
 

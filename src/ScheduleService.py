@@ -1,10 +1,12 @@
 from src.StockInfos import UserInfoDatas
 from src.Common.ConcurrentUtils import ConcurrentUtils
 from src.UpdateStockService import UpdateStockService
+from src.Common.CacheService import HybridCacheService
+
 
 
 class ScheduleService:
-    def __init__(self, concurrent_utils: ConcurrentUtils, update_stockService: UpdateStockService, cache_service=None) -> None:
+    def __init__(self, concurrent_utils: ConcurrentUtils, update_stockService: UpdateStockService, cache_service: HybridCacheService=None) -> None:
         self.updateStockService = update_stockService
         self.concurrent_utils = concurrent_utils
         self.cache_service = cache_service
