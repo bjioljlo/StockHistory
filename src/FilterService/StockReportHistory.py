@@ -147,6 +147,54 @@ class ADL_Report(AllStockReport):
         return date
 
 
+class DividendYield_Report(AllStockReport):
+    """以日為單位的股息殖利率歷史資料"""
+
+    def get_ALL_Report(self, date, base_today=None):
+        """從數據庫獲取股息殖利率數據"""
+        try:
+            # 使用SqlService從dividend_yield表格讀取數據
+            return self._main_GetExternalData.get_allstock_dividend_yield()
+        except Exception as e:
+            print(f"Error getting dividend yield data: {e}")
+            return DataFrame()
+
+    def get_ReportByType(self, date, _type: info.StrEnum, base_today=None) -> Series:
+        """根據類型獲取特定欄位的數據"""
+        Temp = self.get_ALL_Report(date, base_today=base_today)
+        try:
+            if _type == info.Day_type.Yield:
+                # 返回殖利率欄位
+                if 'dividend_yield' in Temp.columns:
+                    return Temp.set_index('symbol')['dividend_yield']
+                elif '殖利率(%)' in Temp.columns:
+                    return Temp.set_index('code')['殖利率(%)']
+            elif _type == info.Day_type.PER:
+                # 返回本益比欄位
+                if 'pe_ratio' in Temp.columns:
+                    return Temp.set_index('symbol')['pe_ratio']
+                elif '本益比' in Temp.columns:
+                    return Temp.set_index('code')['本益比']
+            elif _type == info.Day_type.PBR:
+                # 返回股價淨值比欄位
+                if 'pb_ratio' in Temp.columns:
+                    return Temp.set_index('symbol')['pb_ratio']
+                elif '股價淨值比' in Temp.columns:
+                    return Temp.set_index('code')['股價淨值比']
+            return Series()
+        except Exception as e:
+            print(f"Error getting report by type {_type}: {e}")
+            return Series()
+
+    def Next_date(self, date):
+        """獲取下一個有效日期"""
+        date = Tools.backWorkDays(date, self._Unit)
+        # 確保日期有效（有交易日數據）
+        while date not in self._main_GetExternalData.get_stock_history("2330").index:
+            date = Tools.backWorkDays(date, self._Unit)
+        return date
+
+
 class Indicator(TReport):
     """指標處理"""
 

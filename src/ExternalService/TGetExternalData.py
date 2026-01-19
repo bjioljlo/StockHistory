@@ -218,6 +218,15 @@ class TGetExternalData(IGetExternalData):
         self._read_load_system.Memery[fileName] = m_yield
         return m_yield
 
+    def get_allstock_dividend_yield(self):
+        """#從數據庫獲取所有股票股息殖利率數據"""
+        print("從數據庫獲取股息殖利率數據")
+        try:
+            return self._sql_service.read_dividend_yield()
+        except Exception as e:
+            print(f"Error getting dividend yield from database: {e}")
+            return pd.DataFrame()
+
     def get_stock_history(
         self,
         number: str,
@@ -480,6 +489,15 @@ class TGetExternalData(IGetExternalData):
         except Exception as e:
             print(f"Could not read AD_index from MySQL. Error: {e}")
         return pd.DataFrame()
+
+    def get_allstock_dividend_yield(self):
+        """#從數據庫獲取所有股票股息殖利率數據"""
+        print("get_allstock_dividend_yield from database")
+        try:
+            return self._sql_service.read_dividend_yield()
+        except Exception as e:
+            print(f"Could not read dividend yield data from database. Error: {e}")
+            return pd.DataFrame()
 
     def _remove_td(self, column):
         remove_one = column.split("<")
