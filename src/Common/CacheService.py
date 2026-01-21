@@ -195,26 +195,63 @@ class HybridCacheService:
         return datetime.now() - self.last_mongo_update > self.mongo_update_interval
 
     def update_mongo_cache(self):
-        """更新 MongoDB 智慧快取"""
-        if not self.should_update_mongo_cache():
-            return
+        """更新 MongoDB 智慧快取 - 優化版本，避免重複更新"""
+        # 使用雙重檢查鎖定模式，防止多個線程同時執行更新
+        update_lock = threading.Lock()
 
-        print("Updating MongoDB smart cache for hot stocks...")
-        hot_stocks = self.get_hot_stocks(self.cache_size)
+        with update_lock:
+            # 雙重檢查：確保在獲取鎖後仍然需要更新
+            if not self.should_update_mongo_cache():
+                return
 
-        for stock_symbol in hot_stocks:
-            try:
-                # 從 MySQL 讀取完整資料
-                df = self.sql_service.readStockDay(stock_symbol)
-                if not df.empty:
-                    # 同步到 MongoDB
-                    self.mongo_service.saveTable(stock_symbol.lower(), df)
-                    print(f"Smart cached {stock_symbol} to MongoDB")
-            except Exception as e:
-                print(f"Failed to smart cache {stock_symbol}: {e}")
+            print("Updating MongoDB smart cache for hot stocks...")
+            hot_stocks = self.get_hot_stocks(self.cache_size)
+            updated_count = 0
 
-        self.last_mongo_update = datetime.now()
-        print(f"MongoDB smart cache updated for {len(hot_stocks)} hot stocks")
+            for stock_symbol in hot_stocks:
+                try:
+                    # 檢查 MongoDB 中是否已有最新數據，避免不必要的更新
+                    if self._should_update_stock_in_mongo(stock_symbol):
+                        # 從 MySQL 讀取完整資料
+                        df = self.sql_service.readStockDay(stock_symbol)
+                        if not df.empty:
+                            # 同步到 MongoDB
+                            self.mongo_service.saveTable(stock_symbol.lower(), df)
+                            updated_count += 1
+                            print(f"Smart cached {stock_symbol} to MongoDB")
+                        else:
+                            print(f"No data found for {stock_symbol}, skipping MongoDB update")
+                    else:
+                        print(f"Data for {stock_symbol} is already up-to-date in MongoDB, skipping")
+                except Exception as e:
+                    print(f"Failed to smart cache {stock_symbol}: {e}")
+
+            self.last_mongo_update = datetime.now()
+            print(f"MongoDB smart cache updated for {updated_count}/{len(hot_stocks)} hot stocks")
+
+    def _should_update_stock_in_mongo(self, stock_symbol: str) -> bool:
+        """檢查特定股票是否需要在 MongoDB 中更新"""
+        try:
+            if not self.mongo_service or self.mongo_service.mongodb is None:
+                return True  # 如果 MongoDB 不可用，視為需要更新
+
+            collection = self.mongo_service.mongodb[stock_symbol.lower()]
+
+            # 檢查集合是否存在
+            if collection.count_documents({}) == 0:
+                return True  # 集合不存在，需要更新
+
+            # 檢查數據是否是最新的（比較文檔數量作為簡單檢查）
+            mongo_count = collection.count_documents({})
+            sql_df = self.sql_service.readStockDay(stock_symbol)
+            sql_count = len(sql_df) if not sql_df.empty else 0
+
+            # 如果 SQL 中的數據比 MongoDB 多，則需要更新
+            return sql_count > mongo_count
+
+        except Exception as e:
+            self.logger.warning(f"Error checking if {stock_symbol} needs MongoDB update: {e}")
+            return True  # 出錯時預設為需要更新
 
     def get_mongo_cache(self, stock_symbol: str) -> Optional[pd.DataFrame]:
         """從 MongoDB 獲取股票資料"""
@@ -235,9 +272,10 @@ class HybridCacheService:
                     del doc['_id']
 
                 # 處理日期欄位，將字符串轉換回 datetime
+                # 使用與保存時相同的格式 '%Y-%m-%d' 確保一致性
                 if 'Date' in doc and isinstance(doc['Date'], str):
                     try:
-                        doc['Date'] = pd.to_datetime(doc['Date'])
+                        doc['Date'] = pd.to_datetime(doc['Date'], format='%Y-%m-%d')
                     except:
                         pass  # 如果轉換失敗，保持原樣
 

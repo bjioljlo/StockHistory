@@ -349,10 +349,10 @@ class TGetExternalData(IGetExternalData):
                 if '_id' in m_history.columns:
                     m_history = m_history.drop('_id', axis=1)
                 if 'Date' in m_history.columns:
-                    m_history['Date'] = pd.to_datetime(m_history['Date'])
+                    m_history['Date'] = pd.to_datetime(m_history['Date'], format='%Y-%m-%d')
                     m_history = m_history.set_index('Date')
                 elif 'index' in m_history.columns:
-                    m_history['Date'] = pd.to_datetime(m_history['index'])
+                    m_history['Date'] = pd.to_datetime(m_history['index'], format='%Y-%m-%d')
                     m_history = m_history.set_index('Date').drop('index', axis=1)
                 self._read_load_system.Memery[filename] = m_history
                 return m_history

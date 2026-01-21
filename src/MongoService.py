@@ -28,9 +28,13 @@ class MongoService:
             # 處理日期索引：將 DatetimeIndex 重置並轉換為字符串格式
             if isinstance(df.index, pd.DatetimeIndex):
                 df.reset_index(inplace=True)
-                # 確保日期欄位是字符串格式，MongoDB 才能正確儲存
-                if 'Date' in df.columns:
-                    df['Date'] = df['Date'].astype(str)
+                # reset_index() 會將 DatetimeIndex 轉換為 'index' 欄位
+                # 重新命名為 'Date' 並格式化為字符串
+                if 'index' in df.columns:
+                    df.rename(columns={'index': 'Date'}, inplace=True)
+                    df['Date'] = df['Date'].dt.strftime('%Y-%m-%d')
+                elif 'Date' in df.columns:
+                    df['Date'] = df['Date'].dt.strftime('%Y-%m-%d')
             else:
                 df.reset_index(inplace=True)
 
