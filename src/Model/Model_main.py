@@ -16,7 +16,7 @@ class Model_main(TModel):
                  external_data_service: IGetExternalData, report_services: ReportServices) -> None:
         super().__init__()
         self._main_user_info_data: UserInfoDatas = UserInfoDatas(
-            "stock_info_list.npy", "Update_date.npy"
+            "stock_info_list.npy", "Update_date.npy", "TW_Update_date.npy", "US_Update_date.npy"
         )
         self._main_user_info_data._Show_all_stock_info()
         self._schedule_service = schedule

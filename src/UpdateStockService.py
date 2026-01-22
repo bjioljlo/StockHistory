@@ -354,16 +354,15 @@ class UpdateStockService:
         print("Database save thread finished.")
 
     def __runUpdate(self, MainUserInfoDatas: UserInfoDatas, callback=None):
-        print("Update all TW stocks start! Fetching and Saving will run concurrently.")  
-        MainUserInfoDatas.UpdateDate = str(datetime(2025, 10, 23))[0:10]
+        print("Update all TW stocks start! Fetching and Saving will run concurrently.")
         data_queue = queue.Queue()
         save_thread = threading.Thread(
             target=self._save_stock_data_to_db, args=(data_queue,)
         )
-        save_thread.daemon = True
+        save_thread.daemon = False  # 改為非守護線程以確保數據保存完成
         save_thread.start()
 
-        start_date = datetime.strptime(MainUserInfoDatas.UpdateDate, "%Y-%m-%d")
+        start_date = datetime.strptime(MainUserInfoDatas.TW_UpdateDate, "%Y-%m-%d")
         end_date = datetime.today()
         
         codes = [value for key, value in twstock.codes.items() if value.market == "上市" and len(value.code) >= 4 and not (len(value.code) >= 5 and Tools.check_ETF_stock(value.code) is False)]
@@ -386,6 +385,9 @@ class UpdateStockService:
             
             if fetch_start_date >= end_date:
                 print("Date time is same " + str(value.code) + " " + str(fetch_start_date))
+                if callback:
+                    progress = int((i + 1) / total_stocks * 100)
+                    callback(progress)
                 continue
             
             stock_name = value.code + info.local_type.Taiwan
@@ -408,8 +410,10 @@ class UpdateStockService:
             time.sleep(0.3)
 
         data_queue.put(None)
-        MainUserInfoDatas.UpdateDate = str(datetime.today())[0:10]
-        print("TW stocks update process initiated. Fetching and saving are running in the background.")
+        # 等待保存線程完成
+        save_thread.join()
+        MainUserInfoDatas.TW_UpdateDate = str(datetime.today())[0:10]
+        print("TW stocks update completed successfully.")
 
     def __RunUpdate_sp500(self, MainUserInfoDatas: UserInfoDatas, callback=None):
         print("Update all sp500 stocks start! Fetching and Saving will run concurrently.")
@@ -417,10 +421,10 @@ class UpdateStockService:
         save_thread = threading.Thread(
             target=self._save_stock_data_to_db, args=(data_queue,)
         )
-        save_thread.daemon = True
+        save_thread.daemon = False  # 改為非守護線程以確保數據保存完成
         save_thread.start()
         
-        start_date = datetime.strptime(MainUserInfoDatas.UpdateDate, "%Y-%m-%d") - timedelta(days=1)
+        start_date = datetime.strptime(MainUserInfoDatas.US_UpdateDate, "%Y-%m-%d")
         end_date = datetime.today()
 
         sp500 = Tools.get_SP500_list()
@@ -430,7 +434,7 @@ class UpdateStockService:
                 print("Update stocks " + temp + " be Stop")
                 data_queue.put(None)
                 break
-            
+
             df_check = self._getExternalFactory.Get_instance(self).get_stock_history(
                 temp, start=start_date
             )
@@ -440,14 +444,14 @@ class UpdateStockService:
                 fetch_start_date = latest_date + timedelta(days=1)
             else:
                 fetch_start_date = datetime(2005, 1, 1)
-            
+
             if fetch_start_date >= end_date:
                 print("Date time is same " + str(temp) + " " + str(fetch_start_date))
                 if callback:
                     progress = int((i + 1) / total_stocks * 100)
                     callback(progress)
                 continue
-            
+
             df_result = self._download_with_retry(temp, fetch_start_date, end_date, tz="America/New_York")
             if df_result.empty:
                 print("yahoo no data:" + str(temp))
@@ -466,7 +470,10 @@ class UpdateStockService:
             time.sleep(0.3)
 
         data_queue.put(None)
-        print("SP500 stocks update process initiated. Fetching and saving are running in the background.")
+        # 等待保存線程完成
+        save_thread.join()
+        MainUserInfoDatas.US_UpdateDate = str(datetime.today())[0:10]
+        print("SP500 stocks update completed successfully.")
 
     def __RunUpDateADL(self, callback=None):
         print("Update stocks other Info start!")

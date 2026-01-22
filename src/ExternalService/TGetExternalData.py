@@ -315,14 +315,10 @@ class TGetExternalData(IGetExternalData):
             result['Adj Close'] = result['Adj Close'].fillna(0)
         result = result.dropna(axis=0, how="any")
 
-        # 在成功獲取資料後，檢查是否需要更新快取
+        # 在成功獲取資料後，記錄查詢統計（快取更新由排程服務處理）
         if not result.empty and self._cache_service:
-            # 非同步更新快取（避免阻塞主要讀取流程）
-            import threading
-            threading.Thread(
-                target=self._cache_service.update_mongo_cache,
-                daemon=True
-            ).start()
+            # 記錄查詢統計，讓排程服務決定何時更新快取
+            pass  # 查詢統計已在方法開頭記錄
 
         return result
 

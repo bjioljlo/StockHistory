@@ -112,12 +112,16 @@ class PickInfoDatas(TStockInfoDatas):
 class UserInfoDatas(TStockInfoDatas):
     """使用者股票資料"""
 
-    def __init__(self, Save_name: str, Update_date_name: str) -> None:
+    def __init__(self, Save_name: str, Update_date_name: str, TW_Update_date_name: str = None, US_Update_date_name: str = None) -> None:
         super().__init__()
         self._FilePath: str = os.getcwd()  # 取得目錄路徑
         self._Save_name: str = Save_name
         self._Update_date_name: str = Update_date_name
+        self._TW_Update_date_name: str = TW_Update_date_name or "TW_Update_date.npy"
+        self._US_Update_date_name: str = US_Update_date_name or "US_Update_date.npy"
         self._Update_date: str = self._Load_Update_date()
+        self._TW_Update_date: str = self._Load_TW_Update_date()
+        self._US_Update_date: str = self._Load_US_Update_date()
         self._Stock_list = self._Load_stock_info()
 
     @property
@@ -131,6 +135,28 @@ class UserInfoDatas(TStockInfoDatas):
         self._Update_date = _updateDat
         self._Save_Update_date()
 
+    @property
+    def TW_UpdateDate(self):
+        if self._TW_Update_date is None:
+            raise
+        return self._TW_Update_date
+
+    @TW_UpdateDate.setter
+    def TW_UpdateDate(self, _updateDat: str):
+        self._TW_Update_date = _updateDat
+        self._Save_TW_Update_date()
+
+    @property
+    def US_UpdateDate(self):
+        if self._US_Update_date is None:
+            raise
+        return self._US_Update_date
+
+    @US_UpdateDate.setter
+    def US_UpdateDate(self, _updateDat: str):
+        self._US_Update_date = _updateDat
+        self._Save_US_Update_date()
+
     def _Save_Update_date(self):
         """存檔更新日期"""
         np.save(self._Update_date_name, self._Update_date)
@@ -143,6 +169,46 @@ class UserInfoDatas(TStockInfoDatas):
         else:
             m_Update_date = str(datetime.today())
             print("沒存檔時間:" + str(m_Update_date))
+        return m_Update_date
+
+    def _Save_TW_Update_date(self):
+        """存檔台灣股票更新日期"""
+        np.save(self._TW_Update_date_name, self._TW_Update_date)
+
+    def _Load_TW_Update_date(self):
+        """讀取台灣股票更新日期"""
+        if os.path.isfile(self._FilePath + "/" + self._TW_Update_date_name):
+            m_Update_date = np.load(self._TW_Update_date_name).item()
+            print("上次台灣股票存檔時間:" + str(m_Update_date))
+        else:
+            # 檢查是否有舊的 Update_date.npy 文件，如果有就使用它
+            old_file = self._FilePath + "/" + self._Update_date_name.replace("Update_date.npy", "Update_date.npy")
+            if os.path.isfile(old_file):
+                m_Update_date = np.load(old_file).item()
+                print("從舊文件讀取台灣股票存檔時間:" + str(m_Update_date))
+            else:
+                m_Update_date = str(datetime.today())
+                print("沒台灣股票存檔時間:" + str(m_Update_date))
+        return m_Update_date
+
+    def _Save_US_Update_date(self):
+        """存檔美股更新日期"""
+        np.save(self._US_Update_date_name, self._US_Update_date)
+
+    def _Load_US_Update_date(self):
+        """讀取美股更新日期"""
+        if os.path.isfile(self._FilePath + "/" + self._US_Update_date_name):
+            m_Update_date = np.load(self._US_Update_date_name).item()
+            print("上次美股存檔時間:" + str(m_Update_date))
+        else:
+            # 檢查是否有舊的 Update_date.npy 文件，如果有就使用它
+            old_file = self._FilePath + "/" + self._Update_date_name.replace("Update_date.npy", "Update_date.npy")
+            if os.path.isfile(old_file):
+                m_Update_date = np.load(old_file).item()
+                print("從舊文件讀取美股存檔時間:" + str(m_Update_date))
+            else:
+                m_Update_date = str(datetime.today())
+                print("沒美股存檔時間:" + str(m_Update_date))
         return m_Update_date
 
     def _Save_stock_info(self):
