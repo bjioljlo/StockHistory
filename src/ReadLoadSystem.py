@@ -64,11 +64,10 @@ class ReadLoadSystem:
             df = self._sqlservice.readDividendYield(file)
         if df.empty:
             try:
-                df = pd.read_csv(
-                    fileName + ".csv",
-                    index_col="code",
-                    parse_dates=["code"],
-                )
+                df = pd.read_csv(fileName + ".csv")
+                # 設定code欄位為索引，如果存在的話
+                if "code" in df.columns:
+                    df.set_index("code", inplace=True)
             except UnicodeDecodeError as e:
                 print("no " + fileName + " csv file" + " " + str(e))
                 return df
