@@ -316,7 +316,7 @@ class UpdateStockService:
                     print(f"No data validator available for {stock_name}, performing basic cleanup")
                     df_result = self._basic_data_cleanup(df_result, stock_name)
 
-                is_initial_fetch = (fetch_start_date.year == 2005 and fetch_start_date.month == 1 and fetch_start_date.day == 1)
+                is_initial_fetch = (fetch_start_date.year == 2009 and fetch_start_date.month == 1 and fetch_start_date.day == 1)
 
                 with self._sql_service.server_flask.app_context():
                     save_ok = False
@@ -381,7 +381,25 @@ class UpdateStockService:
                 latest_date = df_check.index.max()
                 fetch_start_date = latest_date + timedelta(days=1)
             else:
-                fetch_start_date = datetime(2005, 1, 1)
+                # 檢查是否真的沒有歷史數據，還是只是周末/假日
+                # 如果是周末/假日，嘗試往前找最近的交易日
+                print(f"No local data found for {value.code}, checking for recent trading days...")
+                
+                # 嘗試獲取最近一個月的數據來判斷是否有交易日
+                recent_start = end_date - timedelta(days=30)
+                df_recent = self._getExternalFactory.Get_instance(self).get_stock_history(
+                    value.code, start=recent_start
+                )
+                
+                if not df_recent.empty:
+                    # 有近期數據，取最新日期 +1 天開始
+                    latest_date = df_recent.index.max()
+                    fetch_start_date = latest_date + timedelta(days=1)
+                    print(f"Found recent data for {value.code}, starting from {fetch_start_date}")
+                else:
+                    # 真的沒有歷史數據，使用初始日期
+                    fetch_start_date = datetime(2009, 1, 1)
+                    print(f"No historical data found for {value.code}, using initial date")
             
             if fetch_start_date >= end_date:
                 print("Date time is same " + str(value.code) + " " + str(fetch_start_date))

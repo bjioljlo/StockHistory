@@ -41,6 +41,22 @@
         "--end-year",
         "2024"
       ]
+    },
+    {
+      "name": "Python: migration month reports",
+      "type": "debugpy",
+      "request": "launch",
+      "program": "${workspaceRoot}/scripts/migration/migrate_reports_data.py",
+      "console": "integratedTerminal",
+      "cwd": "${workspaceFolder}",
+      "args": [
+        "--type",
+        "monthly_reports",
+        "--start-year",
+        "2024",
+        "--end-year",
+        "2025"
+      ]
     }
   ]
 }

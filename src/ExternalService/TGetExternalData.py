@@ -48,13 +48,53 @@ class TGetExternalData(IGetExternalData):
         if not Tools.Have_DayRP(start):
             return pd.DataFrame()
         season = int(((start.month - 1) / 3) + 1)
-        Temp_data = pd.DataFrame()
         if not Tools.CheckFS_season(start):
             print("Season rp is no data yet!")
             return pd.DataFrame()
+
+        # 建立緩存鍵
+        cache_key = f"financial_statement_{start.year}_{season}_{type.value}"
         file = str(start.year) + "-season" + str(season) + "-" + type.value
         fileName = self.filePath + "/" + self.fileName_season + "/" + file
-        Temp_data = self._read_load_system.load_month_file(fileName, file)  # 去資料庫抓資料
+
+        # 使用新的混合緩存服務 (Redis L1 + MongoDB L2)
+        if self._cache_service:
+            print(f"使用混合緩存服務查詢財務報表: {cache_key}")
+
+            # 1. 嘗試從 Redis L1 緩存獲取
+            cached_data = self._cache_service.get_redis_cache(cache_key)
+            if cached_data:
+                try:
+                    df = pd.DataFrame(
+                        cached_data['data'],
+                        columns=cached_data['columns']
+                    )
+                    if cached_data.get('index'):
+                        df.index = cached_data['index']
+                    print(f"L1 緩存命中財務報表: {cache_key}")
+                    return df
+                except Exception as e:
+                    print(f"L1 緩存反序列化失敗: {e}")
+
+            # 2. 嘗試從 MongoDB L2 智慧緩存獲取
+            mongo_data = self._cache_service.get_mongo_cache(cache_key)
+            if mongo_data is not None and not mongo_data.empty:
+                # 同步到 Redis L1 緩存
+                index_list = [str(idx) for idx in mongo_data.index] if not mongo_data.index.equals(range(len(mongo_data))) else None
+                self._cache_service.set_redis_cache(cache_key, {
+                    'data': mongo_data.values.tolist(),
+                    'columns': mongo_data.columns.tolist(),
+                    'index': index_list
+                })
+                print(f"L2 緩存命中財務報表: {cache_key}")
+                return mongo_data
+
+        # 3. 如果緩存中沒有，從原有邏輯獲取數據
+        print(f"緩存未命中，從原有邏輯獲取財務報表: {cache_key}")
+        Temp_data = pd.DataFrame()
+
+        # 從資料庫或本地文件獲取數據
+        Temp_data = self._read_load_system.load_month_file(fileName, file)
 
         if Temp_data.empty:
             if os.path.isfile(fileName + ".csv"):
@@ -82,6 +122,29 @@ class TGetExternalData(IGetExternalData):
             self._sql_service.saveTable(file, stock)
         else:
             stock = Temp_data
+
+        # 4. 將新獲取的資料存到混合緩存中
+        if (not stock.empty and
+            hasattr(self, '_cache_service') and
+            self._cache_service):
+
+            # 更新 Redis L1 緩存
+            index_list = [str(idx) for idx in stock.index] if not stock.index.equals(range(len(stock))) else None
+            cache_data = {
+                'data': stock.values.tolist(),
+                'columns': stock.columns.tolist(),
+                'index': index_list
+            }
+            self._cache_service.set_redis_cache(cache_key, cache_data)
+
+            # 更新 MongoDB L2 緩存
+            try:
+                self._cache_service.set_stock_data(cache_key, stock)
+                print(f"已將財務報表存到混合緩存: {cache_key}")
+            except Exception as e:
+                print(f"儲存財務報表到緩存失敗: {e}")
+
+        # 保持向後相容，更新 Memory 快取
         self._read_load_system.Memery[fileName] = stock
         return stock
 
@@ -94,11 +157,51 @@ class TGetExternalData(IGetExternalData):
         )
         if not Tools.Have_MonthRP(start):
             return pd.DataFrame()
-        m_data = pd.DataFrame()
-        year = start.year
+
+        # 建立緩存鍵
+        cache_key = f"monthly_report_{start.year}_{start.month:02d}"
         file = "monthly_report_" + str(start.year) + "_" + str(start.month)
         fileName = self.filePath + "/" + self.fileName_monthRP + "/" + file
-        m_data = self._read_load_system.load_month_file(fileName, file)  # 去資料庫抓資料
+
+        # 使用新的混合緩存服務 (Redis L1 + MongoDB L2)
+        if self._cache_service:
+            print(f"使用混合緩存服務查詢月營收: {cache_key}")
+
+            # 1. 嘗試從 Redis L1 緩存獲取
+            cached_data = self._cache_service.get_redis_cache(cache_key)
+            if cached_data:
+                try:
+                    df = pd.DataFrame(
+                        cached_data['data'],
+                        columns=cached_data['columns']
+                    )
+                    if cached_data.get('index'):
+                        df.index = cached_data['index']
+                    print(f"L1 緩存命中月營收: {cache_key}")
+                    return df
+                except Exception as e:
+                    print(f"L1 緩存反序列化失敗: {e}")
+
+            # 2. 嘗試從 MongoDB L2 智慧緩存獲取
+            mongo_data = self._cache_service.get_mongo_cache(cache_key)
+            if mongo_data is not None and not mongo_data.empty:
+                # 同步到 Redis L1 緩存
+                index_list = [str(idx) for idx in mongo_data.index] if not mongo_data.index.equals(range(len(mongo_data))) else None
+                self._cache_service.set_redis_cache(cache_key, {
+                    'data': mongo_data.values.tolist(),
+                    'columns': mongo_data.columns.tolist(),
+                    'index': index_list
+                })
+                print(f"L2 緩存命中月營收: {cache_key}")
+                return mongo_data
+
+        # 3. 如果緩存中沒有，從原有邏輯獲取數據
+        print(f"緩存未命中，從原有邏輯獲取月營收: {cache_key}")
+        m_data = pd.DataFrame()
+        year = start.year
+
+        # 從資料庫或本地文件獲取數據
+        m_data = self._read_load_system.load_month_file(fileName, file)
 
         if m_data.empty:
             if not os.path.isfile(fileName + ".csv"):
@@ -154,10 +257,33 @@ class TGetExternalData(IGetExternalData):
             m_data.drop(m_data.tail(1).index, inplace=True)
             # 整理一下資料
             m_data.rename(columns={"公司代號": "code"}, inplace=True)
-            m_data[[ "code"]] = m_data[[ "code"]].astype(int)
+            m_data[["code"]] = m_data[[ "code"]].astype(int)
             m_data.set_index("code", inplace=True)
             # 存到資料庫
             self._sql_service.saveTable(file, m_data)
+
+        # 4. 將新獲取的資料存到混合緩存中
+        if (not m_data.empty and
+            hasattr(self, '_cache_service') and
+            self._cache_service):
+
+            # 更新 Redis L1 緩存
+            index_list = [str(idx) for idx in m_data.index] if not m_data.index.equals(range(len(m_data))) else None
+            cache_data = {
+                'data': m_data.values.tolist(),
+                'columns': m_data.columns.tolist(),
+                'index': index_list
+            }
+            self._cache_service.set_redis_cache(cache_key, cache_data)
+
+            # 更新 MongoDB L2 緩存
+            try:
+                self._cache_service.set_stock_data(cache_key, m_data)
+                print(f"已將月營收存到混合緩存: {cache_key}")
+            except Exception as e:
+                print(f"儲存月營收到緩存失敗: {e}")
+
+        # 保持向後相容，更新 Memory 快取
         self._read_load_system.Memery[fileName] = m_data
         return m_data
 
@@ -168,6 +294,9 @@ class TGetExternalData(IGetExternalData):
             "殖利率的資料:",
             str(start),
         )
+
+        # 建立緩存鍵
+        cache_key = f"yield_data_{start.year}_{start.month:02d}_{start.day:02d}"
         file = (
             "dividend_yield_"
             + str(start.year)
@@ -177,13 +306,49 @@ class TGetExternalData(IGetExternalData):
             + str(start.day)
         )
         fileName = self.filePath + "/" + self.fileName_yield + "/" + file
+
+        # 使用新的混合緩存服務 (Redis L1 + MongoDB L2)
+        if self._cache_service:
+            print(f"使用混合緩存服務查詢殖利率: {cache_key}")
+
+            # 1. 嘗試從 Redis L1 緩存獲取
+            cached_data = self._cache_service.get_redis_cache(cache_key)
+            if cached_data:
+                try:
+                    df = pd.DataFrame(
+                        cached_data['data'],
+                        columns=cached_data['columns']
+                    )
+                    if cached_data.get('index'):
+                        df.index = cached_data['index']
+                    print(f"L1 緩存命中殖利率: {cache_key}")
+                    return df
+                except Exception as e:
+                    print(f"L1 緩存反序列化失敗: {e}")
+
+            # 2. 嘗試從 MongoDB L2 智慧緩存獲取
+            mongo_data = self._cache_service.get_mongo_cache(cache_key)
+            if mongo_data is not None and not mongo_data.empty:
+                # 同步到 Redis L1 緩存
+                index_list = [str(idx) for idx in mongo_data.index] if not mongo_data.index.equals(range(len(mongo_data))) else None
+                self._cache_service.set_redis_cache(cache_key, {
+                    'data': mongo_data.values.tolist(),
+                    'columns': mongo_data.columns.tolist(),
+                    'index': index_list
+                })
+                print(f"L2 緩存命中殖利率: {cache_key}")
+                return mongo_data
+
+        # 3. 如果緩存中沒有，從原有邏輯獲取數據
+        print(f"緩存未命中，從原有邏輯獲取殖利率: {cache_key}")
         m_yield = pd.DataFrame()
+
         # 去資料庫抓資料
         m_yield = self._read_load_system.load_month_file(fileName, file)
 
         try:
             if m_yield.empty and (
-                self.get_stock_history("2330", start)[ "Volume"][ 
+                self.get_stock_history("2330", start)[ "Volume"][
                     Tools.DateTime2String(start)
                 ]
                 > 0
@@ -215,6 +380,29 @@ class TGetExternalData(IGetExternalData):
                 self._sql_service.saveTable(file, m_yield)
         except Exception:
             return pd.DataFrame()
+
+        # 4. 將新獲取的資料存到混合緩存中
+        if (not m_yield.empty and
+            hasattr(self, '_cache_service') and
+            self._cache_service):
+
+            # 更新 Redis L1 緩存
+            index_list = [str(idx) for idx in m_yield.index] if not m_yield.index.equals(range(len(m_yield))) else None
+            cache_data = {
+                'data': m_yield.values.tolist(),
+                'columns': m_yield.columns.tolist(),
+                'index': index_list
+            }
+            self._cache_service.set_redis_cache(cache_key, cache_data)
+
+            # 更新 MongoDB L2 緩存
+            try:
+                self._cache_service.set_stock_data(cache_key, m_yield)
+                print(f"已將殖利率存到混合緩存: {cache_key}")
+            except Exception as e:
+                print(f"儲存殖利率到緩存失敗: {e}")
+
+        # 保持向後相容，更新 Memory 快取
         self._read_load_system.Memery[fileName] = m_yield
         return m_yield
 
