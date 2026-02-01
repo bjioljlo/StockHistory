@@ -66,6 +66,7 @@ class SqlService:
         if not name.islower():
             name = name.lower()
         try:
+            # 使用獨立的應用程式上下文，避免線程問題
             with self.server_flask.app_context():
                 dataframe = pd.read_sql(
                     sql=name, con=self.MySql_server.engine, index_col="code"
@@ -365,6 +366,7 @@ class SqlService:
             return pd.DataFrame()
 
         try:
+            # 使用獨立的應用程式上下文，避免線程問題
             with self.server_flask.app_context():
                 # 建構查詢條件
                 conditions = []
@@ -422,6 +424,7 @@ class SqlService:
             return pd.DataFrame()
 
         try:
+            # 使用獨立的應用程式上下文，避免線程問題
             with self.server_flask.app_context():
                 # 建構查詢條件
                 conditions = []
@@ -484,6 +487,7 @@ class SqlService:
             return pd.DataFrame()
 
         try:
+            # 使用獨立的應用程式上下文，避免線程問題
             with self.server_flask.app_context():
                 # 建構查詢條件
                 conditions = []
@@ -546,6 +550,7 @@ class SqlService:
             return {}
 
         try:
+            # 使用獨立的應用程式上下文，避免線程問題
             with self.server_flask.app_context():
                 if symbol:
                     symbol = symbol.upper().replace('.TW', '').replace('.US', '').replace('.HK', '')
@@ -610,6 +615,7 @@ class SqlService:
             return pd.DataFrame()
 
         try:
+            # 使用獨立的應用程式上下文，避免線程問題
             with self.server_flask.app_context():
                 symbol = symbol.upper().replace('.TW', '').replace('.US', '').replace('.HK', '')
 
@@ -657,6 +663,7 @@ class SqlService:
             return {}
 
         try:
+            # 使用獨立的應用程式上下文，避免線程問題
             with self.server_flask.app_context():
                 symbol = symbol.upper().replace('.TW', '').replace('.US', '').replace('.HK', '')
 

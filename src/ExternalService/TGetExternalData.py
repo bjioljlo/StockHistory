@@ -144,8 +144,7 @@ class TGetExternalData(IGetExternalData):
             except Exception as e:
                 print(f"儲存財務報表到緩存失敗: {e}")
 
-        # 保持向後相容，更新 Memory 快取
-        self._read_load_system.Memery[fileName] = stock
+        # Memory 快取已移除，不再更新
         return stock
 
     def get_allstock_monthly_report(self, start: datetime):
@@ -283,8 +282,7 @@ class TGetExternalData(IGetExternalData):
             except Exception as e:
                 print(f"儲存月營收到緩存失敗: {e}")
 
-        # 保持向後相容，更新 Memory 快取
-        self._read_load_system.Memery[fileName] = m_data
+        # Memory 快取已移除，不再更新
         return m_data
 
     def get_allstock_yield(self, start: datetime):
@@ -402,8 +400,7 @@ class TGetExternalData(IGetExternalData):
             except Exception as e:
                 print(f"儲存殖利率到緩存失敗: {e}")
 
-        # 保持向後相容，更新 Memory 快取
-        self._read_load_system.Memery[fileName] = m_yield
+        # Memory 快取已移除，不再更新
         return m_yield
 
     def get_allstock_dividend_yield(self):
@@ -472,8 +469,7 @@ class TGetExternalData(IGetExternalData):
 
             if m_history is not None and not m_history.empty:
                 print(f"Data for {stock_id} loaded from hybrid cache.")
-                # 同步到 Memory 快取以保持向後相容
-                self._read_load_system.Memery[filename] = m_history
+                # Memory 快取已移除，不再更新
             else:
                 print(f"Data for {stock_id} not in hybrid cache, trying other sources.")
                 # 如果快取中沒有，則從其他來源獲取
@@ -514,9 +510,7 @@ class TGetExternalData(IGetExternalData):
         """從各種來源獲取資料的原有邏輯"""
         m_history = pd.DataFrame()
 
-        # 1. Memory
-        if filename in self._read_load_system.Memery:
-            m_history = self._read_load_system.Memery[filename]
+        # 1. Memory 快取已移除，不再使用
 
         if not m_history.empty:
             print(f"Data for {stock_id} loaded from Memory.")
@@ -529,7 +523,7 @@ class TGetExternalData(IGetExternalData):
             cursor = collection.find()
             m_history = pd.DataFrame(list(cursor))
             if not m_history.empty:
-                print(f"Data for {stock_id} loaded from MongoDB, caching to Memory.")
+                print(f"Data for {stock_id} loaded from MongoDB.")
                 if '_id' in m_history.columns:
                     m_history = m_history.drop('_id', axis=1)
                 if 'Date' in m_history.columns:
@@ -538,7 +532,7 @@ class TGetExternalData(IGetExternalData):
                 elif 'index' in m_history.columns:
                     m_history['Date'] = pd.to_datetime(m_history['index'], format='%Y-%m-%d')
                     m_history = m_history.set_index('Date').drop('index', axis=1)
-                self._read_load_system.Memery[filename] = m_history
+                # Memory 快取已移除，不再更新
                 return m_history
         except Exception as e:
             print(f"Could not read from MongoDB. Error: {e}")
@@ -547,9 +541,9 @@ class TGetExternalData(IGetExternalData):
         print(f"Data for {stock_id} not in MongoDB, trying MySQL.")
         m_history = self._sql_service.readStockDay(stock_id)
         if not m_history.empty:
-            print(f"Data for {stock_id} loaded from MySQL, caching to Mongo and Memory.")
+            print(f"Data for {stock_id} loaded from MySQL, caching to Mongo.")
             self._mongo_service.saveTable(stock_id, m_history)
-            self._read_load_system.Memery[filename] = m_history
+            # Memory 快取已移除，不再更新
             return m_history
 
         # 4. Local File
@@ -557,10 +551,10 @@ class TGetExternalData(IGetExternalData):
         try:
             m_history = pd.read_csv(filename + ".csv", index_col="Date", parse_dates=["Date"])
             if not m_history.empty:
-                print(f"Data for {stock_id} loaded from Local File, caching to MySQL, Mongo, and Memory.")
+                print(f"Data for {stock_id} loaded from Local File, caching to MySQL and Mongo.")
                 self._sql_service.saveTable(stock_id, m_history)
                 self._mongo_service.saveTable(stock_id, m_history)
-                self._read_load_system.Memery[filename] = m_history
+                # Memory 快取已移除，不再更新
                 return m_history
         except Exception:
             pass
@@ -574,12 +568,12 @@ class TGetExternalData(IGetExternalData):
         if not m_history.empty:
             print(f"Data for {stock_id} loaded from Yahoo->MySQL, caching to other systems.")
             self._mongo_service.saveTable(stock_id, m_history)
-            self._read_load_system.Memery[filename] = m_history
+            # Memory 快取已移除，不再更新
 
         return m_history
 
     def get_stock_AD_index(self, date: datetime, getNew=False):
-        """#取得上漲和下跌家數"""
+        """#取得上漲和下跌家數 - 優化版本，整合快取機制"""
         print("get_stock_AD_index")
         if isinstance(date, str):
             date = datetime.strptime(date, "%Y-%m-%d")
@@ -588,34 +582,50 @@ class TGetExternalData(IGetExternalData):
         while time not in self.get_stock_history("2330").index:
             time = Tools.backWorkDays(time, 1)
 
-        # --- Start of optimization ---
-        # 1. Try to read from MySQL database first (AD_index is still a separate table)
+        # 1. Try to read from cache first (Redis L1 + MongoDB L2)
+        if self._cache_service:
+            cache_key = f"ad_index_{time.strftime('%Y-%m-%d')}"
+            cached_data = self._cache_service.get_redis_cache(cache_key)
+            
+            if cached_data:
+                try:
+                    df = pd.DataFrame(
+                        cached_data['data'],
+                        columns=cached_data['columns']
+                    )
+                    if cached_data.get('index'):
+                        df.index = cached_data['index']
+                    print(f"Found AD_index for {time.strftime('%Y-%m-%d')} in cache.")
+                    return df
+                except Exception as e:
+                    print(f"Cache deserialization failed: {e}")
+
+        # 2. Try to read from MySQL database for historical data
         try:
-            ad_index_from_sql = self._sql_service.readDividendYield('ad_index')  # AD_index 使用不同的讀取方法
-            if not ad_index_from_sql.empty and time in ad_index_from_sql.index:
-                print(f"Found AD_index for {time.strftime('%Y-%m-%d')} in MySQL.")
-                return ad_index_from_sql.loc[[time]]
+            ad_index_from_sql = self._sql_service.readDividendYield('ad_index')
+            if not ad_index_from_sql.empty:
+                print(f"Found AD_index historical data in MySQL ({len(ad_index_from_sql)} records).")
+                
+                # 如果有當天數據，直接返回
+                if time in ad_index_from_sql.index:
+                    print(f"Found AD_index for {time.strftime('%Y-%m-%d')} in MySQL.")
+                    # 同步到快取
+                    if self._cache_service:
+                        try:
+                            self._cache_service.set_redis_cache(f"ad_index_{time.strftime('%Y-%m-%d')}", {
+                                'data': ad_index_from_sql.loc[[time]].values.tolist(),
+                                'columns': ad_index_from_sql.columns.tolist(),
+                                'index': [str(time)]
+                            })
+                            print(f"已將 AD_index 從 MySQL 同步到 Redis 快取")
+                        except Exception as e:
+                            print(f"同步 AD_index 到快取失敗: {e}")
+                    return ad_index_from_sql.loc[[time]]
         except Exception as e:
             print(f"Could not read AD_index from MySQL, falling back. Error: {e}")
-        # --- End of optimization ---
 
-        # 2. Fallback to original logic (cache/CSV)
-        str_date = Tools.DateTime2String(time)
-        fileName = self.filePath + "/" + self.fileName_index + "/" + "AD_index"
-        ADindex_result = self._read_load_system.load_other_file(fileName, "AD_index")
-
-        if ADindex_result.empty and os.path.isfile(fileName + ".csv"):
-            ADindex_result = pd.read_csv(
-                fileName + ".csv", index_col="Date", parse_dates=["Date"]
-            )
-            self._read_load_system.Memery[fileName] = ADindex_result
-
-        if not ADindex_result.empty and time in ADindex_result.index:
-            print(f"Found AD_index for {time.strftime('%Y-%m-%d')} in local cache.")
-            return ADindex_result.loc[[time]]
-
-        # 3. If not in DB or cache, calculate it
-        print(f"No data for {time.strftime('%Y-%m-%d')} in DB or cache. Calculating...")
+        # 3. If not in cache or DB, calculate it using optimized batch query
+        print(f"No data for {time.strftime('%Y-%m-%d')} in cache or DB. Calculating...")
         time_yesterday = Tools.backWorkDays(time, 1)
         while (
             time_yesterday not in self.get_stock_history("2330", time_yesterday).index
@@ -623,25 +633,8 @@ class TGetExternalData(IGetExternalData):
             time_yesterday = Tools.backWorkDays(time_yesterday, 1)
         str_yesterday = Tools.DateTime2String(time_yesterday)
 
-        up = 0
-        down = 0
-        for key, value in StockInfos.ts.codes.items():
-            if value.market == "上市" and len(value.code) == 4 and value.type == "股票":
-                if Tools.check_no_use_stock(value.code):
-                    continue
-                try:
-                    m_history = self.get_stock_history(value.code, str_yesterday)
-                    price_Close = round(m_history[ "Close"].get(str_date), 2)
-                    price_Open = round(m_history[ "Open"].get(str_yesterday), 2)
-
-                    if price_Close is not None and price_Open is not None:
-                        if price_Open < price_Close:
-                            up += 1
-                        elif price_Open > price_Close:
-                            down += 1
-                except Exception:
-                    # print(f"Could not process stock {value.code}")
-                    continue
+        # 使用批量查詢來計算騰落指數
+        up, down = self._calculate_ad_index_batch(time, time_yesterday, Tools.DateTime2String(time), str_yesterday)
 
         print(f"Calculation result for {time.strftime('%Y-%m-%d')}: Up={up}, Down={down}")
 
@@ -649,19 +642,124 @@ class TGetExternalData(IGetExternalData):
             {"Date": [time], "上漲": [up], "下跌": [down]}
         ).set_index("Date")
 
-        # Combine with existing data and save
-        if not ADindex_result.empty:
-            ADindex_result = pd.concat([ADindex_result, ADindex_result_new])
+        # 獲取現有的歷史數據（從 MySQL）
+        try:
+            existing_data = self._sql_service.readDividendYield('ad_index')
+        except Exception:
+            existing_data = pd.DataFrame()
+
+        # 合併新舊數據，建立完整歷史記錄
+        if not existing_data.empty:
+            # 合併現有數據和新計算的數據
+            combined_data = pd.concat([existing_data, ADindex_result_new])
+            print(f"Merged with existing {len(existing_data)} historical records")
         else:
-            ADindex_result = ADindex_result_new
+            combined_data = ADindex_result_new
+            print("No existing historical data found, creating new record")
 
-        ADindex_result = ADindex_result[~ADindex_result.index.duplicated(keep='last')]
-        ADindex_result = ADindex_result.sort_index()
+        # 去重並排序
+        combined_data = combined_data[~combined_data.index.duplicated(keep='last')]
+        combined_data = combined_data.sort_index()
 
-        self._sql_service.saveTable("AD_index", ADindex_result)
-        self._read_load_system.Memery[fileName] = ADindex_result
+        # 保存完整歷史數據到 MySQL - 使用 upsert_data 方法
+        if not combined_data.empty:
+            # 確保索引是 DatetimeIndex
+            if not isinstance(combined_data.index, pd.DatetimeIndex):
+                combined_data.index = pd.to_datetime(combined_data.index)
+            
+            # 重置索引，將 Date 變成普通欄位
+            combined_data_reset = combined_data.reset_index()
+            
+            # 使用 upsert_data 方法，指定 Date 為主鍵
+            success = self._sql_service.upsert_data("ad_index", combined_data_reset, ["Date"])
+            
+            if success:
+                print(f"Successfully saved {len(combined_data)} total records to ad_index table using upsert")
+            else:
+                print("Failed to save data to ad_index table")
+        else:
+            print("No data to save")
+        
+        # 使用混合快取服務更新快取
+        if self._cache_service:
+            try:
+                # 更新 Redis 快取（單筆查詢結果）
+                self._cache_service.set_redis_cache(f"ad_index_{time.strftime('%Y-%m-%d')}", {
+                    'data': ADindex_result_new.values.tolist(),
+                    'columns': ADindex_result_new.columns.tolist(),
+                    'index': [str(time)]
+                })
+                print(f"已將 AD_index 存到 Redis 快取")
+                
+                # 更新 MongoDB 快取（完整歷史數據）
+                self._cache_service.set_stock_data("ad_index", combined_data)
+                print(f"已將完整 AD_index 歷史數據存到 MongoDB 快取")
+            except Exception as e:
+                print(f"儲存 AD_index 到快取失敗: {e}")
 
-        return ADindex_result.loc[[time]]
+        return ADindex_result_new
+
+    def _calculate_ad_index_batch(self, time: datetime, time_yesterday: datetime, 
+                                str_date: str, str_yesterday: str) -> tuple[int, int]:
+        """
+        使用批量查詢來計算騰落指數，大幅提升性能
+        """
+        up = 0
+        down = 0
+        
+        # 獲取所有上市股票代碼
+        stock_codes = [
+            value.code for value in StockInfos.ts.codes.values()
+            if value.market == "上市" and len(value.code) == 4 and value.type == "股票"
+            and not Tools.check_no_use_stock(value.code)
+        ]
+        
+        print(f"Calculating AD index for {len(stock_codes)} stocks...")
+        
+        # 批量查詢股票歷史數據
+        batch_size = 50  # 每批處理的股票數量
+        total_stocks = len(stock_codes)
+        processed_stocks = 0
+        
+        for i in range(0, total_stocks, batch_size):
+            batch_codes = stock_codes[i:i + batch_size]
+            batch_num = i // batch_size + 1
+            total_batches = (total_stocks - 1) // batch_size + 1
+            
+            print(f"Processing batch {batch_num}/{total_batches} ({i+1}-{min(i+batch_size, total_stocks)}/{total_stocks})")
+            
+            # 批量獲取股票數據
+            batch_results = {}
+            for code in batch_codes:
+                try:
+                    m_history = self.get_stock_history(code, str_yesterday)
+                    batch_results[code] = m_history
+                except Exception:
+                    continue
+            
+            # 計算漲跌
+            for code, m_history in batch_results.items():
+                if m_history.empty:
+                    continue
+                    
+                try:
+                    price_Close = round(m_history["Close"].get(str_date), 2)
+                    price_Open = round(m_history["Open"].get(str_yesterday), 2)
+
+                    if price_Close is not None and price_Open is not None:
+                        if price_Open < price_Close:
+                            up += 1
+                        elif price_Open > price_Close:
+                            down += 1
+                except Exception:
+                    continue
+            
+            processed_stocks += len(batch_codes)
+            progress_percent = (processed_stocks / total_stocks) * 100
+            print(f"Progress: {processed_stocks}/{total_stocks} stocks processed ({progress_percent:.1f}%)")
+        
+        print(f"Calculation completed: Up={up}, Down={down}")
+        return up, down
 
     def get_full_ad_index(self) -> pd.DataFrame:
         """#取得完整的上漲和下跌家數歷史資料"""

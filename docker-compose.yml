@@ -89,6 +89,8 @@ services:
       MONGO_DATABASE: "${MONGO_DATABASE:-stock_data}"
       MONGO_USERNAME: "${MONGO_USERNAME:-}"
       MONGO_PASSWORD: "${MONGO_PASSWORD:-}"
+    volumes:
+      - ./logs:/app/logs
     networks:
       - mybridge
     working_dir: /app

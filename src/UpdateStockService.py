@@ -513,19 +513,41 @@ class UpdateStockService:
         # The index is a DatetimeIndex, which is efficient for lookups.
         trading_days = trading_days_df.index
 
+        # 獲取已存在的ADL數據，避免重複計算
+        existing_adl = self._getExternalFactory.Get_instance(self).get_full_ad_index()
+        if not existing_adl.empty:
+            existing_dates = set(existing_adl.index.date)
+        else:
+            existing_dates = set()
+
+        # 預先收集需要計算的日期
+        dates_to_process = []
         for i in range(366):
             date_to_check = end_date - timedelta(days=i)
-
-            # 檢查是否為交易日
-            if date_to_check in trading_days:
-                # 更新騰落，get_stock_AD_index 內部會處理已存在資料的跳過邏輯
-                print(f"Updating ADL for {date_to_check.strftime('%Y-%m-%d')}")
-                self._getExternalFactory.Get_instance(self).get_stock_AD_index(date_to_check)
-            else:
+            
+            # 檢查是否為交易日且尚未存在
+            if date_to_check in trading_days and date_to_check.date() not in existing_dates:
+                dates_to_process.append(date_to_check)
+            elif date_to_check not in trading_days:
                 print(f"Skipping non-trading day: {date_to_check.strftime('%Y-%m-%d')}")
             
             if callback:
                 progress = int((i + 1) / 366 * 100)
+                callback(progress)
+
+        if not dates_to_process:
+            print("No new trading days to process. ADL update completed.")
+            return
+
+        print(f"Found {len(dates_to_process)} trading days to process.")
+
+        # 批量處理需要計算的日期
+        for i, date_to_check in enumerate(dates_to_process):
+            print(f"Updating ADL for {date_to_check.strftime('%Y-%m-%d')} ({i+1}/{len(dates_to_process)})")
+            self._getExternalFactory.Get_instance(self).get_stock_AD_index(date_to_check)
+            
+            if callback:
+                progress = int((i + 1) / len(dates_to_process) * 100)
                 callback(progress)
 
         print("Update stocks other Info end!")

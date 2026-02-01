@@ -152,8 +152,8 @@ class DataValidationService:
 
             # 檢查成交量範圍
             if 'Volume' in df.columns:
-                # 成交量通常不會超過10億
-                invalid_volume = df[df['Volume'] > 1000000000]
+                # 成交量通常不會超過50億
+                invalid_volume = df[df['Volume'] > 5000000000]
                 if not invalid_volume.empty:
                     errors.append(f"Suspiciously high volume: {len(invalid_volume)} rows")
 
