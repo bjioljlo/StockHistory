@@ -709,3 +709,64 @@ class SqlService:
         except Exception as e:
             print(f"SQL Error in get_quarterly_financial_summary: {e}")
             return {}
+
+    def read_ad_index(self, start_date: str = None, end_date: str = None, 
+                     limit: int = 1000) -> pd.DataFrame:
+        """
+        讀取騰落指數數據
+
+        Args:
+            start_date: 開始日期 (YYYY-MM-DD)
+            end_date: 結束日期 (YYYY-MM-DD)
+            limit: 返回記錄數量限制
+
+        Returns:
+            pd.DataFrame: 騰落指數數據
+        """
+        if self.MySql_server is None:
+            print("Database connection not initialized")
+            return pd.DataFrame()
+
+        try:
+            # 使用獨立的應用程式上下文，避免線程問題
+            with self.server_flask.app_context():
+                # 建構查詢條件
+                conditions = []
+                params = {}
+
+                if start_date:
+                    conditions.append("date >= :start_date")
+                    params['start_date'] = start_date
+
+                if end_date:
+                    conditions.append("date <= :end_date")
+                    params['end_date'] = end_date
+
+                where_clause = " AND ".join(conditions) if conditions else "1=1"
+
+                query = f"""
+                SELECT date, 上漲, 下跌
+                FROM ad_index
+                WHERE {where_clause}
+                ORDER BY date DESC
+                LIMIT {limit}
+                """
+
+                # 如果有參數，使用參數化查詢，否則直接執行
+                if params:
+                    df = pd.read_sql(query, con=self.MySql_server.engine, params=params)
+                else:
+                    df = pd.read_sql(query, con=self.MySql_server.engine)
+                
+                # 設定索引
+                if not df.empty:
+                    df['date'] = pd.to_datetime(df['date'])
+                    df = df.set_index('date')
+                    # 重命名欄位以符合原有格式
+                    df = df.rename(columns={'up_count': '上漲', 'down_count': '下跌'})
+                
+                return df
+
+        except Exception as e:
+            print(f"SQL Error in read_ad_index: {e}")
+            return pd.DataFrame()

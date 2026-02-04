@@ -125,19 +125,70 @@ def backWorkDays(date, days: int) -> datetime:  # 取得往後算days工作天�
 
 
 def MixDataFrames(DataFrames={}, index="code") -> pd.DataFrame:  # 合併報表
+    """
+    合併多個DataFrame，使用指定的索引進行內連接
+    
+    Args:
+        DataFrames (dict): 要合併的DataFrame字典，key為名稱，value為DataFrame
+        index (str): 用於合併的索引列名稱，預設為"code"
+    
+    Returns:
+        pd.DataFrame: 合併後的DataFrame
+        
+    Raises:
+        ValueError: 當DataFrames為空或包含無效的DataFrame時
+        pd.errors.MergeError: 當合併操作失敗時
+    """
+    if not DataFrames:
+        raise ValueError("DataFrames字典不能為空")
+    
+    # 驗證所有DataFrame是否有效
+    valid_dataframes = {}
+    for key, value in DataFrames.items():
+        if value is None:
+            raise ValueError(f"DataFrame '{key}' 為None")
+        if not isinstance(value, pd.DataFrame):
+            raise ValueError(f"DataFrame '{key}' 不是有效的DataFrame對象")
+        if not value.empty:
+            valid_dataframes[key] = value
+    
+    if not valid_dataframes:
+        return pd.DataFrame()
+    
     result_data = pd.DataFrame()
     first = True
-    for key, value in DataFrames.items():
-        if result_data.empty is True and first is True:
-            result_data = value
+    
+    for key, value in valid_dataframes.items():
+        if result_data.empty and first:
+            result_data = value.copy()
             first = False
         else:
             try:
-                result_data = pd.merge(
-                    result_data, value, on=index, how="inner", suffixes=["", "_R"]
-                )
-            except pd.errors.MergeError as Exception:
-                print("Merge Error:" + Exception)
+                # 檢查索引列是否存在，如果不存在則使用索引進行合併
+                if index in result_data.columns and index in value.columns:
+                    # 使用指定的列進行合併
+                    result_data = pd.merge(
+                        result_data, value, on=index, how="inner", suffixes=["", "_R"]
+                    )
+                elif result_data.index.name == value.index.name and result_data.index.name is not None:
+                    # 使用索引名稱進行合併
+                    result_data = pd.merge(
+                        result_data, value, left_index=True, right_index=True, how="inner", suffixes=["", "_R"]
+                    )
+                else:
+                    # 回退到使用索引進行合併（不檢查名稱）
+                    result_data = pd.merge(
+                        result_data, value, left_index=True, right_index=True, how="inner", suffixes=["", "_R"]
+                    )
+            except pd.errors.MergeError as e:
+                error_msg = f"合併DataFrame '{key}' 時發生錯誤: {str(e)}"
+                print(error_msg)
+                raise pd.errors.MergeError(error_msg) from e
+            except Exception as e:
+                error_msg = f"合併DataFrame '{key}' 時發生未預期錯誤: {str(e)}"
+                print(error_msg)
+                raise Exception(error_msg) from e
+    
     return result_data
 
 

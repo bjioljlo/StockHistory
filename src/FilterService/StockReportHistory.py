@@ -115,68 +115,11 @@ class Month_Report(AllStockReport):
     def get_ALL_Report(self, date, base_today=None):
         import Common.Tools as Tools
         safe_date = Tools.get_latest_monthly_report_date(date, base_today)
-
-        # 建立快取鍵
-        cache_key = f"month_report_{safe_date.year}_{safe_date.month:02d}"
-
-        # 檢查是否有快取服務
-        if hasattr(self._main_GetExternalData, '_cache_service') and self._main_GetExternalData._cache_service:
-            print(f"使用混合快取服務查詢月報表: {cache_key}")
-
-            # 1. 嘗試從 Redis L1 快取獲取
-            cached_data = self._main_GetExternalData._cache_service.get_redis_cache(cache_key)
-            if cached_data:
-                try:
-                    import pandas as pd
-                    df = pd.DataFrame(
-                        cached_data['data'],
-                        columns=cached_data['columns']
-                    )
-                    if cached_data.get('index'):
-                        df.index = cached_data['index']
-                    print(f"L1 快取命中月報表: {cache_key}")
-                    return df
-                except Exception as e:
-                    print(f"L1 快取反序列化失敗: {e}")
-
-            # 2. 嘗試從 MongoDB L2 智慧快取獲取
-            mongo_data = self._main_GetExternalData._cache_service.get_mongo_cache(cache_key)
-            if mongo_data is not None and not mongo_data.empty:
-                # 同步到 Redis L1 快取
-                index_list = [str(idx) for idx in mongo_data.index] if not mongo_data.index.equals(range(len(mongo_data))) else None
-                self._main_GetExternalData._cache_service.set_redis_cache(cache_key, {
-                    'data': mongo_data.values.tolist(),
-                    'columns': mongo_data.columns.tolist(),
-                    'index': index_list
-                })
-                print(f"L2 快取命中月報表: {cache_key}")
-                return mongo_data
-
-        # 3. 如果快取中沒有，從外部來源獲取
-        print(f"快取未命中，從外部來源獲取月報表: {cache_key}")
+        
+        # 直接調用外部服務，讓它處理快取
         result_data = self._main_GetExternalData.get_allstock_monthly_report(safe_date)
-
-        # 4. 將新獲取的資料存到快取中
-        if (not result_data.empty and
-            hasattr(self._main_GetExternalData, '_cache_service') and
-            self._main_GetExternalData._cache_service):
-
-            # 更新 Redis L1 快取
-            index_list = [str(idx) for idx in result_data.index] if not result_data.index.equals(range(len(result_data))) else None
-            cache_data = {
-                'data': result_data.values.tolist(),
-                'columns': result_data.columns.tolist(),
-                'index': index_list
-            }
-            self._main_GetExternalData._cache_service.set_redis_cache(cache_key, cache_data)
-
-            # 如果是熱門查詢，也更新 MongoDB L2 快取（這裡簡化處理，假設月報表是熱門數據）
-            try:
-                self._main_GetExternalData._cache_service.set_stock_data(cache_key, result_data)
-                print(f"已將月報表存到混合快取: {cache_key}")
-            except Exception as e:
-                print(f"儲存月報表到快取失敗: {e}")
-
+        
+        # 只在必要時進行後處理
         return result_data
 
 

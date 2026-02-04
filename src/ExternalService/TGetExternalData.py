@@ -765,7 +765,8 @@ class TGetExternalData(IGetExternalData):
         """#取得完整的上漲和下跌家數歷史資料"""
         print("get_full_ad_index from MySQL")
         try:
-            ad_index_table = self._sql_service.readStockDay('AD_index')
+            # 使用專門的 read_ad_index 方法讀取騰落指數數據
+            ad_index_table = self._sql_service.read_ad_index(limit=10000)
             if not ad_index_table.empty:
                 return ad_index_table.sort_index()
         except Exception as e:

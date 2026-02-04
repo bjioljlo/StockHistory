@@ -245,7 +245,7 @@ class ReportUp(TReport):
             raise NotImplementedError("ReportType error!" + str(type(self._Report)))
         data = {}
         table_result = pd.DataFrame()
-        need_num = upNum + 1
+        need_num = upNum + 2  # 需要多一個數據點進行比較
         while need_num > 0:
             temp_data = self._Report.get_ALL_Report(date)
             if temp_data.empty:
@@ -253,15 +253,75 @@ class ReportUp(TReport):
             data["%d-%d-1" % (date.year, date.month)] = temp_data
             date = self._Report.Next_date(date)
             need_num = need_num - 1
-        result = pd.DataFrame(
-            {k: result[self._Report._name] for k, result in data.items()}
-        ).transpose()
+        
+        # 處理數據合併
+        if not data:
+            return pd.DataFrame()
+        
+        # 檢查第一個數據框的結構
+        first_data = next(iter(data.values()))
+        if isinstance(first_data, pd.Series):
+            # 如果是 Series，直接使用
+            result = pd.DataFrame({k: result for k, result in data.items()}).transpose()
+        elif isinstance(first_data, pd.DataFrame):
+            # 如果是 DataFrame，需要選擇正確的列
+            if self._Report._name in first_data.columns:
+                # 使用報告名稱作為列名
+                result = pd.DataFrame(
+                    {k: result[self._Report._name] for k, result in data.items()}
+                ).transpose()
+            else:
+                # 如果沒有報告名稱列，使用第一列
+                result = pd.DataFrame(
+                    {k: result.iloc[:, 0] for k, result in data.items()}
+                ).transpose()
+        else:
+            return pd.DataFrame()
+        
         result.index = pd.to_datetime(result.index)
         result = result.sort_index()
-        method2 = (result > result.shift()).iloc[-upNum:].sum()
-        method2 = method2[method2 >= upNum]
-        method2 = pd.DataFrame(method2)
-        table_result[self._name] = method2
+        
+        # 確保數據類型正確
+        result = result.apply(pd.to_numeric, errors='coerce')
+        
+        # 檢查是否有足夠的數據進行比較
+        if len(result) < upNum + 1:
+            print(f"數據不足，需要 {upNum + 1} 個時間點，但只有 {len(result)} 個")
+            return pd.DataFrame()
+        
+        # 進行比較操作
+        try:
+            # 確保 result 數據類型一致，避免比較時出現類型錯誤
+            result = result.apply(pd.to_numeric, errors='coerce')
+            
+            # 移除包含 NaN 的列
+            result = result.dropna(axis=1, how='any')
+            
+            if result.empty:
+                print("數據清理後無有效數據")
+                return pd.DataFrame()
+            
+            comparison_result = result > result.shift()
+            method2 = comparison_result.iloc[-upNum:].sum()
+            
+            # 確保 method2 中的所有值都是數值類型，避免類型比較錯誤
+            method2 = pd.to_numeric(method2, errors='coerce')
+            
+            # 過濾掉 NaN 值
+            method2 = method2.dropna()
+            
+            # 只保留大於等於 upNum 的值
+            method2 = method2[method2 >= upNum]
+            
+            if not method2.empty:
+                method2 = pd.DataFrame(method2)
+                table_result[self._name] = method2
+            else:
+                print(f"沒有符合條件的數據 (需要連續 {upNum} 次增長)")
+        except Exception as e:
+            print(f"比較操作失敗: {e}")
+            return pd.DataFrame()
+        
         print("{} / {} is End!".format(self._name, sys._getframe().f_code.co_name))
         return table_result
 
@@ -282,6 +342,10 @@ class ReportSmooth(TReport):
         print("{} / {} is Start!".format(self._name, sys._getframe().f_code.co_name))
         if type(self._Report) is ReportAutoTrace:
             raise NotImplementedError("ReportType error!" + str(type(self.Report)))
+        
+        # 確保 avgNum 是整數
+        avgNum = int(avgNum)
+        
         data = {}
         table_result = pd.DataFrame()
         need_num = avgNum + 1
@@ -292,14 +356,46 @@ class ReportSmooth(TReport):
             data["%d-%d-1" % (date.year, date.month)] = temp_data
             date = self._Report.Next_date(date)
             need_num = need_num - 1
-        result = pd.DataFrame(
-            {k: result[self._Report._name] for k, result in data.items()}
-        ).transpose()
+        
+        # 處理數據合併
+        if not data:
+            return pd.DataFrame()
+        
+        # 檢查第一個數據框的結構
+        first_data = next(iter(data.values()))
+        if isinstance(first_data, pd.Series):
+            # 如果是 Series，直接使用
+            result = pd.DataFrame({k: result for k, result in data.items()}).transpose()
+        elif isinstance(first_data, pd.DataFrame):
+            # 如果是 DataFrame，需要選擇正確的列
+            if self._Report._name in first_data.columns:
+                # 使用報告名稱作為列名
+                result = pd.DataFrame(
+                    {k: result[self._Report._name] for k, result in data.items()}
+                ).transpose()
+            else:
+                # 如果沒有報告名稱列，使用第一列
+                result = pd.DataFrame(
+                    {k: result.iloc[:, 0] for k, result in data.items()}
+                ).transpose()
+        else:
+            return pd.DataFrame()
+        
         result.index = pd.to_datetime(result.index)
         result = result.sort_index()
         method2 = result.rolling(avgNum, min_periods=avgNum).mean()
         method2 = method2.loc[method2.index[-1]]
-        table_result[self._name] = method2
+        
+        # 確保 method2 中的所有值都是數值類型，避免類型比較錯誤
+        method2 = pd.to_numeric(method2, errors='coerce')
+        
+        # 過濾掉 NaN 值
+        method2 = method2.dropna()
+        
+        if not method2.empty:
+            table_result[self._name] = method2
+        else:
+            print(f"平滑計算後沒有有效的數據")
         print("{} / {} is End!".format(self._name, sys._getframe().f_code.co_name))
         return table_result
 
