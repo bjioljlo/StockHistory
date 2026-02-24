@@ -386,32 +386,76 @@ class StockFilter(VirtualStockFilterFuc):
         self, name, max, min, data: DataFrame, date: datetime, atype: info.Price_type
     ):
         print("{} / {} is Start!".format("StockFilter", sys._getframe().f_code.co_name))
-        result_data = data
+        result_data = data.copy()  # 使用 copy() 避免修改原始 DataFrame
         result = DataFrame(columns=["code", name])
-        for number, row in data.iterrows():
-            self._Stock.number = str(number)
-            Temp = self._Stock.get_PriceByDate(date)
-            if Temp.empty:
-                result_data.drop(index=int(number), inplace=True)
-                continue
-            if type(Temp) is DataFrame:
-                Temp = Temp[atype][date]
-            if type(Temp) is Series:
-                Temp = Temp[date]
-            if type(Temp) is []:
-                Temp = Temp[date]
-            try:
-                if Temp > max or Temp < min:
-                    result_data.drop(index=int(number), inplace=True)
-                else:
-                    result = concat(
-                        [result, DataFrame({"code": number, name: Temp}, index=[1])],
-                        ignore_index=True,
-                    )
-            except Exception:
-                continue
+        
+        # 確保索引類型一致
+        if not result_data.empty:
+            # 檢查索引類型並轉換
+            if result_data.index.dtype == 'object':
+                # 如果索引是字串類型，確保 number 也是字串
+                for number, row in data.iterrows():
+                    self._Stock.number = str(number)
+                    Temp = self._Stock.get_PriceByDate(date)
+                    if Temp.empty:
+                        try:
+                            result_data.drop(index=number, inplace=True)
+                        except KeyError:
+                            pass  # 如果索引不存在，跳過
+                        continue
+                    if type(Temp) is DataFrame:
+                        Temp = Temp[atype][date]
+                    if type(Temp) is Series:
+                        Temp = Temp[date]
+                    if type(Temp) is []:
+                        Temp = Temp[date]
+                    try:
+                        if Temp > max or Temp < min:
+                            try:
+                                result_data.drop(index=number, inplace=True)
+                            except KeyError:
+                                pass  # 如果索引不存在，跳過
+                        else:
+                            result = concat(
+                                [result, DataFrame({"code": number, name: Temp}, index=[1])],
+                                ignore_index=True,
+                            )
+                    except Exception:
+                        continue
+            else:
+                # 如果索引是數值類型，確保 number 也是數值
+                for number, row in data.iterrows():
+                    self._Stock.number = str(number)
+                    Temp = self._Stock.get_PriceByDate(date)
+                    if Temp.empty:
+                        try:
+                            result_data.drop(index=number, inplace=True)
+                        except KeyError:
+                            pass  # 如果索引不存在，跳過
+                        continue
+                    if type(Temp) is DataFrame:
+                        Temp = Temp[atype][date]
+                    if type(Temp) is Series:
+                        Temp = Temp[date]
+                    if type(Temp) is []:
+                        Temp = Temp[date]
+                    try:
+                        if Temp > max or Temp < min:
+                            try:
+                                result_data.drop(index=number, inplace=True)
+                            except KeyError:
+                                pass  # 如果索引不存在，跳過
+                        else:
+                            result = concat(
+                                [result, DataFrame({"code": number, name: Temp}, index=[1])],
+                                ignore_index=True,
+                            )
+                    except Exception:
+                        continue
+        
         print("{} / {} is End!".format("StockFilter", sys._getframe().f_code.co_name))
-        result.set_index("code", inplace=True)
+        if not result.empty:
+            result.set_index("code", inplace=True)
         return result
 
 

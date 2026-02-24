@@ -71,6 +71,29 @@ class TReport(IReport):
 
     def Next_date(self, date):
         return Tools.changeDateMonth(date, -self._Unit)
+    
+    def check_and_convert_to_series(self, tableFirst, tableSecond):
+        # 確保兩個表都是 Series，如果不是則轉換
+        if isinstance(tableFirst, DataFrame):
+            if tableFirst.empty:
+                return DataFrame(), DataFrame()
+            # 如果是 DataFrame，取第一個欄位
+            tableFirst = tableFirst.iloc[:, 0] if tableFirst.shape[1] > 0 else Series()
+        
+        if isinstance(tableSecond, DataFrame):
+            if tableSecond.empty:
+                return DataFrame(), DataFrame()
+            # 如果是 DataFrame，取第一個欄位
+            tableSecond = tableSecond.iloc[:, 0] if tableSecond.shape[1] > 0 else Series()
+        
+        # 檢查是否為空
+        if tableFirst.empty or tableSecond.empty:
+            return DataFrame(), DataFrame()
+        
+        # 確保兩個表使用相同的索引進行對齊
+        # 使用內連接（inner join）來確保只保留兩個表都有的索引
+        tableFirst_aligned, tableSecond_aligned = tableFirst.align(tableSecond, join='inner', fill_value=0)
+        return tableFirst_aligned, tableSecond_aligned
 
 
 class AllStockReport(TReport):
@@ -206,7 +229,6 @@ class Indicator(TReport):
     def __init__(self, name: str, Unit: int) -> None:
         super().__init__(name, Unit)
 
-
 class ROE_Indicator(Indicator):
     """#取得股東權益報酬率"""
 
@@ -219,6 +241,8 @@ class ROE_Indicator(Indicator):
         table_result = DataFrame()
         table_CPL = self.CPL.get_ReportByType(date, info.CPL_type.type_0, base_today=base_today)
         table_BS = self.BS.get_ReportByType(date, info.BS_type.type_3, base_today=base_today)
+        
+        table_CPL, table_BS = self.check_and_convert_to_series(table_CPL, table_BS)
         if table_BS.empty or table_CPL.empty:
             return DataFrame()
         table_result[self._name] = round((table_CPL / table_BS), 4) * 100
@@ -236,8 +260,11 @@ class FreeCF_Indicator(Indicator):
         table_result = DataFrame()
         table_ICF = self.SCF.get_ReportByType(date, info.SCF_type.ICF, base_today=base_today)
         table_OCF = self.SCF.get_ReportByType(date, info.SCF_type.OCF, base_today=base_today)
+        
+        table_ICF, table_OCF = self.check_and_convert_to_series(table_ICF, table_OCF)
         if table_ICF.empty or table_OCF.empty:
             return DataFrame()
+        # 計算自由現金流：投資資活動現金流量 + 營業活動現金流量
         table_result[self._name] = table_ICF + table_OCF
         return table_result
 
@@ -253,6 +280,7 @@ class Debt_Indicator(Indicator):
         table_result = DataFrame()
         table_Assets = self.BS.get_ReportByType(date, info.BS_type.type_0, base_today=base_today)
         table_Debt = self.BS.get_ReportByType(date, info.BS_type.type_1, base_today=base_today)
+        table_Assets, table_Debt = self.check_and_convert_to_series(table_Assets, table_Debt)
         if table_Debt.empty or table_Assets.empty:
             return DataFrame()
         table_result[self._name] = table_Debt / table_Assets
@@ -272,6 +300,7 @@ class MR_Growth_Indicator(Indicator):
         MR_old = self.monthRP.get_ReportByType(
             Tools.changeDateMonth(date, -12), info.Month_type.MR, base_today=base_today
         )
+        MR_now, MR_old = self.check_and_convert_to_series(MR_now, MR_old)
         if MR_now.empty or MR_old.empty:
             return DataFrame()
         data_result[self._name] = ((MR_now - MR_old) / MR_old) * 100
@@ -291,6 +320,7 @@ class SR_Growth_Indicator(Indicator):
         SR_old = self.PLA_RP.get_ReportByType(
             Tools.changeDateMonth(date, -12), info.PLA_type.type_0, base_today=base_today
         )
+        SR_now, SR_old = self.check_and_convert_to_series(SR_now, SR_old)
         if SR_now.empty or SR_old.empty:
             return DataFrame()
         data_result[self._name] = ((SR_now - SR_old) / SR_old) * 100
@@ -310,6 +340,7 @@ class OM_Growth_Indicator(Indicator):
         OM_old = self.PLA.get_ReportByType(
             Tools.changeDateMonth(date, -12), info.PLA_type.type_2, base_today=base_today
         )
+        OM_now, OM_old = self.check_and_convert_to_series(OM_now, OM_old)
         if OM_now.empty or OM_old.empty:
             return DataFrame()
         data_result[self._name] = ((OM_now - OM_old) / OM_old) * 100
@@ -330,9 +361,11 @@ class PEG_Indicator(Indicator):
         table_result = DataFrame()
         table_PE = self.Yield.get_ReportByType(date, info.Day_type.PER, base_today=base_today)
         table_OM_Growth = self.OM_Growth.get_ALL_Report(date, base_today=base_today)
+        
+        table_PE, table_OM_Growth = self.check_and_convert_to_series(table_PE, table_OM_Growth)
         if table_OM_Growth.empty or table_PE.empty:
             return DataFrame()
-        table_result[self._name] = table_PE / table_OM_Growth[self.OM_Growth._name]
+        table_result[self._name] = table_PE / table_OM_Growth
         return table_result
 
 
@@ -348,6 +381,7 @@ class OCFPerShare_Indicator(Indicator):
         table_result = DataFrame()
         table_OCF = self.SCF_RP.get_ReportByType(date, info.SCF_type.OCF, base_today=base_today)
         table_BS = self.BS_RP.get_ReportByType(date, info.BS_type.type_2, base_today=base_today)
+        table_OCF, table_BS = self.check_and_convert_to_series(table_OCF, table_BS)
         if table_OCF.empty or table_BS.empty:
             return DataFrame()
         table_result[self._name] = table_OCF / table_BS
@@ -381,6 +415,9 @@ class PCF_Indicator(Indicator):
         stock_price = self._StockPrice.get_PriceByDateAndType(
             date, info.Price_type.Close
         )  # get_stock_price(self._number,date,stock_data_kind.AdjClose)
+        table_OCFPerShare, stock_price = self.check_and_convert_to_series(
+            table_OCFPerShare, stock_price
+        )
         table_result[self._name] = stock_price / table_OCFPerShare
         return table_result
 

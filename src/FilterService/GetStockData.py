@@ -1,6 +1,7 @@
 import sys
 from datetime import datetime
 
+import numpy as np
 import pandas as pd
 from pandas import DataFrame
 
@@ -301,8 +302,23 @@ class ReportUp(TReport):
                 print("數據清理後無有效數據")
                 return pd.DataFrame()
             
+            # 確保所有數據都是數值類型再進行比較
+            result = result.select_dtypes(include=[np.number])
+            
+            if result.empty:
+                print("沒有有效的數值數據進行比較")
+                return pd.DataFrame()
+            
+            # 確保 upNum 是整數
+            upNum_int = int(upNum)
+            
+            # 檢查是否有足夠的數據進行比較
+            if len(result) < upNum_int + 1:
+                print(f"數據不足，需要 {upNum_int + 1} 個時間點，但只有 {len(result)} 個")
+                return pd.DataFrame()
+            
             comparison_result = result > result.shift()
-            method2 = comparison_result.iloc[-upNum:].sum()
+            method2 = comparison_result.iloc[-upNum_int:].sum()
             
             # 確保 method2 中的所有值都是數值類型，避免類型比較錯誤
             method2 = pd.to_numeric(method2, errors='coerce')
@@ -311,13 +327,13 @@ class ReportUp(TReport):
             method2 = method2.dropna()
             
             # 只保留大於等於 upNum 的值
-            method2 = method2[method2 >= upNum]
+            method2 = method2[method2 >= upNum_int]
             
             if not method2.empty:
                 method2 = pd.DataFrame(method2)
                 table_result[self._name] = method2
             else:
-                print(f"沒有符合條件的數據 (需要連續 {upNum} 次增長)")
+                print(f"沒有符合條件的數據 (需要連續 {upNum_int} 次增長)")
         except Exception as e:
             print(f"比較操作失敗: {e}")
             return pd.DataFrame()
@@ -383,8 +399,16 @@ class ReportSmooth(TReport):
         
         result.index = pd.to_datetime(result.index)
         result = result.sort_index()
+        
+        # 確保所有數據都是數值類型再進行計算
+        result = result.select_dtypes(include=[np.number])
+        
+        if result.empty:
+            print("沒有有效的數值數據進行平滑計算")
+            return pd.DataFrame()
+        
         method2 = result.rolling(avgNum, min_periods=avgNum).mean()
-        method2 = method2.loc[method2.index[-1]]
+        method2 = method2.iloc[-1]  # 使用 iloc 而不是 loc 來避免索引類型問題
         
         # 確保 method2 中的所有值都是數值類型，避免類型比較錯誤
         method2 = pd.to_numeric(method2, errors='coerce')
@@ -506,12 +530,31 @@ class All_imge:
             else:
                 temp = self._report.get_ReportByNumber(end, number)
             
+            # 當 temp 為空時，等待 SQL 結果返回後再繼續執行
             if temp.empty:
-                end = self._report.Next_date(end)
-                continue
-            
+                # 等待 SQL 查詢完成，最多等待 30 秒
+                import time
+                wait_time = 0
+                max_wait_time = 30  # 最大等待時間 30 秒
+                wait_interval = 1   # 每次等待間隔 1 秒
+                
+                while temp.empty and wait_time < max_wait_time:
+                    time.sleep(wait_interval)
+                    wait_time += wait_interval
+                    
+                    # 重新嘗試獲取數據
+                    if (self._report._name == "ADL") or (self._report._name == "ADLs"):
+                        temp = self._report.get_ALL_Report(end)
+                    else:
+                        temp = self._report.get_ReportByNumber(end, number)
+                
+                # 如果等待後仍然沒有數據，使用原始日期並添加 NaN 值
+                if temp.empty:
+                    temp = pd.DataFrame({self._report._name: [np.nan]}, index=[end])
+                
             temp.insert(0, "Date", end)
             results_list.append(temp)
+            
             end = self._report.Next_date(end)
             
         if not results_list:
