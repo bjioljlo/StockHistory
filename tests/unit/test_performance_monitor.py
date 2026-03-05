@@ -6,11 +6,7 @@
 
 import unittest
 import time
-import json
-from unittest.mock import Mock, patch, MagicMock
-import pandas as pd
-import psutil
-from datetime import datetime
+from unittest.mock import Mock, patch
 
 from src.Common.PerformanceMonitor import PerformanceMonitor, get_performance_monitor
 

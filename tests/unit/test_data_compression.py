@@ -63,16 +63,23 @@ class TestDataCompressionService(unittest.TestCase):
 
         # 模擬資料庫連線和結果
         mock_conn = Mock()
+        mock_conn.__enter__ = Mock(return_value=mock_conn)
+        mock_conn.__exit__ = Mock(return_value=None)
         mock_engine.return_value.connect.return_value = mock_conn
 
-        # 模擬資料表統計資訊
+        # 模擬資料表統計資訊 - 使用更真實的 Mock
         mock_stats_result = Mock()
-        mock_stats_result.fetchone.return_value = (10000, 100, 10485760, 5242880, 102400)  # 10MB data, 5MB index, 100KB free
+        # 模擬 SQLAlchemy 的 Row 物件 - 使用 tuple 來模擬
+        mock_stats_result.fetchone.return_value = (10000, 100, 10485760, 5242880, 102400)
         mock_conn.execute.side_effect = [mock_stats_result, Mock()]  # 統計查詢和舊資料查詢
 
         compressor = DataCompressionService('config.yml')
         analysis = compressor.analyze_table_compression_potential("stocks")
 
+        # 檢查是否有錯誤
+        if 'error' in analysis:
+            self.fail(f"分析失敗: {analysis['error']}")
+        
         self.assertEqual(analysis['table_name'], "stocks")
         self.assertEqual(analysis['total_rows'], 10000)
         self.assertEqual(analysis['data_size_mb'], 10.0)  # 10MB
@@ -112,12 +119,14 @@ class TestDataCompressionService(unittest.TestCase):
 
         # 模擬資料庫連線
         mock_conn = Mock()
+        mock_conn.__enter__ = Mock(return_value=mock_conn)
+        mock_conn.__exit__ = Mock(return_value=None)
         mock_engine.return_value.connect.return_value = mock_conn
 
         # 模擬沒有舊資料
         mock_result = Mock()
         mock_result.fetchone.return_value = (0,)  # 0 條舊記錄
-        mock_conn.execute.return_value = mock_result
+        mock_conn.execute.side_effect = [mock_result, Mock()]  # 統計查詢和舊資料查詢
 
         compressor = DataCompressionService('config.yml')
         result = compressor.compress_old_data("stocks")
@@ -138,6 +147,8 @@ class TestDataCompressionService(unittest.TestCase):
 
         # 模擬資料庫連線
         mock_conn = Mock()
+        mock_conn.__enter__ = Mock(return_value=mock_conn)
+        mock_conn.__exit__ = Mock(return_value=None)
         mock_engine.return_value.connect.return_value = mock_conn
 
         # 模擬有舊資料
@@ -148,6 +159,10 @@ class TestDataCompressionService(unittest.TestCase):
         compressor = DataCompressionService('config.yml')
         result = compressor.compress_old_data("stocks")
 
+        # 檢查是否有錯誤
+        if 'error' in result:
+            self.fail(f"壓縮失敗: {result['error']}")
+        
         self.assertEqual(result['status'], 'success')
         self.assertEqual(result['compressed_records'], 100)
         self.assertIn('archive_file', result)
@@ -161,6 +176,8 @@ class TestDataCompressionService(unittest.TestCase):
 
         # 模擬資料庫連線
         mock_conn = Mock()
+        mock_conn.__enter__ = Mock(return_value=mock_conn)
+        mock_conn.__exit__ = Mock(return_value=None)
         mock_engine.return_value.connect.return_value = mock_conn
 
         # 模擬優化操作
@@ -297,6 +314,8 @@ class TestDataCompressionService(unittest.TestCase):
 
         # 模擬資料庫連線
         mock_conn = Mock()
+        mock_conn.__enter__ = Mock(return_value=mock_conn)
+        mock_conn.__exit__ = Mock(return_value=None)
         mock_engine.return_value.connect.return_value = mock_conn
 
         # 模擬查詢結果
@@ -309,6 +328,10 @@ class TestDataCompressionService(unittest.TestCase):
         compressor = DataCompressionService('config.yml')
         archive_file = compressor._create_compressed_archive("stocks", mock_conn)
 
+        # 檢查是否有錯誤
+        if archive_file is None:
+            self.fail("壓縮檔案創建失敗")
+        
         self.assertIsNotNone(archive_file)
         self.assertTrue(archive_file.exists())
 
@@ -328,6 +351,8 @@ class TestDataCompressionService(unittest.TestCase):
 
         # 模擬資料庫連線
         mock_conn = Mock()
+        mock_conn.__enter__ = Mock(return_value=mock_conn)
+        mock_conn.__exit__ = Mock(return_value=None)
         mock_engine.return_value.connect.return_value = mock_conn
 
         compressor = DataCompressionService('config.yml')

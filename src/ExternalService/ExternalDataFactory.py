@@ -27,7 +27,7 @@ class ExternalDataFactory:
     ) -> IGetExternalData:
         if type == ExternalDataTypeEnum.Test:
             return GetExternalDataTest(sql_service=self._sql_service, mongo_service=self._mongo_service,
-                                    read_load_system=self._read_load_system)
+                                    read_load_system=self._read_load_system, cache_service=self._cache_service)
         else:
             return TGetExternalData(sql_service=self._sql_service, mongo_service=self._mongo_service,
                                     read_load_system=self._read_load_system, cache_service=self._cache_service)

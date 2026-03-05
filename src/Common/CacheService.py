@@ -504,7 +504,8 @@ class HybridCacheService:
                 self.logger.error(f"Failed to clear MongoDB cache: {e}")
                 mongo_ok = False
 
-        return redis_ok and mongo_ok
+        # 如果 Redis 成功清除，就返回 True（即使 MongoDB 失敗）
+        return redis_ok
 
     def health_check(self) -> Dict[str, Any]:
         """快取服務健康檢查"""
@@ -559,3 +560,47 @@ def get_cache_service(mongo_service=None, sql_service=None, config_path='config.
     if _cache_service is None and mongo_service and sql_service:
         _cache_service = HybridCacheService(mongo_service, sql_service, config_path)
     return _cache_service
+
+
+class CachedSqlService:
+    """帶有快取功能的 SQL 服務包裝器"""
+    
+    def __init__(self, sql_service, cache_service: HybridCacheService):
+        self.sql_service = sql_service
+        self.cache = cache_service
+    
+    def read_stock_day_cached(self, stock_symbol: str) -> pd.DataFrame:
+        """讀取股票歷史資料（帶快取）"""
+        # 嘗試從快取獲取
+        cached_data = self.cache.get_stock_data(stock_symbol)
+        if cached_data is not None:
+            return cached_data
+        
+        # 從 SQL 服務讀取
+        df = self.sql_service.readStockDay(stock_symbol)
+        
+        # 如果有資料，存入快取
+        if not df.empty:
+            self.cache.set_stock_data(stock_symbol, df)
+        
+        return df
+    
+    def invalidate_stock_cache(self, stock_symbol: str):
+        """失效股票快取"""
+        self.cache.invalidate_stock_cache(stock_symbol)
+
+
+def create_cached_sql_service(sql_service, mongo_service=None, sql_service_instance=None, config_path='config.yml') -> CachedSqlService:
+    """創建帶有快取功能的 SQL 服務"""
+    # 如果沒有提供快取服務，嘗試獲取或創建一個
+    if mongo_service and sql_service_instance:
+        cache_service = get_cache_service(mongo_service, sql_service_instance, config_path)
+    else:
+        # 創建一個基本的快取服務
+        from src.MongoService import MongoService
+        from src.SqlService import SqlService
+        mongo_service = mongo_service or MongoService()
+        sql_service_instance = sql_service_instance or sql_service
+        cache_service = HybridCacheService(mongo_service, sql_service_instance, config_path)
+    
+    return CachedSqlService(sql_service, cache_service)

@@ -86,11 +86,11 @@ class DataCompressionService:
                     return {'error': f'資料表 {table_name} 不存在'}
 
                 # 計算壓縮潛力
-                table_rows = stats[0] or 0
-                avg_row_length = stats[1] or 0
-                data_length = stats[2] or 0
-                index_length = stats[3] or 0
-                data_free = stats[4] or 0
+                table_rows = stats[0] if stats[0] is not None else 0
+                avg_row_length = stats[1] if stats[1] is not None else 0
+                data_length = stats[2] if stats[2] is not None else 0
+                index_length = stats[3] if stats[3] is not None else 0
+                data_free = stats[4] if stats[4] is not None else 0
 
                 # 估計壓縮後大小（基於經驗值）
                 estimated_compression_ratio = 0.3  # 假設壓縮比為70%
@@ -104,7 +104,8 @@ class DataCompressionService:
                 """)
 
                 old_result = conn.execute(old_data_query)
-                old_records = old_result.fetchone()[0] or 0
+                old_row = old_result.fetchone()
+                old_records = old_row[0] if old_row else 0
 
                 return {
                     'table_name': table_name,
@@ -161,7 +162,8 @@ class DataCompressionService:
                 """)
 
                 result = conn.execute(old_data_query)
-                old_records = result.fetchone()[0] or 0
+                old_row = result.fetchone()
+                old_records = old_row[0] if old_row else 0
 
                 if old_records == 0:
                     return {
@@ -255,7 +257,18 @@ class DataCompressionService:
 
                     # 將批次資料寫入壓縮檔案
                     for row in rows:
-                        record = dict(row._mapping)
+                        # 將 Row 物件轉換為字典
+                        if hasattr(row, '_mapping'):
+                            record = dict(row._mapping)
+                        else:
+                            # 如果是 tuple，使用 column names
+                            record = {}
+                            for i, column in enumerate(result.keys()):
+                                value = row[i]
+                                if column == 'date' and hasattr(value, 'isoformat'):
+                                    value = value.isoformat()
+                                record[column] = value
+                        
                         # 將日期轉換為字串以確保JSON序列化
                         if 'date' in record and hasattr(record['date'], 'isoformat'):
                             record['date'] = record['date'].isoformat()

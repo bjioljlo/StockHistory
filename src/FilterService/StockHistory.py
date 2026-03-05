@@ -284,34 +284,83 @@ class StockPriceBetterMA(VirtualStockFilterFuc):
 
     def get_FilterBetterMA(self, data: DataFrame):
         print(
-            "{} / {} is End!".format(
+            "{} / {} is Start!".format(
                 "StockPriceBetterMA", sys._getframe().f_code.co_name
             )
         )
-        result_data = data
+        result_data = data.copy()  # 使用 copy() 避免修改原始 DataFrame
+        result = DataFrame(columns=["code", "price_better_ma"])
+        
         for number, row in data.iterrows():
-            self._Stock.number = str(number)
+            # 確保 number 是字串類型，這樣可以避免索引類型不匹配的問題
+            stock_number = str(number)
+            self._Stock.number = stock_number
+            
             Temp_MA = self._Stock.get_PriceByDate(self._date)
             Temp = self._Stock.Stock.get_PriceByDate(self._date)
+            
             if Temp.empty or Temp_MA.empty:
-                result_data.drop(index=int(number), inplace=True)
+                try:
+                    # 使用字串類型的索引進行刪除
+                    result_data.drop(index=stock_number, inplace=True)
+                except KeyError:
+                    # 如果索引不存在，嘗試使用原始的 number 類型
+                    try:
+                        result_data.drop(index=number, inplace=True)
+                    except KeyError:
+                        pass  # 如果索引不存在，跳過
                 continue
+            
+            # 處理 Temp 和 Temp_MA 數據
             if type(Temp) is DataFrame:
                 Temp = Temp[self._Stock._type][self._date]
-            if type(Temp) is Series:
+            elif type(Temp) is Series:
                 Temp = Temp[self._date]
+            elif type(Temp) is list:
+                Temp = Temp[self._date]
+            
             if type(Temp_MA) is DataFrame:
                 Temp_MA = Temp_MA[self._Stock._type][self._date]
-            if type(Temp_MA) is Series:
+            elif type(Temp_MA) is Series:
                 Temp_MA = Temp_MA[self._date]
-            if Temp_MA > Temp:
-                result_data.drop(index=int(number), inplace=True)
+            elif type(Temp_MA) is list:
+                Temp_MA = Temp_MA[self._date]
+            
+            try:
+                # 檢查價格是否高於移動平均線
+                if Temp_MA > Temp:
+                    try:
+                        # 使用字串類型的索引進行刪除
+                        result_data.drop(index=stock_number, inplace=True)
+                    except KeyError:
+                        # 如果索引不存在，嘗試使用原始的 number 類型
+                        try:
+                            result_data.drop(index=number, inplace=True)
+                        except KeyError:
+                            pass  # 如果索引不存在，跳過
+                else:
+                    result = concat(
+                        [result, DataFrame({"code": stock_number, "price_better_ma": Temp}, index=[1])],
+                        ignore_index=True,
+                    )
+            except Exception as e:
+                print(f"處理股票 {stock_number} 時發生錯誤: {e}")
+                continue
+        
         print(
             "{} / {} is End!".format(
                 "StockPriceBetterMA", sys._getframe().f_code.co_name
             )
         )
-        return result_data
+        
+        # 確保返回的結果是過濾後的數據，而不是原始數據
+        if not result.empty:
+            result.set_index("code", inplace=True)
+            return result
+        else:
+            # 如果沒有符合條件的數據，返回空DataFrame
+            print("所有數據都被過濾掉，返回空結果")
+            return DataFrame()
 
 
 class StockRecordHigh(VirtualStockFilterFuc):
@@ -386,77 +435,72 @@ class StockFilter(VirtualStockFilterFuc):
         self, name, max, min, data: DataFrame, date: datetime, atype: info.Price_type
     ):
         print("{} / {} is Start!".format("StockFilter", sys._getframe().f_code.co_name))
+        
+        # 如果輸入數據為空，直接返回空DataFrame
+        if data.empty:
+            print("輸入數據為空，返回空結果")
+            return DataFrame()
+        
         result_data = data.copy()  # 使用 copy() 避免修改原始 DataFrame
         result = DataFrame(columns=["code", name])
         
-        # 確保索引類型一致
-        if not result_data.empty:
-            # 檢查索引類型並轉換
-            if result_data.index.dtype == 'object':
-                # 如果索引是字串類型，確保 number 也是字串
-                for number, row in data.iterrows():
-                    self._Stock.number = str(number)
-                    Temp = self._Stock.get_PriceByDate(date)
-                    if Temp.empty:
+        # 確保索引類型一致，統一轉換為字串類型進行處理
+        for number, row in data.iterrows():
+            # 確保 number 是字串類型，這樣可以避免索引類型不匹配的問題
+            stock_number = str(number)
+            self._Stock.number = stock_number
+            
+            Temp = self._Stock.get_PriceByDate(date)
+            if Temp.empty:
+                try:
+                    # 使用字串類型的索引進行刪除
+                    result_data.drop(index=stock_number, inplace=True)
+                except KeyError:
+                    # 如果索引不存在，嘗試使用原始的 number 類型
+                    try:
+                        result_data.drop(index=number, inplace=True)
+                    except KeyError:
+                        pass  # 如果索引不存在，跳過
+                continue
+            
+            # 處理 Temp 數據
+            if type(Temp) is DataFrame:
+                Temp = Temp[atype][date]
+            elif type(Temp) is Series:
+                Temp = Temp[date]
+            elif type(Temp) is list:
+                Temp = Temp[date]
+            
+            try:
+                if Temp > max or Temp < min:
+                    try:
+                        # 使用字串類型的索引進行刪除
+                        result_data.drop(index=stock_number, inplace=True)
+                    except KeyError:
+                        # 如果索引不存在，嘗試使用原始的 number 類型
                         try:
                             result_data.drop(index=number, inplace=True)
                         except KeyError:
                             pass  # 如果索引不存在，跳過
-                        continue
-                    if type(Temp) is DataFrame:
-                        Temp = Temp[atype][date]
-                    if type(Temp) is Series:
-                        Temp = Temp[date]
-                    if type(Temp) is []:
-                        Temp = Temp[date]
-                    try:
-                        if Temp > max or Temp < min:
-                            try:
-                                result_data.drop(index=number, inplace=True)
-                            except KeyError:
-                                pass  # 如果索引不存在，跳過
-                        else:
-                            result = concat(
-                                [result, DataFrame({"code": number, name: Temp}, index=[1])],
-                                ignore_index=True,
-                            )
-                    except Exception:
-                        continue
-            else:
-                # 如果索引是數值類型，確保 number 也是數值
-                for number, row in data.iterrows():
-                    self._Stock.number = str(number)
-                    Temp = self._Stock.get_PriceByDate(date)
-                    if Temp.empty:
-                        try:
-                            result_data.drop(index=number, inplace=True)
-                        except KeyError:
-                            pass  # 如果索引不存在，跳過
-                        continue
-                    if type(Temp) is DataFrame:
-                        Temp = Temp[atype][date]
-                    if type(Temp) is Series:
-                        Temp = Temp[date]
-                    if type(Temp) is []:
-                        Temp = Temp[date]
-                    try:
-                        if Temp > max or Temp < min:
-                            try:
-                                result_data.drop(index=number, inplace=True)
-                            except KeyError:
-                                pass  # 如果索引不存在，跳過
-                        else:
-                            result = concat(
-                                [result, DataFrame({"code": number, name: Temp}, index=[1])],
-                                ignore_index=True,
-                            )
-                    except Exception:
-                        continue
+                else:
+                    result = concat(
+                        [result, DataFrame({"code": stock_number, name: Temp}, index=[1])],
+                        ignore_index=True,
+                    )
+            except Exception as e:
+                print(f"處理股票 {stock_number} 時發生錯誤: {e}")
+                continue
         
         print("{} / {} is End!".format("StockFilter", sys._getframe().f_code.co_name))
+        
+        # 確保返回的結果是過濾後的數據，而不是原始數據
         if not result.empty:
             result.set_index("code", inplace=True)
-        return result
+            return result
+        else:
+            # 如果沒有符合條件的數據，返回空DataFrame
+            print("所有數據都被過濾掉，返回空結果")
+            return DataFrame()
 
 
 class StockFilterInfo(VirtualStockFilterFuc):
@@ -507,31 +551,80 @@ class StockAvgVolMultiple(VirtualStockFilterFuc):
     
     def get_FilterAvgVolMultiple(self, data: DataFrame):
         print(
-            "{} / {} is End!".format(
-                "FilterAvgVolMultiple", sys._getframe().f_code.co_name
+            "{} / {} is Start!".format(
+                "StockAvgVolMultiple", sys._getframe().f_code.co_name
             )
         )
-        result_data = data
+        result_data = data.copy()  # 使用 copy() 避免修改原始 DataFrame
+        result = DataFrame(columns=["code", "volume_multiple"])
+        
         for number, row in data.iterrows():
-            self._Stock.number = str(number)
+            # 確保 number 是字串類型，這樣可以避免索引類型不匹配的問題
+            stock_number = str(number)
+            self._Stock.number = stock_number
+            
             Temp_MA = self._Stock.get_PriceByDate(self._date)
             Temp = self._Stock.Stock.get_PriceByDate(self._date)
+            
             if Temp.empty or Temp_MA.empty:
-                result_data.drop(index=int(number), inplace=True)
+                try:
+                    # 使用字串類型的索引進行刪除
+                    result_data.drop(index=stock_number, inplace=True)
+                except KeyError:
+                    # 如果索引不存在，嘗試使用原始的 number 類型
+                    try:
+                        result_data.drop(index=number, inplace=True)
+                    except KeyError:
+                        pass  # 如果索引不存在，跳過
                 continue
+            
+            # 處理 Temp 和 Temp_MA 數據
             if type(Temp) is DataFrame:
                 Temp = Temp[self._Stock._type][self._date]
-            if type(Temp) is Series:
+            elif type(Temp) is Series:
                 Temp = Temp[self._date]
+            elif type(Temp) is list:
+                Temp = Temp[self._date]
+            
             if type(Temp_MA) is DataFrame:
                 Temp_MA = Temp_MA[self._Stock._type][self._date]
-            if type(Temp_MA) is Series:
+            elif type(Temp_MA) is Series:
                 Temp_MA = Temp_MA[self._date]
-            if Temp_MA * self._multiple > Temp:
-                result_data.drop(index=int(number), inplace=True)
+            elif type(Temp_MA) is list:
+                Temp_MA = Temp_MA[self._date]
+            
+            try:
+                # 檢查成交量是否超過平均成交量的特定倍數
+                if Temp_MA * self._multiple > Temp:
+                    try:
+                        # 使用字串類型的索引進行刪除
+                        result_data.drop(index=stock_number, inplace=True)
+                    except KeyError:
+                        # 如果索引不存在，嘗試使用原始的 number 類型
+                        try:
+                            result_data.drop(index=number, inplace=True)
+                        except KeyError:
+                            pass  # 如果索引不存在，跳過
+                else:
+                    result = concat(
+                        [result, DataFrame({"code": stock_number, "volume_multiple": Temp}, index=[1])],
+                        ignore_index=True,
+                    )
+            except Exception as e:
+                print(f"處理股票 {stock_number} 時發生錯誤: {e}")
+                continue
+        
         print(
             "{} / {} is End!".format(
-                "StockPriceBetterMA", sys._getframe().f_code.co_name
+                "StockAvgVolMultiple", sys._getframe().f_code.co_name
             )
         )
-        return result_data
+        
+        # 確保返回的結果是過濾後的數據，而不是原始數據
+        if not result.empty:
+            result.set_index("code", inplace=True)
+            return result
+        else:
+            # 如果沒有符合條件的數據，返回空DataFrame
+            print("所有數據都被過濾掉，返回空結果")
+            return DataFrame()

@@ -101,7 +101,7 @@ class Model_pick(TModel):
         """安全地合併篩選資料"""
         if filter_data.empty:
             self._logger.warning(f"{filter_name} 篩選結果為空")
-            return base_data
+            return pd.DataFrame()  # 返回空DataFrame而不是base_data
         
         try:
             # 檢查是否有重複的列名

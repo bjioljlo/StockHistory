@@ -1,7 +1,6 @@
 import threading
 from datetime import datetime
 from typing import Dict, Any
-import yaml
 
 import pandas as pd
 import yfinance as yf

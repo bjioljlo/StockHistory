@@ -479,7 +479,7 @@ class UpdateStockService:
                 continue
 
             df_result = Tools.TidyTicketData(df_result, temp)
-            data_queue.put((temp, df_result, start_date))
+            data_queue.put((temp, df_result, fetch_start_date))
 
             print("Update stocks " + temp + " OK!")
             if callback:
