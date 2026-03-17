@@ -386,24 +386,43 @@ class StockRecordHigh(VirtualStockFilterFuc):
         return self.get_FilterRecordHigh(self.__data)
 
     def get_FilterRecordHigh(self, data: DataFrame):
-        result_data = data
+        result_data = data.copy()  # 使用 copy() 避免修改原始 DataFrame
         result = DataFrame(columns=["code", "RecordHigh"])
+        
         for number, row in data.iterrows():
-            self._Stock.number = str(number)
+            # 確保 number 是字串類型
+            stock_number = str(number)
+            self._Stock.number = stock_number
+            
             Temp = self._Stock.get_ALL()
             if not Temp:
-                result_data.drop(index=int(number), inplace=True)
+                try:
+                    # 使用字串類型的索引進行刪除
+                    result_data.drop(index=stock_number, inplace=True)
+                except KeyError:
+                    # 如果索引不存在，嘗試使用原始的 number 類型
+                    try:
+                        result_data.drop(index=number, inplace=True)
+                    except KeyError:
+                        pass  # 如果索引不存在，跳過
                 print("".join([str(number), "/////", str(row)]))
             else:
                 result = concat(
                     [
                         result,
-                        DataFrame({"code": number, "RecordHigh": Temp}, index=[1]),
+                        DataFrame({"code": stock_number, "RecordHigh": Temp}, index=[1]),
                     ],
                     ignore_index=True,
                 )
-        result.set_index("code", inplace=True)
-        return result
+        
+        # 確保返回的結果是過濾後的數據
+        if not result.empty:
+            result.set_index("code", inplace=True)
+            return result
+        else:
+            # 如果沒有符合條件的數據，返回空DataFrame
+            print("歷史高點篩選：所有數據都被過濾掉，返回空結果")
+            return DataFrame()
 
 
 class StockFilter(VirtualStockFilterFuc):

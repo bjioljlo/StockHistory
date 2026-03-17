@@ -353,8 +353,19 @@ class UpdateStockService:
 
         print("Database save thread finished.")
 
-    def __runUpdate(self, MainUserInfoDatas: UserInfoDatas, callback=None):
-        print("Update all TW stocks start! Fetching and Saving will run concurrently.")
+    def __update_stocks_common(self, mainUserInfoDatas: UserInfoDatas, stock_list, update_date_attr, initial_date, timezone=None, callback=None, areacode=None):
+        """
+        通用的股票更新方法，用於處理不同市場的股票更新
+        
+        Args:
+            MainUserInfoDatas: 用戶信息對象
+            stock_list: 股票列表（可以是codes或sp500列表）
+            update_date_attr: 用戶信息中的更新日期屬性名稱
+            initial_date: 初始日期（當沒有歷史數據時使用）
+            timezone: 時區設置（可選）
+            callback: 進度回調函數（可選）
+        """
+        print(f"Update all stocks start! Fetching and Saving will run concurrently.")
         data_queue = queue.Queue()
         save_thread = threading.Thread(
             target=self._save_stock_data_to_db, args=(data_queue,)
@@ -362,19 +373,28 @@ class UpdateStockService:
         save_thread.daemon = False  # 改為非守護線程以確保數據保存完成
         save_thread.start()
 
-        start_date = datetime.strptime(MainUserInfoDatas.TW_UpdateDate, "%Y-%m-%d")
+        start_date = datetime.strptime(getattr(mainUserInfoDatas, update_date_attr), "%Y-%m-%d")
         end_date = datetime.today()
         
-        codes = [value for key, value in twstock.codes.items() if value.market == "上市" and len(value.code) >= 4 and not (len(value.code) >= 5 and Tools.check_ETF_stock(value.code) is False)]
-        total_stocks = len(codes)
-        for i, value in enumerate(codes):
+        total_stocks = len(stock_list)
+        for i, stock_item in enumerate(stock_list):
             if not self.isUpdating:
-                print("Update stocks " + value.code + info.local_type.Taiwan + " be Stop")
+                stock_name = stock_item if isinstance(stock_item, str) else stock_item.code
+                print(f"Update stocks {stock_name} be Stop")
                 data_queue.put(None)
                 break
             
+            # 獲取股票代碼和名稱
+            if isinstance(stock_item, str):
+                stock_code = stock_item
+                stock_name = stock_item
+            else:
+                stock_code = stock_item.code
+                stock_name = stock_code + info.local_type.Taiwan
+            
+            # 檢查本地數據
             df_check = self._getExternalFactory.Get_instance(self).get_stock_history(
-                value.code, start=start_date
+                stock_code, start=start_date
             )
             if not df_check.empty:
                 # 有本地數據，取最新日期 +1 天開始，避免重複下載
@@ -383,45 +403,53 @@ class UpdateStockService:
             else:
                 # 檢查是否真的沒有歷史數據，還是只是周末/假日
                 # 如果是周末/假日，嘗試往前找最近的交易日
-                print(f"No local data found for {value.code}, checking for recent trading days...")
+                print(f"No local data found for {stock_code}, checking for recent trading days...")
                 
                 # 嘗試獲取最近一個月的數據來判斷是否有交易日
                 recent_start = end_date - timedelta(days=30)
                 df_recent = self._getExternalFactory.Get_instance(self).get_stock_history(
-                    value.code, start=recent_start
+                    stock_code, start=recent_start
                 )
                 
                 if not df_recent.empty:
                     # 有近期數據，取最新日期 +1 天開始
                     latest_date = df_recent.index.max()
                     fetch_start_date = latest_date + timedelta(days=1)
-                    print(f"Found recent data for {value.code}, starting from {fetch_start_date}")
+                    print(f"Found recent data for {stock_code}, starting from {fetch_start_date}")
                 else:
                     # 真的沒有歷史數據，使用初始日期
-                    fetch_start_date = datetime(2009, 1, 1)
-                    print(f"No historical data found for {value.code}, using initial date")
+                    fetch_start_date = initial_date
+                    print(f"No historical data found for {stock_code}, using initial date")
             
             if fetch_start_date >= end_date:
-                print("Date time is same " + str(value.code) + " " + str(fetch_start_date))
+                print(f"Date time is same {stock_code} {fetch_start_date}")
                 if callback:
                     progress = int((i + 1) / total_stocks * 100)
                     callback(progress)
                 continue
             
-            stock_name = value.code + info.local_type.Taiwan
-            df_result = self._download_with_retry(stock_name, fetch_start_date, end_date)
+            # 下載數據
+            if timezone:
+                df_result = self._download_with_retry(stock_name, fetch_start_date, end_date, tz=timezone)
+            else:
+                df_result = self._download_with_retry(stock_name, fetch_start_date, end_date)
 
             if df_result.empty:
-                print("yahoo no data:" + str(stock_name))
+                print(f"yahoo no data: {stock_name}")
                 if callback:
                     progress = int((i + 1) / total_stocks * 100)
                     callback(progress)
                 continue
 
-            df_result = Tools.TidyTicketData(df_result, value.code + ".TW")
+            # 整理數據
+            if isinstance(stock_item, str):
+                df_result = Tools.TidyTicketData(df_result, stock_code)
+            else:
+                df_result = Tools.TidyTicketData(df_result, stock_code + ".TW")
+            
             data_queue.put((stock_name, df_result, fetch_start_date))
 
-            print("Download stocks " + stock_name + " OK!")
+            print(f"Update stocks {stock_name} OK!")
             if callback:
                 progress = int((i + 1) / total_stocks * 100)
                 callback(progress)
@@ -430,67 +458,42 @@ class UpdateStockService:
         data_queue.put(None)
         # 等待保存線程完成
         save_thread.join()
-        MainUserInfoDatas.TW_UpdateDate = str(datetime.today())[0:10]
+        setattr(mainUserInfoDatas, update_date_attr, str(datetime.today())[0:10])
+        print("Stocks update completed successfully.")
+
+    def __runUpdate(self, MainUserInfoDatas: UserInfoDatas, callback=None):
+        """更新台灣股票"""
+        print("Update all TW stocks start! Fetching and Saving will run concurrently.")
+        
+        # 獲取台灣上市股票列表
+        codes = [value for key, value in twstock.codes.items() if value.market == "上市" and len(value.code) >= 4 and not (len(value.code) >= 5 and Tools.check_ETF_stock(value.code) is False)]
+        
+        # 使用通用方法
+        self.__update_stocks_common(
+            mainUserInfoDatas=MainUserInfoDatas,
+            stock_list=codes,
+            update_date_attr="TW_UpdateDate",
+            initial_date=datetime(2009, 1, 1),
+            callback=callback
+        )
         print("TW stocks update completed successfully.")
 
     def __RunUpdate_sp500(self, MainUserInfoDatas: UserInfoDatas, callback=None):
+        """更新S&P 500股票"""
         print("Update all sp500 stocks start! Fetching and Saving will run concurrently.")
-        data_queue = queue.Queue()
-        save_thread = threading.Thread(
-            target=self._save_stock_data_to_db, args=(data_queue,)
-        )
-        save_thread.daemon = False  # 改為非守護線程以確保數據保存完成
-        save_thread.start()
         
-        start_date = datetime.strptime(MainUserInfoDatas.US_UpdateDate, "%Y-%m-%d")
-        end_date = datetime.today()
-
+        # 獲取S&P 500股票列表
         sp500 = Tools.get_SP500_list()
-        total_stocks = len(sp500)
-        for i, temp in enumerate(sp500):
-            if not self.isUpdating:
-                print("Update stocks " + temp + " be Stop")
-                data_queue.put(None)
-                break
-
-            df_check = self._getExternalFactory.Get_instance(self).get_stock_history(
-                temp, start=start_date
-            )
-            if not df_check.empty:
-                # 有本地數據，取最新日期 +1 天開始，避免重複下載
-                latest_date = df_check.index.max()
-                fetch_start_date = latest_date + timedelta(days=1)
-            else:
-                fetch_start_date = datetime(2005, 1, 1)
-
-            if fetch_start_date >= end_date:
-                print("Date time is same " + str(temp) + " " + str(fetch_start_date))
-                if callback:
-                    progress = int((i + 1) / total_stocks * 100)
-                    callback(progress)
-                continue
-
-            df_result = self._download_with_retry(temp, fetch_start_date, end_date, tz="America/New_York")
-            if df_result.empty:
-                print("yahoo no data:" + str(temp))
-                if callback:
-                    progress = int((i + 1) / total_stocks * 100)
-                    callback(progress)
-                continue
-
-            df_result = Tools.TidyTicketData(df_result, temp)
-            data_queue.put((temp, df_result, fetch_start_date))
-
-            print("Update stocks " + temp + " OK!")
-            if callback:
-                progress = int((i + 1) / total_stocks * 100)
-                callback(progress)
-            time.sleep(0.3)
-
-        data_queue.put(None)
-        # 等待保存線程完成
-        save_thread.join()
-        MainUserInfoDatas.US_UpdateDate = str(datetime.today())[0:10]
+        
+        # 使用通用方法
+        self.__update_stocks_common(
+            mainUserInfoDatas=MainUserInfoDatas,
+            stock_list=sp500,
+            update_date_attr="US_UpdateDate",
+            initial_date=datetime(2005, 1, 1),
+            timezone="America/New_York",
+            callback=callback
+        )
         print("SP500 stocks update completed successfully.")
 
     def __RunUpDateADL(self, callback=None):

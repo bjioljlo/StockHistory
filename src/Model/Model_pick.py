@@ -126,10 +126,13 @@ class Model_pick(TModel):
                 filter_data = filter_data.rename(columns=new_column_names)
                 self._logger.info(f"重命名重複列: {new_column_names}")
             
+            # 使用動態後綴避免衝突
+            suffixes = (f'_{filter_name.replace(" ", "_")}_base', f'_{filter_name.replace(" ", "_")}_filter')
+            
             merged_data = pd.merge(
                 base_data, filter_data, 
                 left_index=True, right_index=True, how="inner",
-                suffixes=('_base', '_filter')
+                suffixes=suffixes
             )
             if merged_data.empty:
                 self._logger.warning(f"{filter_name} 篩選後無符合條件的股票")

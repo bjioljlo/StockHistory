@@ -181,17 +181,18 @@ class ReportAutoTrace(TReport):
     def get_AutoTrace(self, date):
         print("{} / {} is Start!".format(self._name, sys._getframe().f_code.co_name))
         Timer = 0
+        max_attempts = 12  # 增加到12次嘗試（約3個月）
         Temp = self._Report.get_ALL_Report(date)
-        while Temp.empty:
+        
+        while Temp.empty and Timer < max_attempts:
             date = self._Report.Next_date(date)
             Temp = self._Report.get_ALL_Report(date)
-            if Timer == 4:
-                raise NotImplementedError(
-                    "ReportAutoTrace error!"
-                    + str(type(self._Report))
-                    + "its too many times!"
-                )
             Timer = Timer + 1
+        
+        if Temp.empty:
+            print(f"{self._name} / 自動追蹤失敗: 在 {max_attempts} 次嘗試內都找不到數據")
+            return pd.DataFrame()  # 返回空DataFrame而不是拋出錯誤
+        
         print("{} / {} is End!".format(self._name, sys._getframe().f_code.co_name))
         return Temp
 
@@ -279,11 +280,34 @@ class ReportUp(TReport):
         else:
             return pd.DataFrame()
         
+        # 確保 result 是 DataFrame 並且有數據
+        if not isinstance(result, pd.DataFrame) or result.empty:
+            return pd.DataFrame()
+        
         result.index = pd.to_datetime(result.index)
         result = result.sort_index()
         
-        # 確保數據類型正確
+        # 確保數據類型正確 - 更徹底的類型轉換
         result = result.apply(pd.to_numeric, errors='coerce')
+        
+        # 額外的數據清理：移除所有非數值列
+        numeric_columns = result.select_dtypes(include=[np.number]).columns
+        if len(numeric_columns) == 0:
+            print("沒有找到數值列，返回空DataFrame")
+            return pd.DataFrame()
+        
+        result = result[numeric_columns]
+        
+        # 再次確保所有數據都是數值類型，避免任何殘留的字符串
+        result = result.apply(pd.to_numeric, errors='coerce')
+        
+        # 移除任何包含 NaN 的行和列
+        result = result.dropna(how='all', axis=1)  # 移除全為 NaN 的列
+        result = result.dropna(how='all', axis=0)  # 移除全為 NaN 的行
+        
+        if result.empty:
+            print("數據清理後無有效數據")
+            return pd.DataFrame()
         
         # 檢查是否有足夠的數據進行比較
         if len(result) < upNum + 1:
@@ -303,7 +327,7 @@ class ReportUp(TReport):
                 return pd.DataFrame()
             
             # 確保所有數據都是數值類型再進行比較
-            result = result.select_dtypes(include=[np.number])
+            result = result.apply(pd.to_numeric, errors='coerce')
             
             if result.empty:
                 print("沒有有效的數值數據進行比較")
@@ -401,7 +425,7 @@ class ReportSmooth(TReport):
         result = result.sort_index()
         
         # 確保所有數據都是數值類型再進行計算
-        result = result.select_dtypes(include=[np.number])
+        result = result.apply(pd.to_numeric, errors='coerce')
         
         if result.empty:
             print("沒有有效的數值數據進行平滑計算")
@@ -520,6 +544,16 @@ class All_imge:
         start = self._start
         end = self._end
         
+        # 智能日期調整：檢查結束日期是否有效
+        # 如果結束日期是當前月份或下一個月，則調整到上一個有效月份
+        today = datetime.today()
+        if end.year == today.year and end.month >= today.month:
+            # 如果是當前月份或未來月份，調整到上一個月
+            end = Tools.changeDateMonth(today, -1)
+            # 如果是月初（15號之前），再往前一個月
+            if today.day < 15:
+                end = Tools.changeDateMonth(end, -1)
+        
         while start <= end:
             if end not in stock_history_index:
                 end = self._report.Next_date(end)
@@ -530,28 +564,28 @@ class All_imge:
             else:
                 temp = self._report.get_ReportByNumber(end, number)
             
-            # 當 temp 為空時，等待 SQL 結果返回後再繼續執行
+            # 當 temp 為空時，嘗試智能日期調整
             if temp.empty:
-                # 等待 SQL 查詢完成，最多等待 30 秒
-                import time
-                wait_time = 0
-                max_wait_time = 30  # 最大等待時間 30 秒
-                wait_interval = 1   # 每次等待間隔 1 秒
+                # 智能日期調整：嘗試往前找有效數據
+                original_end = end
+                attempts = 0
+                max_attempts = 12  # 最多嘗試12個月
                 
-                while temp.empty and wait_time < max_wait_time:
-                    time.sleep(wait_interval)
-                    wait_time += wait_interval
+                while temp.empty and attempts < max_attempts:
+                    end = self._report.Next_date(end)
+                    attempts += 1
                     
-                    # 重新嘗試獲取數據
                     if (self._report._name == "ADL") or (self._report._name == "ADLs"):
                         temp = self._report.get_ALL_Report(end)
                     else:
                         temp = self._report.get_ReportByNumber(end, number)
                 
-                # 如果等待後仍然沒有數據，使用原始日期並添加 NaN 值
+                # 如果嘗試後仍然沒有數據，跳過這個日期
                 if temp.empty:
-                    temp = pd.DataFrame({self._report._name: [np.nan]}, index=[end])
-                
+                    end = original_end  # 恢復原始日期
+                    end = self._report.Next_date(end)
+                    continue
+            
             temp.insert(0, "Date", end)
             results_list.append(temp)
             
