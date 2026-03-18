@@ -255,11 +255,55 @@ class TGetExternalData(IGetExternalData):
             m_data = pd.read_csv(fileName + ".csv")
             m_data.drop(m_data.tail(1).index, inplace=True)
             # 整理一下資料
-            m_data.rename(columns={"公司代號": "code"}, inplace=True)
-            m_data[["code"]] = m_data[[ "code"]].astype(int)
-            m_data.set_index("code", inplace=True)
-            # 存到資料庫
-            self._sql_service.saveTable(file, m_data)
+            m_data.rename(columns={"公司代號": "symbol"}, inplace=True)
+            m_data[["symbol"]] = m_data[[ "symbol"]].astype(str)
+            
+            # 添加年月欄位以符合 monthly_reports 表結構
+            m_data['report_year'] = start.year
+            m_data['report_month'] = start.month
+            
+            # 重新命名欄位以匹配 monthly_reports 表結構
+            column_mapping = {
+                '公司名稱': 'company_name',
+                '當月營收': 'revenue_current_month',
+                '上月營收': 'revenue_last_month',
+                '去年當月營收': 'revenue_last_year_same_month',
+                '當月累計營收': 'revenue_ytd',
+                '去年累計營收': 'revenue_last_year_ytd',
+                '備註': 'notes'
+            }
+            m_data = m_data.rename(columns=column_mapping)
+            
+            # 數據類型轉換
+            numeric_columns = ['revenue_current_month', 'revenue_last_month',
+                              'revenue_last_year_same_month', 'revenue_ytd', 'revenue_last_year_ytd']
+            for col in numeric_columns:
+                if col in m_data.columns:
+                    m_data[col] = pd.to_numeric(m_data[col], errors='coerce').fillna(0)
+            
+            # 確保 symbol 欄位存在且為字串類型
+            if 'symbol' not in m_data.columns:
+                m_data['symbol'] = m_data.index.astype(str)
+            
+            # 設定索引為 symbol，但保存時不包含索引
+            m_data.set_index("symbol", inplace=True)
+            
+            # 使用 upsert_data 方法保存到 monthly_reports 表，避免重複數據
+            try:
+                success = self._sql_service.upsert_data('monthly_reports', m_data.reset_index(), 
+                                                      ['symbol', 'report_year', 'report_month'])
+                if success:
+                    print(f"Successfully saved monthly report data to monthly_reports table for {start.year}-{start.month}")
+                else:
+                    print(f"Failed to save monthly report data to monthly_reports table for {start.year}-{start.month}")
+            except Exception as e:
+                print(f"Error saving monthly report data: {e}")
+                # 回退到 saveTable 方法
+                try:
+                    self._sql_service.saveTable('monthly_reports', m_data)
+                    print(f"Successfully saved monthly report data using saveTable method for {start.year}-{start.month}")
+                except Exception as e2:
+                    print(f"Failed to save monthly report data using saveTable method: {e2}")
 
         # 4. 將新獲取的資料存到混合緩存中
         if (not m_data.empty and
