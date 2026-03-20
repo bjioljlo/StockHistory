@@ -104,22 +104,82 @@ class TGetExternalData(IGetExternalData):
 
             stock = pd.read_csv(fileName + ".csv")
             # 整理一下資料
-            stock.rename(columns={"公司代號": "code"}, inplace=True)
-            stock.set_index("code", inplace=True)
-            if info.FS_type.SCF == type:
-                if stock["投資活動之淨現金流入（流出）"].dtype == object:
-                    stock["投資活動之淨現金流入（流出）"] = pd.to_numeric(
-                        stock["投資活動之淨現金流入（流出）"].str.replace("--", "0")
-                    )
-                if stock["營業活動之淨現金流入（流出）"].dtype == object:
-                    stock["營業活動之淨現金流入（流出）"] = pd.to_numeric(
-                        stock["營業活動之淨現金流入（流出）"].str.replace("--", "0")
-                    )
-                if stock["籌資活動之淨現金流入（流出）"].dtype == object:
-                    stock["籌資活動之淨現金流入（流出）"] = pd.to_numeric(
-                        stock["籌資活動之淨現金流入（流出）"].str.replace("--", "0")
-                    )
-            self._sql_service.saveTable(file, stock)
+            stock.rename(columns={"公司代號": "symbol"}, inplace=True)
+            stock.set_index("symbol", inplace=True)
+            
+            # 添加年季和報表類型欄位以符合 quarterly_reports 表結構
+            stock['report_year'] = start.year
+            stock['report_season'] = season
+            stock['report_type'] = type.value
+            
+            # 根據不同的報表類型，重新命名欄位以匹配 quarterly_reports 表結構
+            if type == info.FS_type.PLA:
+                # PLA欄位 (損益分析表)
+                column_mapping = {
+                    '營業收入': 'revenue',
+                    '毛利率(%)': 'gross_margin',
+                    '營業利益率(%)': 'operating_margin',
+                    '稅前純益率(%)': 'pre_tax_margin',
+                    '稅後純益率(%)': 'net_margin'
+                }
+            elif type == info.FS_type.BS:
+                # BS欄位 (資產負債表)
+                column_mapping = {
+                    '資產總額': 'total_assets',
+                    '負債總額': 'total_liabilities',
+                    '權益總額': 'equity',
+                    '股本': 'capital',
+                    '每股參考淨值': 'book_value_per_share'
+                }
+            elif type == info.FS_type.CPL:
+                # CPL欄位 (合併損益表)
+                column_mapping = {
+                    '營業收入': 'revenue',
+                    '毛利率(%)': 'gross_margin',
+                    '營業利益率(%)': 'operating_margin',
+                    '稅前純益率(%)': 'pre_tax_margin',
+                    '稅後純益率(%)': 'net_margin'
+                }
+            elif type == info.FS_type.SCF:
+                # SCF欄位 (現金流量表)
+                column_mapping = {
+                    '營業活動之淨現金流入（流出）': 'operating_cash_flow',
+                    '投資活動之淨現金流入（流出）': 'investing_cash_flow',
+                    '籌資活動之淨現金流入（流出）': 'financing_cash_flow'
+                }
+            
+            # 應用欄位映射
+            stock = stock.rename(columns=column_mapping)
+            
+            # 數據類型轉換
+            numeric_columns = [col for col in stock.columns if col not in ['symbol', 'report_year', 'report_season', 'report_type']]
+            for col in numeric_columns:
+                if col in stock.columns:
+                    stock[col] = pd.to_numeric(stock[col], errors='coerce').fillna(0)
+            
+            # 確保 symbol 欄位存在且為字串類型
+            if 'symbol' not in stock.columns:
+                stock['symbol'] = stock.index.astype(str)
+            
+            # 設定索引為 symbol，但保存時不包含索引
+            stock.set_index("symbol", inplace=True)
+            
+            # 使用 upsert_data 方法保存到 quarterly_reports 表，避免重複數據
+            try:
+                success = self._sql_service.upsert_data('quarterly_reports', stock.reset_index(), 
+                                                      ['symbol', 'report_year', 'report_season', 'report_type'])
+                if success:
+                    print(f"Successfully saved quarterly report data to quarterly_reports table for {start.year}-season{season}-{type.value}")
+                else:
+                    print(f"Failed to save quarterly report data to quarterly_reports table for {start.year}-season{season}-{type.value}")
+            except Exception as e:
+                print(f"Error saving quarterly report data: {e}")
+                # 回退到 saveTable 方法
+                try:
+                    self._sql_service.saveTable('quarterly_reports', stock)
+                    print(f"Successfully saved quarterly report data using saveTable method for {start.year}-season{season}-{type.value}")
+                except Exception as e2:
+                    print(f"Failed to save quarterly report data using saveTable method: {e2}")
         else:
             stock = Temp_data
 
