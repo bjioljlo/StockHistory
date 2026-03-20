@@ -416,10 +416,51 @@ class TGetExternalData(IGetExternalData):
                 except UnicodeDecodeError:
                     print("get UnicodeDecode error " + fileName + " csv file")
                 # 整理一下資料
-                m_yield.rename(columns={"證券代號": "code"}, inplace=True)
-                m_yield.set_index("code", inplace=True)
-                # 存到資料庫
-                self._sql_service.saveTable(file, m_yield)
+                m_yield.rename(columns={"證券代號": "symbol"}, inplace=True)
+                m_yield[["symbol"]] = m_yield[["symbol"]].astype(str)
+                
+                # 添加日期欄位以符合 dividend_yield 表結構
+                m_yield['date'] = start.strftime('%Y-%m-%d')
+                
+                # 重新命名欄位以匹配 dividend_yield 表結構
+                column_mapping = {
+                    '證券名稱': 'company_name',
+                    '殖利率(%)': 'dividend_yield',
+                    '本益比': 'pe_ratio',
+                    '股價淨值比': 'pb_ratio',
+                    '財報年/季': 'financial_report'
+                }
+                m_yield = m_yield.rename(columns=column_mapping)
+                
+                # 數據類型轉換
+                numeric_columns = ['dividend_yield', 'pe_ratio', 'pb_ratio']
+                for col in numeric_columns:
+                    if col in m_yield.columns:
+                        m_yield[col] = pd.to_numeric(m_yield[col], errors='coerce').fillna(0)
+                
+                # 確保 symbol 欄位存在且為字串類型
+                if 'symbol' not in m_yield.columns:
+                    m_yield['symbol'] = m_yield.index.astype(str)
+                
+                # 設定索引為 symbol，但保存時不包含索引
+                m_yield.set_index("symbol", inplace=True)
+                
+                # 使用 upsert_data 方法保存到 dividend_yield 表，避免重複數據
+                try:
+                    success = self._sql_service.upsert_data('dividend_yield', m_yield.reset_index(), 
+                                                          ['symbol', 'date'])
+                    if success:
+                        print(f"Successfully saved dividend yield data to dividend_yield table for {start.strftime('%Y-%m-%d')}")
+                    else:
+                        print(f"Failed to save dividend yield data to dividend_yield table for {start.strftime('%Y-%m-%d')}")
+                except Exception as e:
+                    print(f"Error saving dividend yield data: {e}")
+                    # 回退到 saveTable 方法
+                    try:
+                        self._sql_service.saveTable('dividend_yield', m_yield)
+                        print(f"Successfully saved dividend yield data using saveTable method for {start.strftime('%Y-%m-%d')}")
+                    except Exception as e2:
+                        print(f"Failed to save dividend yield data using saveTable method: {e2}")
         except Exception:
             return pd.DataFrame()
 

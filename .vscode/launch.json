@@ -57,6 +57,22 @@
         "--end-year",
         "2025"
       ]
+    },
+    {
+      "name": "Python: migration dividend_yield reports",
+      "type": "debugpy",
+      "request": "launch",
+      "program": "${workspaceRoot}/scripts/migration/migrate_reports_data.py",
+      "console": "integratedTerminal",
+      "cwd": "${workspaceFolder}",
+      "args": [
+        "--type",
+        "dividend_yield",
+        "--start-date",
+        "2024-01-01",
+        "--end-date",
+        "2026-01-01"
+      ]
     }
   ]
 }

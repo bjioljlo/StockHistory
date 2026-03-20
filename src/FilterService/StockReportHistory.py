@@ -38,19 +38,28 @@ class TReport(IReport):
             "{} is virutal! Must be overwrited.".format(sys._getframe().f_code.co_name)
         )
 
-    def get_ReportByNumber(self, date, number: int, base_today=None) -> Series:
+    def get_ReportByNumber(self, date, number: int, base_today=None) -> DataFrame:
         Temp = self.get_ALL_Report(date, base_today=base_today)
-        try:
-            Temp_Result = Temp[Temp.index == str(number)]
-            if Temp_Result.empty:
-                raise
-            return Temp_Result
-        except Exception:
-            if Temp.empty:
-                print("".join([str(date), "的", self._name, "表沒出"]))
-            else:
-                print("".join([str(date), "的", str(number), "公司尚未成立"]))
+        
+        if Temp.empty:
+            print(f"{date}的{self._name}表沒出")
             return DataFrame()
+
+        # 嘗試多種索引格式進行匹配
+        search_keys = [str(number), number, f"{number:04d}"]
+        
+        for key in search_keys:
+            if key in Temp.index:
+                result = Temp.loc[key]
+
+                # 確保返回 DataFrame 格式
+                if isinstance(result, Series):
+                    return result.to_frame().T
+                elif isinstance(result, DataFrame):
+                    return result
+        
+        print(f"{date}的{number}公司尚未成立")
+        return DataFrame()
 
     def get_ReportByType(self, date, _type: info.StrEnum, base_today=None) -> Series:
         Temp = self.get_ALL_Report(date, base_today=base_today)
@@ -86,9 +95,16 @@ class TReport(IReport):
             # 如果是 DataFrame，取第一個欄位
             tableSecond = tableSecond.iloc[:, 0] if tableSecond.shape[1] > 0 else Series()
         
-        # 檢查是否為空
-        if tableFirst.empty or tableSecond.empty:
+        # 檢查是否為空 - 修復：正確處理 Series 和 DataFrame 的 empty 檢查
+        if (isinstance(tableFirst, Series) and tableFirst.empty) or \
+           (isinstance(tableSecond, Series) and tableSecond.empty):
             return DataFrame(), DataFrame()
+        
+        # 新增檢查：確保兩個 Series 都有有效的索引才能進行 align
+        if isinstance(tableFirst, Series) and isinstance(tableSecond, Series):
+            if tableFirst.empty or tableSecond.empty or \
+               tableFirst.index.empty or tableSecond.index.empty:
+                return DataFrame(), DataFrame()
         
         # 確保兩個表使用相同的索引進行對齊
         # 使用內連接（inner join）來確保只保留兩個表都有的索引
@@ -152,7 +168,8 @@ class Day_Report(AllStockReport):
     def get_ALL_Report(self, date, base_today=None):
         import Common.Tools as Tools
         safe_date = Tools.get_latest_daily_report_date(date, base_today)
-        return self._main_GetExternalData.get_allstock_yield(safe_date)
+        result = self._main_GetExternalData.get_allstock_yield(safe_date)
+        return result
 
     def Next_date(self, date):
         date = Tools.backWorkDays(date, self._Unit)
@@ -182,7 +199,20 @@ class DividendYield_Report(AllStockReport):
         """從數據庫獲取股息殖利率數據"""
         try:
             # 使用SqlService從dividend_yield表格讀取數據
-            return self._main_GetExternalData.get_allstock_dividend_yield()
+            result = self._main_GetExternalData.get_allstock_dividend_yield()
+            
+            # 數據清理和驗證
+            if not result.empty: 
+
+                # 確保索引是字串類型
+                if 'symbol' in result.columns:
+                    result['symbol'] = result['symbol'].astype(str)
+                    result = result.set_index('symbol')
+                elif 'code' in result.columns:
+                    result['code'] = result['code'].astype(str)
+                    result = result.set_index('code')
+
+            return result
         except Exception as e:
             print(f"Error getting dividend yield data: {e}")
             return DataFrame()
@@ -415,6 +445,11 @@ class PCF_Indicator(Indicator):
         stock_price = self._StockPrice.get_PriceByDateAndType(
             date, info.Price_type.Close
         )  # get_stock_price(self._number,date,stock_data_kind.AdjClose)
+        
+        # 修復：將 stock_price 轉換為 Series，如果它是數值類型
+        if isinstance(stock_price, (int, float)):
+            stock_price = Series([stock_price], index=[self._number])
+        
         table_OCFPerShare, stock_price = self.check_and_convert_to_series(
             table_OCFPerShare, stock_price
         )
