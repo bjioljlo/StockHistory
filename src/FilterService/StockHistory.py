@@ -5,6 +5,7 @@ from datetime import datetime
 import talib
 import twstock
 from pandas import DataFrame, Series, concat
+import pandas as pd
 
 from src.Common import InfomationType as info
 from src.ExternalService.ExternalDataFactory import ExternalDataFactory, ExternalDataTypeEnum
@@ -75,11 +76,14 @@ class OriginalStock(TStock):
     def get_PriceByDateAndType(self, date: datetime, _type: info.Price_type):
         Temp = self.get_PriceByType(_type)
         try:
-            return float(Temp[date])
+            price_value = Temp[date]
+            if pd.isna(price_value):
+                return 0.0
+            return float(price_value)
         except Exception:
             if not Temp.empty:
                 print("".join([str(date), "的", str(self._number), "公司尚未成立"]))
-            return None
+            return 0.0
 
 
 class OriginalStockByYahoo(OriginalStock):

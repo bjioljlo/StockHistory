@@ -116,18 +116,30 @@ class SqlService:
             print(f"SQL Error during insertion into {table_name}: {e}")
             return False
 
+    def insert_data(self, table_name: str, data_df: pd.DataFrame):
+        """
+        安全的數據插入方法 - 只插入，不替換
+        """
+        if not table_name.islower():
+            table_name = table_name.lower()
+        
+        try:
+            with self.server_flask.app_context():
+                data_df.to_sql(
+                    name=table_name,
+                    con=self.MySql_server.engine,
+                    if_exists="append",  # 使用append而不是replace
+                    index=False
+                )
+                print(f"Successfully inserted {len(data_df)} rows into {table_name}.")
+                return True
+        except Exception as e:
+            print(f"SQL Error during insertion into {table_name}: {e}")
+            return False
+
     def upsert_data(self, table_name: str, data_df: pd.DataFrame, key_columns: list[str]):
         """
-        Upserts data into a table. Updates existing rows based on key_columns and inserts new ones.
-        Note: This implementation reads the entire table into memory and is best for small to medium tables.
-
-        Args:
-            table_name (str): The name of the target table.
-            data_df (pd.DataFrame): The new data to upsert.
-            key_columns (list[str]): The list of primary key column names (e.g., ['id']).
-
-        Returns:
-            bool: True if successful, False otherwise.
+        真正的Upsert操作 - 使用ON DUPLICATE KEY UPDATE而不是replace
         """
         if not all(col in data_df.columns for col in key_columns):
             print(f"Error: Key columns {key_columns} not found in the DataFrame.")
@@ -140,29 +152,136 @@ class SqlService:
             with self.server_flask.app_context():
                 with self.MySql_server.engine.begin() as connection:
                     
-                    try:
-                        existing_df = pd.read_sql_table(table_name, connection)
-                    except Exception:
-                        # Table doesn't exist yet
-                        existing_df = pd.DataFrame(columns=data_df.columns)
+                    # 檢查表格是否存在
+                    inspector = inspect(connection)
+                    if table_name not in inspector.get_table_names():
+                        # 表格不存在，直接插入
+                        data_df.to_sql(
+                            name=table_name,
+                            con=connection,
+                            if_exists='replace',
+                            index=False
+                        )
+                        print(f"Table '{table_name}' created and {len(data_df)} rows inserted.")
+                        return True
 
-                    # Combine old and new data
-                    combined_df = pd.concat([existing_df, data_df], ignore_index=True)
+                    # 表格存在，使用真正的UPSERT操作
+                    success_count = 0
+                    for _, row in data_df.iterrows():
+                        # 構建INSERT ... ON DUPLICATE KEY UPDATE語句
+                        columns = list(data_df.columns)
+                        placeholders = ', '.join(['%s'] * len(columns))
+                        column_names = ', '.join([f'`{col}`' for col in columns])
+                        
+                        # 構建UPDATE部分
+                        update_columns = [col for col in columns if col not in key_columns]
+                        update_clause = ', '.join([f'`{col}` = VALUES(`{col}`)' for col in update_columns])
+                        
+                        sql = f"""
+                        INSERT INTO `{table_name}` ({column_names})
+                        VALUES ({placeholders})
+                        ON DUPLICATE KEY UPDATE
+                        {update_clause},
+                        updated_at = CURRENT_TIMESTAMP
+                        """
+                        
+                        # 處理NaN值
+                        row_values = []
+                        for col in columns:
+                            value = row[col]
+                            if pd.isna(value) or value is None:
+                                # 對於數值欄位使用0，其他使用None
+                                if col in ['open', 'high', 'low', 'close', 'adj_close', 'volume', 
+                                         'dividend_yield', 'pe_ratio', 'pb_ratio']:
+                                    row_values.append(0.0 if col != 'volume' else 0)
+                                else:
+                                    row_values.append(None)
+                            else:
+                                row_values.append(value)
 
-                    # Drop duplicates based on the primary key, keeping the last entry (the new data)
-                    upsert_df = combined_df.drop_duplicates(subset=key_columns, keep='last')
+                        connection.execute(text(sql), row_values)
+                        success_count += 1
 
-                    # Write the final, merged data back, replacing the entire table
-                    upsert_df.to_sql(
-                        name=table_name,
-                        con=connection,
-                        if_exists='replace',
-                        index=False
-                    )
-                    print(f"Upsert successful for table '{table_name}'. Final row count: {len(upsert_df)}")
+                    print(f"Successfully upserted {success_count} rows to table '{table_name}'.")
                     return True
+                    
         except Exception as e:
             print(f"SQL Error during upsert into {table_name}: {e}")
+            return False
+
+    def upsert_dividend_yield(self, data_df: pd.DataFrame) -> bool:
+        """
+        專門用於股息殖利率數據的Upsert操作
+        使用 scripts/migration 中的欄位結構
+        """
+        table_name = 'dividend_yield'
+        
+        try:
+            with self.server_flask.app_context():
+                with self.MySql_server.engine.begin() as connection:
+                    
+                    # 檢查表格是否存在
+                    inspector = inspect(connection)
+                    if table_name not in inspector.get_table_names():
+                        # 建立表格
+                        create_table_sql = """
+                        CREATE TABLE IF NOT EXISTS dividend_yield (
+                            id BIGINT AUTO_INCREMENT PRIMARY KEY,
+                            symbol VARCHAR(20) NOT NULL COMMENT '股票代號',
+                            date DATE NOT NULL COMMENT '資料日期',
+                            company_name VARCHAR(100) COMMENT '公司名稱',
+                            pe_ratio DECIMAL(10,2) COMMENT '本益比',
+                            dividend_yield DECIMAL(5,2) COMMENT '殖利率(%)',
+                            pb_ratio DECIMAL(10,2) COMMENT '股價淨值比',
+                            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+
+                            UNIQUE KEY unique_symbol_date (symbol, date),
+                            INDEX idx_symbol (symbol),
+                            INDEX idx_date (date),
+                            INDEX idx_symbol_date (symbol, date),
+                            INDEX idx_dividend_yield (dividend_yield),
+                            INDEX idx_pe_ratio (pe_ratio)
+                        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+                        """
+                        connection.execute(text(create_table_sql))
+                        print(f"Table '{table_name}' created.")
+
+                    # 使用UPSERT插入數據
+                    success_count = 0
+                    for _, row in data_df.iterrows():
+                        # 構建INSERT ... ON DUPLICATE KEY UPDATE語句
+                        sql = """
+                        INSERT INTO dividend_yield (symbol, date, company_name, pe_ratio, dividend_yield, pb_ratio)
+                        VALUES (:symbol, :date, :company_name, :pe_ratio, :dividend_yield, :pb_ratio)
+                        ON DUPLICATE KEY UPDATE
+                        company_name = VALUES(company_name),
+                        pe_ratio = VALUES(pe_ratio),
+                        dividend_yield = VALUES(dividend_yield),
+                        pb_ratio = VALUES(pb_ratio),
+                        updated_at = CURRENT_TIMESTAMP
+                        """
+                        
+                        # 處理NaN值
+                        row_dict = {}
+                        for col in ['symbol', 'date', 'company_name', 'pe_ratio', 'dividend_yield', 'pb_ratio']:
+                            value = row[col] if col in row.index else None
+                            if pd.isna(value) or value is None:
+                                if col in ['pe_ratio', 'dividend_yield', 'pb_ratio']:
+                                    row_dict[col] = 0.0
+                                else:
+                                    row_dict[col] = None
+                            else:
+                                row_dict[col] = value
+
+                        connection.execute(text(sql), row_dict)
+                        success_count += 1
+
+                    print(f"Successfully upserted {success_count} rows to dividend_yield table.")
+                    return True
+                    
+        except Exception as e:
+            print(f"SQL Error during dividend_yield upsert: {e}")
             return False
 
     def get_all_table_names(self) -> list[str]:

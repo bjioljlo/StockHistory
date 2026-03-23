@@ -3,6 +3,7 @@ from abc import ABC, abstractmethod
 
 import pandas
 from pandas import DataFrame, Series
+import pandas as pd
 
 from src.Common import InfomationType as info
 from src.Common import Tools
@@ -82,34 +83,86 @@ class TReport(IReport):
         return Tools.changeDateMonth(date, -self._Unit)
     
     def check_and_convert_to_series(self, tableFirst, tableSecond):
+        """增強的數據對齊方法，處理不同類型的索引對齊問題"""
+        print(f"check_and_convert_to_series: 處理數據對齊，tableFirst類型: {type(tableFirst)}, tableSecond類型: {type(tableSecond)}")
+        
         # 確保兩個表都是 Series，如果不是則轉換
         if isinstance(tableFirst, DataFrame):
             if tableFirst.empty:
+                print("check_and_convert_to_series: tableFirst 為空 DataFrame")
                 return DataFrame(), DataFrame()
             # 如果是 DataFrame，取第一個欄位
             tableFirst = tableFirst.iloc[:, 0] if tableFirst.shape[1] > 0 else Series()
         
         if isinstance(tableSecond, DataFrame):
             if tableSecond.empty:
+                print("check_and_convert_to_series: tableSecond 為空 DataFrame")
                 return DataFrame(), DataFrame()
             # 如果是 DataFrame，取第一個欄位
             tableSecond = tableSecond.iloc[:, 0] if tableSecond.shape[1] > 0 else Series()
         
-        # 檢查是否為空 - 修復：正確處理 Series 和 DataFrame 的 empty 檢查
+        # 檢查是否為空
         if (isinstance(tableFirst, Series) and tableFirst.empty) or \
            (isinstance(tableSecond, Series) and tableSecond.empty):
+            print("check_and_convert_to_series: 其中一個 Series 為空")
             return DataFrame(), DataFrame()
         
-        # 新增檢查：確保兩個 Series 都有有效的索引才能進行 align
+        # 檢查索引類型和內容
         if isinstance(tableFirst, Series) and isinstance(tableSecond, Series):
-            if tableFirst.empty or tableSecond.empty or \
-               tableFirst.index.empty or tableSecond.index.empty:
+            print(f"check_and_convert_to_series: tableFirst索引: {tableFirst.index.tolist()}")
+            print(f"check_and_convert_to_series: tableSecond索引: {tableSecond.index.tolist()}")
+            
+            if tableFirst.empty or tableSecond.empty:
+                print("check_and_convert_to_series: Series 為空")
                 return DataFrame(), DataFrame()
+            
+            # 檢查是否有共同的索引
+            common_index = tableFirst.index.intersection(tableSecond.index)
+            print(f"check_and_convert_to_series: 共同索引: {common_index.tolist()}")
+            
+            if len(common_index) == 0:
+                print("check_and_convert_to_series: 沒有共同索引，嘗試不同的對齊策略")
+                
+                # 策略1: 如果其中一個是單一值，嘗試廣播
+                if len(tableFirst) == 1 and len(tableSecond) > 1:
+                    print("check_and_convert_to_series: tableFirst 為單一值，嘗試廣播到 tableSecond")
+                    tableFirst_aligned = Series([tableFirst.iloc[0]] * len(tableSecond), index=tableSecond.index)
+                    tableSecond_aligned = tableSecond
+                    return tableFirst_aligned, tableSecond_aligned
+                
+                if len(tableSecond) == 1 and len(tableFirst) > 1:
+                    print("check_and_convert_to_series: tableSecond 為單一值，嘗試廣播到 tableFirst")
+                    tableSecond_aligned = Series([tableSecond.iloc[0]] * len(tableFirst), index=tableFirst.index)
+                    tableFirst_aligned = tableFirst
+                    return tableFirst_aligned, tableSecond_aligned
+                
+                # 策略2: 如果索引類型不同，嘗試轉換
+                if tableFirst.index.dtype != tableSecond.index.dtype:
+                    print("check_and_convert_to_series: 索引類型不同，嘗試轉換")
+                    try:
+                        # 嘗試將兩個索引都轉換為字串
+                        tableFirst.index = tableFirst.index.astype(str)
+                        tableSecond.index = tableSecond.index.astype(str)
+                        common_index = tableFirst.index.intersection(tableSecond.index)
+                        print(f"check_and_convert_to_series: 轉換後共同索引: {common_index.tolist()}")
+                        
+                        if len(common_index) > 0:
+                            tableFirst_aligned, tableSecond_aligned = tableFirst.align(tableSecond, join='inner', fill_value=0)
+                            return tableFirst_aligned, tableSecond_aligned
+                    except Exception as e:
+                        print(f"check_and_convert_to_series: 索引轉換失敗: {e}")
+                
+                # 策略3: 如果都失敗，返回空結果
+                print("check_and_convert_to_series: 所有對齊策略都失敗，返回空結果")
+                return DataFrame(), DataFrame()
+            
+            # 有共同索引，正常對齊
+            tableFirst_aligned, tableSecond_aligned = tableFirst.align(tableSecond, join='inner', fill_value=0)
+            print(f"check_and_convert_to_series: 對齊成功，結果長度: {len(tableFirst_aligned)}")
+            return tableFirst_aligned, tableSecond_aligned
         
-        # 確保兩個表使用相同的索引進行對齊
-        # 使用內連接（inner join）來確保只保留兩個表都有的索引
-        tableFirst_aligned, tableSecond_aligned = tableFirst.align(tableSecond, join='inner', fill_value=0)
-        return tableFirst_aligned, tableSecond_aligned
+        # 如果不是兩個 Series，返回原始數據
+        return tableFirst, tableSecond
 
 
 class AllStockReport(TReport):
@@ -435,26 +488,102 @@ class PCF_Indicator(Indicator):
         self._main_GetExternalData = GetExternal
 
     def get_ALL_Report(self, date, base_today=None):
+        """增強的 PCF 計算方法，包含詳細的錯誤處理和數據驗證"""
         if self._number is None:
             raise TypeError("please set number! type now:" + str(self._number))
+        
+        print(f"PCF_Indicator.get_ALL_Report: 開始計算 {self._number} 的 PCF，日期: {date}")
         table_result = DataFrame()
-        table_OCFPerShare = self.OCFPerShare.get_ReportByNumber(date, self._number, base_today=base_today)
-        if table_OCFPerShare.empty:
+        
+        try:
+            # 獲取每股營業現金流數據
+            print(f"PCF_Indicator: 獲取 {self._number} 的每股營業現金流數據")
+            table_OCFPerShare = self.OCFPerShare.get_ReportByNumber(date, self._number, base_today=base_today)
+            
+            if table_OCFPerShare.empty:
+                print(f"PCF計算失敗: {self._number} 的每股營業現金流數據為空")
+                return DataFrame()
+            
+            print(f"PCF_Indicator: 每股營業現金流數據類型: {type(table_OCFPerShare)}")
+            print(f"PCF_Indicator: 每股營業現金流數據內容: {table_OCFPerShare}")
+            
+            # 獲取股票價格
+            print(f"PCF_Indicator: 獲取 {self._number} 的股票價格")
+            self._StockPrice.number = self._number
+            stock_price = self._StockPrice.get_PriceByDateAndType(
+                date, info.Price_type.Close
+            )
+            
+            print(f"PCF_Indicator: 股票價格原始值: {stock_price}，類型: {type(stock_price)}")
+            
+            # 檢查股票價格是否有效 - 增強檢查
+            if stock_price == 0.0 or stock_price is None or pd.isna(stock_price):
+                print(f"PCF計算失敗: {self._number} 的股票價格為空、為0或為NaN")
+                return DataFrame()
+            
+            # 確保數據類型正確
+            if isinstance(stock_price, (int, float)):
+                print(f"PCF_Indicator: 將股票價格轉換為 Series")
+                stock_price = Series([stock_price], index=[self._number])
+            
+            print(f"PCF_Indicator: 股票價格轉換後類型: {type(stock_price)}")
+            print(f"PCF_Indicator: 股票價格轉換後內容: {stock_price}")
+            
+            # 檢查數據類型
+            if not isinstance(table_OCFPerShare, (DataFrame, Series)):
+                print(f"PCF計算失敗: table_OCFPerShare 數據類型錯誤: {type(table_OCFPerShare)}")
+                return DataFrame()
+            
+            if not isinstance(stock_price, (DataFrame, Series)):
+                print(f"PCF計算失敗: stock_price 數據類型錯誤: {type(stock_price)}")
+                return DataFrame()
+            
+            # 對齊數據 - 使用增強的對齊方法
+            print(f"PCF_Indicator: 開始數據對齊")
+            table_OCFPerShare, stock_price = self.check_and_convert_to_series(
+                table_OCFPerShare, stock_price
+            )
+            
+            print(f"PCF_Indicator: 數據對齊完成")
+            print(f"PCF_Indicator: 對齊後 table_OCFPerShare: {table_OCFPerShare}")
+            print(f"PCF_Indicator: 對齊後 stock_price: {stock_price}")
+            
+            # 再次檢查對齊後的數據
+            if table_OCFPerShare.empty or stock_price.empty:
+                print(f"PCF計算失敗: 數據對齊後為空")
+                return DataFrame()
+            
+            # 檢查每股營業現金流是否為0或NaN
+            if isinstance(table_OCFPerShare, Series):
+                if table_OCFPerShare.iloc[0] == 0 or pd.isna(table_OCFPerShare.iloc[0]):
+                    print(f"PCF計算失敗: {self._number} 的每股營業現金流為0或NaN")
+                    return DataFrame()
+            elif isinstance(table_OCFPerShare, DataFrame):
+                if table_OCFPerShare.iloc[0, 0] == 0 or pd.isna(table_OCFPerShare.iloc[0, 0]):
+                    print(f"PCF計算失敗: {self._number} 的每股營業現金流為0或NaN")
+                    return DataFrame()
+            
+            # 檢查股票價格是否為0或NaN
+            if isinstance(stock_price, Series):
+                if stock_price.iloc[0] == 0 or pd.isna(stock_price.iloc[0]):
+                    print(f"PCF計算失敗: {self._number} 的股票價格為0或NaN")
+                    return DataFrame()
+            elif isinstance(stock_price, DataFrame):
+                if stock_price.iloc[0, 0] == 0 or pd.isna(stock_price.iloc[0, 0]):
+                    print(f"PCF計算失敗: {self._number} 的股票價格為0或NaN")
+                    return DataFrame()
+            
+            # 計算 PCF
+            print(f"PCF_Indicator: 開始計算 PCF")
+            table_result[self._name] = stock_price / table_OCFPerShare
+            print(f"PCF計算成功: {self._number} = {table_result[self._name].iloc[0] if not table_result.empty else 'N/A'}")
+            return table_result
+            
+        except Exception as e:
+            print(f"PCF計算失敗: {self._number} 計算錯誤 - {e}")
+            import traceback
+            traceback.print_exc()
             return DataFrame()
-        self._StockPrice.number = self._number
-        stock_price = self._StockPrice.get_PriceByDateAndType(
-            date, info.Price_type.Close
-        )  # get_stock_price(self._number,date,stock_data_kind.AdjClose)
-        
-        # 修復：將 stock_price 轉換為 Series，如果它是數值類型
-        if isinstance(stock_price, (int, float)):
-            stock_price = Series([stock_price], index=[self._number])
-        
-        table_OCFPerShare, stock_price = self.check_and_convert_to_series(
-            table_OCFPerShare, stock_price
-        )
-        table_result[self._name] = stock_price / table_OCFPerShare
-        return table_result
 
     def get_ReportByNumber(self, date, number: int) -> Series:
         self._number = number
