@@ -51,6 +51,7 @@ class TReport(IReport):
         
         for key in search_keys:
             if key in Temp.index:
+                print(f"{date}的{number}公司成立")
                 result = Temp.loc[key]
 
                 # 確保返回 DataFrame 格式
@@ -65,7 +66,7 @@ class TReport(IReport):
     def get_ReportByType(self, date, _type: info.StrEnum, base_today=None) -> Series:
         Temp = self.get_ALL_Report(date, base_today=base_today)
         try:
-            return Temp[_type.value]
+            return Temp[_type.get_sql_column()]
         except Exception:
             print("".join([str(date), "的", self._name, "表沒出"]))
             return DataFrame()
@@ -109,8 +110,6 @@ class TReport(IReport):
         
         # 檢查索引類型和內容
         if isinstance(tableFirst, Series) and isinstance(tableSecond, Series):
-            print(f"check_and_convert_to_series: tableFirst索引: {tableFirst.index.tolist()}")
-            print(f"check_and_convert_to_series: tableSecond索引: {tableSecond.index.tolist()}")
             
             if tableFirst.empty or tableSecond.empty:
                 print("check_and_convert_to_series: Series 為空")
@@ -118,7 +117,6 @@ class TReport(IReport):
             
             # 檢查是否有共同的索引
             common_index = tableFirst.index.intersection(tableSecond.index)
-            print(f"check_and_convert_to_series: 共同索引: {common_index.tolist()}")
             
             if len(common_index) == 0:
                 print("check_and_convert_to_series: 沒有共同索引，嘗試不同的對齊策略")
@@ -220,9 +218,25 @@ class Day_Report(AllStockReport):
 
     def get_ALL_Report(self, date, base_today=None):
         import Common.Tools as Tools
-        safe_date = Tools.get_latest_daily_report_date(date, base_today)
-        result = self._main_GetExternalData.get_allstock_yield(safe_date)
-        return result
+        # 殖利率數據應該使用當前日期，不需要往回找
+        # 只有在當天沒有交易數據時才往回找
+        try:
+            # 檢查當天是否有交易數據
+            stock_data = self._main_GetExternalData.get_stock_history("2330", date)
+            if date in stock_data.index:
+                # 當天有交易數據，直接使用當天日期
+                result = self._main_GetExternalData.get_allstock_yield(date)
+                return result
+            else:
+                # 當天沒有交易數據，往回找最近的交易日
+                safe_date = Tools.get_latest_daily_report_date(date, base_today)
+                result = self._main_GetExternalData.get_allstock_yield(safe_date)
+                return result
+        except Exception:
+            # 如果出錯，使用安全的日期獲取方式
+            safe_date = Tools.get_latest_daily_report_date(date, base_today)
+            result = self._main_GetExternalData.get_allstock_yield(safe_date)
+            return result
 
     def Next_date(self, date):
         date = Tools.backWorkDays(date, self._Unit)

@@ -537,26 +537,17 @@ class All_imge:
     def get_Chart(self, number: int = None):
         if number is None:
             if (self._report._name != "ADL") and (self._report._name != "ADLs"):
-                raise
+                raise ValueError(f"當 number 為 None 時，只允許 ADL 或 ADLs 類型的報告，當前類型: {self._report._name}")
         
         results_list = []
         stock_history_index = self._main_GetExternalData.get_stock_history("2330").index
         start = self._start
         end = self._end
         
-        # 智能日期調整：檢查結束日期是否有效
-        # 如果結束日期是當前月份或下一個月，則調整到上一個有效月份
-        today = datetime.today()
-        if end.year == today.year and end.month >= today.month:
-            # 如果是當前月份或未來月份，調整到上一個月
-            end = Tools.changeDateMonth(today, -1)
-            # 如果是月初（15號之前），再往前一個月
-            if today.day < 15:
-                end = Tools.changeDateMonth(end, -1)
-        
         while start <= end:
             if end not in stock_history_index:
-                end = self._report.Next_date(end)
+                # 根據報告類型使用不同的日期移動方法
+                end = self._move_date(end, -self._report._Unit)
                 continue
             
             if (self._report._name == "ADL") or (self._report._name == "ADLs"):
@@ -566,13 +557,14 @@ class All_imge:
             
             # 當 temp 為空時，嘗試智能日期調整
             if temp.empty:
-                # 智能日期調整：嘗試往前找有效數據
+                # 智能日期調整：嘗試往前找有效數據（往過去找，而不是往未來）
                 original_end = end
                 attempts = 0
                 max_attempts = 12  # 最多嘗試12個月
                 
                 while temp.empty and attempts < max_attempts:
-                    end = self._report.Next_date(end)
+                    # 使用相應的日期移動方法往過去找數據
+                    end = self._move_date(end, -1)
                     attempts += 1
                     
                     if (self._report._name == "ADL") or (self._report._name == "ADLs"):
@@ -583,13 +575,14 @@ class All_imge:
                 # 如果嘗試後仍然沒有數據，跳過這個日期
                 if temp.empty:
                     end = original_end  # 恢復原始日期
-                    end = self._report.Next_date(end)
+                    end = self._move_date(end, -self._report._Unit)
                     continue
             
             temp.insert(0, "Date", end)
             results_list.append(temp)
             
-            end = self._report.Next_date(end)
+            # 移動到下一個日期進行下一次迭代
+            end = self._move_date(end, -self._report._Unit)
             
         if not results_list:
             data_result = pd.DataFrame(columns=["Date", self._report._name])
@@ -598,6 +591,32 @@ class All_imge:
 
         data_result.set_index("Date", inplace=True)
         return data_result
+
+    def _move_date(self, date, delta):
+        """
+        根據報告類型移動日期
+        - 季報 (Unit=3): 使用 changeDateMonth
+        - 月報 (Unit=1): 使用 changeDateMonth  
+        - 日報 (Unit=1): 使用 backWorkDays
+        """
+        # 檢查報告類型來決定使用哪種日期移動方法
+        if hasattr(self._report, '_Unit'):
+            if self._report._Unit == 1:
+                # 檢查是否為日報類型的報告，使用報告名稱來判斷
+                # 日報類型：yield_RP, aDL_RP, dividend_yield_RP 等
+                if hasattr(self._report, '_name') and any(keyword in self._report._name.lower() 
+                    for keyword in ['yield', 'adl', 'dividend']):
+                    # 日報使用工作日移動
+                    return Tools.backWorkDays(date, -delta)
+                else:
+                    # 月報使用月份移動
+                    return Tools.changeDateMonth(date, delta)
+            elif self._report._Unit == 3:
+                # 季報使用月份移動
+                return Tools.changeDateMonth(date, delta)
+        
+        # 預設使用月份移動
+        return Tools.changeDateMonth(date, delta)
 
 
 def get_stock_MA(number: str, date: datetime, MA_day: int, original_stock: OriginalStockByYahoo):  # 取得某股票某天的均線

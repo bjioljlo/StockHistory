@@ -505,18 +505,15 @@ class SqlService:
 
                 where_clause = " AND ".join(conditions) if conditions else "1=1"
 
-                query = """
+                query = text("""
                 SELECT symbol, date, company_name, pe_ratio, dividend_yield, pb_ratio
                 FROM dividend_yield
                 WHERE """ + where_clause + """
                 ORDER BY symbol, date DESC
-                LIMIT """ + str(limit)
+                LIMIT :limit""")
 
-                # 如果有參數，使用參數化查詢，否則直接執行
-                if params:
-                    df = pd.read_sql(query, con=self.MySql_server.engine, params=params)
-                else:
-                    df = pd.read_sql(query, con=self.MySql_server.engine)
+                params['limit'] = limit
+                df = pd.read_sql(query, con=self.MySql_server.engine, params=params)
                 return df
 
         except Exception as e:
@@ -563,7 +560,7 @@ class SqlService:
 
                 where_clause = " AND ".join(conditions) if conditions else "1=1"
 
-                query = """
+                query = text("""
                 SELECT symbol, company_name, report_year, report_month,
                        revenue_current_month, revenue_last_month,
                        revenue_last_year_same_month, revenue_ytd,
@@ -571,13 +568,10 @@ class SqlService:
                 FROM monthly_reports
                 WHERE """ + where_clause + """
                 ORDER BY symbol, report_year DESC, report_month DESC
-                LIMIT """ + str(limit)
+                LIMIT :limit""")
 
-                # 如果有參數，使用參數化查詢，否則直接執行
-                if params:
-                    df = pd.read_sql(query, con=self.MySql_server.engine, params=params)
-                else:
-                    df = pd.read_sql(query, con=self.MySql_server.engine)
+                params['limit'] = limit
+                df = pd.read_sql(query, con=self.MySql_server.engine, params=params)
                 return df
 
         except Exception as e:
@@ -586,13 +580,13 @@ class SqlService:
 
     def read_quarterly_reports(self, symbol: str = None, report_type: str = None,
                              start_year: int = None, end_year: int = None,
-                             limit: int = 1000) -> pd.DataFrame:
+                             limit: int = 10000) -> pd.DataFrame:
         """
         從統一的quarterly_reports表格讀取季報數據
 
         Args:
             symbol: 股票代號，為None時返回所有股票
-            report_type: 報表類型 ('PLA', 'BS', 'CPL', 'SCF')
+            report_type: 報表類型 ('PLA', 'BS', 'CPL', 'SCF') 或 InfomationType.FS_type
             start_year: 開始年份
             end_year: 結束年份
             limit: 返回記錄數量限制
@@ -617,8 +611,25 @@ class SqlService:
                     params['symbol'] = symbol
 
                 if report_type:
+                    # 處理 InfomationType.FS_type 或字符串類型
+                    if hasattr(report_type, 'value'):
+                        # 如果是 InfomationType.FS_type 枚舉
+                        report_type_value = report_type.value
+                    else:
+                        # 如果是字符串
+                        report_type_value = str(report_type)
+                    
+                    # 將長名稱轉換為短代碼
+                    type_mapping = {
+                        'profit-and-loss-analysis-summary': 'PLA',
+                        'balance-sheet': 'BS',
+                        'consolidated-profit-and-loss-summary': 'CPL',
+                        'statement-of-cash-flows': 'SCF'
+                    }
+                    
+                    short_type = type_mapping.get(report_type_value, report_type_value)
                     conditions.append("report_type = :report_type")
-                    params['report_type'] = report_type.upper()
+                    params['report_type'] = short_type.upper()
 
                 if start_year:
                     conditions.append("report_year >= :start_year")
@@ -630,7 +641,7 @@ class SqlService:
 
                 where_clause = " AND ".join(conditions) if conditions else "1=1"
 
-                query = """
+                query = text("""
                 SELECT symbol, company_name, report_year, report_season, report_type,
                        revenue, gross_margin, operating_margin, pre_tax_margin, net_margin,
                        consolidated_net_income, consolidated_eps,
@@ -639,13 +650,10 @@ class SqlService:
                 FROM quarterly_reports
                 WHERE """ + where_clause + """
                 ORDER BY symbol, report_year DESC, report_season DESC
-                LIMIT """ + str(limit)
+                LIMIT :limit""")
 
-                # 如果有參數，使用參數化查詢，否則直接執行
-                if params:
-                    df = pd.read_sql(query, con=self.MySql_server.engine, params=params)
-                else:
-                    df = pd.read_sql(query, con=self.MySql_server.engine)
+                params['limit'] = limit
+                df = pd.read_sql(query, con=self.MySql_server.engine, params=params)
                 return df
 
         except Exception as e:
