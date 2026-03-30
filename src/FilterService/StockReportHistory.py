@@ -668,7 +668,7 @@ class ADL_Indicator(Indicator):
         daily_ad_data = daily_ad_data.sort_index()
 
         # Calculate the daily difference
-        daily_diff = daily_ad_data["上漲"] - daily_ad_data["下跌"]
+        daily_diff = daily_ad_data["up_count"] - daily_ad_data["down_count"]
         
         # Calculate the cumulative sum
         adl_series = daily_diff.cumsum()
@@ -713,8 +713,8 @@ class ADLs_Indicator(Indicator):
         daily_ad_data = daily_ad_data.sort_index()
 
         # Calculate the ratio
-        up = daily_ad_data["上漲"]
-        down = daily_ad_data["下跌"]
+        up = daily_ad_data["up_count"]
+        down = daily_ad_data["down_count"]
         total = up + down
         # Avoid division by zero
         ratio = (up / total.where(total != 0, 1)) - 0.5

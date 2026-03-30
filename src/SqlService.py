@@ -140,6 +140,7 @@ class SqlService:
     def upsert_data(self, table_name: str, data_df: pd.DataFrame, key_columns: list[str]):
         """
         真正的Upsert操作 - 使用ON DUPLICATE KEY UPDATE而不是replace
+        修復時間戳欄位處理問題
         """
         if not all(col in data_df.columns for col in key_columns):
             print(f"Error: Key columns {key_columns} not found in the DataFrame.")
@@ -170,11 +171,18 @@ class SqlService:
                     for _, row in data_df.iterrows():
                         # 構建INSERT ... ON DUPLICATE KEY UPDATE語句
                         columns = list(data_df.columns)
-                        placeholders = ', '.join(['%s'] * len(columns))
+                        placeholders = ', '.join([f':{col}' for col in columns])
                         column_names = ', '.join([f'`{col}`' for col in columns])
                         
                         # 構建UPDATE部分
                         update_columns = [col for col in columns if col not in key_columns]
+                        
+                        # 添加時間戳欄位到更新列表，確保created_at和updated_at被正確處理
+                        timestamp_columns = ['created_at', 'updated_at']
+                        for ts_col in timestamp_columns:
+                            if ts_col not in update_columns and ts_col in columns:
+                                update_columns.append(ts_col)
+                        
                         update_clause = ', '.join([f'`{col}` = VALUES(`{col}`)' for col in update_columns])
                         
                         sql = f"""
@@ -185,21 +193,21 @@ class SqlService:
                         updated_at = CURRENT_TIMESTAMP
                         """
                         
-                        # 處理NaN值
-                        row_values = []
+                        # 處理NaN值並構建參數字典
+                        row_dict = {}
                         for col in columns:
                             value = row[col]
                             if pd.isna(value) or value is None:
                                 # 對於數值欄位使用0，其他使用None
                                 if col in ['open', 'high', 'low', 'close', 'adj_close', 'volume', 
                                          'dividend_yield', 'pe_ratio', 'pb_ratio']:
-                                    row_values.append(0.0 if col != 'volume' else 0)
+                                    row_dict[col] = 0.0 if col != 'volume' else 0
                                 else:
-                                    row_values.append(None)
+                                    row_dict[col] = None
                             else:
-                                row_values.append(value)
+                                row_dict[col] = value
 
-                        connection.execute(text(sql), row_values)
+                        connection.execute(text(sql), row_dict)
                         success_count += 1
 
                     print(f"Successfully upserted {success_count} rows to table '{table_name}'.")
@@ -861,35 +869,31 @@ class SqlService:
                 params = {}
 
                 if start_date:
-                    conditions.append("date >= :start_date")
+                    conditions.append("date >= %(start_date)s")
                     params['start_date'] = start_date
 
                 if end_date:
-                    conditions.append("date <= :end_date")
+                    conditions.append("date <= %(end_date)s")
                     params['end_date'] = end_date
 
                 where_clause = " AND ".join(conditions) if conditions else "1=1"
 
                 query = f"""
-                SELECT date, 上漲, 下跌
+                SELECT date, up_count, down_count
                 FROM ad_index
                 WHERE {where_clause}
                 ORDER BY date DESC
-                LIMIT {limit}
+                LIMIT %(limit)s
                 """
 
-                # 如果有參數，使用參數化查詢，否則直接執行
-                if params:
-                    df = pd.read_sql(query, con=self.MySql_server.engine, params=params)
-                else:
-                    df = pd.read_sql(query, con=self.MySql_server.engine)
+                # 使用參數化查詢
+                params['limit'] = limit
+                df = pd.read_sql(query, con=self.MySql_server.engine, params=params)
                 
                 # 設定索引
                 if not df.empty:
                     df['date'] = pd.to_datetime(df['date'])
                     df = df.set_index('date')
-                    # 重命名欄位以符合原有格式
-                    df = df.rename(columns={'up_count': '上漲', 'down_count': '下跌'})
                 
                 return df
 

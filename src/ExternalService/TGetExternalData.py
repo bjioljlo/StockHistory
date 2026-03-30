@@ -830,8 +830,32 @@ class TGetExternalData(IGetExternalData):
 
         # 建立新的騰落指數結果
         ADindex_result_new = pd.DataFrame(
-            {"Date": [time], "上漲": [up], "下跌": [down]}
+            {"Date": [time], "up_count": [up], "down_count": [down]}
         ).set_index("Date")
+
+        # Incremental write-back: save only current day to ad_index with English columns
+        ad_index_row = ADindex_result_new.reset_index()
+        ad_index_row.columns = ["date", "up_count", "down_count"]
+        success = self._sql_service.upsert_data("ad_index", ad_index_row, ["date"])
+        if success:
+            self._logger.info(
+                f"Successfully upserted AD index for {time.strftime('%Y-%m-%d')}"
+            )
+        else:
+            self._logger.error("Failed to save data to ad_index table with English columns, trying legacy columns")
+            legacy_row = ADindex_result_new.reset_index()
+            success = self._sql_service.upsert_data("ad_index", legacy_row, ["Date"])
+            if not success:
+                self._logger.error("Failed to save data to ad_index table")
+
+        if self._cache_service:
+            try:
+                self._save_to_cache(cache_key, ADindex_result_new)
+                self._cache_service.set_stock_data("ad_index", ADindex_result_new)
+            except Exception as e:
+                self._logger.error(f"儲存 AD_index 到快取失敗: {e}")
+
+        return ADindex_result_new
 
         # 獲取現有的歷史數據（從 SQL）
         existing_data = self._get_existing_ad_index_data()
@@ -880,6 +904,42 @@ class TGetExternalData(IGetExternalData):
         ad_index_data = pd.DataFrame()
         
         try:
+            target_date = time.strftime("%Y-%m-%d")
+            with self._sql_service.server_flask.app_context():
+                query = """
+                SELECT date, up_count, down_count
+                FROM ad_index
+                WHERE date = :target_date
+                LIMIT 1
+                """
+                try:
+                    ad_index_data = pd.read_sql(
+                        query,
+                        con=self._sql_service.MySql_server.engine,
+                        params={"target_date": target_date},
+                    )
+                except Exception:
+                    legacy_query = """
+                    SELECT date, `up_count`, `down_count`
+                    FROM ad_index
+                    WHERE date = :target_date
+                    LIMIT 1
+                    """
+                    ad_index_data = pd.read_sql(
+                        legacy_query,
+                        con=self._sql_service.MySql_server.engine,
+                        params={"target_date": target_date},
+                    )
+                if not ad_index_data.empty:
+                    ad_index_data["date"] = pd.to_datetime(ad_index_data["date"])
+                    ad_index_data = ad_index_data.set_index("date")
+            if not ad_index_data.empty:
+                self._logger.info(f"Found AD_index for {target_date} in MySQL.")
+                self._save_to_cache(cache_key, ad_index_data)
+                return ad_index_data
+
+            return pd.DataFrame()
+
             ad_index_data = self._sql_service.read_ad_index(limit=10000)
             if not ad_index_data.empty:
                 self._logger.info(f"Found AD_index historical data in MySQL ({len(ad_index_data)} records).")
@@ -989,6 +1049,19 @@ class TGetExternalData(IGetExternalData):
             ad_index_table = self._sql_service.read_ad_index(limit=10000)
             if not ad_index_table.empty:
                 return ad_index_table.sort_index()
+
+            with self._sql_service.server_flask.app_context():
+                query = """
+                SELECT date, up_count, down_count
+                FROM ad_index
+                ORDER BY date DESC
+                LIMIT 10000
+                """
+                ad_index_table = pd.read_sql(query, con=self._sql_service.MySql_server.engine)
+                if not ad_index_table.empty:
+                    ad_index_table['date'] = pd.to_datetime(ad_index_table['date'])
+                    ad_index_table = ad_index_table.set_index('date')
+                    return ad_index_table.sort_index()
         except Exception as e:
             self._logger.error(f"Could not read AD_index from MySQL. Error: {e}")
         return pd.DataFrame()

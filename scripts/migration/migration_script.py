@@ -151,6 +151,36 @@ class DatabaseMigrator:
         finally:
             cursor.close()
 
+    def create_ad_index_table(self):
+        """Initialize AD index table with English column names."""
+        if self.config.dry_run:
+            logger.info("DRY RUN: skip creating ad_index table")
+            return
+
+        create_table_sql = """
+        CREATE TABLE IF NOT EXISTS ad_index (
+            date DATE NOT NULL COMMENT 'Trading date',
+            up_count INT NOT NULL DEFAULT 0 COMMENT 'Number of advancing stocks',
+            down_count INT NOT NULL DEFAULT 0 COMMENT 'Number of declining stocks',
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+            PRIMARY KEY (date),
+            INDEX idx_date (date)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
+        COMMENT='Advance/Decline index daily values';
+        """
+
+        cursor = self.connection.cursor()
+        try:
+            cursor.execute(create_table_sql)
+            self.connection.commit()
+            logger.info("ad_index table initialized.")
+        except Exception as e:
+            logger.error(f"Failed to initialize ad_index table: {e}")
+            raise
+        finally:
+            cursor.close()
+
     def migrate_table(self, table_name: str) -> bool:
         """遷移單個表格"""
         try:
@@ -317,6 +347,7 @@ class DatabaseMigrator:
 
             self.connect()
             self.create_unified_table()
+            self.create_ad_index_table()
 
             stock_tables = self.get_all_stock_tables()
 

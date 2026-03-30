@@ -138,6 +138,36 @@ class ProductionMigrator:
         finally:
             cursor.close()
 
+    def ensure_ad_index_table_exists(self):
+        """Initialize AD index table with English column names."""
+        if self.config.dry_run:
+            logger.info("DRY RUN: skip creating ad_index table")
+            return
+
+        create_table_sql = """
+        CREATE TABLE IF NOT EXISTS ad_index (
+            date DATE NOT NULL COMMENT 'Trading date',
+            up_count INT NOT NULL DEFAULT 0 COMMENT 'Number of advancing stocks',
+            down_count INT NOT NULL DEFAULT 0 COMMENT 'Number of declining stocks',
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+            PRIMARY KEY (date),
+            INDEX idx_date (date)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
+        COMMENT='Advance/Decline index daily values';
+        """
+
+        cursor = self.connection.cursor()
+        try:
+            cursor.execute(create_table_sql)
+            self.connection.commit()
+            logger.info("ad_index table initialized.")
+        except Exception as e:
+            logger.error(f"Failed to initialize ad_index table: {e}")
+            raise
+        finally:
+            cursor.close()
+
     def _is_stock_table(self, table_name: str) -> bool:
         """判斷是否為股票表格"""
         table_lower = table_name.lower()
@@ -393,6 +423,7 @@ class ProductionMigrator:
             self.connect()
             self.load_checkpoint()
             self.ensure_unified_table_exists()
+            self.ensure_ad_index_table_exists()
 
             migration_queue = self.get_migration_queue()
 
