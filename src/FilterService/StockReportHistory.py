@@ -658,6 +658,12 @@ class ADL_Indicator(Indicator):
     def _calculate_adl(self):
         """Fetches all up/down data and calculates the cumulative ADL."""
         print("Calculating full ADL data...")
+        persisted_adl_data = self._AD_RP._main_GetExternalData.get_full_adl()
+        if not persisted_adl_data.empty:
+            self._adl_data = persisted_adl_data.sort_index()
+            print("Loaded persisted ADL data from MySQL.")
+            return
+
         # Get the full table of up/down data
         daily_ad_data = self._AD_RP.get_ALL_Report(None)
         if daily_ad_data.empty:

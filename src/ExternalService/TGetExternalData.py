@@ -1066,6 +1066,33 @@ class TGetExternalData(IGetExternalData):
             self._logger.error(f"Could not read AD_index from MySQL. Error: {e}")
         return pd.DataFrame()
 
+    def get_full_adl(self) -> pd.DataFrame:
+        """
+        取得完整的 ADL 歷史資料
+        """
+        self._logger.info("取得完整的 ADL 歷史資料")
+        try:
+            adl_table = self._sql_service.read_adl(limit=10000)
+            if not adl_table.empty:
+                return adl_table.sort_index()
+
+            with self._sql_service.server_flask.app_context():
+                query = """
+                SELECT date, adl
+                FROM adl
+                ORDER BY date DESC
+                LIMIT 10000
+                """
+                adl_table = pd.read_sql(query, con=self._sql_service.MySql_server.engine)
+                if not adl_table.empty:
+                    adl_table["date"] = pd.to_datetime(adl_table["date"])
+                    adl_table = adl_table.set_index("date")
+                    adl_table = adl_table.rename(columns={"adl": "ADL"})
+                    return adl_table.sort_index()
+        except Exception as e:
+            self._logger.error(f"Could not read ADL from MySQL. Error: {e}")
+        return pd.DataFrame()
+
     def get_allstock_dividend_yield(self) -> pd.DataFrame:
         """
         從數據庫獲取所有股票股息殖利率數據

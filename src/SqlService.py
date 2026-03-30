@@ -900,3 +900,89 @@ class SqlService:
         except Exception as e:
             print(f"SQL Error in read_ad_index: {e}")
             return pd.DataFrame()
+
+    def read_adl(self, start_date: str = None, end_date: str = None,
+                 limit: int = 1000) -> pd.DataFrame:
+        """
+        讀取 ADL 歷史資料
+
+        Args:
+            start_date: 開始日期 (YYYY-MM-DD)
+            end_date: 結束日期 (YYYY-MM-DD)
+            limit: 返回記錄數量限制
+
+        Returns:
+            pd.DataFrame: ADL 歷史資料，欄位為 `ADL`
+        """
+        if self.MySql_server is None:
+            print("Database connection not initialized")
+            return pd.DataFrame()
+
+        try:
+            with self.server_flask.app_context():
+                conditions = []
+                params = {}
+
+                if start_date:
+                    conditions.append("date >= %(start_date)s")
+                    params["start_date"] = start_date
+
+                if end_date:
+                    conditions.append("date <= %(end_date)s")
+                    params["end_date"] = end_date
+
+                where_clause = " AND ".join(conditions) if conditions else "1=1"
+                query = f"""
+                SELECT date, adl
+                FROM adl
+                WHERE {where_clause}
+                ORDER BY date DESC
+                LIMIT %(limit)s
+                """
+
+                params["limit"] = limit
+                df = pd.read_sql(query, con=self.MySql_server.engine, params=params)
+                if not df.empty:
+                    df["date"] = pd.to_datetime(df["date"])
+                    df = df.set_index("date")
+                    df = df.rename(columns={"adl": "ADL"})
+                return df
+        except Exception as e:
+            print(f"SQL Error in read_adl: {e}")
+            return pd.DataFrame()
+
+    def save_adl_data(self, adl_df: pd.DataFrame) -> bool:
+        """
+        以完整重算結果覆蓋 ADL 歷史資料表。
+        """
+        if self.MySql_server is None:
+            print("Database connection not initialized")
+            return False
+
+        if adl_df.empty:
+            print("No ADL data to save.")
+            return False
+
+        try:
+            normalized_df = adl_df.copy().sort_index()
+            normalized_df.index = pd.to_datetime(normalized_df.index)
+
+            if "ADL" not in normalized_df.columns:
+                first_col = normalized_df.columns[0]
+                normalized_df = normalized_df.rename(columns={first_col: "ADL"})
+
+            df_to_save = normalized_df.reset_index()
+            df_to_save.columns = ["date", "adl"]
+
+            with self.server_flask.app_context():
+                with self.MySql_server.engine.begin() as connection:
+                    df_to_save.to_sql(
+                        name="adl",
+                        con=connection,
+                        if_exists="replace",
+                        index=False,
+                    )
+            return True
+        except Exception as e:
+            print(f"SQL Error in save_adl_data: {e}")
+            return False

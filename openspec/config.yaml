@@ -1,0 +1,38 @@
+schema: spec-driven
+
+context: |
+  Project: StockHistory, a Python stock data management and analysis system.
+  Primary stack: Python 3.8+, PyQt5 desktop UI, pandas, SQLAlchemy, TA-Lib, pytest.
+  Runtime shape: desktop application entrypoint is `src.main_stock`; Docker is used for local service orchestration.
+  Source layout:
+  - `src/Controller`: UI controllers and coordination logic
+  - `src/Model`: domain/data models
+  - `src/View`: PyQt5 UI components
+  - `src/Common`: shared helpers and config handling
+  - `src/ExternalService`: integrations and market data fetching
+  - `src/FilterService`: stock filtering and ranking logic
+  - `src/BackTestService`: strategy backtesting and performance analysis
+  - `UnitTest`: tests
+  Domain notes:
+  - The system handles historical stock data, technical indicators, filtering, and backtesting.
+  - Data can come from multiple external providers such as Yahoo Finance and twstock.
+  - Changes should preserve existing controller/service boundaries unless there is a clear reason to refactor.
+  Engineering conventions:
+  - Prefer focused, incremental changes over broad rewrites.
+  - Keep business logic out of UI code when possible.
+  - Add or update tests in `UnitTest/` when behavior changes.
+  - Respect existing configuration files such as `config.yml`, `config_docker.yml`, `requirements.txt`, and Docker assets.
+
+rules:
+  proposal:
+    - State the user problem, scope, and expected impact in concrete repository terms.
+    - Mention affected modules using the real repo paths under `src/` or `UnitTest/`.
+    - Include explicit non-goals when the change could expand into broader refactors.
+  design:
+    - Describe integration points with current services/controllers instead of inventing a parallel architecture.
+    - Call out database, external API, threading, or UI event-flow implications when relevant.
+    - Keep the design implementation-oriented and specific to this codebase.
+  tasks:
+    - Break work into small, testable steps that can be completed incrementally.
+    - Include validation steps such as targeted tests, manual UI checks, or Docker verification when applicable.
+    - Avoid bundling unrelated cleanup into the same task list.

@@ -67,6 +67,9 @@ class FakeExternal(IGetExternalData):
     def get_full_ad_index(self) -> pd.DataFrame:
         raise NotImplementedError
 
+    def get_full_adl(self) -> pd.DataFrame:
+        raise NotImplementedError
+
 
 class GetStockDataUnitTests(unittest.TestCase):
     def setUp(self):

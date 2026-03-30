@@ -3,9 +3,6 @@ from datetime import datetime, timedelta
 import queue
 import threading
 import time
-import asyncio
-import concurrent.futures
-
 import pandas as pd
 import pytz
 import twstock
@@ -20,7 +17,6 @@ from src.MongoService import MongoService
 from src.ReadLoadSystem import ReadLoadSystem
 from src.SqlService import SqlService
 from src.StockInfos import UserInfoDatas
-import time
 import random
 
 
@@ -381,6 +377,31 @@ class UpdateStockService:
         update_adl_flag['should_update'] = new_trading_day_updated
         print("Database save thread finished.")
 
+    def _persist_adl_data(self) -> bool:
+        """
+        以最新 AD_index 歷史資料重算完整 ADL，並覆蓋寫入 MySQL。
+        """
+        try:
+            ad_index_history = self._getExternalFactory.Get_instance().get_full_ad_index()
+            if ad_index_history.empty:
+                print("No AD_index history available. Skipping ADL persistence.")
+                return False
+
+            ad_index_history = ad_index_history.sort_index()
+            daily_diff = ad_index_history["up_count"] - ad_index_history["down_count"]
+            adl_series = daily_diff.cumsum()
+            adl_df = pd.DataFrame({"ADL": adl_series})
+
+            save_ok = self._sql_service.save_adl_data(adl_df)
+            if save_ok:
+                print(f"Persisted {len(adl_df)} ADL rows to MySQL.")
+            else:
+                print("Failed to persist ADL data to MySQL.")
+            return save_ok
+        except Exception as e:
+            print(f"Failed to calculate or persist ADL: {e}")
+            return False
+
     def __update_stocks_common(self, mainUserInfoDatas: UserInfoDatas, stock_list, update_date_attr, initial_date, timezone=None, callback=None, areacode=None):
         """
         通用的股票更新方法，用於處理不同市場的股票更新
@@ -490,9 +511,11 @@ class UpdateStockService:
         save_thread.join()
         
         # 檢查是否需要更新騰落指數
-        if update_adl_flag.get('should_update', False):
-            print("Detected new trading day data, updating ADL index...")
-            self._update_adl_async()
+        if self._adl_update_enabled and update_adl_flag.get('should_update', False):
+            print("Detected new trading day data, updating ADL index and persisted ADL...")
+            adl_refresh_ok = self.__RunUpDateADL()
+            if not adl_refresh_ok:
+                print("ADL refresh failed after stock update, but stock data update remains committed.")
         else:
             print("No new trading day data detected, skipping ADL update.")
         
@@ -536,7 +559,7 @@ class UpdateStockService:
 
     def __RunUpDateADL(self, callback=None):
         print("Update stocks other Info start!")
-        latest_adl_date = None
+        latest_ad_index_date = None
         try:
             with self._sql_service.server_flask.app_context():
                 latest_query = text(
@@ -549,7 +572,7 @@ class UpdateStockService:
                 )
                 latest_df = pd.read_sql(latest_query, con=self._sql_service.MySql_server.engine)
                 if not latest_df.empty:
-                    latest_adl_date = pd.to_datetime(latest_df.iloc[0]["date"]).date()
+                    latest_ad_index_date = pd.to_datetime(latest_df.iloc[0]["date"]).date()
         except Exception as e:
             print(f"Could not read latest AD_index date, fallback to one-year scan: {e}")
         end_date = datetime(
@@ -557,8 +580,8 @@ class UpdateStockService:
         )  # 設定資料起訖日期
 
         # 取得近一年的交易日曆 (以2330為基準)
-        if latest_adl_date:
-            start_date_for_calendar = datetime.combine(latest_adl_date, datetime.min.time())
+        if latest_ad_index_date:
+            start_date_for_calendar = datetime.combine(latest_ad_index_date, datetime.min.time())
             print(f"Fetching trading day calendar from {start_date_for_calendar.strftime('%Y-%m-%d')}...")
         else:
             print("Fetching trading day calendar for the last year...")
@@ -569,17 +592,17 @@ class UpdateStockService:
         if trading_days_df.empty:
             print("Could not fetch trading day calendar. Aborting ADL update.")
             print("Update stocks other Info end!")
-            return
+            return False
 
         # The index is a DatetimeIndex, which is efficient for lookups.
         trading_days = trading_days_df.index
 
         # 獲取已存在的ADL數據，避免重複計算
-        existing_dates = {latest_adl_date} if latest_adl_date else set()
+        existing_dates = {latest_ad_index_date} if latest_ad_index_date else set()
 
         # 預先收集需要計算的日期
         dates_to_process = []
-        days_to_scan = max((end_date.date() - latest_adl_date).days + 1, 1) if latest_adl_date else 366
+        days_to_scan = max((end_date.date() - latest_ad_index_date).days + 1, 1) if latest_ad_index_date else 366
         for i in range(days_to_scan):
             date_to_check = end_date - timedelta(days=i)
             
@@ -595,7 +618,7 @@ class UpdateStockService:
 
         if not dates_to_process:
             print("No new trading days to process. ADL update completed.")
-            return
+            return self._persist_adl_data()
 
         print(f"Found {len(dates_to_process)} trading days to process.")
 
@@ -608,77 +631,10 @@ class UpdateStockService:
                 progress = int((i + 1) / len(dates_to_process) * 100)
                 callback(progress)
 
-        print("Update stocks other Info end!")
+        persist_ok = self._persist_adl_data()
+        if not persist_ok:
+            print("ADL index update finished, but persisted ADL refresh failed.")
+            return False
 
-    def _update_adl_async(self):
-        """
-        非同步更新騰落指數，避免阻塞主流程
-        """
-        def update_adl_task():
-            try:
-                print("Starting asynchronous ADL update...")
-                # 獲取最新的交易日
-                today = datetime.today().date()
-                
-                # 檢查是否為交易日
-                trading_days_df = self._getExternalFactory.Get_instance(self).get_stock_history(
-                    "2330", start=today - timedelta(days=7)
-                )
-                
-                if trading_days_df.empty:
-                    print("Could not fetch trading day calendar for ADL update.")
-                    return
-                
-                trading_days = trading_days_df.index
-                if today not in trading_days:
-                    # 如果今天不是交易日，找到最近的交易日
-                    recent_trading_days = [d.date() for d in trading_days if d.date() <= today]
-                    if recent_trading_days:
-                        today = max(recent_trading_days)
-                        print(f"Using recent trading day: {today}")
-                    else:
-                        print("No recent trading day found, skipping ADL update.")
-                        return
-                
-                # 檢查是否已經有今天的ADL數據
-                latest_adl_date = None
-                try:
-                    with self._sql_service.server_flask.app_context():
-                        latest_query = text(
-                            """
-                            SELECT date
-                            FROM ad_index
-                            ORDER BY date DESC
-                            LIMIT 1
-                            """
-                        )
-                        latest_df = pd.read_sql(latest_query, con=self._sql_service.MySql_server.engine)
-                        if not latest_df.empty:
-                            latest_adl_date = pd.to_datetime(latest_df.iloc[0]["date"]).date()
-                except Exception as e:
-                    print(f"Could not read latest AD_index date: {e}")
-                
-                # 如果今天的數據已經存在，則跳過
-                if latest_adl_date and latest_adl_date >= today:
-                    print(f"ADL data for {today} already exists, skipping update.")
-                    return
-                
-                # 計算並更新騰落指數
-                print(f"Calculating ADL for {today}...")
-                adl_result = self._getExternalFactory.Get_instance(self).get_stock_AD_index(today, getNew=True)
-                
-                if not adl_result.empty:
-                    print(f"Successfully updated ADL for {today}")
-                else:
-                    print(f"Failed to update ADL for {today}")
-                    
-            except Exception as e:
-                print(f"Error in asynchronous ADL update: {e}")
-                # 不拋出異常，避免影響主流程
-        
-        # 使用線程池執行非同步任務
-        executor = concurrent.futures.ThreadPoolExecutor(max_workers=1)
-        future = executor.submit(update_adl_task)
-        
-        # 不等待結果，讓任務在後台執行
-        print("ADL update task submitted to background thread.")
+        print("Update stocks other Info end!")
+        return True
