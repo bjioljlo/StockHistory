@@ -1,15 +1,19 @@
+import matplotlib
+matplotlib.use('Qt5Agg')  # 使用 Qt5Agg 後端以匹配 PyQt5
 import matplotlib.pyplot as plt
 import mplfinance as mpf
 import numpy as np
 import seaborn as sns
 import talib
 from pandas import DataFrame
+import threading
 
 class DrawFigur:
     def __init__(self) -> None:
         self.show_volume = False
         self.PICS = []
         self.panelCount = 0
+        self.lock = threading.Lock()
 
     def draw_stock(self, table: DataFrame, number: int): 
         mc = mpf.make_marketcolors(
@@ -81,12 +85,58 @@ class DrawFigur:
         self.PICS.append(mpf.make_addplot(macdhist, type="bar", panel=self.panelCount))
 
     def draw_RP(self, table: DataFrame, stockNum: int, columnName: str, title: str, ylabel: str):
-        axx = plt.axes()
-        axx.plot(table[columnName], label=title)
-        plt.xlabel("date")
-        plt.ylabel(ylabel)
-        plt.title(stockNum)
-        plt.show()
+        """繪製報表圖表，使用獨立的 matplotlib 視窗"""
+        try:
+            with self.lock:
+                # 檢查資料是否有效
+                if table is None or table.empty:
+                    print("警告：沒有數據可以繪圖")
+                    return
+                
+                if columnName not in table.columns:
+                    print(f"錯誤：欄位 '{columnName}' 不存在於數據中")
+                    print(f"可用的欄位: {list(table.columns)}")
+                    return
+                
+                # 檢查是否有 NaN 或無限值
+                if table[columnName].isna().any():
+                    print(f"警告：數據包含 NaN 值，將進行清理")
+                    table = table.dropna(subset=[columnName])
+                
+                if table.empty:
+                    print("警告：數據清理後為空，無法繪圖")
+                    return
+                
+                # 創建新的圖形，使用唯一的編號避免衝突
+                fig = plt.figure(num=f"Chart_{stockNum}_{title}")
+                plt.clf()  # 清除圖形內容
+                
+                ax = fig.add_subplot(111)
+                ax.plot(table.index, table[columnName], label=title, linewidth=2)
+                
+                # 設置標籤和標題
+                ax.set_xlabel("Date", fontsize=12)
+                ax.set_ylabel(ylabel, fontsize=12)
+                ax.set_title(f"{stockNum} - {title}", fontsize=14, fontweight='bold')
+                
+                # 旋轉 x 軸標籤以便閱讀
+                plt.xticks(rotation=45, ha='right')
+                
+                # 添加網格和圖例
+                ax.grid(True, alpha=0.3)
+                ax.legend(loc='best')
+                
+                # 調整佈局以避免標籤被切掉
+                plt.tight_layout()
+                
+                # 使用 show() 顯示圖表，但不阻塞主線程
+                plt.show(block=False)
+                plt.pause(0.001)  # 讓 matplotlib 處理事件
+                
+        except Exception as e:
+            print(f"繪圖時發生錯誤: {e}")
+            import traceback
+            traceback.print_exc()
 
     def draw_BackTestResult(self, _data: DataFrame, outputFolder: str = ""):
         plt.figure(figsize=(15, 10))
@@ -98,6 +148,7 @@ class DrawFigur:
         plt.close()
 
     def Clear_PICS(self):
-        self.PICS = []
-        self.panelCount = 0
-        self.show_volume = False
+        with self.lock:
+            self.PICS = []
+            self.panelCount = 0
+            self.show_volume = False

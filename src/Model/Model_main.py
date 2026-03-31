@@ -36,8 +36,21 @@ class Model_main(TModel):
         stock_number_required: bool = True,
         draw: bool = True,
     ):
+        # 驗證參數
+        if record_parameter is None:
+            print("錯誤：參數對象為空")
+            return None
+        
         if stock_number_required and record_parameter.number is None:
             print("請輸入股票號碼")
+            return None
+        
+        if record_parameter.enddate is None:
+            print("錯誤：結束日期未設定")
+            return None
+            
+        if record_parameter.startdate is None:
+            print("錯誤：開始日期未設定")
             return None
         
         if record_parameter.enddate.day == datetime.today().day:
