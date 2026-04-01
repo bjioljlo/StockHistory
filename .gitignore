@@ -242,3 +242,16 @@ seasonInfo/
 data/
 logs/
 backups/
+
+# cline
+.cline
+.clinerules
+
+# claude
+.agent
+
+# codex
+.codex
+
+# gemini
+.gemini
