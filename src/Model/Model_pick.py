@@ -155,33 +155,79 @@ class Model_pick(TModel):
 
         # 初始化主篩選器
         mainfun = GetStockData.All_fuc(date, self._reportService.Month_index)
-        mainStockfun = All_Stock_Filters_fuc(date, financial_data, OriginalStockByYahoo(self._external_data_factory))
 
-        # 應用各項財務指標篩選
-        filters_to_apply = [
-            ('PBR', lambda: self._apply_report_filter(mainfun, self._reportService.PBR_index, params['PBR_high'], params['PBR_low'])),
-            ('PER', lambda: self._apply_report_filter(mainfun, self._reportService.PER_index, params['PER_high'], params['PER_low'])),
-            ('ROE', lambda: self._apply_report_filter(mainfun, self._reportService.ROE_index, params['ROE_high'], params['ROE_low'])),
-            ('ROE成長', lambda: mainfun.get_Up_Auto(params['ROE_up'])),
-            ('殖利率', lambda: self._apply_report_filter(mainfun, self._reportService.Yield_index, params['yiled_high'], params['yiled_low'])),
-            ('營收成長', lambda: mainfun.get_Up_Auto(params['OMGR'])),
-            ('PEG', lambda: self._apply_report_filter(mainfun, self._reportService.PEG_index, params['PEG_high'], params['PEG_low'])),
-            ('自由現金流', lambda: mainfun.get_Up_Auto(params['FCF'])),
-            ('EPS成長', lambda: mainfun.get_Up_Auto(params['EPS_up'])),
-            ('營收年增', lambda: mainfun.get_Up_Auto(params['SRGR'])),
-            ('營收月增', lambda: mainfun.get_Up_Auto(params['MRGR']))
-        ]
+        # 應用各項財務指標篩選 - 只有當參數大於0時才應用篩選
+        filters_to_apply = []
         
-        # 只有當月營收平滑和升高參數都不為0時才應用月報表平滑篩選
+        # PBR 篩選：只有當 high 或 low 大於 0 時才應用
+        if params['PBR_high'] > 0 or params['PBR_low'] > 0:
+            filters_to_apply.append(
+                ('PBR', lambda: self._apply_report_filter(mainfun, self._reportService.PBR_index, params['PBR_high'], params['PBR_low']))
+            )
+        
+        # PER 篩選
+        if params['PER_high'] > 0 or params['PER_low'] > 0:
+            filters_to_apply.append(
+                ('PER', lambda: self._apply_report_filter(mainfun, self._reportService.PER_index, params['PER_high'], params['PER_low']))
+            )
+        
+        # ROE 篩選
+        if params['ROE_high'] > 0 or params['ROE_low'] > 0:
+            filters_to_apply.append(
+                ('ROE', lambda: self._apply_report_filter(mainfun, self._reportService.ROE_index, params['ROE_high'], params['ROE_low']))
+            )
+        
+        # ROE成長 篩選
+        if params['ROE_up'] > 0:
+            filters_to_apply.append(('ROE成長', lambda: mainfun.get_Up_Auto(params['ROE_up'])))
+        
+        # 殖利率 篩選
+        if params['yiled_high'] > 0 or params['yiled_low'] > 0:
+            filters_to_apply.append(
+                ('殖利率', lambda: self._apply_report_filter(mainfun, self._reportService.Yield_index, params['yiled_high'], params['yiled_low']))
+            )
+        
+        # 營收成長 篩選
+        if params['OMGR'] > 0:
+            filters_to_apply.append(('營收成長', lambda: mainfun.get_Up_Auto(params['OMGR'])))
+        
+        # PEG 篩選
+        if params['PEG_high'] > 0 or params['PEG_low'] > 0:
+            filters_to_apply.append(
+                ('PEG', lambda: self._apply_report_filter(mainfun, self._reportService.PEG_index, params['PEG_high'], params['PEG_low']))
+            )
+        
+        # 自由現金流 篩選
+        if params['FCF'] > 0:
+            filters_to_apply.append(('自由現金流', lambda: mainfun.get_Up_Auto(params['FCF'])))
+        
+        # EPS成長 篩選
+        if params['EPS_up'] > 0:
+            filters_to_apply.append(('EPS成長', lambda: mainfun.get_Up_Auto(params['EPS_up'])))
+        
+        # 營收年增 篩選
+        if params['SRGR'] > 0:
+            filters_to_apply.append(('營收年增', lambda: mainfun.get_Up_Auto(params['SRGR'])))
+        
+        # 營收月增 篩選
+        if params['MRGR'] > 0:
+            filters_to_apply.append(('營收月增', lambda: mainfun.get_Up_Auto(params['MRGR'])))
+        
+        # 月報表平滑篩選：只有當兩個參數都不為0時才應用
         if params['monthRP_smoothAVG'] > 0 and params['monthRP_UpMpnth'] > 0:
             filters_to_apply.insert(0, ('月報表平滑', lambda: mainfun.get_Smooth_Up_Auto(params['monthRP_smoothAVG'], params['monthRP_UpMpnth'])))
 
+        self._logger.info(f"準備應用 {len(filters_to_apply)} 個財務篩選條件")
+        
         result_data = financial_data
         for filter_name, filter_func in filters_to_apply:
             try:
                 filter_result = filter_func()
                 if not filter_result.empty:
                     result_data = self._merge_filter_data(result_data, filter_result, filter_name)
+                else:
+                    self._logger.warning(f"{filter_name} 篩選結果為空，停止篩選")
+                    return pd.DataFrame()  # 如果任何篩選結果為空，直接返回空
             except Exception as e:
                 self._logger.error(f"應用 {filter_name} 篩選時發生錯誤: {e}")
 
@@ -190,10 +236,12 @@ class Model_pick(TModel):
     def _apply_technical_filters(self, base_data: pd.DataFrame, date: datetime, params: dict) -> pd.DataFrame:
         """應用技術指標篩選"""
         if base_data.empty:
+            self._logger.warning("技術篩選的基礎數據為空")
             return base_data
 
         mainStockfun = All_Stock_Filters_fuc(date, base_data, OriginalStockByYahoo(self._external_data_factory))
         result_data = base_data
+        filters_applied = 0
 
         # 價格篩選
         if params['price_high'] > 0 or params['price_low'] > 0:
@@ -201,7 +249,12 @@ class Model_pick(TModel):
                 price_data = mainStockfun.get_Filter(
                     "price", params['price_high'], params['price_low'], info.Price_type.Close
                 )
-                result_data = self._merge_filter_data(result_data, price_data, "價格")
+                if not price_data.empty:
+                    result_data = self._merge_filter_data(result_data, price_data, "價格")
+                    filters_applied += 1
+                else:
+                    self._logger.warning("價格篩選結果為空")
+                    return pd.DataFrame()
             except Exception as e:
                 self._logger.error(f"價格篩選失敗: {e}")
 
@@ -211,7 +264,12 @@ class Model_pick(TModel):
                 record_data = mainStockfun.get_Filter_RecordHigh(
                     params['flash_Day'], params['record_Day'], info.Price_type.High
                 )
-                result_data = self._merge_filter_data(result_data, record_data, "歷史高點")
+                if not record_data.empty:
+                    result_data = self._merge_filter_data(result_data, record_data, "歷史高點")
+                    filters_applied += 1
+                else:
+                    self._logger.warning("歷史高點篩選結果為空")
+                    return pd.DataFrame()
             except Exception as e:
                 self._logger.error(f"歷史高點篩選失敗: {e}")
 
@@ -219,24 +277,40 @@ class Model_pick(TModel):
         if params['BerMA'] > 0:
             try:
                 berma_data = mainStockfun.get_Filter_BetterMA(params['BerMA'], info.Price_type.Close)
-                result_data = self._merge_filter_data(result_data, berma_data, "移動平均線")
+                if not berma_data.empty:
+                    result_data = self._merge_filter_data(result_data, berma_data, "移動平均線")
+                    filters_applied += 1
+                else:
+                    self._logger.warning("移動平均線篩選結果為空")
+                    return pd.DataFrame()
             except Exception as e:
                 self._logger.error(f"移動平均線篩選失敗: {e}")
 
-        # 成交量篩選
+        # 成交量倍數篩選
         if params['avg_vol_multiple'] > 0:
             try:
                 avg_vol_data = mainStockfun.get_Filter_AvgVol_Multiple(params['avg_vol_multiple'], 10)
-                result_data = self._merge_filter_data(result_data, avg_vol_data, "成交量倍數")
+                if not avg_vol_data.empty:
+                    result_data = self._merge_filter_data(result_data, avg_vol_data, "成交量倍數")
+                    filters_applied += 1
+                else:
+                    self._logger.warning("成交量倍數篩選結果為空")
+                    return pd.DataFrame()
             except Exception as e:
                 self._logger.error(f"成交量倍數篩選失敗: {e}")
 
+        # 成交量SMA篩選
         if params['volum'] > 0:
             try:
                 volume_data = mainStockfun.get_Filter_SMA(
                     "volume", params['volum'] * 100000000, params['volum'] * 10000, 5, info.Price_type.Volume
                 )
-                result_data = self._merge_filter_data(result_data, volume_data, "成交量SMA")
+                if not volume_data.empty:
+                    result_data = self._merge_filter_data(result_data, volume_data, "成交量SMA")
+                    filters_applied += 1
+                else:
+                    self._logger.warning("成交量SMA篩選結果為空")
+                    return pd.DataFrame()
             except Exception as e:
                 self._logger.error(f"成交量SMA篩選失敗: {e}")
 
@@ -244,10 +318,16 @@ class Model_pick(TModel):
         if params['Kind'] > 0 and params['Kind'] <= len(self.Groups):
             try:
                 group_data = mainStockfun.get_FilterInfo(self.Groups[params['Kind'] - 1])
-                result_data = self._merge_filter_data(result_data, group_data, f"產業分類({self.Groups[params['Kind'] - 1]})")
+                if not group_data.empty:
+                    result_data = self._merge_filter_data(result_data, group_data, f"產業分類({self.Groups[params['Kind'] - 1]})")
+                    filters_applied += 1
+                else:
+                    self._logger.warning(f"產業分類({self.Groups[params['Kind'] - 1]})篩選結果為空")
+                    return pd.DataFrame()
             except Exception as e:
                 self._logger.error(f"產業分類篩選失敗: {e}")
 
+        self._logger.info(f"技術篩選應用了 {filters_applied} 個篩選條件")
         return result_data
 
     def _apply_report_filter(self, mainfun, report_index, high_value: float, low_value: float) -> pd.DataFrame:
