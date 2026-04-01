@@ -1068,7 +1068,7 @@ class TGetExternalData(IGetExternalData):
 
     def get_full_adl(self) -> pd.DataFrame:
         """
-        取得完整的 ADL 歷史資料
+        取得完整的 ADL 歷史資料，如果 MySQL 中沒有資料則自動計算並儲存
         """
         self._logger.info("取得完整的 ADL 歷史資料")
         try:
@@ -1076,21 +1076,32 @@ class TGetExternalData(IGetExternalData):
             if not adl_table.empty:
                 return adl_table.sort_index()
 
-            with self._sql_service.server_flask.app_context():
-                query = """
-                SELECT date, adl
-                FROM adl
-                ORDER BY date DESC
-                LIMIT 10000
-                """
-                adl_table = pd.read_sql(query, con=self._sql_service.MySql_server.engine)
-                if not adl_table.empty:
-                    adl_table["date"] = pd.to_datetime(adl_table["date"])
-                    adl_table = adl_table.set_index("date")
-                    adl_table = adl_table.rename(columns={"adl": "ADL"})
-                    return adl_table.sort_index()
+            # MySQL 中沒有 ADL 資料，自動從 ad_index 計算
+            self._logger.info("ADL 資料不存在，自動從 ad_index 計算...")
+            ad_index_history = self.get_full_ad_index()
+            
+            if ad_index_history.empty:
+                self._logger.warning("ad_index 也沒有資料，無法計算 ADL")
+                return pd.DataFrame()
+
+            # 計算 ADL = cumsum(up_count - down_count)
+            ad_index_history = ad_index_history.sort_index()
+            daily_diff = ad_index_history["up_count"] - ad_index_history["down_count"]
+            adl_series = daily_diff.cumsum()
+            adl_df = pd.DataFrame({"ADL": adl_series})
+
+            # 儲存到 MySQL
+            self._logger.info(f"計算完成，儲存 {len(adl_df)} 筆 ADL 資料到 MySQL...")
+            save_ok = self._sql_service.save_adl_data(adl_df)
+            if save_ok:
+                self._logger.info("ADL 資料已成功儲存到 MySQL")
+            else:
+                self._logger.error("ADL 資料儲存失敗")
+
+            return adl_df.sort_index()
+
         except Exception as e:
-            self._logger.error(f"Could not read ADL from MySQL. Error: {e}")
+            self._logger.error(f"Could not read or calculate ADL from MySQL. Error: {e}")
         return pd.DataFrame()
 
     def get_allstock_dividend_yield(self) -> pd.DataFrame:
