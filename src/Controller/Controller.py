@@ -110,6 +110,7 @@ def creat_treeView_model(parent, titalList, UserInfoData: UserInfoDatas = None):
 
 
 def set_treeView2(model, inputdataFram):
+    import twstock
     i = 0
     array_Num = []
     for index, row in inputdataFram.iterrows():
@@ -144,7 +145,21 @@ def set_treeView2(model, inputdataFram):
             array_Num.append(float(row["Yield"]))
         except Exception:
             array_Num.append(float(0))
-        add_stock_List(model, index, row["公司名稱"], i, array_Num)
+
+        # 動態獲取公司名稱：優先從row中獲取，如果沒有則從twstock獲取
+        stock_name = ""
+        try:
+            stock_name = row["公司名稱"]
+        except (KeyError, TypeError):
+            # 如果row中沒有公司名稱，嘗試從twstock獲取
+            try:
+                stock_code = str(index)
+                if stock_code in twstock.codes:
+                    stock_name = twstock.codes[stock_code].name
+            except Exception:
+                stock_name = ""
+
+        add_stock_List(model, index, stock_name, i, array_Num)
         i = i + 1
 
 
