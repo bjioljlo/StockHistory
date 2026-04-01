@@ -660,6 +660,9 @@ class ADL_Indicator(Indicator):
         
         For dates that exist in the stock trading calendar but have no ADL data,
         the last available ADL value is forward-filled to avoid gaps in charting.
+        
+        The forward-fill extends from the first known ADL date to the most recent
+        trading date, ensuring all chart dates have ADL values.
         """
         print("Calculating full ADL data...")
         persisted_adl_data = self._AD_RP._main_GetExternalData.get_full_adl()
@@ -681,20 +684,7 @@ class ADL_Indicator(Indicator):
             
             # Fill missing ADL dates by forward-fill if we have a trading calendar
             if trade_dates is not None and not adl_sorted.empty:
-                # Determine date range
-                adl_min_date = adl_sorted.index.min()
-                adl_max_date = adl_sorted.index.max()
-                
-                # Filter trading dates to be within the ADL data range
-                relevant_dates = trade_dates[(trade_dates >= adl_min_date) & (trade_dates <= adl_max_date)]
-                
-                if len(relevant_dates) > len(adl_sorted):
-                    print(f"Forward-filling ADL data for {len(relevant_dates) - len(adl_sorted)} missing dates...")
-                    # Reindex with all trading dates, then forward-fill
-                    adl_sorted = adl_sorted.reindex(relevant_dates)
-                    adl_sorted = adl_sorted.ffill()
-                    # Drop any trailing NaN that might exist before first data point
-                    adl_sorted = adl_sorted.dropna(subset=["ADL"])
+                adl_sorted = self._fill_adl_gaps(adl_sorted, trade_dates)
             
             self._adl_data = adl_sorted
             return
@@ -718,25 +708,56 @@ class ADL_Indicator(Indicator):
         
         # Fill missing ADL dates by forward-fill if we have a trading calendar
         if trade_dates is not None and not adl_df.empty:
-            # Determine date range
-            adl_min_date = adl_df.index.min()
-            adl_max_date = adl_df.index.max()
-            
-            # Filter trading dates to be within the ADL data range
-            relevant_dates = trade_dates[(trade_dates >= adl_min_date) & (trade_dates <= adl_max_date)]
-            
-            if len(relevant_dates) > len(adl_df):
-                print(f"Forward-filling ADL data for {len(relevant_dates) - len(adl_df)} missing dates...")
-                # Reindex with all trading dates, then forward-fill
-                adl_df = adl_df.reindex(relevant_dates)
-                adl_df = adl_df.ffill()
-                # Drop any trailing NaN that might exist before first data point
-                adl_df = adl_df.dropna()
-            else:
-                print("ADL data has all trading dates, no forward-fill needed.")
+            adl_df = self._fill_adl_gaps(adl_df, trade_dates)
         
         self._adl_data = adl_df
         print("Full ADL data calculated and cached.")
+
+    def _fill_adl_gaps(self, adl_df: pd.DataFrame, trade_dates: pd.DatetimeIndex) -> pd.DataFrame:
+        """Fill ADL data for ALL trading dates using forward-fill and backward-fill.
+        
+        ADL is a cumulative metric (cumsum of up-down). For dates without
+        explicit ADL values, the value is carried forward/backward.
+        
+        This fills ALL available trading dates:
+        - Dates before first ADL: filled with first known value (backward-fill)
+        - Dates after last ADL within trading calendar: filled with last known value (forward-fill)
+        - Dates between ADL values: filled with forward-fill
+        
+        The index name is taken from the trade_dates (stock history calendar).
+        """
+        if adl_df.empty:
+            return adl_df
+            
+        # Use trade dates' index name from stock history calendar
+        result_index_name = trade_dates.name
+        
+        adl_min_date = adl_df.index.min()
+        adl_max_date = adl_df.index.max()
+        
+        # Get ALL trading dates that fall within the stock history range
+        trade_min_date = trade_dates.min()
+        trade_max_date = trade_dates.max()
+        
+        # Fill all trading dates from stock history calendar
+        relevant_dates = trade_dates[(trade_dates >= trade_min_date) & (trade_dates <= trade_max_date)]
+        
+        # Create DataFrame with all trading dates
+        full_adl_df = pd.DataFrame(index=relevant_dates)
+        full_adl_df.index.name = result_index_name
+        full_adl_df = full_adl_df.join(adl_df)
+        
+        # Forward-fill first, then backward-fill for dates before first ADL value
+        # ffill propagates known values forward
+        # bfill propagates first known value backward to earliest trading dates
+        full_adl_df = full_adl_df.ffill()
+        full_adl_df = full_adl_df.bfill()
+        
+        filled_count = len(full_adl_df) - len(adl_df)
+        if filled_count > 0:
+            print(f"Filled ADL data for {filled_count} missing trading dates (forward and backward fill).")
+        
+        return full_adl_df
 
     def get_ALL_Report(self, date, base_today=None):
         # Calculate and cache the full ADL data if not already done

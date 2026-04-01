@@ -137,9 +137,12 @@ class ADLIndicatorPersistenceTests(unittest.TestCase):
 
         result = indicator.get_ALL_Report(pd.Timestamp("2024-01-03"))
 
+        # Expected result should have index name "Date" from stock history
+        expected = pd.DataFrame({"ADL": [8]}, index=pd.to_datetime(["2024-01-03"]))
+        expected.index.name = "Date"
         pd.testing.assert_frame_equal(
             result,
-            pd.DataFrame({"ADL": [8]}, index=pd.to_datetime(["2024-01-03"])),
+            expected,
         )
         external.get_full_adl.assert_called_once()
         external.get_full_ad_index.assert_not_called()
@@ -166,8 +169,10 @@ class ADLIndicatorPersistenceTests(unittest.TestCase):
         # Request data for the missing date (2024-01-03)
         result = indicator.get_ALL_Report(pd.Timestamp("2024-01-03"))
 
-        # Should return forward-filled value (5, since no new data on Jan 3)
-        expected = pd.DataFrame({"ADL": [5]}, index=pd.to_datetime(["2024-01-03"]))
+        # Should return forward-filled value (5.0, since no new data on Jan 3)
+        # ffill produces float type due to NaN handling in pandas
+        expected = pd.DataFrame({"ADL": [5.0]}, index=pd.to_datetime(["2024-01-03"]))
+        expected.index.name = "Date"
         pd.testing.assert_frame_equal(result, expected)
 
 
