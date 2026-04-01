@@ -254,8 +254,8 @@ class Controller_main(TController):
             self.check_KD_isCheck(m_history)
             self.check_BollingerBands_isCheck(m_history)
             self.check_RSI_isCheck(m_history)
-            self.Check_ADL_isCheck()
-            self.Check_ADLs_isCheck()
+            self.Check_ADL_isCheck(m_history)
+            self.Check_ADLs_isCheck(m_history)
             self.Check_MACD_isCheck(m_history)
             self.check_price_isCheck(
                 m_history, self.__GetModel().main_user_info_data.GetStockInfo(stock_number)
@@ -300,13 +300,14 @@ class Controller_main(TController):
         if self.__GetView().GetFormUI().check_RSI.isChecked():
             self._draw_figur_service.draw_RSI(m_history)
 
-    def Check_ADL_isCheck(self):
+    def Check_ADL_isCheck(self, m_history=None):
         if self.__GetView().GetFormUI().check_ADL.isChecked():
             Data_ADL = self.__GetModel().adl(self.__GetView().Parament)
             Data_ADL.sort_index(ascending=True, inplace=True)
-            self._draw_figur_service.draw_ADL(Data_ADL)
+            # Pass m_history as reference to ensure ADL data indices match main chart data
+            self._draw_figur_service.draw_ADL(Data_ADL, m_history)
 
-    def Check_ADLs_isCheck(self):
+    def Check_ADLs_isCheck(self, m_history=None):
         if self.__GetView().GetFormUI().check_ADLs.isChecked():
             self.__GetModel().adls(self.__GetView().Parament)
 

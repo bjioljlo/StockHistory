@@ -67,11 +67,16 @@ class DrawFigur:
         self.panelCount = self.panelCount + 1
         self.PICS.append(mpf.make_addplot(mRSI, panel=self.panelCount, ylabel="RSI"))
 
-    def draw_ADL(self, table: DataFrame):
+    def draw_ADL(self, table: DataFrame, reference_data: DataFrame = None):
         self.panelCount = self.panelCount + 1
-        self.PICS.append(
-            mpf.make_addplot(table, panel=self.panelCount, color="blue", ylabel="ADL")
-        )
+        # If reference_data is provided (the main stock chart data),
+        # filter ADL data to match its index to avoid dimension mismatch in mplfinance
+        if reference_data is not None and not table.empty:
+            table = table[table.index.isin(reference_data.index)]
+        if not table.empty:
+            self.PICS.append(
+                mpf.make_addplot(table, panel=self.panelCount, color="blue", ylabel="ADL")
+            )
 
     def draw_MACD(self, table: DataFrame):
         self.panelCount = self.panelCount + 1
