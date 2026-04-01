@@ -15,11 +15,25 @@ class DrawFigur:
         self.panelCount = 0
         self.lock = threading.Lock()
 
-    def draw_stock(self, table: DataFrame, number: int): 
+    def draw_stock(self, table: DataFrame, number: int, show_adl: bool = False): 
         mc = mpf.make_marketcolors(
             up="r", down="g", edge="", wick="inherit", volume="inherit"
         )
         s = mpf.make_mpf_style(base_mpf_style="charles", marketcolors=mc)
+        
+        # Calculate and add ADL if requested
+        if show_adl:
+            try:
+                # ADL requires High, Low, Close, Volume
+                if all(col in table.columns for col in ['High', 'Low', 'Close', 'Volume']):
+                    adl = talib.AD(table['High'], table['Low'], table['Close'], table['Volume'])
+                    self.panelCount = self.panelCount + 1
+                    self.PICS.append(
+                        mpf.make_addplot(adl, panel=self.panelCount, color='blue', ylabel='ADL')
+                    )
+            except Exception as e:
+                print(f"計算 ADL 時發生錯誤: {e}")
+        
         mpf.plot(
             table,
             type="candle",
