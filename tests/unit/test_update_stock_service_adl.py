@@ -124,6 +124,13 @@ class ADLIndicatorPersistenceTests(unittest.TestCase):
         )
         external.get_full_adl.return_value = persisted_adl
         external.get_full_ad_index.return_value = pd.DataFrame()
+        # Mock stock history for trading calendar - return same dates as ADL data
+        stock_history = pd.DataFrame(
+            {"Close": [100, 100]},
+            index=pd.to_datetime(["2024-01-02", "2024-01-03"]),
+        )
+        stock_history.index.name = "Date"
+        external.get_stock_history.return_value = stock_history
 
         report = ADL_Report("adl_report", 1, external)
         indicator = ADL_Indicator("ADL", report)
@@ -136,6 +143,32 @@ class ADLIndicatorPersistenceTests(unittest.TestCase):
         )
         external.get_full_adl.assert_called_once()
         external.get_full_ad_index.assert_not_called()
+
+    def test_adl_indicator_forward_fills_missing_trading_dates(self):
+        external = MagicMock()
+        # ADL data has only 2 dates
+        persisted_adl = pd.DataFrame(
+            {"ADL": [5, 10]},
+            index=pd.to_datetime(["2024-01-02", "2024-01-05"]),
+        )
+        external.get_full_adl.return_value = persisted_adl
+        # But stock history has 3 trading dates (Jan 2, 3, 5 - Jan 4 is missing because weekend/holiday)
+        stock_history = pd.DataFrame(
+            {"Close": [100, 101, 102]},
+            index=pd.to_datetime(["2024-01-02", "2024-01-03", "2024-01-05"]),
+        )
+        stock_history.index.name = "Date"
+        external.get_stock_history.return_value = stock_history
+
+        report = ADL_Report("adl_report", 1, external)
+        indicator = ADL_Indicator("ADL", report)
+
+        # Request data for the missing date (2024-01-03)
+        result = indicator.get_ALL_Report(pd.Timestamp("2024-01-03"))
+
+        # Should return forward-filled value (5, since no new data on Jan 3)
+        expected = pd.DataFrame({"ADL": [5]}, index=pd.to_datetime(["2024-01-03"]))
+        pd.testing.assert_frame_equal(result, expected)
 
 
 if __name__ == "__main__":

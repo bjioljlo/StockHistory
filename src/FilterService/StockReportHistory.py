@@ -656,12 +656,47 @@ class ADL_Indicator(Indicator):
         self._adl_data = None  # Cache for the calculated ADL data
 
     def _calculate_adl(self):
-        """Fetches all up/down data and calculates the cumulative ADL."""
+        """Fetches all up/down data and calculates the cumulative ADL.
+        
+        For dates that exist in the stock trading calendar but have no ADL data,
+        the last available ADL value is forward-filled to avoid gaps in charting.
+        """
         print("Calculating full ADL data...")
         persisted_adl_data = self._AD_RP._main_GetExternalData.get_full_adl()
+
+        # Get the full trading calendar from stock history to know all valid trading dates
+        try:
+            stock_history = self._AD_RP._main_GetExternalData.get_stock_history("2330")
+            if not stock_history.empty:
+                trade_dates = stock_history.index.sort_values()
+            else:
+                trade_dates = None
+        except Exception as e:
+            print(f"Warning: Could not get stock history for trading dates: {e}")
+            trade_dates = None
+
         if not persisted_adl_data.empty:
-            self._adl_data = persisted_adl_data.sort_index()
+            adl_sorted = persisted_adl_data.sort_index()
             print("Loaded persisted ADL data from MySQL.")
+            
+            # Fill missing ADL dates by forward-fill if we have a trading calendar
+            if trade_dates is not None and not adl_sorted.empty:
+                # Determine date range
+                adl_min_date = adl_sorted.index.min()
+                adl_max_date = adl_sorted.index.max()
+                
+                # Filter trading dates to be within the ADL data range
+                relevant_dates = trade_dates[(trade_dates >= adl_min_date) & (trade_dates <= adl_max_date)]
+                
+                if len(relevant_dates) > len(adl_sorted):
+                    print(f"Forward-filling ADL data for {len(relevant_dates) - len(adl_sorted)} missing dates...")
+                    # Reindex with all trading dates, then forward-fill
+                    adl_sorted = adl_sorted.reindex(relevant_dates)
+                    adl_sorted = adl_sorted.ffill()
+                    # Drop any trailing NaN that might exist before first data point
+                    adl_sorted = adl_sorted.dropna(subset=["ADL"])
+            
+            self._adl_data = adl_sorted
             return
 
         # Get the full table of up/down data
@@ -676,11 +711,31 @@ class ADL_Indicator(Indicator):
         # Calculate the daily difference
         daily_diff = daily_ad_data["up_count"] - daily_ad_data["down_count"]
         
-        # Calculate the cumulative sum
+        # Calculate the cumulative sum to get ADL
         adl_series = daily_diff.cumsum()
+        adl_df = pandas.DataFrame(adl_series, columns=[self._name])
+        adl_df.index.name = "Date"
         
-        self._adl_data = pandas.DataFrame(adl_series)
-        self._adl_data.columns = [self._name]
+        # Fill missing ADL dates by forward-fill if we have a trading calendar
+        if trade_dates is not None and not adl_df.empty:
+            # Determine date range
+            adl_min_date = adl_df.index.min()
+            adl_max_date = adl_df.index.max()
+            
+            # Filter trading dates to be within the ADL data range
+            relevant_dates = trade_dates[(trade_dates >= adl_min_date) & (trade_dates <= adl_max_date)]
+            
+            if len(relevant_dates) > len(adl_df):
+                print(f"Forward-filling ADL data for {len(relevant_dates) - len(adl_df)} missing dates...")
+                # Reindex with all trading dates, then forward-fill
+                adl_df = adl_df.reindex(relevant_dates)
+                adl_df = adl_df.ffill()
+                # Drop any trailing NaN that might exist before first data point
+                adl_df = adl_df.dropna()
+            else:
+                print("ADL data has all trading dates, no forward-fill needed.")
+        
+        self._adl_data = adl_df
         print("Full ADL data calculated and cached.")
 
     def get_ALL_Report(self, date, base_today=None):
