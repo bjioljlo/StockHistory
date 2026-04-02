@@ -379,15 +379,29 @@ class Model_pick(TModel):
                 self._logger.warning("綜合損益表資料為空")
                 return pd.DataFrame()
             
-            # 確保數據類型正確
+            # 確保數據類型正確 - 改進：使用更靈活的欄位名稱檢查
             pl_report = pl_report.copy()
-            if "毛利率(%)" in pl_report.columns:
-                pl_report["毛利率(%)"] = pd.to_numeric(pl_report["毛利率(%)"], errors='coerce')
-            if "營業利益率(%)" in pl_report.columns:
-                pl_report["營業利益率(%)"] = pd.to_numeric(pl_report["營業利益率(%)"], errors='coerce')
             
-            gpm_filter = pl_report["毛利率(%)"] > GPM
-            opr_filter = pl_report["營業利益率(%)"] > OPR
+            # 毛利率(%) - 嘗試多種可能的欄位名稱
+            gpm_columns = ["毛利率(%)", "毛利率", "Gross Profit Margin", "GPM"]
+            gpm_col = next((col for col in gpm_columns if col in pl_report.columns), None)
+            if gpm_col:
+                pl_report[gpm_col] = pd.to_numeric(pl_report[gpm_col], errors='coerce')
+                gpm_filter = pl_report[gpm_col] > GPM
+            else:
+                self._logger.warning("未找到毛利率相關欄位，跳過GPM篩選")
+                gpm_filter = pd.Series([True] * len(pl_report), index=pl_report.index)
+            
+            # 營業利益率(%) - 嘗試多種可能的欄位名稱
+            opr_columns = ["營業利益率(%)", "營業利益率", "Operating Profit Margin", "OPM"]
+            opr_col = next((col for col in opr_columns if col in pl_report.columns), None)
+            if opr_col:
+                pl_report[opr_col] = pd.to_numeric(pl_report[opr_col], errors='coerce')
+                opr_filter = pl_report[opr_col] > OPR
+            else:
+                self._logger.warning("未找到營業利益率相關欄位，跳過OPR篩選")
+                opr_filter = pd.Series([True] * len(pl_report), index=pl_report.index)
+            
             result_pl = pl_report[gpm_filter & opr_filter]
             self._logger.info(f"綜合損益表篩選完成: {len(result_pl)} 隻股票")
             
@@ -399,10 +413,17 @@ class Model_pick(TModel):
             
             # 確保數據類型正確
             bs_report = bs_report.copy()
-            if "每股參考淨值" in bs_report.columns:
-                bs_report["每股參考淨值"] = pd.to_numeric(bs_report["每股參考淨值"], errors='coerce')
             
-            rps_filter = bs_report["每股參考淨值"] > RPS
+            # 每股參考淨值 - 嘗試多種可能的欄位名稱
+            rps_columns = ["每股參考淨值", "每股淨值", "Book Value Per Share", "BVPS"]
+            rps_col = next((col for col in rps_columns if col in bs_report.columns), None)
+            if rps_col:
+                bs_report[rps_col] = pd.to_numeric(bs_report[rps_col], errors='coerce')
+                rps_filter = bs_report[rps_col] > RPS
+            else:
+                self._logger.warning("未找到每股參考淨值相關欄位，跳過RPS篩選")
+                rps_filter = pd.Series([True] * len(bs_report), index=bs_report.index)
+            
             result_bs = bs_report[rps_filter]
             self._logger.info(f"資產負債表篩選完成: {len(result_bs)} 隻股票")
             
@@ -414,10 +435,17 @@ class Model_pick(TModel):
             
             # 確保數據類型正確
             cpl_report = cpl_report.copy()
-            if "基本每股盈餘（元）" in cpl_report.columns:
-                cpl_report["基本每股盈餘（元）"] = pd.to_numeric(cpl_report["基本每股盈餘（元）"], errors='coerce')
             
-            eps_filter = cpl_report["基本每股盈餘（元）"] > EPS
+            # 基本每股盈餘（元）- 嘗試多種可能的欄位名稱
+            eps_columns = ["基本每股盈餘（元）", "基本每股盈餘", "EPS", "每股盈餘"]
+            eps_col = next((col for col in eps_columns if col in cpl_report.columns), None)
+            if eps_col:
+                cpl_report[eps_col] = pd.to_numeric(cpl_report[eps_col], errors='coerce')
+                eps_filter = cpl_report[eps_col] > EPS
+            else:
+                self._logger.warning("未找到基本每股盈餘相關欄位，跳過EPS篩選")
+                eps_filter = pd.Series([True] * len(cpl_report), index=cpl_report.index)
+            
             result_cpl = cpl_report[eps_filter]
             self._logger.info(f"現金流量表篩選完成: {len(result_cpl)} 隻股票")
             
