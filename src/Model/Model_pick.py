@@ -328,7 +328,7 @@ class Model_pick(TModel):
                 self._logger.error(f"產業分類篩選失敗: {e}")
 
         self._logger.info(f"技術篩選應用了 {filters_applied} 個篩選條件")
-        return result_data
+        return result_data if not result_data.empty else base_data  # 改進：如果結果為空，返回基礎數據
 
     def _apply_report_filter(self, mainfun, report_index, high_value: float, low_value: float) -> pd.DataFrame:
         """應用報表指標篩選的輔助方法"""

@@ -249,6 +249,7 @@ backups/
 
 # claude
 .agent
+.claude
 
 # codex
 .codex
