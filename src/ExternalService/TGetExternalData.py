@@ -152,35 +152,60 @@ class TGetExternalData(IGetExternalData):
         return pd.DataFrame()
 
     def _process_financial_statement_data(self, stock: pd.DataFrame, start: datetime, season: int, type: info.FS_type) -> pd.DataFrame:
-        """處理財務報表數據"""
-        # 整理資料
-        stock.rename(columns={"公司代號": "symbol"}, inplace=True)
-        stock.set_index("symbol", inplace=True)
+        """處理財務報表數據 - 符合資料庫欄位定義"""
+        df = stock.copy()
+        
+        # 1. 基本欄位處理
+        if '公司代號' in df.columns:
+            df.rename(columns={"公司代號": "symbol"}, inplace=True)
+        if '公司名稱' in df.columns:
+            df.rename(columns={"公司名稱": "company_name"}, inplace=True)
+            
+        # 確保 symbol 是字串類型
+        if 'symbol' in df.columns:
+            df['symbol'] = df['symbol'].astype(str).str.strip()
         
         # 添加年季和報表類型欄位
-        stock['report_year'] = start.year
-        stock['report_season'] = season
-        stock['report_type'] = type.value
+        df['report_year'] = start.year
+        df['report_season'] = season
+        df['report_type'] = type.value
         
-        # 根據不同的報表類型，重新命名欄位
+        # 2. 根據報表類型套用正確的欄位映射 (符合 quarterly_reports 資料表定義)
         column_mapping = self._get_financial_statement_column_mapping(type)
-        stock = stock.rename(columns=column_mapping)
+        df = df.rename(columns=column_mapping)
         
-        # 數據類型轉換
-        numeric_columns = [col for col in stock.columns if col not in ['symbol', 'report_year', 'report_season', 'report_type']]
-        for col in numeric_columns:
-            if col in stock.columns:
-                stock[col] = pd.to_numeric(stock[col], errors='coerce').fillna(0)
+        # 3. 數據類型轉換 (對應正確的欄位型態)
+        # BIGINT 類型欄位
+        bigint_columns = [
+            'revenue', 'consolidated_net_income',
+            'total_assets', 'total_liabilities', 'equity', 'capital',
+            'operating_cash_flow', 'investing_cash_flow', 'financing_cash_flow'
+        ]
+        # DECIMAL 類型欄位
+        decimal_columns = [
+            'gross_margin', 'operating_margin', 'pre_tax_margin', 'net_margin',
+            'consolidated_eps', 'book_value_per_share'
+        ]
         
-        # 確保 symbol 欄位存在且為字串類型
-        if 'symbol' not in stock.columns:
-            stock['symbol'] = stock.index.astype(str)
-        stock.set_index("symbol", inplace=True)
+        for col in bigint_columns:
+            if col in df.columns:
+                df[col] = pd.to_numeric(df[col], errors='coerce').fillna(0).astype('Int64')
+                
+        for col in decimal_columns:
+            if col in df.columns:
+                df[col] = pd.to_numeric(df[col], errors='coerce').fillna(0)
         
-        return stock
+        # 4. 移除重複與無效記錄
+        df = df.drop_duplicates(subset=['symbol', 'report_year', 'report_season', 'report_type'])
+        df = df.dropna(subset=['symbol'])
+        
+        # 5. 設定索引
+        df.set_index("symbol", inplace=True)
+        
+        return df
 
     def _get_financial_statement_column_mapping(self, type: info.FS_type) -> Dict[str, str]:
-        """獲取財務報表欄位映射"""
+        """獲取財務報表欄位映射 - 對應 quarterly_reports 資料表正確欄位"""
         column_mappings = {
             info.FS_type.PLA: {
                 '營業收入': 'revenue',
@@ -201,7 +226,9 @@ class TGetExternalData(IGetExternalData):
                 '毛利率(%)': 'gross_margin',
                 '營業利益率(%)': 'operating_margin',
                 '稅前純益率(%)': 'pre_tax_margin',
-                '稅後純益率(%)': 'net_margin'
+                '稅後純益率(%)': 'net_margin',
+                '合併淨利': 'consolidated_net_income',
+                '每股盈餘': 'consolidated_eps'
             },
             info.FS_type.SCF: {
                 '營業活動之淨現金流入（流出）': 'operating_cash_flow',
