@@ -115,15 +115,15 @@ def set_treeView2(model, inputdataFram):
     array_Num = []
     for index, row in inputdataFram.iterrows():
         array_Num = [
-            row["每股參考淨值"],
-            row["基本每股盈餘（元）"],
-            row["毛利率(%)"],
-            row["營業利益率(%)"],
-            row["資產總額"],
-            row["負債總額"],
-            row["股本"],
-            row["權益總額"],
-            row["本期綜合損益總額（稅後）"],
+            row["book_value_per_share"],
+            row["consolidated_eps"],
+            row["gross_margin"],
+            row["operating_margin"],
+            row["operating_margin"],
+            row["total_liabilities"],
+            row["capital"],
+            row["equity"],
+            row["consolidated_net_income"],
         ]  # ,row["PBR"],row["PER"],row["ROE"]]
         try:
             array_Num.append(row["PBR"])

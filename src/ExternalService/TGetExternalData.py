@@ -168,7 +168,7 @@ class TGetExternalData(IGetExternalData):
         # 添加年季和報表類型欄位
         df['report_year'] = start.year
         df['report_season'] = season
-        df['report_type'] = type.value
+        df['report_type'] = type.name
         
         # 2. 根據報表類型套用正確的欄位映射 (符合 quarterly_reports 資料表定義)
         column_mapping = self._get_financial_statement_column_mapping(type)
@@ -177,7 +177,7 @@ class TGetExternalData(IGetExternalData):
         # 3. 數據類型轉換 (對應正確的欄位型態)
         # BIGINT 類型欄位
         bigint_columns = [
-            'revenue', 'consolidated_net_income',
+            'consolidated_net_income',
             'total_assets', 'total_liabilities', 'equity', 'capital',
             'operating_cash_flow', 'investing_cash_flow', 'financing_cash_flow'
         ]
@@ -242,7 +242,7 @@ class TGetExternalData(IGetExternalData):
         """保存財務報表數據到數據庫"""
         try:
             success = self._sql_service.upsert_data('quarterly_reports', stock.reset_index(), 
-                                                  ['symbol', 'report_year', 'report_season', 'report_type'])
+                                                  ['symbol', 'company_name', 'report_year', 'report_season', 'report_type'])
             if success:
                 self._logger.info(f"Successfully saved quarterly report data to quarterly_reports table for {type.value}")
             else:

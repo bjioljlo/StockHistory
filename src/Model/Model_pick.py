@@ -328,7 +328,7 @@ class Model_pick(TModel):
                 self._logger.error(f"產業分類篩選失敗: {e}")
 
         self._logger.info(f"技術篩選應用了 {filters_applied} 個篩選條件")
-        return result_data if not result_data.empty else base_data  # 改進：如果結果為空，返回基礎數據
+        return result_data
 
     def _apply_report_filter(self, mainfun, report_index, high_value: float, low_value: float) -> pd.DataFrame:
         """應用報表指標篩選的輔助方法"""
@@ -383,7 +383,7 @@ class Model_pick(TModel):
             pl_report = pl_report.copy()
             
             # 毛利率(%) - 嘗試多種可能的欄位名稱
-            gpm_columns = ["毛利率(%)", "毛利率", "Gross Profit Margin", "GPM"]
+            gpm_columns = ["毛利率(%)", "毛利率", "gross_margin", "GPM"]
             gpm_col = next((col for col in gpm_columns if col in pl_report.columns), None)
             if gpm_col:
                 pl_report[gpm_col] = pd.to_numeric(pl_report[gpm_col], errors='coerce')
@@ -393,7 +393,7 @@ class Model_pick(TModel):
                 gpm_filter = pd.Series([True] * len(pl_report), index=pl_report.index)
             
             # 營業利益率(%) - 嘗試多種可能的欄位名稱
-            opr_columns = ["營業利益率(%)", "營業利益率", "Operating Profit Margin", "OPM"]
+            opr_columns = ["營業利益率(%)", "營業利益率", "operating_margin", "OPM"]
             opr_col = next((col for col in opr_columns if col in pl_report.columns), None)
             if opr_col:
                 pl_report[opr_col] = pd.to_numeric(pl_report[opr_col], errors='coerce')
@@ -415,7 +415,7 @@ class Model_pick(TModel):
             bs_report = bs_report.copy()
             
             # 每股參考淨值 - 嘗試多種可能的欄位名稱
-            rps_columns = ["每股參考淨值", "每股淨值", "Book Value Per Share", "BVPS"]
+            rps_columns = ["每股參考淨值", "每股淨值", "book_value_per_share", "BVPS"]
             rps_col = next((col for col in rps_columns if col in bs_report.columns), None)
             if rps_col:
                 bs_report[rps_col] = pd.to_numeric(bs_report[rps_col], errors='coerce')
@@ -437,7 +437,7 @@ class Model_pick(TModel):
             cpl_report = cpl_report.copy()
             
             # 基本每股盈餘（元）- 嘗試多種可能的欄位名稱
-            eps_columns = ["基本每股盈餘（元）", "基本每股盈餘", "EPS", "每股盈餘"]
+            eps_columns = ["基本每股盈餘（元）", "基本每股盈餘", "EPS", "每股盈餘", "consolidated_eps"]
             eps_col = next((col for col in eps_columns if col in cpl_report.columns), None)
             if eps_col:
                 cpl_report[eps_col] = pd.to_numeric(cpl_report[eps_col], errors='coerce')
