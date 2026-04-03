@@ -67,27 +67,52 @@ class TGetExternalData(IGetExternalData):
         file = f"{start.year}-season{season}-{type.value}"
         fileName = self._get_file_path('season', file)
 
-        # 嘗試從快取獲取數據
+        # 1. 優先從快取獲取數據
         cached_data = self._get_cached_data(cache_key)
         if cached_data is not None:
             return cached_data
 
-        # 嘗試從 SQL 數據庫讀取
+        # 2. 從 SQL 數據庫讀取
         sql_data = self._get_financial_statement_from_sql(start, season, type)
         if not sql_data.empty:
-            return sql_data
+            # 統一執行欄位處理
+            processed_data = self._process_financial_statement_data(sql_data, start, season, type)
+            # 寫回快取
+            self._save_to_cache(cache_key, processed_data)
+            return processed_data
 
-        # 從本地文件讀取並處理
-        return self._get_financial_statement_from_file(fileName, start, season, type)
+        # 3. 從本地文件讀取
+        file_data = self._get_financial_statement_from_file(fileName, start, season, type)
+        if not file_data.empty:
+            # 統一執行欄位處理
+            processed_data = self._process_financial_statement_data(file_data, start, season, type)
+            # 寫回數據庫
+            self._save_financial_statement_to_db(processed_data, type)
+            # 寫回快取
+            self._save_to_cache(cache_key, processed_data)
+            return processed_data
+
+        # 4. 最後透過爬蟲下載
+        self._financial_statement(start.year, season, type)
+        self._logger.info(f"下載 {start.month} 月財務報告 OK")
+
+        crawler_data = pd.read_csv(fileName + ".csv")
+        # 統一執行欄位處理
+        processed_data = self._process_financial_statement_data(crawler_data, start, season, type)
+        
+        # 寫入數據庫
+        self._save_financial_statement_to_db(processed_data, type)
+        # 寫回快取
+        self._save_to_cache(cache_key, processed_data)
+        
+        return processed_data
 
     def _get_financial_statement_from_sql(self, start: datetime, season: int, type: info.FS_type) -> pd.DataFrame:
         """從 SQL 數據庫獲取財務報表數據"""
-        cache_key = f"financial_statement_{start.year}_{season}_{type.value}"
         Temp_data = pd.DataFrame()
         
         try:
             # 根據不同的報表類型，調用對應的 SQL 讀取方法
-            # 直接傳遞 type 枚舉對象，讓 read_quarterly_reports 內部處理轉換
             Temp_data = self._sql_service.read_quarterly_reports(
                 symbol=None,
                 report_type=type,
@@ -100,15 +125,7 @@ class TGetExternalData(IGetExternalData):
                 # 過濾出指定季節的數據
                 Temp_data = Temp_data[Temp_data['report_season'] == season]
                 if not Temp_data.empty:
-                    self._logger.info(f"從 SQL 數據庫成功讀取財務報表: {cache_key}")
-                    # 確保 symbol 欄位存在且為字串類型
-                    if 'symbol' not in Temp_data.columns:
-                        Temp_data['symbol'] = Temp_data.index.astype(str)
-                    Temp_data['symbol'] = Temp_data['symbol'].astype(str)
-                    Temp_data.set_index("symbol", inplace=True)
-                    
-                    # 保存到快取
-                    self._save_to_cache(cache_key, Temp_data)
+                    self._logger.info(f"從 SQL 數據庫成功讀取財務報表: {start.year} Q{season} {type.value}")
                     return Temp_data
         except Exception as e:
             self._logger.error(f"從 SQL 數據庫讀取財務報表失敗: {e}")
@@ -117,30 +134,22 @@ class TGetExternalData(IGetExternalData):
 
     def _get_financial_statement_from_file(self, fileName: str, start: datetime, season: int, type: info.FS_type) -> pd.DataFrame:
         """從本地文件獲取財務報表數據"""
-        cache_key = f"financial_statement_{start.year}_{season}_{type.value}"
         Temp_data = self._read_load_system.load_month_file(fileName, os.path.basename(fileName))
 
-        if Temp_data.empty:
-            if os.path.isfile(fileName + ".csv"):
-                self._logger.info(f"已經有 {start.month} 月財務報告")
-            self._financial_statement(start.year, season, type)
-            self._logger.info(f"下載 {start.month} 月財務報告 OK")
-
-            stock = pd.read_csv(fileName + ".csv")
-            stock = self._process_financial_statement_data(stock, start, season, type)
+        if not Temp_data.empty:
+            self._logger.info(f"從本地文件讀取財務報表: {os.path.basename(fileName)}")
+            return Temp_data
             
-            # 保存到數據庫
-            self._save_financial_statement_to_db(stock, type)
-        else:
-            stock = Temp_data
-
-        # 保存到快取
-        if (not stock.empty and
-            hasattr(self, '_cache_service') and
-            self._cache_service):
-            self._save_to_cache(cache_key, stock)
-
-        return stock
+        # 檢查是否有 CSV 檔案存在但尚未載入
+        if os.path.isfile(fileName + ".csv"):
+            try:
+                Temp_data = pd.read_csv(fileName + ".csv")
+                self._logger.info(f"從 CSV 檔案讀取財務報表: {os.path.basename(fileName)}")
+                return Temp_data
+            except Exception as e:
+                self._logger.error(f"讀取 CSV 檔案失敗: {e}")
+        
+        return pd.DataFrame()
 
     def _process_financial_statement_data(self, stock: pd.DataFrame, start: datetime, season: int, type: info.FS_type) -> pd.DataFrame:
         """處理財務報表數據"""
