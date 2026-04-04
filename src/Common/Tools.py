@@ -1,331 +1,93 @@
 """
-一些方便的轉換式
+Legacy Tools module - Backward compatibility wrapper
+===================================================
+
+⚠️  DEPRECATED: This module is maintained for backward compatibility only.
+Please import directly from the new utility modules:
+
+- DateUtils: date and time handling functions
+- FinancialUtils: financial and trading calculations
+- DataUtils: DataFrame and data processing functions
+- NetworkUtils: HTTP and network functions
+- StockUtils: stock classification utilities
+
+All functions are re-exported here for existing code.
+New code should import directly from the specialized modules.
 """
 
-import random
-from datetime import datetime, timedelta
+import warnings
 
-import pandas as pd
-import requests
+# Re-export all functions from new modules
+from .DateUtils import (
+    change_date_month,
+    check_month_date,
+    back_work_days,
+    qt_date_to_datetime,
+    datetime_to_string,
+    check_fs_season,
+    have_month_rp,
+    have_day_rp,
+    get_latest_season_report_date,
+    get_latest_monthly_report_date,
+    get_latest_daily_report_date,
+    SEASON_RP_TIME_MONTH,
+    SEASON_RP_TIME_DAY,
+)
 
-SEASON_RP_TIME_MONTH = [5, 8, 11, 3]
-SEASON_RP_TIME_DAY = [15, 31, 14, 31]
-NO_USE_STOCK = [2025]
-FIVE_WORD_ETF = ["00692", "00878", "00646", "00881", "00733"]
+from .FinancialUtils import (
+    calculate_total_with_fees,
+    calculate_max_shares,
+    smooth_data,
+)
 
-def get_latest_season_report_date(now_day: datetime, base_today: datetime = None) -> datetime:
-    """
-    從 now_day 開始往前推，找到最近一個已公告的季報資料日
-    """
-    check_date = now_day
-    while not CheckFS_season(check_date, base_today):
-        check_date = changeDateMonth(check_date, -3)
-    return check_date
+from .DataUtils import (
+    merge_dataframes,
+    extract_ticker_data,
+)
 
-def get_latest_monthly_report_date(now_day: datetime, base_today: datetime = None) -> datetime:
-    """
-    從 now_day 開始往前推，找到最近一個已公告的月營收月份
-    """
-    check_date = now_day.replace(day=1)  # 先回到當月1號
-    while not Have_MonthRP(check_date, base_today):
-        check_date = changeDateMonth(check_date, -1)
-    return check_date
+from .NetworkUtils import (
+    get_random_user_agent,
+    get_random_headers,
+    get_sp500_tickers,
+    _USER_AGENTS,
+)
 
-def get_latest_daily_report_date(now_day: datetime, base_today: datetime = None) -> datetime:
-    """
-    從 now_day 開始往前推，找到最近一個已公告的日報資料日
-    """
-    check_date = now_day
-    while not Have_DayRP(check_date, base_today):
-        check_date = backWorkDays(check_date, 1)
-    return check_date
+from .StockUtils import (
+    is_excluded_stock,
+    is_etf_stock,
+    EXCLUDED_STOCKS,
+    ETF_LIST,
+)
 
-def changeDateMonth(date: datetime, change_month: int) -> datetime:
-    temp_month = date.month + change_month
+# Legacy alias mappings for backward compatibility
+changeDateMonth = change_date_month
+check_monthDate = check_month_date
+backWorkDays = back_work_days
+QtDate2DateTime = qt_date_to_datetime
+DateTime2String = datetime_to_string
+CheckFS_season = check_fs_season
+Have_MonthRP = have_month_rp
+Have_DayRP = have_day_rp
+Total_with_Handling_fee_and_Tax = calculate_total_with_fees
+Count_Stock_Amount = calculate_max_shares
+smooth_Data = smooth_data
+MixDataFrames = merge_dataframes
+get_random_Header = get_random_headers
+get_SP500_list = get_sp500_tickers
+check_no_use_stock = is_excluded_stock
+check_ETF_stock = is_etf_stock
+TidyTicketData = extract_ticker_data
 
-    # print("changeDateMonth:" + str(date.month) + " to " + str(temp_month))
-    if temp_month >= 13:
-        year = temp_month // 12
-        month = temp_month % 12
-        if month == 0:
-            month = 12
-        date = datetime(
-            year=date.year + year, month=month, day=check_monthDate(month, date.day)
-        )
-    elif temp_month <= 0:
-        temp_month = abs(temp_month)
-        year = temp_month // 12
-        month = temp_month % 12
-        year = -1 - year
-        if month == 0:
-            month = 12
-        else:
-            month = 12 - month
-        date = datetime(
-            year=date.year + year, month=month, day=check_monthDate(month, date.day)
-        )
-    else:
-        date = datetime(
-            year=date.year, month=temp_month, day=check_monthDate(temp_month, date.day)
-        )
-    Temp_date = date
-    while date.isoweekday() in [6, 7]:
-        if Temp_date.day < 15:
-            date = backWorkDays(date, -1)
-        else:
-            date = backWorkDays(date, 1)
-    return date
+# Legacy constants
+NO_USE_STOCK = EXCLUDED_STOCKS
+FIVE_WORD_ETF = ETF_LIST
+headers_site = _USER_AGENTS
 
 
-def smooth_Data(
-    data: pd.DataFrame, everage
-) -> pd.DataFrame:  # data = 資料  everage = 往前多少資料平均
-    result = data.rolling(everage, min_periods=everage).mean()
-    return result
-
-
-def QtDate2DateTime(date) -> datetime:
-    date_str = str(date.year()) + "-" + str(date.month()) + "-" + str(date.day())
-    date_result = datetime.strptime(date_str, "%Y-%m-%d")
-    return date_result
-
-
-def DateTime2String(date: datetime) -> str:
-    date_str = str(date.year) + "-" + str(date.month) + "-" + str(date.day)
-    return date_str
-
-
-def check_monthDate(month: int, day: int) -> int:  # 確認日期正確性
-    result_day = day
-    if day > 28:
-        if month == 2:
-            result_day = 28
-        elif month in [4, 6, 9, 11] and day == 31:
-            result_day = 30
-        else:
-            result_day = day
-    return result_day
-
-
-def backWorkDays(date, days: int) -> datetime:  # 取得往後算days工作天後的日期
-    input_date = date
-    input_days = abs(days)
-    if type(input_date) is str:
-        input_date = datetime.strptime(date, "%Y-%m-%d")
-    while input_days > 0:
-        if days < 0:
-            input_date = input_date + timedelta(days=1)  # 加一天
-        else:
-            input_date = input_date - timedelta(days=1)  # 減一天
-
-        if input_date.isoweekday() in [6, 7]:
-            continue
-        input_days = input_days - 1
-    return input_date
-
-
-def MixDataFrames(DataFrames={}, index="code") -> pd.DataFrame:  # 合併報表
-    """
-    合併多個DataFrame，使用指定的索引進行內連接
-    
-    Args:
-        DataFrames (dict): 要合併的DataFrame字典，key為名稱，value為DataFrame
-        index (str): 用於合併的索引列名稱，預設為"code"
-    
-    Returns:
-        pd.DataFrame: 合併後的DataFrame
-        
-    Raises:
-        ValueError: 當DataFrames為空或包含無效的DataFrame時
-        pd.errors.MergeError: 當合併操作失敗時
-    """
-    if not DataFrames:
-        raise ValueError("DataFrames字典不能為空")
-    
-    # 驗證所有DataFrame是否有效
-    valid_dataframes = {}
-    for key, value in DataFrames.items():
-        if value is None:
-            raise ValueError(f"DataFrame '{key}' 為None")
-        if not isinstance(value, pd.DataFrame):
-            raise ValueError(f"DataFrame '{key}' 不是有效的DataFrame對象")
-        if not value.empty:
-            valid_dataframes[key] = value
-    
-    if not valid_dataframes:
-        return pd.DataFrame()
-    
-    result_data = pd.DataFrame()
-    first = True
-    
-    for key, value in valid_dataframes.items():
-        if result_data.empty and first:
-            result_data = value.copy()
-            first = False
-        else:
-            try:
-                # 檢查索引列是否存在，如果不存在則使用索引進行合併
-                if index in result_data.columns and index in value.columns:
-                    # 使用指定的列進行合併
-                    result_data = pd.merge(
-                        result_data, value, on=index, how="inner", suffixes=["", "_R"]
-                    )
-                elif result_data.index.name == value.index.name and result_data.index.name is not None:
-                    # 使用索引名稱進行合併
-                    result_data = pd.merge(
-                        result_data, value, left_index=True, right_index=True, how="inner", suffixes=["", "_R"]
-                    )
-                else:
-                    # 回退到使用索引進行合併（不檢查名稱）
-                    result_data = pd.merge(
-                        result_data, value, left_index=True, right_index=True, how="inner", suffixes=["", "_R"]
-                    )
-            except pd.errors.MergeError as e:
-                error_msg = f"合併DataFrame '{key}' 時發生錯誤: {str(e)}"
-                print(error_msg)
-                raise pd.errors.MergeError(error_msg) from e
-            except Exception as e:
-                error_msg = f"合併DataFrame '{key}' 時發生未預期錯誤: {str(e)}"
-                print(error_msg)
-                raise Exception(error_msg) from e
-    
-    return result_data
-
-
-def get_random_Header():  # 取得隨機header
-    headers_site = [
-        "Mozilla/5.0 (Windows; U; Windows NT 5.1; it; rv:1.8.1.11) Gecko/20071127 Firefox/2.0.0.11",
-        "Opera/9.25 (Windows NT 5.1; U; en)",
-        "Mozilla/4.0 (compatible; MSIE 6.0; Windows NT 5.1; SV1;"
-        + ".NET CLR 1.1.4322; .NET CLR 2.0.50727)",
-        "Mozilla/5.0 (compatible; Konqueror/3.5; Linux) KHTML/3.5.5 (like Gecko) (Kubuntu)",
-        "Mozilla/5.0 (X11; U; Linux i686; en-US; rv:1.8.0.12)"
-        + " Gecko/20070731 Ubuntu/dapper-security Firefox/1.5.0.12",
-        "Lynx/2.8.5rel.1 libwww-FM/2.14 SSL-MM/1.4.1 GNUTLS/1.2.9",
-        "Mozilla/5.0 (X11; Linux i686) AppleWebKit/535.7 (KHTML, like Gecko) "
-        + " Ubuntu/11.04 Chromium/16.0.912.77 Chrome/16.0.912.77 Safari/535.7",
-        "Mozilla/5.0 (X11; Ubuntu; Linux i686; rv:10.0) Gecko/20100101 Firefox/10.0 ",
-    ]
-    headers = {"User-Agent": headers_site[random.randrange(headers_site.__len__())]}
-    return headers
-
-
-def Total_with_Handling_fee_and_Tax(
-    stock_price, amount:int, buyIn=True, persent=0.1425, Use_fee_tax=True
-):
-    """交易手續費和交易稅"""
-    if stock_price is None:
-        return 0
-    if amount is None:
-        return 0
-    if Use_fee_tax is False:
-        return stock_price * amount
-    if buyIn is False:  # 賣出
-        return (stock_price * amount) - (
-            (stock_price * amount) * ((persent + 0.3) / 100)
-        )
-    return (stock_price * amount) + ((stock_price * amount) * ((persent) / 100))  # 買入
-
-
-def Count_Stock_Amount(money, price):  # 計算你可以買多少股
-    return (int)(money / (price * (100.1425 / 100)))
-
-
-def get_SP500_list():  # 取得S&P500股票清單
-    url = "https://www.slickcharts.com/sp500"
-    response = requests.get(url, headers=get_random_Header())
-    data = pd.read_html(response.text)[0]
-    # 欄位『Symbol』就是股票代碼
-    stk_list = data.Symbol
-    # 用 replace 將符號進行替換
-    stk_list = data.Symbol.apply(lambda x: x.replace(".", "-"))
-    return stk_list
-
-
-def CheckFS_season(date, base_today: datetime = None):  # 檢查當季資料出來沒
-    if base_today is None:
-        base_today = datetime.now()
-    season = int(((date.month - 1) / 3) + 1)
-    year = int(date.year)
-    if season == 4:
-        if base_today >= datetime(
-            year + 1, SEASON_RP_TIME_MONTH[season - 1], SEASON_RP_TIME_DAY[season - 1]
-        ):
-            return True
-        else:
-            return False
-    else:
-        if base_today >= datetime(
-            year, SEASON_RP_TIME_MONTH[season - 1], SEASON_RP_TIME_DAY[season - 1]
-        ):
-            return True
-        else:
-            return False
-
-
-def Have_MonthRP(date: datetime, base_today: datetime = None):  # 檢查當下月營收資料
-    if base_today is None:
-        base_today = datetime.now()
-    if (
-        date.month == base_today.month and date.year == base_today.year
-    ):  # 當月還沒出
-        return False
-    if (
-        date.year == base_today.year
-        and int(date.month) == int(changeDateMonth(base_today, -1).month)
-        and (int(base_today.day)) < 15
-    ):  # 還沒超過15號
-        print(str(date) + "還沒超過15號資料未出")
-        return False
-    return True
-
-
-def Have_DayRP(date: datetime, base_today: datetime = None):  # 檢查當下日營收資料
-    if base_today is None:
-        base_today = datetime.now()
-    if (
-        date.month >= base_today.month
-        and date.year >= base_today.year
-        and date.day >= base_today.day
-    ):
-        print(str(date) + "的日期不對，資料未出")
-        return False
-    return True
-
-
-def check_no_use_stock(number: str) -> bool:
-    try:
-        number = int(number)
-    except Exception:
-        print("check_no_use_stock error:" + Exception)
-        return False
-    for num in range(0, NO_USE_STOCK.__len__()):
-        if int(number) == NO_USE_STOCK[num]:
-            print(str(number))
-            return True
-    return False
-
-
-def check_ETF_stock(number: str) -> bool:
-    try:
-        number = str(number)
-    except Exception:
-        print("check_ETF_stock error:" + number + " " + Exception)
-        return False
-    for num in range(0, FIVE_WORD_ETF.__len__()):
-        if str(number) == FIVE_WORD_ETF[num]:
-            print(str(number))
-            return True
-    return False
-
-
-def TidyTicketData(df_result: pd.DataFrame, name: str) -> pd.DataFrame:
-    df_out = pd.DataFrame(
-        columns=["Close", "High", "Low", "Open", "Volume"], index=df_result.index
-    )
-    df_out["Close"] = df_result["Close", name]
-    df_out["High"] = df_result["High", name]
-    df_out["Low"] = df_result["Low", name]
-    df_out["Open"] = df_result["Open", name]
-    df_out["Volume"] = df_result["Volume", name]
-    return df_out
+# Show deprecation warning when module is imported
+warnings.warn(
+    "Tools module is deprecated. Please import from specialized utility modules: "
+    "DateUtils, FinancialUtils, DataUtils, NetworkUtils, StockUtils",
+    DeprecationWarning,
+    stacklevel=2
+)
