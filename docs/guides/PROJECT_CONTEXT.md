@@ -34,7 +34,9 @@ StockHistory 是一個使用 Python 和 PyQt5 開發的綜合性股票數據管�
 - `ScheduleService.py`：任務排程系統
 
 ### 配置檔案
-- `config.yml`：資料庫與應用程式配置
+- `config.yml`：默認資料庫與應用程式配置
+- `config.dev.yml`：開發環境配置（使用環境變數）
+- `config.prod.yml`：生產環境配置
 - `.env`：環境變數
 - `requirements.txt`：Python 依賴套件
 

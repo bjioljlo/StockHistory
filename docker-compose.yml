@@ -78,6 +78,19 @@ services:
     environment:
       # 建議實際值放在 .env 檔案中
       PYTHONUNBUFFERED: "1"
+      APP_ENV: "${APP_ENV:-production}"
+      MYSQL_USER: "${MYSQL_USER}"
+      MYSQL_PASSWORD: "${MYSQL_PASSWORD}"
+      MYSQL_HOST: "mysqlserver"
+      MYSQL_PORT: "3306"
+      MYSQL_DATABASE: "${MYSQL_DATABASE:-stock_data}"
+      MONGO_HOST: "mongoserver"
+      MONGO_PORT: "27017"
+      MONGO_DATABASE: "${MONGO_DATABASE:-stock_data}"
+      MONGO_USERNAME: "${MONGO_USERNAME:-}"
+      MONGO_PASSWORD: "${MONGO_PASSWORD:-}"
+    volumes:
+      - ./logs:/app/logs
     networks:
       - mybridge
     working_dir: /app
@@ -88,7 +101,7 @@ services:
     container_name: mongo-express
     restart: "no"
     ports:
-      - "8881:8081"
+      - "18081:8081"
     networks:
       - mybridge
     environment:
@@ -110,8 +123,8 @@ services:
     container_name: flaskserver
     restart: "no"
     ports:
-      - "5000:5000"
-      - "5010:5010"
+      - "15000:5000"
+      - "15010:5010"
     volumes:
       - ./logs/flask:/FlaskServer/logs
     networks:
@@ -136,7 +149,7 @@ services:
     container_name: golangserver
     restart: "no"
     ports:
-      - "8888:8080"
+      - "18080:8080"
     volumes:
       - ./logs/golang:/GolangServer/logs
     networks:

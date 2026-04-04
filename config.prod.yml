@@ -1,0 +1,84 @@
+# Production Environment Configuration
+# Database configuration
+# Set the 'type' to 'mysql', 'postgresql', or 'sqlite' to select the database.
+database:
+  type: mysql
+
+  mysql:
+    user: "${MYSQL_USER}"
+    password: "${MYSQL_PASSWORD}"
+    host: "${MYSQL_HOST:-mysqlserver}"
+    port: "${MYSQL_PORT:-3306}"
+    databasename: "${MYSQL_DATABASE:-stock_data}"
+    # Connection pool settings for production
+    pool_size: 20
+    max_overflow: 30
+    pool_timeout: 60
+    pool_recycle: 3600
+
+  postgresql:
+    user: "${POSTGRES_USER}"
+    password: "${POSTGRES_PASSWORD}"
+    host: "${POSTGRES_HOST}"
+    port: "${POSTGRES_PORT:-5432}"
+    databasename: "${POSTGRES_DATABASE}"
+    # Connection pool settings for production
+    pool_size: 20
+    max_overflow: 30
+    pool_timeout: 60
+    pool_recycle: 3600
+
+  sqlite:
+    # For SQLite, the 'path' is the relative path to the database file.
+    path: "stock_data.db"
+
+  mongodb:
+    host: "${MONGO_HOST:-mongoserver}"
+    port: "${MONGO_PORT:-27017}"
+    databasename: "${MONGO_DATABASE:-stock_data}"
+    username: "${MONGO_USERNAME}"
+    password: "${MONGO_PASSWORD}"
+
+# Application settings
+app:
+  debug: false
+  log_level: "INFO"
+  data_validation: true
+  backup_enabled: true
+  environment: "production"
+
+# External APIs
+external_apis:
+  yahoo_finance:
+    timeout: 60
+    retry_attempts: 5
+    rate_limit: 50
+
+  twse:
+    timeout: 60
+    retry_attempts: 5
+    rate_limit: 25
+
+# Data processing
+data_processing:
+  batch_size: 500
+  max_workers: 8
+  retry_on_failure: true
+  cleanup_interval_days: 90
+
+# Monitoring
+monitoring:
+  enable_performance_monitoring: true
+  slow_query_threshold: 2.0
+  log_queries: false
+
+# Backup settings
+backup:
+  schedule: "0 2 * * *"  # Daily at 2 AM
+  retention_days: 30
+  cloud_storage:
+    provider: "aws_s3"  # or "azure_blob"
+    bucket: "${BACKUP_BUCKET}"
+    access_key: "${BACKUP_ACCESS_KEY}"
+    secret_key: "${BACKUP_SECRET_KEY}"
+    region: "${BACKUP_REGION:-us-east-1}"

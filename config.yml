@@ -27,3 +27,39 @@ database:
     host: "localhost"
     port: 27017
     databasename: "Demo"
+
+# Redis cache configuration
+redis:
+  host: "localhost"
+  port: 6379
+  db: 0
+  default_ttl: 3600  # 1 hour
+  query_cache_ttl: 1800  # 30 minutes
+  data_cache_ttl: 7200  # 2 hours
+  socket_timeout: 5
+  socket_connect_timeout: 5
+  compression_threshold: 1024
+
+# Cloud backup configuration
+# Set 'enabled' to true to enable cloud backup
+cloud_backup:
+  enabled: false
+  provider: aws_s3 # Options: aws_s3, azure_blob
+
+  # AWS S3 configuration
+  aws_s3:
+    bucket_name: "your-stockhistory-backups"
+    key_prefix: "backups/"
+    access_key_id: "your_aws_access_key_id"
+    secret_access_key: "your_aws_secret_access_key"
+    region: "us-east-1"
+
+  # Azure Blob Storage configuration
+  azure_blob:
+    container_name: "stockhistory-backups"
+    connection_string: "your_azure_connection_string"
+
+# Backup settings
+backup:
+  retention_days: 7 # Number of days to keep local backups
+  auto_compress_logs: true # Automatically compress old log files

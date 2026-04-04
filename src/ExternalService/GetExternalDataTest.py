@@ -118,7 +118,8 @@ class GetExternalDataTest(TGetExternalData):
             data_time = datetime.strptime("2005-1-1", "%Y-%m-%d")
             result = pd.DataFrame()
 
-            if not StockInfos.ts.codes.__contains__(number):
+            # Only check Taiwan stock codes for Taiwanese stocks
+            if (number.replace('.TW', '').isdigit() or number.endswith('.TW')) and not StockInfos.ts.codes.__contains__(number):
                 print("無此檔股票")
                 return result
             if start_time < data_time:

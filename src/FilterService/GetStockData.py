@@ -1,6 +1,7 @@
 import sys
 from datetime import datetime
 
+import numpy as np
 import pandas as pd
 from pandas import DataFrame
 
@@ -180,17 +181,18 @@ class ReportAutoTrace(TReport):
     def get_AutoTrace(self, date):
         print("{} / {} is Start!".format(self._name, sys._getframe().f_code.co_name))
         Timer = 0
+        max_attempts = 12  # 增加到12次嘗試（約3個月）
         Temp = self._Report.get_ALL_Report(date)
-        while Temp.empty:
+        
+        while Temp.empty and Timer < max_attempts:
             date = self._Report.Next_date(date)
             Temp = self._Report.get_ALL_Report(date)
-            if Timer == 4:
-                raise NotImplementedError(
-                    "ReportAutoTrace error!"
-                    + str(type(self._Report))
-                    + "its too many times!"
-                )
             Timer = Timer + 1
+        
+        if Temp.empty:
+            print(f"{self._name} / 自動追蹤失敗: 在 {max_attempts} 次嘗試內都找不到數據")
+            return pd.DataFrame()  # 返回空DataFrame而不是拋出錯誤
+        
         print("{} / {} is End!".format(self._name, sys._getframe().f_code.co_name))
         return Temp
 
@@ -245,7 +247,7 @@ class ReportUp(TReport):
             raise NotImplementedError("ReportType error!" + str(type(self._Report)))
         data = {}
         table_result = pd.DataFrame()
-        need_num = upNum + 1
+        need_num = upNum + 2  # 需要多一個數據點進行比較
         while need_num > 0:
             temp_data = self._Report.get_ALL_Report(date)
             if temp_data.empty:
@@ -253,15 +255,113 @@ class ReportUp(TReport):
             data["%d-%d-1" % (date.year, date.month)] = temp_data
             date = self._Report.Next_date(date)
             need_num = need_num - 1
-        result = pd.DataFrame(
-            {k: result[self._Report._name] for k, result in data.items()}
-        ).transpose()
+        
+        # 處理數據合併
+        if not data:
+            return pd.DataFrame()
+        
+        # 檢查第一個數據框的結構
+        first_data = next(iter(data.values()))
+        if isinstance(first_data, pd.Series):
+            # 如果是 Series，直接使用
+            result = pd.DataFrame({k: result for k, result in data.items()}).transpose()
+        elif isinstance(first_data, pd.DataFrame):
+            # 如果是 DataFrame，需要選擇正確的列
+            if self._Report._name in first_data.columns:
+                # 使用報告名稱作為列名
+                result = pd.DataFrame(
+                    {k: result[self._Report._name] for k, result in data.items()}
+                ).transpose()
+            else:
+                # 如果沒有報告名稱列，使用第一列
+                result = pd.DataFrame(
+                    {k: result.iloc[:, 0] for k, result in data.items()}
+                ).transpose()
+        else:
+            return pd.DataFrame()
+        
+        # 確保 result 是 DataFrame 並且有數據
+        if not isinstance(result, pd.DataFrame) or result.empty:
+            return pd.DataFrame()
+        
         result.index = pd.to_datetime(result.index)
         result = result.sort_index()
-        method2 = (result > result.shift()).iloc[-upNum:].sum()
-        method2 = method2[method2 >= upNum]
-        method2 = pd.DataFrame(method2)
-        table_result[self._name] = method2
+        
+        # 確保數據類型正確 - 更徹底的類型轉換
+        result = result.apply(pd.to_numeric, errors='coerce')
+        
+        # 額外的數據清理：移除所有非數值列
+        numeric_columns = result.select_dtypes(include=[np.number]).columns
+        if len(numeric_columns) == 0:
+            print("沒有找到數值列，返回空DataFrame")
+            return pd.DataFrame()
+        
+        result = result[numeric_columns]
+        
+        # 再次確保所有數據都是數值類型，避免任何殘留的字符串
+        result = result.apply(pd.to_numeric, errors='coerce')
+        
+        # 移除任何包含 NaN 的行和列
+        result = result.dropna(how='all', axis=1)  # 移除全為 NaN 的列
+        result = result.dropna(how='all', axis=0)  # 移除全為 NaN 的行
+        
+        if result.empty:
+            print("數據清理後無有效數據")
+            return pd.DataFrame()
+        
+        # 檢查是否有足夠的數據進行比較
+        if len(result) < upNum + 1:
+            print(f"數據不足，需要 {upNum + 1} 個時間點，但只有 {len(result)} 個")
+            return pd.DataFrame()
+        
+        # 進行比較操作
+        try:
+            # 確保 result 數據類型一致，避免比較時出現類型錯誤
+            result = result.apply(pd.to_numeric, errors='coerce')
+            
+            # 移除包含 NaN 的列
+            result = result.dropna(axis=1, how='any')
+            
+            if result.empty:
+                print("數據清理後無有效數據")
+                return pd.DataFrame()
+            
+            # 確保所有數據都是數值類型再進行比較
+            result = result.apply(pd.to_numeric, errors='coerce')
+            
+            if result.empty:
+                print("沒有有效的數值數據進行比較")
+                return pd.DataFrame()
+            
+            # 確保 upNum 是整數
+            upNum_int = int(upNum)
+            
+            # 檢查是否有足夠的數據進行比較
+            if len(result) < upNum_int + 1:
+                print(f"數據不足，需要 {upNum_int + 1} 個時間點，但只有 {len(result)} 個")
+                return pd.DataFrame()
+            
+            comparison_result = result > result.shift()
+            method2 = comparison_result.iloc[-upNum_int:].sum()
+            
+            # 確保 method2 中的所有值都是數值類型，避免類型比較錯誤
+            method2 = pd.to_numeric(method2, errors='coerce')
+            
+            # 過濾掉 NaN 值
+            method2 = method2.dropna()
+            
+            # 只保留大於等於 upNum 的值
+            method2 = method2[method2 >= upNum_int]
+            
+            if not method2.empty:
+                method2 = pd.DataFrame(method2)
+                table_result[self._name] = method2
+            else:
+                print(f"沒有符合條件的數據 (需要連續 {upNum_int} 次增長)")
+        except Exception as e:
+            print(f"比較操作失敗: {e}")
+            return pd.DataFrame()
+        
         print("{} / {} is End!".format(self._name, sys._getframe().f_code.co_name))
         return table_result
 
@@ -282,6 +382,10 @@ class ReportSmooth(TReport):
         print("{} / {} is Start!".format(self._name, sys._getframe().f_code.co_name))
         if type(self._Report) is ReportAutoTrace:
             raise NotImplementedError("ReportType error!" + str(type(self.Report)))
+        
+        # 確保 avgNum 是整數
+        avgNum = int(avgNum)
+        
         data = {}
         table_result = pd.DataFrame()
         need_num = avgNum + 1
@@ -292,14 +396,54 @@ class ReportSmooth(TReport):
             data["%d-%d-1" % (date.year, date.month)] = temp_data
             date = self._Report.Next_date(date)
             need_num = need_num - 1
-        result = pd.DataFrame(
-            {k: result[self._Report._name] for k, result in data.items()}
-        ).transpose()
+        
+        # 處理數據合併
+        if not data:
+            return pd.DataFrame()
+        
+        # 檢查第一個數據框的結構
+        first_data = next(iter(data.values()))
+        if isinstance(first_data, pd.Series):
+            # 如果是 Series，直接使用
+            result = pd.DataFrame({k: result for k, result in data.items()}).transpose()
+        elif isinstance(first_data, pd.DataFrame):
+            # 如果是 DataFrame，需要選擇正確的列
+            if self._Report._name in first_data.columns:
+                # 使用報告名稱作為列名
+                result = pd.DataFrame(
+                    {k: result[self._Report._name] for k, result in data.items()}
+                ).transpose()
+            else:
+                # 如果沒有報告名稱列，使用第一列
+                result = pd.DataFrame(
+                    {k: result.iloc[:, 0] for k, result in data.items()}
+                ).transpose()
+        else:
+            return pd.DataFrame()
+        
         result.index = pd.to_datetime(result.index)
         result = result.sort_index()
+        
+        # 確保所有數據都是數值類型再進行計算
+        result = result.apply(pd.to_numeric, errors='coerce')
+        
+        if result.empty:
+            print("沒有有效的數值數據進行平滑計算")
+            return pd.DataFrame()
+        
         method2 = result.rolling(avgNum, min_periods=avgNum).mean()
-        method2 = method2.loc[method2.index[-1]]
-        table_result[self._name] = method2
+        method2 = method2.iloc[-1]  # 使用 iloc 而不是 loc 來避免索引類型問題
+        
+        # 確保 method2 中的所有值都是數值類型，避免類型比較錯誤
+        method2 = pd.to_numeric(method2, errors='coerce')
+        
+        # 過濾掉 NaN 值
+        method2 = method2.dropna()
+        
+        if not method2.empty:
+            table_result[self._name] = method2
+        else:
+            print(f"平滑計算後沒有有效的數據")
         print("{} / {} is End!".format(self._name, sys._getframe().f_code.co_name))
         return table_result
 
@@ -393,7 +537,7 @@ class All_imge:
     def get_Chart(self, number: int = None):
         if number is None:
             if (self._report._name != "ADL") and (self._report._name != "ADLs"):
-                raise
+                raise ValueError(f"當 number 為 None 時，只允許 ADL 或 ADLs 類型的報告，當前類型: {self._report._name}")
         
         results_list = []
         stock_history_index = self._main_GetExternalData.get_stock_history("2330").index
@@ -402,7 +546,8 @@ class All_imge:
         
         while start <= end:
             if end not in stock_history_index:
-                end = self._report.Next_date(end)
+                # 根據報告類型使用不同的日期移動方法
+                end = self._move_date(end, -self._report._Unit)
                 continue
             
             if (self._report._name == "ADL") or (self._report._name == "ADLs"):
@@ -410,13 +555,34 @@ class All_imge:
             else:
                 temp = self._report.get_ReportByNumber(end, number)
             
+            # 當 temp 為空時，嘗試智能日期調整
             if temp.empty:
-                end = self._report.Next_date(end)
-                continue
+                # 智能日期調整：嘗試往前找有效數據（往過去找，而不是往未來）
+                original_end = end
+                attempts = 0
+                max_attempts = 12  # 最多嘗試12個月
+                
+                while temp.empty and attempts < max_attempts:
+                    # 使用相應的日期移動方法往過去找數據
+                    end = self._move_date(end, -1)
+                    attempts += 1
+                    
+                    if (self._report._name == "ADL") or (self._report._name == "ADLs"):
+                        temp = self._report.get_ALL_Report(end)
+                    else:
+                        temp = self._report.get_ReportByNumber(end, number)
+                
+                # 如果嘗試後仍然沒有數據，跳過這個日期
+                if temp.empty:
+                    end = original_end  # 恢復原始日期
+                    end = self._move_date(end, -self._report._Unit)
+                    continue
             
             temp.insert(0, "Date", end)
             results_list.append(temp)
-            end = self._report.Next_date(end)
+            
+            # 移動到下一個日期進行下一次迭代
+            end = self._move_date(end, -self._report._Unit)
             
         if not results_list:
             data_result = pd.DataFrame(columns=["Date", self._report._name])
@@ -425,6 +591,32 @@ class All_imge:
 
         data_result.set_index("Date", inplace=True)
         return data_result
+
+    def _move_date(self, date, delta):
+        """
+        根據報告類型移動日期
+        - 季報 (Unit=3): 使用 changeDateMonth
+        - 月報 (Unit=1): 使用 changeDateMonth  
+        - 日報 (Unit=1): 使用 backWorkDays
+        """
+        # 檢查報告類型來決定使用哪種日期移動方法
+        if hasattr(self._report, '_Unit'):
+            if self._report._Unit == 1:
+                # 檢查是否為日報類型的報告，使用報告名稱來判斷
+                # 日報類型：yield_RP, aDL_RP, dividend_yield_RP 等
+                if hasattr(self._report, '_name') and any(keyword in self._report._name.lower() 
+                    for keyword in ['yield', 'adl', 'dividend']):
+                    # 日報使用工作日移動
+                    return Tools.backWorkDays(date, -delta)
+                else:
+                    # 月報使用月份移動
+                    return Tools.changeDateMonth(date, delta)
+            elif self._report._Unit == 3:
+                # 季報使用月份移動
+                return Tools.changeDateMonth(date, delta)
+        
+        # 預設使用月份移動
+        return Tools.changeDateMonth(date, delta)
 
 
 def get_stock_MA(number: str, date: datetime, MA_day: int, original_stock: OriginalStockByYahoo):  # 取得某股票某天的均線

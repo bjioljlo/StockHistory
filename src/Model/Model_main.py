@@ -16,7 +16,7 @@ class Model_main(TModel):
                  external_data_service: IGetExternalData, report_services: ReportServices) -> None:
         super().__init__()
         self._main_user_info_data: UserInfoDatas = UserInfoDatas(
-            "stock_info_list.npy", "Update_date.npy"
+            "stock_info_list.npy", "Update_date.npy", "TW_Update_date.npy", "US_Update_date.npy"
         )
         self._main_user_info_data._Show_all_stock_info()
         self._schedule_service = schedule
@@ -36,8 +36,21 @@ class Model_main(TModel):
         stock_number_required: bool = True,
         draw: bool = True,
     ):
+        # 驗證參數
+        if record_parameter is None:
+            print("錯誤：參數對象為空")
+            return None
+        
         if stock_number_required and record_parameter.number is None:
             print("請輸入股票號碼")
+            return None
+        
+        if record_parameter.enddate is None:
+            print("錯誤：結束日期未設定")
+            return None
+            
+        if record_parameter.startdate is None:
+            print("錯誤：開始日期未設定")
             return None
         
         if record_parameter.enddate.day == datetime.today().day:
@@ -216,7 +229,7 @@ class Model_main(TModel):
         self._schedule_service.RunSyncToMongo(progress_callback)
 
     def RunOtherSchedule(self, progress_callback=None):
-        self._schedule_service.RunUpdateADLNow(progress_callback)
+        self._schedule_service.RunOtherSchedule(progress_callback)
 
     def StopThreadSchedule(self):
         self._schedule_service.StopThreadSchedule()

@@ -6,15 +6,7 @@ from src.SqlService import SqlService
 
 class ReadLoadSystem:
     def __init__(self, sqlservice: SqlService) -> None:
-        self.load_memery = {}
         self._sqlservice = sqlservice
-
-    @property
-    def Memery(self) -> dict:
-        return self.load_memery
-    
-    def clear_memery(self):
-        self.load_memery = {}
 
     def save_stock_file(
         self, fileName: str, stockData, start_index: int = 0, end_index: int = 0
@@ -35,40 +27,24 @@ class ReadLoadSystem:
                 pos = pos + 1
                 f.writelines(stringText[pos:pos2])
 
-    def load_other_file(self, fileName: str, file: str = ""):
-        """#讀取資料"""
-        if fileName in self.load_memery:  # 快取
-            return self.load_memery[fileName]
-        df = DataFrame()
-        if file != "":  # mysql
-            df = self._sqlservice.readStockDay(file)
-        if df.empty:  # 本機端存檔
-            try:
-                df = pd.read_csv(
-                    fileName + ".csv", index_col="Date", parse_dates=["Date"]
-                )
-            except Exception:
-                print("no " + fileName + " csv file")
-                return df
-
-        df = df.dropna(how="any", inplace=False)  # 將某些null欄位去除
-        self.load_memery[fileName] = df
-        return df
-
     def load_month_file(self, fileName: str, file: str = ""):
         """#讀取月資料"""
-        if fileName in self.load_memery:  # 快取
-            return self.load_memery[fileName]
         df = DataFrame()
         if file != "":
             df = self._sqlservice.readDividendYield(file)
         if df.empty:
             try:
-                df = pd.read_csv(
-                    fileName + ".csv",
-                    index_col="code",
-                    parse_dates=["code"],
-                )
+                df = pd.read_csv(fileName + ".csv")
+                # 設定code欄位為索引，如果存在的話
+                if "code" in df.columns:
+                    df.set_index("code", inplace=True)
+                # 使用混合快取服務更新快取
+                if hasattr(self, '_cache_service') and self._cache_service and file:
+                    try:
+                        self._cache_service.set_stock_data(file, df)
+                        print(f"已將 {file} 存到混合快取")
+                    except Exception as e:
+                        print(f"儲存 {file} 到緩存失敗: {e}")
             except UnicodeDecodeError as e:
                 print("no " + fileName + " csv file" + " " + str(e))
                 return df
@@ -78,5 +54,4 @@ class ReadLoadSystem:
             except FileNotFoundError as e:
                 print("no " + fileName + " csv file" + " " + str(e))
                 return df
-        self.load_memery[fileName] = df
         return df

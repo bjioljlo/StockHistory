@@ -20,11 +20,59 @@
       "console": "integratedTerminal"
     },
     {
-      "name": "PowerShell: docker-compose up -d",
+      "name": "PowerShell: docker-compose",
       "type": "PowerShell",
       "request": "launch",
-      "script": "docker-compose up -d",
+      "script": "docker-compose up --build",
       "cwd": "${workspaceFolder}"
+    },
+    {
+      "name": "Python: migration season reports",
+      "type": "debugpy",
+      "request": "launch",
+      "program": "${workspaceRoot}/scripts/migration/migrate_reports_data.py",
+      "console": "integratedTerminal",
+      "cwd": "${workspaceFolder}",
+      "args": [
+        "--type",
+        "quarterly_reports",
+        "--start-year",
+        "2023",
+        "--end-year",
+        "2025"
+      ]
+    },
+    {
+      "name": "Python: migration month reports",
+      "type": "debugpy",
+      "request": "launch",
+      "program": "${workspaceRoot}/scripts/migration/migrate_reports_data.py",
+      "console": "integratedTerminal",
+      "cwd": "${workspaceFolder}",
+      "args": [
+        "--type",
+        "monthly_reports",
+        "--start-year",
+        "2024",
+        "--end-year",
+        "2025"
+      ]
+    },
+    {
+      "name": "Python: migration dividend_yield reports",
+      "type": "debugpy",
+      "request": "launch",
+      "program": "${workspaceRoot}/scripts/migration/migrate_reports_data.py",
+      "console": "integratedTerminal",
+      "cwd": "${workspaceFolder}",
+      "args": [
+        "--type",
+        "dividend_yield",
+        "--start-date",
+        "2024-01-01",
+        "--end-date",
+        "2026-03-22"
+      ]
     }
   ]
 }

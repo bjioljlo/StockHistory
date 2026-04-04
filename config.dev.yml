@@ -1,0 +1,73 @@
+# Development Environment Configuration
+# Database configuration
+# Set the 'type' to 'mysql', 'postgresql', or 'sqlite' to select the database.
+database:
+  type: mysql
+
+  mysql:
+    user: "${MYSQL_USER:-demo}"
+    password: "${MYSQL_PASSWORD:-~Demo123}"
+    host: "${MYSQL_HOST:-localhost}"
+    port: "${MYSQL_PORT:-3307}"
+    databasename: "${MYSQL_DATABASE:-demo}"
+    # Connection pool settings
+    pool_size: 5
+    max_overflow: 10
+    pool_timeout: 30
+    pool_recycle: 3600
+
+  postgresql:
+    user: "${POSTGRES_USER:-your_pg_user}"
+    password: "${POSTGRES_PASSWORD:-your_pg_password}"
+    host: "${POSTGRES_HOST:-localhost}"
+    port: "${POSTGRES_PORT:-5432}"
+    databasename: "${POSTGRES_DATABASE:-your_pg_db}"
+    # Connection pool settings
+    pool_size: 5
+    max_overflow: 10
+    pool_timeout: 30
+    pool_recycle: 3600
+
+  sqlite:
+    # For SQLite, the 'path' is the relative path to the database file.
+    path: "stock_data.db"
+
+  mongodb:
+    host: "${MONGO_HOST:-localhost}"
+    port: "${MONGO_PORT:-27017}"
+    databasename: "${MONGO_DATABASE:-Demo}"
+    username: "${MONGO_USERNAME:-}"
+    password: "${MONGO_PASSWORD:-}"
+
+# Application settings
+app:
+  debug: true
+  log_level: "DEBUG"
+  data_validation: true
+  backup_enabled: false
+  environment: "development"
+
+# External APIs
+external_apis:
+  yahoo_finance:
+    timeout: 30
+    retry_attempts: 3
+    rate_limit: 100
+
+  twse:
+    timeout: 30
+    retry_attempts: 3
+    rate_limit: 50
+
+# Data processing
+data_processing:
+  batch_size: 100
+  max_workers: 4
+  retry_on_failure: true
+  cleanup_interval_days: 30
+
+# Monitoring
+monitoring:
+  enable_performance_monitoring: false
+  slow_query_threshold: 5.0
+  log_queries: false

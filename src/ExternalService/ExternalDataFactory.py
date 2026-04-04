@@ -16,16 +16,18 @@ class ExternalDataFactory:
     def __init__(self,
         sql_service: SqlService,
         mongo_service: MongoService,
-        read_load_system: ReadLoadSystem):
+        read_load_system: ReadLoadSystem,
+        cache_service=None):
         self._sql_service = sql_service
         self._mongo_service = mongo_service
         self._read_load_system = read_load_system
+        self._cache_service = cache_service
     def Get_instance(self,
         type: ExternalDataTypeEnum = ExternalDataTypeEnum.Normal,
     ) -> IGetExternalData:
         if type == ExternalDataTypeEnum.Test:
-            return GetExternalDataTest(sql_service=self._sql_service, mongo_service=self._mongo_service, 
-                                    read_load_system=self._read_load_system)
+            return GetExternalDataTest(sql_service=self._sql_service, mongo_service=self._mongo_service,
+                                    read_load_system=self._read_load_system, cache_service=self._cache_service)
         else:
-            return TGetExternalData(sql_service=self._sql_service, mongo_service=self._mongo_service, 
-                                    read_load_system=self._read_load_system)
+            return TGetExternalData(sql_service=self._sql_service, mongo_service=self._mongo_service,
+                                    read_load_system=self._read_load_system, cache_service=self._cache_service)

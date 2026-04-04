@@ -23,6 +23,11 @@ class IGetExternalData(ABC):
         pass
 
     @abstractmethod
+    def get_allstock_dividend_yield(self):
+        """#從數據庫獲取所有股票股息殖利率數據"""
+        pass
+
+    @abstractmethod
     def get_stock_history(
         self, number: str, start=datetime.strptime("2005-1-1", "%Y-%m-%d")
     ) -> pd.DataFrame:
@@ -37,4 +42,9 @@ class IGetExternalData(ABC):
     @abstractmethod
     def get_full_ad_index(self) -> pd.DataFrame:
         """#取得完整的上漲和下跌家數歷史資料"""
+        pass
+
+    @abstractmethod
+    def get_full_adl(self) -> pd.DataFrame:
+        """#取得完整的騰落指標歷史資料"""
         pass
