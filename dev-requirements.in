@@ -1,7 +1,16 @@
 # Development-only dependencies for StockHistory
 # Install together with requirements.txt for full dev environment.
 
+pre-commit
+black
+isort
 flake8==7.1.2
+flake8-docstrings
+flake8-bugbear
+mypy
+types-requests
+pandas-stubs
+networkx
 freezegun==1.5.0
 iniconfig==2.0.0
 mccabe==0.7.0
