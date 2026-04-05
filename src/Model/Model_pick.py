@@ -1,103 +1,55 @@
-from datetime import datetime, timedelta
+"""
+Stock Pick Model - Facade Class (Backward Compatible)
+
+This class maintains backward compatibility while delegating functionality
+to the new refactored components in Model/Pick/ directory.
+"""
 import logging
-
 import pandas as pd
-import twstock
-
-from src.Common import InfomationType as info
-from src.Common import Tools
-from src.ExternalService.ExternalDataFactory import ExternalDataFactory
-from src.FilterService.StockHistory import OriginalStockByYahoo
-from src.FilterService.GetStockData import All_Stock_Filters_fuc
-from src.FilterService import GetStockData
 from src.Model.Model import TModel
-from src.Common.Parameter import RecordPickParameter
+from src.ExternalService.ExternalDataFactory import ExternalDataFactory
+from src.FilterService import GetStockData
+from src.Model.Pick import (
+    PickParameterValidator,
+    StockGroupService,
+    DateValidatorService,
+    FilterDataMerger
+)
 
 
 class Model_pick(TModel):
+    """
+    Facade class for backward compatibility.
+    All actual implementation is delegated to specialized components.
+    """
     def __init__(self, external_data_factory: ExternalDataFactory):
         super().__init__()
         self._external_data_factory = external_data_factory
-        self._Groups: list[str] = None
-        self._setGroups()
+        self._Groups = None
         self._reportService = GetStockData.ReportServices(self._external_data_factory)
         self._logger = logging.getLogger(__name__)
+        
+        # Initialize refactored services
+        self._date_validator = DateValidatorService(external_data_factory)
 
     @property
     def Groups(self) -> list[str]:
         if self._Groups is None:
-            raise ValueError("Groups尚未初始化")
+            self._Groups = StockGroupService.get_all_groups()
         return self._Groups
 
-    def _setGroups(self):
-        """初始化股票分類群組"""
-        self._Groups = []
-        for key, value in twstock.codes.items():
-            if (value.group != "") and (value.group not in self._Groups):
-                self._Groups.append(value.group)
+    def _validate_parameters(self, params):
+        """Delegate to PickParameterValidator"""
+        return PickParameterValidator.validate(params)
 
-    def _validate_parameters(self, params: RecordPickParameter) -> dict:
-        """驗證並提取參數"""
-        try:
-            return {
-                'GPM': float(params.GPM),
-                'OPR': float(params.OPR),
-                'EPS': float(params.EPS),
-                'RPS': float(params.RPS),
-                'monthRP_smoothAVG': int(params.monthRP_smoothAVG),  # 轉換為整數
-                'monthRP_UpMpnth': int(params.monthRP_UpMpnth),      # 轉換為整數
-                'PBR_low': float(params.PBR_low),
-                'PBR_high': float(params.PBR_high),
-                'PER_low': float(params.PER_low),
-                'PER_high': float(params.PER_high),
-                'ROE_low': float(params.ROE_low),
-                'ROE_high': float(params.ROE_high),
-                'yiled_high': float(params.yiled_high),
-                'yiled_low': float(params.yiled_low),
-                'OMGR': float(params.OMGR),
-                'price_high': float(params.price_high),
-                'price_low': float(params.price_low),
-                'flash_Day': int(params.flash_Day),
-                'record_Day': int(params.record_Day),
-                'volum': float(params.volum),
-                'PEG_low': float(params.PEG_low),
-                'PEG_high': float(params.PEG_high),
-                'FCF': float(params.FCF),
-                'ROE_up': float(params.ROE),
-                'EPS_up': float(params.EPS_up),
-                'SRGR': float(params.SRGR),
-                'MRGR': float(params.MRGR),
-                'BerMA': float(params.BetterMA),
-                'Kind': int(params.Kind),
-                'avg_vol_multiple': float(params.avg_vol_multiple)
-            }
-        except (ValueError, AttributeError, TypeError) as e:
-            self._logger.error(f"參數驗證失敗: {e}")
-            raise ValueError(f"參數格式錯誤: {e}")
-
-    def _get_valid_date(self, end_date: datetime) -> datetime:
-        """取得有效的交易日期"""
-        date = end_date
-        max_attempts = 30  # 最多嘗試30天
-        attempts = 0
-        
-        while attempts < max_attempts:
-            try:
-                stock_data = OriginalStockByYahoo(self._external_data_factory, 2330)
-                price = stock_data.get_PriceByDateAndType(date, info.Price_type.Close)
-                if price is not None:
-                    self._logger.info(f"找到有效交易日期: {date.strftime('%Y-%m-%d')}")
-                    return date
-            except Exception as e:
-                self._logger.warning(f"檢查日期 {date.strftime('%Y-%m-%d')} 時發生錯誤: {e}")
-            
-            date = date + timedelta(days=-1)
-            attempts += 1
-        
-        raise ValueError(f"在 {max_attempts} 天內找不到有效的交易日期")
+    def _get_valid_date(self, end_date):
+        """Delegate to DateValidatorService"""
+        return self._date_validator.get_valid_trading_date(end_date)
 
     def _merge_filter_data(self, base_data: pd.DataFrame, filter_data: pd.DataFrame, 
                           filter_name: str) -> pd.DataFrame:
+        """Delegate to FilterDataMerger"""
+        return FilterDataMerger.merge_filter_data(base_data, filter_data, filter_name)
         """安全地合併篩選資料"""
         if filter_data.empty:
             self._logger.warning(f"{filter_name} 篩選結果為空")
