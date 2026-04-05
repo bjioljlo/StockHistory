@@ -49,7 +49,13 @@
       ✅ @validate_parameters 裝飾器
       ✅ 已整合至 Model_pick
       ✅ 所有 Model 類別均可使用此標準驗證機制
-- [ ] 3.5 更新對應的單元測試
+- [x] 3.5 更新對應的單元測試
+
+      ✅ 建立 ModelValidation 完整單元測試 (16個測試案例)
+      ✅ 所有測試 100% 通過
+      ✅ ModelValidation.py 達成 100% 測試覆蓋率
+      ✅ 涵蓋所有驗證方法與裝飾器
+      ✅ 測試正常與異常流程
 
 ## 4. Service 層重構
 
