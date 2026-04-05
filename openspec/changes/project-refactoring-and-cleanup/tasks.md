@@ -35,8 +35,20 @@
       ✅ 維持完全向後相容
       ✅ 所有現有程式碼無需修改
       ✅ 未來所有 Model 類別將實作此標準介面
-- [ ] 3.3 消除 Model 與 Service 間的循環依賴
-- [ ] 3.4 加入資料驗證機制
+- [x] 3.3 消除 Model 與 Service 間的循環依賴
+
+      ✅ 分析依賴關係，未發現循環匯入問題
+      ✅ 目前依賴方向正確: Model → Service
+      ✅ 沒有反向匯入 Service → Model
+      ✅ 依賴圖乾淨，沒有循環依賴
+- [x] 3.4 加入資料驗證機制
+
+      ✅ 建立標準 ModelValidation 模組
+      ✅ ModelValidationError 例外類別
+      ✅ ModelValidator 通用驗證工具 (required, numeric_range, integer, float, positive, non_negative)
+      ✅ @validate_parameters 裝飾器
+      ✅ 已整合至 Model_pick
+      ✅ 所有 Model 類別均可使用此標準驗證機制
 - [ ] 3.5 更新對應的單元測試
 
 ## 4. Service 層重構

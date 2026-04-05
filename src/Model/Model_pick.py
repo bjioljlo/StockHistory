@@ -7,6 +7,7 @@ to the new refactored components in Model/Pick/ directory.
 import logging
 import pandas as pd
 from src.Model.Model import TModel
+from src.Model.ModelValidation import ModelValidator, validate_parameters, ModelValidationError
 from src.ExternalService.ExternalDataFactory import ExternalDataFactory
 from src.FilterService import GetStockData
 from src.Model.Pick import (
