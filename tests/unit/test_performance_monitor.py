@@ -2,216 +2,262 @@
 效能監控服務單元測試
 
 測試 PerformanceMonitor 類別的各項功能
+針對重構後的新實作版本
 """
 
 import unittest
 import time
 from unittest.mock import Mock, patch
 
-from src.Common.PerformanceMonitor import PerformanceMonitor, get_performance_monitor
+from src.Common.PerformanceMonitor import (
+    PerformanceMonitor,
+    PerformanceMetrics,
+    TimedBlock,
+    get_performance_monitor,
+    performance_monitor,
+    profile,
+    timed_block
+)
+
+
+class TestPerformanceMetrics(unittest.TestCase):
+    """測試 PerformanceMetrics 類別"""
+
+    def setUp(self):
+        self.metrics = PerformanceMetrics(max_history_size=10)
+
+    def test_increment_counter(self):
+        """測試計數器增加"""
+        self.metrics.increment('test.counter')
+        self.assertEqual(self.metrics.get_counter('test.counter'), 1)
+
+        self.metrics.increment('test.counter', 5)
+        self.assertEqual(self.metrics.get_counter('test.counter'), 6)
+
+    def test_counter_for_nonexistent(self):
+        """測試不存在的計數器傳回0"""
+        self.assertEqual(self.metrics.get_counter('nonexistent'), 0)
+
+    def test_start_stop_timer(self):
+        """測試計時器啟動與停止"""
+        self.metrics.start_timer('test.timer')
+        time.sleep(0.01)
+        duration = self.metrics.stop_timer('test.timer')
+
+        self.assertGreater(duration, 0)
+        self.assertLess(duration, 0.1)
+
+        stats = self.metrics.get_timer_stats('test.timer')
+        self.assertEqual(stats['count'], 1)
+        self.assertGreater(stats['avg'], 0)
+
+    def test_stop_nonexistent_timer(self):
+        """測試停止不存在的計時器"""
+        duration = self.metrics.stop_timer('nonexistent')
+        self.assertEqual(duration, 0.0)
+
+    def test_record_duration(self):
+        """測試直接記錄時間"""
+        self.metrics.record_duration('test.timer', 0.5)
+        self.metrics.record_duration('test.timer', 1.5)
+
+        stats = self.metrics.get_timer_stats('test.timer')
+        self.assertEqual(stats['count'], 2)
+        self.assertEqual(stats['avg'], 1.0)
+        self.assertEqual(stats['min'], 0.5)
+        self.assertEqual(stats['max'], 1.5)
+        self.assertEqual(stats['total'], 2.0)
+
+    def test_timer_stats_empty(self):
+        """測試空計時器的統計資訊"""
+        stats = self.metrics.get_timer_stats('empty')
+        self.assertEqual(stats['count'], 0)
+        self.assertEqual(stats['avg'], 0.0)
+        self.assertEqual(stats['min'], 0.0)
+        self.assertEqual(stats['max'], 0.0)
+        self.assertEqual(stats['total'], 0.0)
+
+    def test_get_all_metrics(self):
+        """測試取得所有指標"""
+        self.metrics.increment('test.counter', 3)
+        self.metrics.record_duration('test.timer', 0.1)
+
+        all_metrics = self.metrics.get_all_metrics()
+        self.assertIn('counters', all_metrics)
+        self.assertIn('timers', all_metrics)
+        self.assertIn('timestamp', all_metrics)
+        self.assertEqual(all_metrics['counters']['test.counter'], 3)
+
+    def test_reset_metrics(self):
+        """測試重設所有指標"""
+        self.metrics.increment('test.counter', 5)
+        self.metrics.record_duration('test.timer', 0.5)
+        self.metrics.reset()
+
+        self.assertEqual(self.metrics.get_counter('test.counter'), 0)
+        stats = self.metrics.get_timer_stats('test.timer')
+        self.assertEqual(stats['count'], 0)
+
+    def test_max_history_size(self):
+        """測試最大歷史記錄大小限制"""
+        for i in range(15):
+            self.metrics.record_duration('test.timer', float(i))
+
+        stats = self.metrics.get_timer_stats('test.timer')
+        self.assertEqual(stats['count'], 10)  # 應該只保留最後10筆
 
 
 class TestPerformanceMonitor(unittest.TestCase):
+    """測試 PerformanceMonitor 類別"""
 
     def setUp(self):
-        """測試前準備"""
-        self.config = {
-            'monitoring': {
-                'enable_performance_monitoring': True,
-                'slow_query_threshold': 1.0
-            }
-        }
+        """測試前重設單例實例"""
+        PerformanceMonitor._instance = None
+        self.monitor = PerformanceMonitor()
 
     def tearDown(self):
         """測試後清理"""
-        # 清理全域實例
-        import src.Common.PerformanceMonitor
-        src.Common.PerformanceMonitor._performance_monitor = None
+        PerformanceMonitor._instance = None
 
-    @patch('src.Common.PerformanceMonitor.yaml.safe_load')
-    @patch('builtins.open')
-    def test_initialization(self, mock_open, mock_yaml):
-        """測試初始化"""
-        mock_yaml.return_value = self.config
-
-        monitor = PerformanceMonitor('config.yml')
-
-        self.assertTrue(monitor.enabled)
-        self.assertEqual(monitor.slow_query_threshold, 1.0)
-        self.assertIsInstance(monitor.metrics, dict)
-        self.assertIn('queries', monitor.metrics)
-        self.assertIn('system', monitor.metrics)
-
-    @unittest.skip("psutil 模拟方式需要更新，根据实际实现调整")
-    def test_collect_system_metrics(self, mock_disk, mock_memory, mock_cpu, mock_open, mock_yaml):
-        """測試系統指標收集"""
-        mock_yaml.return_value = self.config
-        mock_cpu.return_value = 45.5
-        mock_memory.return_value = Mock(percent=67.8, used=6871947673, total=10737418240)
-        mock_disk.return_value = Mock(percent=23.4, used=107374182400, total=500000000000)
-
-        monitor = PerformanceMonitor('config.yml')
-        monitor.collect_system_metrics()
-
-        self.assertEqual(len(monitor.metrics['system']), 1)
-        system_metric = monitor.metrics['system'][0]
-
-        self.assertEqual(system_metric['cpu_percent'], 45.5)
-        self.assertEqual(system_metric['memory_percent'], 67.8)
-        self.assertAlmostEqual(system_metric['memory_used_gb'], 6.4, places=1)
-        self.assertAlmostEqual(system_metric['disk_percent'], 23.4)
-
-    @patch('src.Common.PerformanceMonitor.yaml.safe_load')
-    @patch('builtins.open')
-    def test_monitor_query_context_manager(self, mock_open, mock_yaml):
-        """測試查詢監控上下文管理器"""
-        mock_yaml.return_value = self.config
-
-        monitor = PerformanceMonitor('config.yml')
-
-        # 測試正常執行
-        with monitor.monitor_query("test_query", "SELECT * FROM test"):
-            time.sleep(0.01)  # 短暫延遲
-
-        self.assertEqual(len(monitor.metrics['queries']), 1)
-        query_metric = monitor.metrics['queries'][0]
-
-        self.assertEqual(query_metric['type'], "test_query")
-        self.assertEqual(query_metric['details'], "SELECT * FROM test")
-        self.assertGreater(query_metric['execution_time'], 0)
-        self.assertIsInstance(query_metric['timestamp'], str)
-
-    @patch('src.Common.PerformanceMonitor.yaml.safe_load')
-    @patch('builtins.open')
-    @patch('psutil.cpu_percent')
-    @patch('psutil.virtual_memory')
-    def test_slow_query_detection(self, mock_memory, mock_cpu, mock_open, mock_yaml):
-        """測試慢查詢檢測"""
-        config = self.config.copy()
-        config['monitoring']['slow_query_threshold'] = 0.1  # 設定較低的閾值
-        mock_yaml.return_value = config
-
-        mock_cpu.return_value = 10.0
-        mock_memory.return_value = Mock(percent=50.0)
-
-        monitor = PerformanceMonitor('config.yml')
-
-        # 執行慢查詢
-        with monitor.monitor_query("slow_query", "SELECT * FROM large_table"):
-            time.sleep(0.2)  # 超過閾值
-
-        self.assertEqual(len(monitor.metrics['slow_queries']), 1)
-        slow_query = monitor.metrics['slow_queries'][0]
-
-        self.assertEqual(slow_query['type'], "slow_query")
-        self.assertGreater(slow_query['execution_time'], 0.1)
-        self.assertEqual(slow_query['threshold'], 0.1)
-
-    @unittest.skip("报告生成逻辑已变更，需要根据实际实现更新测试")
-    def test_performance_report_generation(self, mock_open, mock_yaml):
-        """測試效能報告生成"""
-        mock_yaml.return_value = self.config
-
-        monitor = PerformanceMonitor('config.yml')
-
-        # 添加一些測試資料
-        monitor.metrics['queries'] = [
-            {'execution_time': 0.5, 'cpu_usage': 10.0, 'memory_usage': 5.0},
-            {'execution_time': 1.5, 'cpu_usage': 15.0, 'memory_usage': 8.0},
-            {'execution_time': 2.5, 'cpu_usage': 20.0, 'memory_usage': 12.0}
-        ]
-        monitor.metrics['slow_queries'] = [
-            {'execution_time': 2.5, 'cpu_usage': 20.0, 'memory_usage': 12.0}
-        ]
-
-        report = monitor.get_performance_report()
-
-        self.assertIn('query_performance', report)
-        self.assertIn('system_performance', report)
-        self.assertIn('slow_queries_analysis', report)
-        self.assertIn('recommendations', report)
-
-        query_perf = report['query_performance']
-        self.assertEqual(query_perf['total_queries'], 3)
-        self.assertEqual(query_perf['slow_queries_count'], 1)
-        self.assertAlmostEqual(query_perf['avg_execution_time'], 1.5, places=1)
-
-    @unittest.skip("文件导出功能已变更，需要根据实际实现更新测试")
-    def test_metrics_export(self, mock_file, mock_open, mock_yaml):
-        """測試指標匯出"""
-        mock_yaml.return_value = self.config
-
-        monitor = PerformanceMonitor('config.yml')
-        monitor.metrics['queries'] = [{'test': 'data'}]
-
-        monitor.export_metrics('test_metrics.json')
-
-        # 驗證檔案寫入
-        mock_file.assert_called_once_with('test_metrics.json', 'w', encoding='utf-8')
-        handle = mock_file()
-        handle.write.assert_called_once()
-
-    @patch('src.Common.PerformanceMonitor.yaml.safe_load')
-    @patch('builtins.open')
-    def test_metrics_cleanup(self, mock_open, mock_yaml):
-        """測試指標清理"""
-        mock_yaml.return_value = self.config
-
-        monitor = PerformanceMonitor('config.yml')
-        monitor.metrics['queries'] = [{'test': 'data'}]
-        monitor.metrics['slow_queries'] = [{'slow': 'query'}]
-
-        monitor.clear_metrics()
-
-        self.assertEqual(len(monitor.metrics['queries']), 0)
-        self.assertEqual(len(monitor.metrics['slow_queries']), 0)
-        self.assertEqual(len(monitor.metrics['system']), 0)
-        self.assertEqual(len(monitor.metrics['connections']), 0)
-
-    @patch('src.Common.PerformanceMonitor.yaml.safe_load')
-    @patch('builtins.open')
-    def test_disabled_monitoring(self, mock_open, mock_yaml):
-        """測試停用監控"""
-        config = self.config.copy()
-        config['monitoring']['enable_performance_monitoring'] = False
-        mock_yaml.return_value = config
-
-        monitor = PerformanceMonitor('config.yml')
-
-        self.assertFalse(monitor.enabled)
-
-        # 測試上下文管理器在停用時不收集指標
-        with monitor.monitor_query("test", "SELECT 1"):
-            pass
-
-        self.assertEqual(len(monitor.metrics['queries']), 0)
-
-    @patch('src.Common.PerformanceMonitor.yaml.safe_load')
-    @patch('builtins.open')
-    def test_get_performance_monitor_singleton(self, mock_open, mock_yaml):
+    def test_singleton_pattern(self):
         """測試單例模式"""
-        mock_yaml.return_value = self.config
-
-        monitor1 = get_performance_monitor('config.yml')
-        monitor2 = get_performance_monitor('config.yml')
-
+        monitor1 = PerformanceMonitor()
+        monitor2 = PerformanceMonitor()
         self.assertIs(monitor1, monitor2)
 
-    @unittest.skip("监控线程实现已变更，需要根据实际实现更新测试")
-    def test_monitoring_thread(self, mock_collect_db, mock_open, mock_yaml):
-        """測試監控執行緒"""
-        mock_yaml.return_value = self.config
+    def test_get_performance_monitor_function(self):
+        """測試 get_performance_monitor 相容性函式"""
+        monitor = get_performance_monitor()
+        self.assertIsInstance(monitor, PerformanceMonitor)
+        self.assertIs(monitor, performance_monitor)
 
-        monitor = PerformanceMonitor('config.yml')
+    def test_initialization(self):
+        """測試初始化"""
+        self.assertTrue(self.monitor.enabled)
+        self.assertIsInstance(self.monitor.metrics, PerformanceMetrics)
 
-        # 等待一下讓監控執行緒運行
-        time.sleep(0.1)
+    def test_profile_decorator(self):
+        """測試 profile 裝飾器"""
+        @self.monitor.profile('test.function')
+        def test_func():
+            time.sleep(0.01)
+            return "result"
 
-        # 停止監控
-        monitor.stop_monitoring()
+        result = test_func()
+        self.assertEqual(result, "result")
 
-        # 驗證執行緒已停止
-        self.assertIsNone(monitor.monitoring_thread)
+        stats = self.monitor.metrics.get_timer_stats('test.function')
+        self.assertEqual(stats['count'], 1)
+        self.assertGreater(stats['avg'], 0)
+
+    def test_profile_decorator_with_disabled(self):
+        """測試關閉監控時的 profile 裝飾器"""
+        self.monitor.enabled = False
+
+        @self.monitor.profile('test.function')
+        def test_func():
+            return "result"
+
+        result = test_func()
+        self.assertEqual(result, "result")
+
+        stats = self.monitor.metrics.get_timer_stats('test.function')
+        self.assertEqual(stats['count'], 0)
+
+    def test_timed_block_context_manager(self):
+        """測試 timed_block 上下文管理器"""
+        with self.monitor.timed_block('test.block'):
+            time.sleep(0.01)
+
+        stats = self.monitor.metrics.get_timer_stats('test.block')
+        self.assertEqual(stats['count'], 1)
+        self.assertGreater(stats['avg'], 0)
+
+    def test_convenience_functions(self):
+        """測試便利函式"""
+        @profile('test.convenience')
+        def test_func():
+            return "result"
+
+        result = test_func()
+        self.assertEqual(result, "result")
+
+        with timed_block('test.convenience_block'):
+            pass
+
+        stats1 = performance_monitor.metrics.get_timer_stats('test.convenience')
+        stats2 = performance_monitor.metrics.get_timer_stats('test.convenience_block')
+        self.assertEqual(stats1['count'], 1)
+        self.assertEqual(stats2['count'], 1)
+
+    def test_increment_counter(self):
+        """測試遞增計數器"""
+        self.monitor.increment_counter('test.counter')
+        self.assertEqual(self.monitor.metrics.get_counter('test.counter'), 1)
+
+    def test_cache_hit_miss_tracking(self):
+        """測試快取命中/未命中追蹤"""
+        self.monitor.record_cache_hit('L1')
+        self.monitor.record_cache_hit('L1')
+        self.monitor.record_cache_miss('L1')
+
+        self.assertEqual(self.monitor.metrics.get_counter('cache.l1.hits'), 2)
+        self.assertEqual(self.monitor.metrics.get_counter('cache.l1.misses'), 1)
+        self.assertEqual(self.monitor.get_cache_hit_ratio('L1'), 2/3)
+
+    def test_cache_hit_ratio_empty(self):
+        """測試空快取的命中率"""
+        self.assertEqual(self.monitor.get_cache_hit_ratio('L1'), 0.0)
+
+    def test_get_report(self):
+        """測試產生效能報告"""
+        self.monitor.record_cache_hit('L1')
+        self.monitor.record_cache_miss('L1')
+        self.monitor.record_cache_hit('L2')
+
+        report = self.monitor.get_report()
+        self.assertIn('metrics', report)
+        self.assertIn('cache_stats', report)
+        self.assertIn('generated_at', report)
+        self.assertEqual(report['cache_stats']['L1']['hit_ratio'], 0.5)
+        self.assertEqual(report['cache_stats']['L2']['hit_ratio'], 1.0)
+
+    def test_reset_metrics(self):
+        """測試重設指標"""
+        self.monitor.record_cache_hit('L1')
+        self.monitor.reset_metrics()
+        self.assertEqual(self.monitor.metrics.get_counter('cache.l1.hits'), 0)
+
+
+class TestTimedBlock(unittest.TestCase):
+    """測試 TimedBlock 類別"""
+
+    def setUp(self):
+        self.monitor = Mock(spec=PerformanceMonitor)
+        self.monitor.metrics = Mock()
+
+    def test_timed_block_execution(self):
+        """測試 TimedBlock 執行"""
+        block = TimedBlock(self.monitor, 'test.op')
+        block.__enter__()
+        time.sleep(0.01)
+        block.__exit__(None, None, None)
+
+        self.monitor.metrics.record_duration.assert_called_once()
+        args = self.monitor.metrics.record_duration.call_args
+        self.assertEqual(args[0][0], 'test.op')
+        self.assertGreater(args[0][1], 0)
+
+    def test_timed_block_does_not_suppress_exceptions(self):
+        """測試 TimedBlock 不會抑制例外"""
+        block = TimedBlock(self.monitor, 'test.op')
+        block.__enter__()
+
+        # TimedBlock.__exit__ returns False to not suppress exceptions
+        result = block.__exit__(ValueError, ValueError("test error"), None)
+        self.assertFalse(result)
+
+        self.monitor.metrics.record_duration.assert_called_once()
 
 
 if __name__ == '__main__':

@@ -237,6 +237,13 @@ class TimedBlock:
 # Global monitor instance
 performance_monitor = PerformanceMonitor()
 
+def get_performance_monitor() -> PerformanceMonitor:
+    """
+    Legacy compatibility function.
+    Get the global PerformanceMonitor instance.
+    """
+    return performance_monitor
+
 # Convenience decorator
 profile = performance_monitor.profile
 

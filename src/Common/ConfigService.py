@@ -98,6 +98,14 @@ def get_config() -> ConfigService:
     return ConfigService()
 
 
+def get_config_path() -> str:
+    """
+    Legacy compatibility function.
+    Get config path based on environment.
+    """
+    return ConfigService.get_config_path()
+
+
 def load_config(config_path: Optional[str] = None) -> Dict[str, Any]:
     """
     Legacy compatibility function.
