@@ -20,7 +20,18 @@ from src.MongoService import MongoService
 
 class IMediator_Controller(ABC):
     @abstractmethod
-    def GetController(self, reciver: controllers) -> IController:
+    def get_controller(self, receiver: controllers) -> IController:
+        """取得指定類型的 Controller 實例"""
+        raise NotImplementedError
+    
+    @abstractmethod
+    def send_message(self, receiver: controllers, message_type: str, **kwargs):
+        """傳送訊息給指定 Controller"""
+        raise NotImplementedError
+    
+    @abstractmethod
+    def broadcast_message(self, message_type: str, **kwargs):
+        """廣播訊息給所有 Controller"""
         raise NotImplementedError
 
 
@@ -72,12 +83,41 @@ class Mediator_Controller(IMediator_Controller):
             self.GetController,
         )
 
+    def get_controller(self, receiver: controllers) -> IController:
+        """取得指定類型的 Controller 實例"""
+        controller_map = {
+            controllers.Main: self._main_controller,
+            controllers.Pick: self._pick_controller,
+            controllers.BackTest: self._backtest_controller
+        }
+        
+        if receiver not in controller_map:
+            raise ValueError(f"Invalid controller type: {receiver}")
+        
+        return controller_map[receiver]
+    
     def GetController(self, reciver: controllers) -> IController:
-        if reciver == controllers.Main:
-            return self._main_controller
-        elif reciver == controllers.Pick:
-            return self._pick_controller
-        elif reciver == controllers.BackTest:
-            return self._backtest_controller
-        else:
-            print("reciver 錯誤!!")
+        """
+        向後相容介面 - 已棄用
+        請使用 get_controller() 替代
+        """
+        return self.get_controller(reciver)
+    
+    def send_message(self, receiver: controllers, message_type: str, **kwargs):
+        """
+        傳送訊息給指定 Controller
+        標準化 Controller 間通訊機制
+        """
+        controller = self.get_controller(receiver)
+        if hasattr(controller, 'handle_message'):
+            return controller.handle_message(message_type, **kwargs)
+        return None
+    
+    def broadcast_message(self, message_type: str, **kwargs):
+        """廣播訊息給所有註冊的 Controller"""
+        results = {}
+        for controller_type in controllers:
+            controller = self.get_controller(controller_type)
+            if hasattr(controller, 'handle_message'):
+                results[controller_type] = controller.handle_message(message_type, **kwargs)
+        return results

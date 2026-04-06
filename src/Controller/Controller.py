@@ -3,32 +3,9 @@ from datetime import datetime
 from enum import Enum
 from typing import Callable
 
-from PyQt5.QtCore import Qt
-from PyQt5.QtGui import QStandardItemModel
-
 from src.Model.Model import IModel
-from src.StockInfos import UserInfoDatas
 from src.View.View import IWindow
-
-MAIN_TITALLIST = ["股票號碼", "股票名稱"]
-PICK__TITALLIST = [
-    "股票號碼",
-    "股票名稱",
-    "每股參考淨值",
-    "基本每股盈餘（元）",
-    "毛利率(%)",
-    "營業利益率(%)",
-    "資產總額",
-    "負債總額",
-    "股本",
-    "權益總額",
-    "本期綜合損益總額（稅後）",
-    "PBR",
-    "PER",
-    "PEG",
-    "ROE",
-    "殖利率",
-]
+from src.View.ViewUtils import MAIN_TITALLIST, PICK__TITALLIST
 
 
 class controllers(Enum):
@@ -61,6 +38,36 @@ class IController(ABC):
     @abstractmethod
     def SetStockNumber(self, stockNumber: str):
         raise NotImplementedError
+    
+    def handle_message(self, message_type: str, **kwargs):
+        """
+        處理來自 Mediator 的訊息
+        子類別可覆寫此方法以支援訊息傳遞
+        """
+        handler = getattr(self, f"on_{message_type}", None)
+        if callable(handler):
+            return handler(**kwargs)
+        return None
+    
+    def bind_event(self, widget, event_name: str, handler):
+        """
+        標準化 UI 事件綁定方法
+        統一事件處理格式與錯誤處理
+        """
+        def wrapped_handler(*args, **kwargs):
+            try:
+                return handler(*args, **kwargs)
+            except Exception as e:
+                self.on_event_error(event_name, e)
+        
+        widget.clicked.connect(wrapped_handler)
+    
+    def on_event_error(self, event_name: str, error: Exception):
+        """
+        UI 事件錯誤處理預設實作
+        子類別可覆寫此方法提供自訂錯誤處理
+        """
+        print(f"UI Event Error [{event_name}]: {str(error)}")
 
 
 GetControllerEvent = Callable[[controllers], IController]
@@ -97,83 +104,3 @@ class TController(IController):
 
     def ShowWindow(self):
         self.GetView().GetFormUI().show()
-
-
-# 讓Controller都可以用
-def creat_treeView_model(parent, titalList, UserInfoData: UserInfoDatas = None):
-    model = QStandardItemModel(0, titalList.__len__(), parent)
-    for i in range(0, titalList.__len__()):
-        model.setHeaderData(i, Qt.Horizontal, titalList[i])
-    if UserInfoData is not None:
-        set_treeView(model, UserInfoData.StockList)
-    return model
-
-
-def set_treeView2(model, inputdataFram):
-    import twstock
-    i = 0
-    array_Num = []
-    for index, row in inputdataFram.iterrows():
-        array_Num = [
-            row["book_value_per_share"],
-            row["consolidated_eps"],
-            row["gross_margin"],
-            row["operating_margin"],
-            row["operating_margin"],
-            row["total_liabilities"],
-            row["capital"],
-            row["equity"],
-            row["consolidated_net_income"],
-        ]  # ,row["PBR"],row["PER"],row["ROE"]]
-        try:
-            array_Num.append(row["PBR"])
-        except Exception:
-            array_Num.append(float(0))
-        try:
-            array_Num.append(row["PER"])
-        except Exception:
-            array_Num.append(float(0))
-        try:
-            array_Num.append(float(row["PEG"]))
-        except Exception:
-            array_Num.append(float(0))
-        try:
-            array_Num.append(float(row["ROE"]))
-        except Exception:
-            array_Num.append(float(0))
-        try:
-            array_Num.append(float(row["Yield"]))
-        except Exception:
-            array_Num.append(float(0))
-
-        # 動態獲取公司名稱：優先從row中獲取，如果沒有則從twstock獲取
-        stock_name = ""
-        try:
-            stock_name = row["公司名稱"]
-        except (KeyError, TypeError):
-            # 如果row中沒有公司名稱，嘗試從twstock獲取
-            try:
-                stock_code = str(index)
-                if stock_code in twstock.codes:
-                    stock_name = twstock.codes[stock_code].name
-            except Exception:
-                stock_name = ""
-
-        add_stock_List(model, index, stock_name, i, array_Num)
-        i = i + 1
-
-
-def set_treeView(model, inputList):
-    i = 0
-    for key, value in inputList.items():  # 放入stockList
-        add_stock_List(model, value.number, value.name, i)
-        i = i + 1
-
-
-def add_stock_List(model, stockNum, stockName, rowNum, array=None):
-    model.insertRow(rowNum)
-    model.setData(model.index(rowNum, 0), stockNum)
-    model.setData(model.index(rowNum, 1), stockName)
-    if array is not None:
-        for i in range(len(array)):
-            model.setData(model.index(rowNum, i + 2), array[i])
