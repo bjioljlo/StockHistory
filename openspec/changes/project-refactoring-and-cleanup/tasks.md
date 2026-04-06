@@ -59,12 +59,53 @@
 
 ## 4. Service 層重構
 
-- [ ] 4.1 重構 UpdateStockService 資料更新邏輯
-- [ ] 4.2 重構 BackTestService 回測模組
-- [ ] 4.3 重構 FilterService 篩選模組
-- [ ] 4.4 重構 ExternalService 外部資料擷取
-- [ ] 4.5 建立服務介面與依賴注入
-- [ ] 4.6 每個服務完成後執行整合測試
+- [x] 4.1 重構 UpdateStockService 資料更新邏輯
+
+      ✅ 拆分 640 行單一檔案為 4 個模組
+      ✅ 建立 StockDataDownloader, StockDataSynchronizer, ADLUpdater
+      ✅ 維持 100% 向後相容性，所有公開介面不變
+      ✅ 單一職責原則，每個模組專注特定功能
+      ✅ 最大檔案現為 477 行 (符合 < 500 行規範)
+      ✅ 所有現有匯入路徑可正常運作
+- [x] 4.2 重構 BackTestService 回測模組
+
+      ✅ BackTestStock.py 從 521 行 -> 187 行 (符合 < 500 行規範)
+      ✅ 採用 Facade 外觀模式，維持 100% 向後相容性
+      ✅ 所有公開介面與方法簽名完全不變
+      ✅ 單一職責原則，僅作為外部服務入口
+      ✅ 所有現有匯入路徑可正常運作
+      ✅ 遵循與 UpdateStockService 相同的成功重構模式
+- [x] 4.3 重構 FilterService 篩選模組
+
+      ✅ GetStockData.py 從 753 行 -> 132 行 (符合 < 500 行規範)
+      ✅ 採用 Facade 外觀模式，維持 100% 向後相容性
+      ✅ 所有公開介面與方法簽名完全不變
+      ✅ 單一職責原則，僅作為外部服務入口
+      ✅ 標準化 __init__.py 套件結構
+      ✅ 遵循與 UpdateStockService / BackTestService 相同的重構模式
+- [x] 4.4 重構 ExternalService 外部資料擷取
+
+      ✅ TGetExternalData.py 從 1491 行 -> 246 行 (符合 < 500 行規範)
+      ✅ 採用 Facade 外觀模式，維持 100% 向後相容性
+      ✅ 所有公開介面與方法簽名完全不變
+      ✅ 單一職責原則，僅作為外部服務入口
+      ✅ 標準化 __init__.py 套件結構
+      ✅ 完成整個 Service 層重構，四個主要服務全部採用一致架構
+- [x] 4.5 建立服務介面與依賴注入
+
+      ✅ 建立基礎 IService 介面 (4個核心生命週期方法)
+      ✅ 建立 IUpdateService, IBackTestService, IFilterService 介面
+      ✅ 實作 ServiceContainer 依賴注入容器
+      ✅ 支援 Singleton/Transient/Factory 三種生命週期
+      ✅ 建立標準的介面匯出模組
+      ✅ 所有服務現在可以透過介面抽象依賴
+- [x] 4.6 每個服務完成後執行整合測試
+
+      ✅ 執行整合測試 8/8 全部通過
+      ✅ 所有服務模組載入正常
+      ✅ 快取服務、備份服務、SQL 服務整合正常運作
+      ✅ 重構後服務與現有程式碼完全相容
+      ✅ 沒有破壞性變更
 
 ## 5. Controller 與 View 重構
 
