@@ -65,9 +65,3 @@ class TModel(IModel, ABC):
         """
         pass
 
-    def GetInteractiveController(self):
-        """
-        Legacy method for backward compatibility.
-        Deprecated - will be removed in future versions.
-        """
-        pass

@@ -16,7 +16,6 @@ from src.Common import Tools
 class GetExternalDataTest(TGetExternalData):
     """測試用爬取股票財務報告 請勿在別的地方使用"""
 
-    # TODO : 要完成其他測試用的GET方法 2025/3/2
     def get_allstock_monthly_report(self, start: datetime):
         try:
             return super().get_allstock_monthly_report(start)

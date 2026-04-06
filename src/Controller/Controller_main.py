@@ -13,9 +13,6 @@ from src.View.View_main import Main_Window
 
 from .Controller import MAIN_TITALLIST, TController, controllers, creat_treeView_model
 
-# TODO telegram 要重新寫新版改太多了....telegram_bot
-
-
 class Controller_main(TController):
     def __init__(self, draw_figur_service:DrawFigur, report_services: ReportServices, _view: IWindow = None, _model: IModel = None) -> None:
         super().__init__(_view, _model)

@@ -40,6 +40,43 @@ StockHistory 是一個使用 Python 和 PyQt5 開發的綜合性股票數據管�
 - `.env`：環境變數
 - `requirements.txt`：Python 依賴套件
 
+## 架構模式
+
+### 依賴注入與服務容器
+系統使用 `ServiceContainer` 進行依賴注入：
+
+```python
+from src.Common.ServiceContainer import ServiceContainer
+
+container = ServiceContainer()
+container.register(IUpdateService, UpdateStockService, lifecycle="singleton")
+container.register(IBackTestService, BackTestService, lifecycle="transient")
+container.register(IFilterService, FilterService, lifecycle="factory")
+```
+
+### 標準介面
+所有服務實作標準介面：
+
+- `IService` - 基礎服務介面
+- `IUpdateService` - 數據更新服務介面
+- `IBackTestService` - 回測服務介面
+- `IFilterService` - 篩選服務介面
+- `IModel` - 模型介面
+
+### 服務生命週期
+- **singleton**: 整個應用程式生命週期內單例
+- **transient**: 每次解析都創建新實例
+- **factory**: 使用工廠模式創建實例
+
+## 主要功能
+1. **即時數據更新**：從多個來源自動獲取股票數據
+2. **技術分析**：整合 TA-Lib 提供技術指標與訊號
+3. **回測功能**：策略測試與績效分析
+4. **視覺化**：互動式圖表與技術指標展示
+5. **多資料庫支援**：靈活的資料庫配置
+6. **Telegram 整合**：即時通知與機器人介面
+7. **排程任務**：自動化數據更新與分析
+
 ## 主要功能
 1. **即時數據更新**：從多個來源自動獲取股票數據
 2. **技術分析**：整合 TA-Lib 提供技術指標與訊號

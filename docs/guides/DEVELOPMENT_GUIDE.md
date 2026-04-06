@@ -121,3 +121,123 @@ external_data_factory = ExternalDataFactory(
 1. 在 `ExternalService/` 中實現
 2. 添加到 `ExternalDataFactory`
 3. 根據需要更新配置
+
+## 服務介面與依賴注入
+
+### 核心介面
+系統使用標準介面進行服務抽象：
+
+- `IService` - 基礎服務介面
+- `IUpdateService` - 數據更新服務介面
+- `IBackTestService` - 回測服務介面
+- `IFilterService` - 篩選服務介面
+- `IModel` - 模型介面
+
+### 依賴注入容器
+使用 `ServiceContainer` 管理服務生命週期：
+
+```python
+from src.Common.ServiceContainer import ServiceContainer
+
+# 註冊服務
+container = ServiceContainer()
+container.register(IUpdateService, UpdateStockService, lifecycle="singleton")
+container.register(IBackTestService, BackTestService, lifecycle="transient")
+container.register(IFilterService, FilterService, lifecycle="factory")
+
+# 解析服務
+update_service = container.resolve(IUpdateService)
+backtest_service = container.resolve(IBackTestService)
+```
+
+### 服務生命週期
+- **singleton**: 整個應用程式生命週期內單例
+- **transient**: 每次解析都創建新實例
+- **factory**: 使用工廠模式創建實例
+
+## 模型介面
+
+### IModel 介面
+所有模型類別必須實作標準介面：
+
+```python
+from src.Model.Interfaces.IModel import IModel
+
+class MyModel(IModel):
+    def __init__(self, dependency1, dependency2):
+        """初始化模型"""
+        self.dependency1 = dependency1
+        self.dependency2 = dependency2
+
+    def get_name(self) -> str:
+        """取得模型名稱"""
+        return "MyModel"
+
+    def validate_parameters(self, parameters: Any) -> bool:
+        """驗證參數"""
+        # 參數驗證邏輯
+        return True
+
+    def execute(self, parameters: Any) -> Any:
+        """執行模型操作"""
+        # 模型執行邏輯
+        return result
+
+    def get_status(self) -> Dict[str, Any]:
+        """取得模型狀態"""
+        return {"status": "running", "metrics": {}}
+
+    def reset(self) -> None:
+        """重置模型狀態"""
+        pass
+```
+
+### 模型實作範例
+```python
+from src.Model.Interfaces.IModel import IModel
+from src.Common import ModelValidationError
+
+class StockAnalysisModel(IModel):
+    def __init__(self, data_service, config_service):
+        self.data_service = data_service
+        self.config_service = config_service
+
+    def get_name(self) -> str:
+        return "StockAnalysisModel"
+
+    def validate_parameters(self, parameters: Any) -> bool:
+        if not isinstance(parameters, dict):
+            raise ModelValidationError("Parameters must be a dictionary")
+        if "stock_code" not in parameters:
+            raise ModelValidationError("Missing stock_code parameter")
+        return True
+
+    def execute(self, parameters: Any) -> Any:
+        stock_code = parameters["stock_code"]
+        data = self.data_service.get_stock_data(stock_code)
+        # 分析邏輯
+        return analysis_result
+
+    def get_status(self) -> Dict[str, Any]:
+        return {
+            "status": "active",
+            "processed_count": self.data_service.get_processed_count(),
+            "last_update": self.data_service.get_last_update_time()
+        }
+
+    def reset(self) -> None:
+        self.data_service.clear_cache()
+```
+
+## 常見問題排解
+
+### 服務解析問題
+1. **服務未註冊**：確保服務已在 ServiceContainer 中註冊
+2. **生命週期錯誤**：檢查服務生命週期配置
+3. **依賴遺失**：確認所有依賴已正確注入
+
+### 介面實作問題
+1. **缺少方法**：確保實作所有介面方法
+2. **類型不匹配**：檢查方法簽名是否符合介面定義
+3. **向後相容**：新介面方法應提供預設實作以保持相容性
+
