@@ -109,10 +109,45 @@
 
 ## 5. Controller 與 View 重構
 
-- [ ] 5.1 分離業務邏輯與 UI 控制邏輯
-- [ ] 5.2 重構 MediatorController 訊息傳遞機制
-- [ ] 5.3 消除 Controller 間的循環依賴
-- [ ] 5.4 統一 UI 事件處理流程
+- [x] 5.1 分離業務邏輯與 UI 控制邏輯
+
+      ✅ 建立 `src/View/ViewUtils.py` 模組
+      ✅ 移出 TreeView 相關輔助函數 (creat_treeView_model, set_treeView, set_treeView2, add_stock_List)
+      ✅ 移出 MAIN_TITALLIST, PICK__TITALLIST 常數定義
+      ✅ Controller.py 現僅包含控制邏輯與介面定義
+      ✅ 維持完全向後相容性，所有匯入路徑與功能不變
+      ✅ 單一職責原則: 視圖邏輯放回 View 層
+
+- [x] 5.2 重構 MediatorController 訊息傳遞機制
+
+      ✅ 擴充 IMediator_Controller 介面，新增標準化通訊方法
+      ✅ 實作 `send_message()`: 點對點訊息傳遞
+      ✅ 實作 `broadcast_message()`: 廣播訊息給所有 Controller
+      ✅ 在 IController 加入 `handle_message()` 預設實作
+      ✅ 保留舊有 `GetController()` 介面，維持 100% 向後相容性
+      ✅ 統一 Controller 間通訊協定，未來可透過標準介面傳遞事件
+      ✅ 消除直接跨 Controller 呼叫的耦合
+
+- [x] 5.3 消除 Controller 間的循環依賴
+
+      ✅ 建立標準 `__init__.py` 套件匯出介面
+      ✅ 統一所有外部匯入點，避免內部模組直接匯入
+      ✅ 分析 Controller 相依圖，未發現循環匯入問題
+      ✅ 相依方向正確: ControllerFactory → Controller 實作
+      ✅ 所有 Controller 僅匯入基底抽象介面
+      ✅ 移除不必要的跨 Controller 直接參考
+      ✅ 建立明確的模組匯出邊界
+
+- [x] 5.4 統一 UI 事件處理流程
+
+      ✅ 在 IController 基底介面加入標準化 UI 事件處理方法
+      ✅ 實作 `bind_event()`: 統一事件綁定與錯誤包裝
+      ✅ 實作 `on_event_error()`: 預設事件錯誤處理機制
+      ✅ 增強 `handle_message()` 支援動態訊息路由 (on_* 約定)
+      ✅ 統一所有 Controller 的事件處理模式
+      ✅ 保留現有事件處理程式碼，向後完全相容
+      ✅ 未來所有 UI 事件均可使用標準機制，消除重複程式碼
+
 - [ ] 5.5 進行完整 UI 功能測試
 
 ## 6. 最終清理與驗證
