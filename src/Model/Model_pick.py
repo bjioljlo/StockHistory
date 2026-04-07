@@ -5,11 +5,13 @@ This class maintains backward compatibility while delegating functionality
 to the new refactored components in Model/Pick/ directory.
 """
 import logging
+from datetime import datetime
 import pandas as pd
 from src.Model.Model import TModel
 from src.Model.ModelValidation import ModelValidator, validate_parameters, ModelValidationError
 from src.ExternalService.ExternalDataFactory import ExternalDataFactory
 from src.FilterService import GetStockData
+from src.Common.Parameter import RecordPickParameter
 from src.Model.Pick import (
     PickParameterValidator,
     StockGroupService,

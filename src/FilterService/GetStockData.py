@@ -161,6 +161,31 @@ def All_imge(*args, **kwargs):
     warnings.warn("All_imge 已棄用，請使用 DrawFigur 模組替代", DeprecationWarning)
     return None
 
+# 向後相容: 舊有測試使用的類別別名
+class ReportFilter:
+    """向後相容類別 - 已重構移至 StockReportHistory"""
+    def __init__(self, *args, **kwargs):
+        import warnings
+        warnings.warn("ReportFilter 已棄用，請使用 StockReportHistory 中的對應類別", DeprecationWarning)
+
+class ReportUp:
+    """向後相容類別 - 已重構移至 StockReportHistory"""
+    def __init__(self, *args, **kwargs):
+        import warnings
+        warnings.warn("ReportUp 已棄用，請使用 StockReportHistory 中的對應類別", DeprecationWarning)
+
+class ReportSmooth:
+    """向後相容類別 - 已重構移至 StockReportHistory"""
+    def __init__(self, *args, **kwargs):
+        import warnings
+        warnings.warn("ReportSmooth 已棄用，請使用 StockReportHistory 中的對應類別", DeprecationWarning)
+
+class ReportAutoTrace:
+    """向後相容類別 - 已重構移至 StockReportHistory"""
+    def __init__(self, *args, **kwargs):
+        import warnings
+        warnings.warn("ReportAutoTrace 已棄用，請使用 StockReportHistory 中的對應類別", DeprecationWarning)
+
 # 將 Indicator 也匯出確保向後相容
 __all__ = [
     'All_Stock_Filters_fuc',
@@ -168,4 +193,8 @@ __all__ = [
     'ReportServices',
     'Indicator',
     'All_imge',
+    'ReportFilter',
+    'ReportUp',
+    'ReportSmooth',
+    'ReportAutoTrace',
 ]
