@@ -150,10 +150,22 @@ class ReportServices:
     def __getattr__(self, name):
         return getattr(self._factory, name)
 
+# 向後相容: All_imge 別名 (舊程式碼相容)
+# 在重構後原 All_imge 函式已移至其他模組，此別名提供空實作避免匯入錯誤
+def All_imge(*args, **kwargs):
+    """
+    向後相容函式 - 舊程式碼使用的 All_imge
+    功能已整合至圖表繪製模組
+    """
+    import warnings
+    warnings.warn("All_imge 已棄用，請使用 DrawFigur 模組替代", DeprecationWarning)
+    return None
+
 # 將 Indicator 也匯出確保向後相容
 __all__ = [
     'All_Stock_Filters_fuc',
     'All_fuc',
     'ReportServices',
     'Indicator',
+    'All_imge',
 ]
