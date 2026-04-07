@@ -134,3 +134,26 @@ class All_Stock_Filters_fuc:
 
 # 舊有函式別名
 All_fuc = All_Stock_Filters_fuc
+
+# 向後相容: ReportServices 別名 (舊程式碼相容)
+# 在重構後 ReportServices 功能已整合到各個報表類別
+# 此別名確保舊有 import 程式碼不會出錯
+class ReportServices:
+    """
+    向後相容類別 - 舊程式碼使用 `from src.FilterService.GetStockData import ReportServices`
+    這個類別提供原有介面相容，所有功能已轉移至 SeasonReportFactory
+    """
+    def __init__(self, *args, **kwargs):
+        from .StockReportHistory import SeasonReportFactory
+        self._factory = SeasonReportFactory(*args, **kwargs)
+    
+    def __getattr__(self, name):
+        return getattr(self._factory, name)
+
+# 將 Indicator 也匯出確保向後相容
+__all__ = [
+    'All_Stock_Filters_fuc',
+    'All_fuc',
+    'ReportServices',
+    'Indicator',
+]
