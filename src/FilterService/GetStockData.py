@@ -132,15 +132,5 @@ class All_Stock_Filters_fuc:
         temp = aAvgVol.get_ALL(self.Data, self._date)
         return temp
 
-
-# 向後相容匯出 - 保留舊有介面
-from .StockReportHistory import (
-    ReportUp,
-    ReportSmooth,
-    ReportAutoTrace,
-    ReportFilter,
-    ReportServices
-)
-
 # 舊有函式別名
 All_fuc = All_Stock_Filters_fuc
