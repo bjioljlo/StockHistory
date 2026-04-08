@@ -6,7 +6,8 @@ from typing import List
 
 import pandas as pd
 
-from src.FilterService.GetStockData import All_Stock_Filters_fuc, All_fuc,Indicator
+from src.FilterService.GetStockData import All_Stock_Filters_fuc
+from src.FilterService.StockReportHistory import Indicator
 from src.Common import Tools
 from src.Common import InfomationType as info
 from src.FilterService.StockHistory import OriginalStock
@@ -65,11 +66,11 @@ class PEG_pickBacktestFilter(TBacktestFilter):
 
     def RunFilter(self, Date: datetime) -> pd.Series:
         Result_data = {}
-        Result_data[self.PEG_Indicator.name] = All_fuc(
+        Result_data[self.PEG_Indicator.name] = All_Stock_Filters_fuc(
             Date, self.PEG_Indicator
         ).get_Filter_Auto(1, 0.66)
 
-        Result_data[self.MonthReportUp_indicator.name] = All_fuc(
+        Result_data[self.MonthReportUp_indicator.name] = All_Stock_Filters_fuc(
             Date, self.MonthReportUp_indicator
         ).get_Smooth_Up_Auto(4, 5)
         Result_data = Tools.MixDataFrames(Result_data)
@@ -98,7 +99,7 @@ class KD_pickBacktestFilter(TBacktestFilter):
         Result_data = pd.DataFrame()
         for num in range(1, 5):
             ResultKeyName = self._Indicator.name + "_data_" + str(num)
-            Result_data[ResultKeyName] = All_fuc(
+            Result_data[ResultKeyName] = All_Stock_Filters_fuc(
                 Tools.changeDateMonth(Date, (-3 * num)), self._Indicator
             ).get_Filter_Auto(0, 999)
         mask = Tools.MixDataFrames(Result_data)
@@ -126,13 +127,13 @@ class RecordHigh_pickBacktestFilter(TBacktestFilter):
 
     def RunFilter(self, Date: datetime):
         Result_data = {}
-        Result_data[self.ROE_Indicator.name] = All_fuc(
+        Result_data[self.ROE_Indicator.name] = All_Stock_Filters_fuc(
             Date, self.ROE_Indicator
         ).get_Filter_Auto(10000, 3)
-        Result_data[self.ROE_Indicator.name + "_last_seson"] = All_fuc(
+        Result_data[self.ROE_Indicator.name + "_last_seson"] = All_Stock_Filters_fuc(
             Date - timedelta(weeks=12), self.ROE_Indicator
         ).get_Filter_Auto(10000, 1)
-        Result_data[self.PBR_indicator.name] = All_fuc(
+        Result_data[self.PBR_indicator.name] = All_Stock_Filters_fuc(
             Date, self.PBR_indicator
         ).get_Filter_Auto(10000, 1)
         Result = Tools.MixDataFrames(Result_data)
@@ -172,10 +173,10 @@ class PERandPBR_pickBacktestFilter(TBacktestFilter):
 
     def RunFilter(self, Date: datetime):
         Result_data = {}
-        Result_data[self.PER_Indicator.name] = All_fuc(
+        Result_data[self.PER_Indicator.name] = All_Stock_Filters_fuc(
             Date, self.PER_Indicator
         ).get_Filter_Auto(10000, 13)
-        Result_data[self.PBR_indicator.name] = All_fuc(
+        Result_data[self.PBR_indicator.name] = All_Stock_Filters_fuc(
             Date, self.PBR_indicator
         ).get_Filter_Auto(10000, 0.7)
         Result = Tools.MixDataFrames(Result_data)
@@ -192,16 +193,16 @@ class MonthRpUp_pickbacktestFilter(TBacktestFilter):
 
     def RunFilter(self, Date: datetime) -> pd.Series:
         Result_data = {}
-        Result_data[self.MonthReportUp_indicator.name] = All_fuc(
+        Result_data[self.MonthReportUp_indicator.name] = All_Stock_Filters_fuc(
             Date, self.MonthReportUp_indicator
         ).get_Smooth_Up_Auto(4, 5)
-        Result_data[self.ROE_indicator.name] = All_fuc(
+        Result_data[self.ROE_indicator.name] = All_Stock_Filters_fuc(
             Date, self.ROE_indicator
         ).get_Filter_Auto(10000, 3)
-        Result_data[self.PER_indicator.name] = All_fuc(
+        Result_data[self.PER_indicator.name] = All_Stock_Filters_fuc(
             Date, self.PER_indicator
         ).get_Filter_Auto(10000, 13)
-        Result_data[self.PBR_indicator.name] = All_fuc(
+        Result_data[self.PBR_indicator.name] = All_Stock_Filters_fuc(
             Date, self.PBR_indicator
         ).get_Filter_Auto(10000, 0.7)
         Result_data = Tools.MixDataFrames(Result_data)

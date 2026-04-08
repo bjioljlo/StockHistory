@@ -29,7 +29,8 @@ try:
     from . import UpdateStockService
     from . import ScheduleService
     from . import DrawFigur
-    from . import main_stock
+    # 移除 main_stock 匯入以避免測試時啟動 Qt 應用程式
+    # from . import main_stock
 
     # 匯入子模組
     from . import Common
@@ -53,7 +54,6 @@ __all__ = [
     'UpdateStockService',
     'ScheduleService',
     'DrawFigur',
-    'main_stock',
     'Common',
     'BackTestService',
     'Controller',

@@ -95,14 +95,10 @@ def StockInfoDataInHandFactory(number: str) -> IStockInfoDataInHand:
     return StockInfoDataInHandWithWeightedAverage(StockInfoCurrentData(m_info, 0, 0))
 
 
-# 暫時保留舊別名給未更新的模組
-StockInfoDataInHand = StockInfoDataInHandWithWeightedAverage
-
 # 匯出所有項目
 __all__ = [
     'IStockInfoDataInHand',
     'TStockInfoDataInHand',
     'StockInfoDataInHandWithWeightedAverage',
     'StockInfoDataInHandFactory',
-    'StockInfoDataInHand'
 ]
