@@ -1,4 +1,4 @@
-from src.FilterService.GetStockData import ReportServices
+from src.FilterService.StockReportHistory import SeasonReportFactory
 from src.Model.Model import IModel
 from src.View.View import IWindow
 
@@ -10,12 +10,12 @@ from .Controller_pick import Controller_pick
 
 @staticmethod
 def Controller_Factory(
-    windowType: controllers, _view: IWindow, _model: IModel, _event: GetControllerEvent, draw_figur_service=None, report_services: ReportServices = None
+    windowType: controllers, _view: IWindow, _model: IModel, _event: GetControllerEvent, draw_figur_service=None, report_factory: SeasonReportFactory = None
 ) -> IController:
     controller = None
     match windowType:
         case controllers.Main:
-            controller = Controller_main(draw_figur_service=draw_figur_service, _view=_view, _model=_model, report_services=report_services)
+            controller = Controller_main(draw_figur_service=draw_figur_service, _view=_view, _model=_model, report_factory=report_factory)
         case controllers.Pick:
             controller = Controller_pick(_view, _model)
         case controllers.BackTest:

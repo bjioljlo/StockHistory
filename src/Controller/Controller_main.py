@@ -5,7 +5,7 @@ from PyQt5 import QtCore
 
 from src.Common import Tools
 from src.DrawFigur import DrawFigur
-from src.FilterService.GetStockData import ReportServices
+from src.FilterService.StockReportHistory import SeasonReportFactory
 from src.Model.Model import IModel
 from src.Model.Model_main import Model_main
 from src.View.View import IWindow
@@ -14,12 +14,12 @@ from src.View.View_main import Main_Window
 from .Controller import MAIN_TITALLIST, TController, controllers, creat_treeView_model
 
 class Controller_main(TController):
-    def __init__(self, draw_figur_service:DrawFigur, report_services: ReportServices, _view: IWindow = None, _model: IModel = None) -> None:
+    def __init__(self, draw_figur_service:DrawFigur, report_factory: SeasonReportFactory, _view: IWindow = None, _model: IModel = None) -> None:
         super().__init__(_view, _model)
         self.Init_Window()
         self.lock = threading.Lock()
         self._draw_figur_service: DrawFigur = draw_figur_service
-        self._ReportServices = report_services
+        self._ReportFactory = report_factory
 
     def __GetView(self) -> Main_Window:
         return self.View
@@ -237,9 +237,9 @@ class Controller_main(TController):
             print("請輸入股票代號")
         else:
             stock_number = self.__GetView().GetFormUI().input_stockNumber.toPlainText()
-            self._ReportServices.RangeDate_Stock.number = stock_number
-            self._ReportServices.RangeDate_Stock.StartDate = date
-            m_history = self._ReportServices.RangeDate_Stock.get_ALL()
+            self._ReportFactory.RangeDate_Stock.number = stock_number
+            self._ReportFactory.RangeDate_Stock.StartDate = date
+            m_history = self._ReportFactory.RangeDate_Stock.get_ALL()
             if (
                 self.__GetView().GetFormUI().check_ADL.isChecked()
                 or self.__GetView().GetFormUI().check_ADLs.isChecked()

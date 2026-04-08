@@ -97,3 +97,16 @@ def get_config() -> ConfigService:
     """Get ConfigService singleton instance"""
     return ConfigService()
 
+
+# 匯出靜態方法
+get_config_path = ConfigService.get_config_path
+
+# 暫時保留舊函式別名
+load_config = get_config
+
+__all__ = [
+    'ConfigService',
+    'get_config',
+    'load_config',
+    'get_config_path'
+]

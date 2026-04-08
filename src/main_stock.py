@@ -16,7 +16,7 @@ from src.Common.DataCleanupService import DataCleanupService
 from src.Controller.MediatorController import Mediator_Controller, controllers
 from src.DrawFigur import DrawFigur
 from src.ExternalService.ExternalDataFactory import ExternalDataFactory
-from src.FilterService.GetStockData import ReportServices
+from src.FilterService.StockReportHistory import SeasonReportFactory
 from src.MongoService import MongoService
 from src.ReadLoadSystem import ReadLoadSystem
 from src.ScheduleService import ScheduleService
@@ -49,7 +49,7 @@ external_data_factory = ExternalDataFactory(
     read_load_system=read_load_system,
     cache_service=cache_service  # 注入快取服務
 )
-report_services = ReportServices(external_data_factory=external_data_factory)
+report_factory = SeasonReportFactory(external_data_factory=external_data_factory)
 
 updateStock_service = UpdateStockService(sql_service=sql_service, mongo_service=mongo_service, read_load_system=read_load_system, config=config, cache_service=cache_service)
 schedule_service = ScheduleService(concurrent_utils=concurrent_utils, update_stockService=updateStock_service, cache_service=cache_service)
@@ -61,7 +61,7 @@ mediator_controller = Mediator_Controller(
     mongo_service=mongo_service,
     draw_figur_service=draw_figur_service,
     concurrent_utils=concurrent_utils,
-    report_services=report_services,
+    report_factory=report_factory,
     external_data_factory=external_data_factory
 )
 

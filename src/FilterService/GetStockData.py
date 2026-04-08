@@ -132,7 +132,15 @@ class All_Stock_Filters_fuc:
 
 
 # 將 Indicator 也匯出確保向後相容
+# 暫時保留舊別名給未更新的模組使用
+All_fuc = All_Stock_Filters_fuc
+
+# 暫時保留 ReportServices 相容類別
+from .StockReportHistory import SeasonReportFactory as ReportServices
+
 __all__ = [
     'All_Stock_Filters_fuc',
+    'All_fuc',
+    'ReportServices',
     'Indicator',
 ]

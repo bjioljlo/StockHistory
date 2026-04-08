@@ -2,7 +2,7 @@ from datetime import datetime
 
 from src.Common import Tools
 from src.DrawFigur import DrawFigur
-from src.FilterService.GetStockData import ReportServices, All_imge
+from src.FilterService.StockReportHistory import SeasonReportFactory
 from src.Model.Model import TModel
 from src.Common.Parameter import RecordMainParameter
 from src.ScheduleService import ScheduleService
@@ -13,7 +13,7 @@ from src.ExternalService.IGetExternalData import IGetExternalData
 
 class Model_main(TModel):
     def __init__(self, schedule: ScheduleService, draw_figur_service: DrawFigur,
-                 external_data_service: IGetExternalData, report_services: ReportServices) -> None:
+                 external_data_service: IGetExternalData, report_factory: SeasonReportFactory) -> None:
         super().__init__()
         self._main_user_info_data: UserInfoDatas = UserInfoDatas(
             "stock_info_list.npy", "Update_date.npy", "TW_Update_date.npy", "US_Update_date.npy"
@@ -22,7 +22,7 @@ class Model_main(TModel):
         self._schedule_service = schedule
         self._draw_figur_service = draw_figur_service
         self._external_data_service = external_data_service
-        self._report_services = report_services
+        self._report_factory = report_factory
 
     @property
     def main_user_info_data(self):
@@ -57,7 +57,8 @@ class Model_main(TModel):
             print("今天還沒過完無資資訊")
             return None
 
-        main_imge = All_imge(
+        from src.FilterService.StockReportHistory import ChartDataGenerator
+        main_imge = ChartDataGenerator(
             record_parameter.startdate,
             record_parameter.enddate,
             report_index,
@@ -100,7 +101,7 @@ class Model_main(TModel):
         
         self._create_and_draw_chart(
             record_main_parameter,
-            self._report_services.Month_index,
+            self._report_factory.Month_index,
             "Monthly Revenue(UNIT-->NTD:1000,000)",
         )
 
@@ -108,7 +109,7 @@ class Model_main(TModel):
         """某股票殖利率曲線"""
         self._create_and_draw_chart(
             record_main_parameter,
-            self._report_services.Yield_index,
+            self._report_factory.Yield_index,
             "Dividend yield",
         )
 
@@ -116,7 +117,7 @@ class Model_main(TModel):
         """某股票營業利益率曲線"""
         self._create_and_draw_chart(
             record_main_parameter,
-            self._report_services.OM_index,
+            self._report_factory.OM_index,
             "Operating Margin Ratio",
         )
 
@@ -124,7 +125,7 @@ class Model_main(TModel):
         """#某股票營業利益成長率曲線"""
         self._create_and_draw_chart(
             record_main_parameter,
-            self._report_services.OM_Growth_index,
+            self._report_factory.OM_Growth_index,
             "Operating Margin Growth Up (season by season)(%)",
         )
 
@@ -132,7 +133,7 @@ class Model_main(TModel):
         """#某股票ROE曲線"""
         self._create_and_draw_chart(
             record_main_parameter,
-            self._report_services.ROE_index,
+            self._report_factory.ROE_index,
             "Return On Equity Ratio(ROE)",
         )
 
@@ -140,7 +141,7 @@ class Model_main(TModel):
         """某股票營業現金流"""
         self._create_and_draw_chart(
             record_main_parameter,
-            self._report_services.OCF_index,
+            self._report_factory.OCF_index,
             "Operating cash flow",
         )
 
@@ -148,7 +149,7 @@ class Model_main(TModel):
         """某股票投資現金流"""
         self._create_and_draw_chart(
             record_main_parameter,
-            self._report_services.ICF_index,
+            self._report_factory.ICF_index,
             "Investment cash flow",
         )
 
@@ -156,7 +157,7 @@ class Model_main(TModel):
         """某股票自由現金流"""
         self._create_and_draw_chart(
             record_main_parameter,
-            self._report_services.FreeCF_index,
+            self._report_factory.FreeCF_index,
             "Free cash flow",
         )
 
@@ -164,7 +165,7 @@ class Model_main(TModel):
         """某股票股價現金流量比"""
         self._create_and_draw_chart(
             record_main_parameter,
-            self._report_services.PCF_index,
+            self._report_factory.PCF_index,
             "Price to Cash Flow Ratio(P/CF)",
         )
 
@@ -172,7 +173,7 @@ class Model_main(TModel):
         """某股票eps"""
         self._create_and_draw_chart(
             record_main_parameter,
-            self._report_services.EPS_index,
+            self._report_factory.EPS_index,
             "Earnings Per Share(EPS)",
         )
 
@@ -180,7 +181,7 @@ class Model_main(TModel):
         """某股票資產負債比率"""
         self._create_and_draw_chart(
             record_main_parameter,
-            self._report_services.Debt_index,
+            self._report_factory.Debt_index,
             "Debt Asset Ratio",
         )
 
@@ -188,7 +189,7 @@ class Model_main(TModel):
         """騰落指標"""
         return self._create_and_draw_chart(
             record_main_parameter,
-            self._report_services.ADL_index,
+            self._report_factory.ADL_index,
             "",
             stock_number_required=False,
             draw=False,
@@ -198,7 +199,7 @@ class Model_main(TModel):
         """騰落比例指標"""
         self._create_and_draw_chart(
             record_main_parameter,
-            self._report_services.ADLs_index,
+            self._report_factory.ADLs_index,
             "ADLs",
             stock_number_required=False,
         )
@@ -207,7 +208,7 @@ class Model_main(TModel):
         """月營收成長率"""
         self._create_and_draw_chart(
             record_main_parameter,
-            self._report_services.MR_Growth_index,
+            self._report_factory.MR_Growth_index,
             "Month Revenue Growth",
         )
 
@@ -215,7 +216,7 @@ class Model_main(TModel):
         """季營收成長率"""
         self._create_and_draw_chart(
             record_main_parameter,
-            self._report_services.SR_Growth_index,
+            self._report_factory.SR_Growth_index,
             "Season Revenue Growth",
         )
 
