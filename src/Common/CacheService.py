@@ -548,8 +548,6 @@ class HybridCacheService:
         return health
 
 
-# 保持向後相容的別名
-CacheService = HybridCacheService
 
 # 全域快取服務實例
 _cache_service = None

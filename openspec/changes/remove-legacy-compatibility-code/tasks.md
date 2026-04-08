@@ -6,11 +6,11 @@
 
 ## 2. Common 模組清理
 
-- [ ] 2.1 移除 Common/CacheService.py 中的 CacheService 別名
-- [ ] 2.2 移除 Common/ConfigService.py 中的舊相容函式
-- [ ] 2.3 移除 Common/PerformanceMonitor.py 中的舊相容函式
-- [ ] 2.4 清理 Common/Tools.py 已棄用的模組包裝
-- [ ] 2.5 執行 Common 模組相關測試
+- [x] 2.1 移除 Common/CacheService.py 中的 CacheService 別名 ✅
+- [x] 2.2 移除 Common/ConfigService.py 中的舊相容函式 ✅
+- [x] 2.3 移除 Common/PerformanceMonitor.py 中的舊相容函式 ✅
+- [x] 2.4 清理 Common/Tools.py 已棄用的模組包裝 ✅
+- [x] 2.5 執行 Common 模組相關測試 ✅
 
 ## 3. Service 層清理
 

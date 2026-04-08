@@ -3,7 +3,6 @@ BackTestStock - 回測服務入口外觀類別 (Facade Pattern)
 
 此模組已重構：
 - 拆分為策略模組位於 strategies/ 子目錄
-- 維持 100% 向後相容性，所有公開介面不變
 - 原檔案從 521 行 -> 179 行 (符合 < 500 行規範)
 - 單一職責原則：僅作為外部介面
 - 實際邏輯已移至各策略模組
@@ -41,7 +40,6 @@ class BackTestStock:
     回測服務主要入口類別
     
     重構後作為 Facade 外觀類別，所有策略實作已移至獨立模組
-    維持 100% 向後相容性，所有公開方法簽名維持不變
     """
     def __init__(self, original_stock: OriginalStock, external_data_factory: ExternalDataFactory) -> None:
         self.bool_check_monthRP_pick: bool = False

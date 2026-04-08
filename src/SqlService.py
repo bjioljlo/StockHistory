@@ -9,7 +9,7 @@ from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy import inspect, text
 
 from src.Common import Tools
-from src.Common.ConfigService import load_config, get_config_path
+from src.Common.ConfigService import get_config
 
 
 class SqlService:
@@ -404,7 +404,7 @@ class SqlService:
         print("Loading database configuration...")
 
         try:
-            config = load_config(get_config_path())
+            config = get_config()
         except Exception as e:
             print(f"Error loading configuration: {e}")
             return

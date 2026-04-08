@@ -97,24 +97,3 @@ def get_config() -> ConfigService:
     """Get ConfigService singleton instance"""
     return ConfigService()
 
-
-def get_config_path() -> str:
-    """
-    Legacy compatibility function.
-    Get config path based on environment.
-    """
-    return ConfigService.get_config_path()
-
-
-def load_config(config_path: Optional[str] = None) -> Dict[str, Any]:
-    """
-    Legacy compatibility function.
-    Loads the configuration from a YAML file and substitutes environment variables.
-    """
-    if config_path is None:
-        config_path = ConfigService.get_config_path()
-
-    with open(config_path, 'r', encoding='utf-8') as f:
-        config = yaml.safe_load(f)
-
-    return ConfigService.substitute_env_vars(config)

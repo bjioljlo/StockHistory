@@ -59,29 +59,6 @@ from .StockUtils import (
     ETF_LIST,
 )
 
-# Legacy alias mappings for backward compatibility
-changeDateMonth = change_date_month
-check_monthDate = check_month_date
-backWorkDays = back_work_days
-QtDate2DateTime = qt_date_to_datetime
-DateTime2String = datetime_to_string
-CheckFS_season = check_fs_season
-Have_MonthRP = have_month_rp
-Have_DayRP = have_day_rp
-Total_with_Handling_fee_and_Tax = calculate_total_with_fees
-Count_Stock_Amount = calculate_max_shares
-smooth_Data = smooth_data
-MixDataFrames = merge_dataframes
-get_random_Header = get_random_headers
-get_SP500_list = get_sp500_tickers
-check_no_use_stock = is_excluded_stock
-check_ETF_stock = is_etf_stock
-TidyTicketData = extract_ticker_data
-
-# Legacy constants
-NO_USE_STOCK = EXCLUDED_STOCKS
-FIVE_WORD_ETF = ETF_LIST
-headers_site = _USER_AGENTS
 
 
 # Show deprecation warning when module is imported
