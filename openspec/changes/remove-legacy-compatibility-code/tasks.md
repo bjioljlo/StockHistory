@@ -15,7 +15,7 @@
 ## 3. Service 層清理
 
 - [ ] 3.1 移除 BackTestService 中的相容別名和 Facade
-- [ ] 3.2 移除 ExternalService/TGetExternalData.py 相容層
+- [x] 3.2 移除 ExternalService/TGetExternalData.py 相容層 ✅
 - [ ] 3.3 移除 UpdateStockService 相容介面
 - [ ] 3.4 移除 FilterService/GetStockData.py 中的相容類別
 - [ ] 3.5 執行各 Service 模組測試
