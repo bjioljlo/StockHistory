@@ -102,3 +102,6 @@ __all__ = [
     'StockInfoDataInHandWithWeightedAverage',
     'StockInfoDataInHandFactory',
 ]
+
+# 向後相容別名 (最後保留，等所有模組更新後再移除)
+StockInfoDataInHand = StockInfoDataInHandWithWeightedAverage
