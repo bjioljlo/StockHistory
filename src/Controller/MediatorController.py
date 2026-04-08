@@ -96,12 +96,6 @@ class Mediator_Controller(IMediator_Controller):
         
         return controller_map[receiver]
     
-    def GetController(self, reciver: controllers) -> IController:
-        """
-        向後相容介面 - 已棄用
-        請使用 get_controller() 替代
-        """
-        return self.get_controller(reciver)
     
     def send_message(self, receiver: controllers, message_type: str, **kwargs):
         """

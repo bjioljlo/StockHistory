@@ -106,20 +106,6 @@ class TController(IController):
         self.GetView().GetFormUI().show()
 
 
-# 向後相容: creat_treeView_model 函式 (舊程式碼相容)
-# 在重構後此函式已移至 Controller_main.py，此別名提供匯入相容
-def creat_treeView_model(*args, **kwargs):
-    """
-    向後相容函式 - 舊程式碼使用的 creat_treeView_model
-    實際功能已移至 Controller_main 模組
-    """
-    import warnings
-    warnings.warn("creat_treeView_model 已移至 Controller_main 模組", DeprecationWarning)
-    try:
-        from .Controller_main import creat_treeView_model as _creat_treeView_model
-        return _creat_treeView_model(*args, **kwargs)
-    except ImportError:
-        return None
 
 # 匯出所有公開項目
 __all__ = [
@@ -127,7 +113,6 @@ __all__ = [
     'IController',
     'GetControllerEvent',
     'TController',
-    'creat_treeView_model',
     'MAIN_TITALLIST',
     'PICK__TITALLIST',
 ]

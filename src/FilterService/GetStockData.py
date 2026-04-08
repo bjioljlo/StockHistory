@@ -3,7 +3,6 @@ GetStockData - Filter 服務入口外觀類別 (Facade Pattern)
 
 此模組已重構：
 - 拆分為篩選器模組位於 filters/ 子目錄
-- 維持 100% 向後相容性，所有公開介面不變
 - 原檔案從 753 行 -> 192 行 (符合 < 500 行規範)
 - 單一職責原則：僅作為外部介面
 - 實際邏輯已移至各篩選器模組
@@ -63,7 +62,6 @@ class All_Stock_Filters_fuc:
     所有的篩選方法集合體(外部只會用到這裡)
     
     重構後作為 Facade 外觀類別，所有篩選實作已移至獨立模組
-    維持 100% 向後相容性，所有公開方法簽名維持不變
     """
 
     @property
@@ -132,69 +130,9 @@ class All_Stock_Filters_fuc:
         temp = aAvgVol.get_ALL(self.Data, self._date)
         return temp
 
-# 舊有函式別名
-All_fuc = All_Stock_Filters_fuc
-
-# 向後相容: ReportServices 別名 (舊程式碼相容)
-# 在重構後 ReportServices 功能已整合到各個報表類別
-# 此別名確保舊有 import 程式碼不會出錯
-class ReportServices:
-    """
-    向後相容類別 - 舊程式碼使用 `from src.FilterService.GetStockData import ReportServices`
-    這個類別提供原有介面相容，所有功能已轉移至 SeasonReportFactory
-    """
-    def __init__(self, *args, **kwargs):
-        from .StockReportHistory import SeasonReportFactory
-        self._factory = SeasonReportFactory(*args, **kwargs)
-    
-    def __getattr__(self, name):
-        return getattr(self._factory, name)
-
-# 向後相容: All_imge 別名 (舊程式碼相容)
-# 在重構後原 All_imge 函式已移至其他模組，此別名提供空實作避免匯入錯誤
-def All_imge(*args, **kwargs):
-    """
-    向後相容函式 - 舊程式碼使用的 All_imge
-    功能已整合至圖表繪製模組
-    """
-    import warnings
-    warnings.warn("All_imge 已棄用，請使用 DrawFigur 模組替代", DeprecationWarning)
-    return None
-
-# 向後相容: 舊有測試使用的類別別名
-class ReportFilter:
-    """向後相容類別 - 已重構移至 StockReportHistory"""
-    def __init__(self, *args, **kwargs):
-        import warnings
-        warnings.warn("ReportFilter 已棄用，請使用 StockReportHistory 中的對應類別", DeprecationWarning)
-
-class ReportUp:
-    """向後相容類別 - 已重構移至 StockReportHistory"""
-    def __init__(self, *args, **kwargs):
-        import warnings
-        warnings.warn("ReportUp 已棄用，請使用 StockReportHistory 中的對應類別", DeprecationWarning)
-
-class ReportSmooth:
-    """向後相容類別 - 已重構移至 StockReportHistory"""
-    def __init__(self, *args, **kwargs):
-        import warnings
-        warnings.warn("ReportSmooth 已棄用，請使用 StockReportHistory 中的對應類別", DeprecationWarning)
-
-class ReportAutoTrace:
-    """向後相容類別 - 已重構移至 StockReportHistory"""
-    def __init__(self, *args, **kwargs):
-        import warnings
-        warnings.warn("ReportAutoTrace 已棄用，請使用 StockReportHistory 中的對應類別", DeprecationWarning)
 
 # 將 Indicator 也匯出確保向後相容
 __all__ = [
     'All_Stock_Filters_fuc',
-    'All_fuc',
-    'ReportServices',
     'Indicator',
-    'All_imge',
-    'ReportFilter',
-    'ReportUp',
-    'ReportSmooth',
-    'ReportAutoTrace',
 ]

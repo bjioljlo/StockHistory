@@ -3,7 +3,6 @@ TGetExternalData - External Data Service (Facade Pattern)
 
 此模組已重構：
 - 拆分為資料提供者模組位於 providers/ 子目錄
-- 維持 100% 向後相容性，所有公開介面不變
 - 原檔案從 1491 行 -> 287 行 (符合 < 500 行規範)
 - 單一職責原則：僅作為外部介面
 - 實際邏輯已移至各提供者模組
@@ -35,7 +34,6 @@ class TGetExternalData(IGetExternalData):
     """讀取外部資料
     
     重構後作為 Facade 外觀類別，所有實作已移至獨立模組
-    維持 100% 向後相容性，所有公開方法簽名維持不變
     """
 
     def __init__(self,

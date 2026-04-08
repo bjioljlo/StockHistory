@@ -4,7 +4,6 @@ UpdateStockService Module - Main Service Facade
 This is the main public interface for stock update operations.
 All implementation details are delegated to specialized components.
 
-Maintains 100% backwards compatibility with original interface.
 """
 import os
 import queue
@@ -57,7 +56,7 @@ class UpdateStockService:
         self._adl_updater = ADLUpdater(self._sql_service, self._getExternalFactory)
 
     # ------------------------------
-    # Public API (Backwards Compatible)
+    # Public API
     # ------------------------------
 
     def UpdateSP500StocksHandle(self, MainUserInfoDatas: UserInfoDatas, callback=None):
@@ -79,7 +78,7 @@ class UpdateStockService:
                 callback(progress)
 
     # ------------------------------
-    # Delegate Methods (Backwards Compatible)
+    # Delegate Methods
     # ------------------------------
 
     def _download_with_retry(self, stock_symbol: str, start_date: datetime, end_date: datetime, tz: str = None) -> pd.DataFrame:
