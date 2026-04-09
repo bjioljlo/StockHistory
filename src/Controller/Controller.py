@@ -116,10 +116,3 @@ __all__ = [
     'MAIN_TITALLIST',
     'PICK__TITALLIST',
 ]
-
-
-# 動態匯入以解決循環匯入問題
-def creat_treeView_model(*args, **kwargs):
-    """相容函式 - 動態匯入避免循環依賴"""
-    from .Controller_main import creat_treeView_model as _creat_treeView_model
-    return _creat_treeView_model(*args, **kwargs)

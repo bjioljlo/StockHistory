@@ -14,7 +14,7 @@
 
 ## 3. Service 層清理
 
-- [ ] 3.1 移除 BackTestService 中的相容別名和 Facade
+- [x] 3.1 移除 BackTestService 中的相容別名和 Facade ✅
 - [x] 3.2 移除 ExternalService/TGetExternalData.py 相容層 ✅
 - [ ] 3.3 移除 UpdateStockService 相容介面
 - [ ] 3.4 移除 FilterService/GetStockData.py 中的相容類別
@@ -22,7 +22,7 @@
 
 ## 4. Controller 與 Model 層清理
 
-- [ ] 4.1 移除 Controller.py 中的舊函式別名
+- [x] 4.1 移除 Controller.py 中的舊函式別名 ✅
 - [ ] 4.2 移除 MediatorController.py 已棄用介面
 - [ ] 4.3 移除 Model_pick.py 的 Facade 相容層
 - [ ] 4.4 更新所有內部匯入路徑
