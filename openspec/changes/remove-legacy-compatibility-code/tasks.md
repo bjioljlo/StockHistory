@@ -18,20 +18,20 @@
 - [x] 3.2 移除 ExternalService/TGetExternalData.py 相容層 ✅
 - [x] 3.3 移除 UpdateStockService 相容介面 ✅
 - [x] 3.4 移除 FilterService/GetStockData.py 中的相容類別 ✅
-- [ ] 3.5 執行各 Service 模組測試
+- [x] 3.5 執行各 Service 模組測試 ✅
 
 ## 4. Controller 與 Model 層清理
 
 - [x] 4.1 移除 Controller.py 中的舊函式別名 ✅
-- [ ] 4.2 移除 MediatorController.py 已棄用介面
-- [ ] 4.3 移除 Model_pick.py 的 Facade 相容層
+- [x] 4.2 移除 MediatorController.py 已棄用介面 ✅
+- [x] 4.3 移除 Model_pick.py 的 Facade 相容層 ✅
 - [ ] 4.4 更新所有內部匯入路徑
 - [ ] 4.5 執行 Controller 與 Model 測試
 
 ## 5. 全域與彙總清理
 
-- [ ] 5.1 清理 src/__init__.py 中的相容匯入
-- [ ] 5.2 移除各模組 __init__.py 中的相容別名
+- [x] 5.1 清理 src/__init__.py 中的相容匯入 ✅
+- [x] 5.2 移除各模組 __init__.py 中的相容別名 ✅
 - [ ] 5.3 移除所有相關的警告訊息
 - [ ] 5.4 移除所有標註「向後相容」的註解
 

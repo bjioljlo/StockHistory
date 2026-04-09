@@ -9,10 +9,12 @@ from .ParameterValidator import PickParameterValidator
 from .StockGroupService import StockGroupService
 from .DateValidatorService import DateValidatorService
 from .FilterDataMerger import FilterDataMerger
+from .PickModel import PickModel
 
 __all__ = [
     'PickParameterValidator',
     'StockGroupService',
     'DateValidatorService',
     'FilterDataMerger',
+    'PickModel',
 ]

@@ -34,14 +34,23 @@ from .BackTestInOutStrategy import (
     RecordHigh_backtestInOutStrategy,
     Regular_backTestInOutStrategy,
 )
-from .BackTestRecord import TBackTestRecord as BackTestRecord
+from .BackTestRecord import (
+    IBackTestRecord,
+    TBackTestRecord,
+    BackTestRecord_indexWithDate,
+)
 from .BackTestSignal import (
     BacktestSignalFactory,
     BacktestSignalType,
     TBacktestSignal,
 )
 from .BackTestStock import BackTestStock
-from .StockInfoDataInHand import StockInfoDataInHandWithWeightedAverage as StockInfoDataInHand
+from .StockInfoDataInHand import (
+    IStockInfoDataInHand,
+    TStockInfoDataInHand,
+    StockInfoDataInHandWithWeightedAverage,
+    StockInfoDataInHandFactory,
+)
 
 __all__ = [
     'BacktestFilterFactory',
@@ -56,10 +65,15 @@ __all__ = [
     'PERandPBR_BackTestInOutStrategy',
     'RecordHigh_backtestInOutStrategy',
     'Regular_backTestInOutStrategy',
-    'BackTestRecord',
+    'IBackTestRecord',
+    'TBackTestRecord',
+    'BackTestRecord_indexWithDate',
     'BacktestSignalFactory',
     'BacktestSignalType',
     'TBacktestSignal',
     'BackTestStock',
-    'StockInfoDataInHand',
+    'IStockInfoDataInHand',
+    'TStockInfoDataInHand',
+    'StockInfoDataInHandWithWeightedAverage',
+    'StockInfoDataInHandFactory',
 ]

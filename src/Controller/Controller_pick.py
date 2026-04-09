@@ -1,7 +1,7 @@
 from datetime import datetime
 
 from src.Model.Model import IModel
-from src.Model.Model_pick import Model_pick
+from src.Model.Pick import PickModel
 from src.View.View import IWindow
 from src.View.View_pick import Pick_Window
 
@@ -17,7 +17,7 @@ class Controller_pick(TController):
     def __GetView(self) -> Pick_Window:
         return self.View
 
-    def __GetModel(self) -> Model_pick:
+    def __GetModel(self) -> PickModel:
         return self.Model
 
     def Init_Window(self):

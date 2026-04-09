@@ -4,7 +4,7 @@ from src.ExternalService.ExternalDataFactory import ExternalDataFactory
 from src.FilterService.StockReportHistory import SeasonReportFactory
 from src.Model.Model_backtest import Model_backtest
 from src.Model.Model_main import Model_main
-from src.Model.Model_pick import Model_pick
+from src.Model.Pick import PickModel
 from src.ScheduleService import ScheduleService
 from src.SqlService import SqlService
 from src.Common.ConcurrentUtils import ConcurrentUtils
@@ -63,16 +63,16 @@ class Mediator_Controller(IMediator_Controller):
             Main_Window(MyWindow(self._schedule.StopThreadSchedule)),
             Model_main(schedule=self._schedule, draw_figur_service=self._draw_figur_service, 
                         external_data_service=self._external_data_factory.Get_instance(), report_factory=self._report_factory),
-            self.GetController,
+            self.get_controller,
             self._draw_figur_service,
             report_factory=self._report_factory
         )
         self._pick_controller: IController = Controller_Factory(
             controllers.Pick,
             Pick_Window(MyPickWindow()),
-            # 將需要的服務傳給 Model_pick
-            Model_pick(external_data_factory= self._external_data_factory),
-            self.GetController,
+            # 將需要的服務傳給 PickModel
+            PickModel(external_data_factory= self._external_data_factory),
+            self.get_controller,
         )
         self._backtest_controller: IController = Controller_Factory(
             controllers.BackTest,
@@ -80,7 +80,7 @@ class Mediator_Controller(IMediator_Controller):
             # 將需要的服務傳給 Model_backtest
             Model_backtest(sql_service=self._sql_service, draw_figur_service=self._draw_figur_service,
                         concurrent_utils=self._concurrent_utils, external_data_factory=self._external_data_factory),
-            self.GetController,
+            self.get_controller,
         )
 
     def get_controller(self, receiver: controllers) -> IController:
