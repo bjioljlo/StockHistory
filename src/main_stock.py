@@ -21,7 +21,9 @@ from src.MongoService import MongoService
 from src.ReadLoadSystem import ReadLoadSystem
 from src.ScheduleService import ScheduleService
 from src.SqlService import SqlService
-from src.UpdateStockService import UpdateStockService
+from src.UpdateStockService.StockDataDownloader import StockDataDownloader
+from src.UpdateStockService.StockDataSynchronizer import StockDataSynchronizer
+from src.UpdateStockService.ADLUpdater import ADLUpdater
 
 app = QtWidgets.QApplication(sys.argv)
 config = load_config(get_config_path())
@@ -51,8 +53,24 @@ external_data_factory = ExternalDataFactory(
 )
 report_factory = SeasonReportFactory(external_data_factory=external_data_factory)
 
-updateStock_service = UpdateStockService(sql_service=sql_service, mongo_service=mongo_service, read_load_system=read_load_system, config=config, cache_service=cache_service)
-schedule_service = ScheduleService(concurrent_utils=concurrent_utils, update_stockService=updateStock_service, cache_service=cache_service)
+# Initialize Update Stock components (no facade)
+retry_attempts = config.get('external_apis', {}).get('yahoo_finance', {}).get('retry_attempts', 3) if config else 3
+stock_data_downloader = StockDataDownloader(retry_attempts, 1.0)
+stock_data_synchronizer = StockDataSynchronizer(sql_service, mongo_service)
+adl_updater = ADLUpdater(sql_service, external_data_factory)
+
+schedule_service = ScheduleService(
+    concurrent_utils=concurrent_utils,
+    stock_data_downloader=stock_data_downloader,
+    stock_data_synchronizer=stock_data_synchronizer,
+    adl_updater=adl_updater,
+    external_data_factory=external_data_factory,
+    sql_service=sql_service,
+    mongo_service=mongo_service,
+    read_load_system=read_load_system,
+    config=config,
+    cache_service=cache_service
+)
 
 # 2. Inject all services into the Mediator_Controller
 mediator_controller = Mediator_Controller(
