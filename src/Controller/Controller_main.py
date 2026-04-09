@@ -11,7 +11,8 @@ from src.Model.Model_main import Model_main
 from src.View.View import IWindow
 from src.View.View_main import Main_Window
 
-from .Controller import MAIN_TITALLIST, TController, controllers, creat_treeView_model
+from .Controller import MAIN_TITALLIST, TController, controllers
+from .ViewUtils import creat_treeView_model
 
 class Controller_main(TController):
     def __init__(self, draw_figur_service:DrawFigur, report_factory: SeasonReportFactory, _view: IWindow = None, _model: IModel = None) -> None:

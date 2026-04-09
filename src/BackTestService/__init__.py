@@ -34,14 +34,14 @@ from .BackTestInOutStrategy import (
     RecordHigh_backtestInOutStrategy,
     Regular_backTestInOutStrategy,
 )
-from .BackTestRecord import BackTestRecord
+from .BackTestRecord import TBackTestRecord as BackTestRecord
 from .BackTestSignal import (
     BacktestSignalFactory,
     BacktestSignalType,
     TBacktestSignal,
 )
 from .BackTestStock import BackTestStock
-from .StockInfoDataInHand import StockInfoDataInHand
+from .StockInfoDataInHand import StockInfoDataInHandWithWeightedAverage as StockInfoDataInHand
 
 __all__ = [
     'BacktestFilterFactory',

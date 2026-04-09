@@ -5,7 +5,7 @@ from src.Model.Model_pick import Model_pick
 from src.View.View import IWindow
 from src.View.View_pick import Pick_Window
 
-from . import Controller
+from . from .ViewUtils import creat_treeView_model
 from .Controller import TController, controllers
 
 
@@ -32,7 +32,7 @@ class Controller_pick(TController):
             self.button_Filter_click
         )  # 設定button功能
         UI_form.treeView_pick.setModel(
-            Controller.creat_treeView_model(
+            creat_treeView_model(
                 UI_form.treeView_pick, Controller.PICK__TITALLIST
             )
         )  # 設定treeView功能
