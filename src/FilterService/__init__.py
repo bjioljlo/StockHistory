@@ -1,16 +1,13 @@
 """
 FilterService Package
 
-Refactored into modular components:
-- All_Stock_Filters_fuc: Main service facade (backwards compatible)
+Modular components:
 - StockHistory: Stock data filters and calculators
 - StockReportHistory: Financial report indicators
-- GetStockData: Stock data retrieval and filtering
+- GetStockData: Legacy import forwarding (deprecated)
 
 Refactored at 2026-04-06 as part of project-refactoring-and-cleanup
 """
-
-from .GetStockData import All_Stock_Filters_fuc
 from .StockHistory import (
     OriginalStock,
     OriginalStockByYahoo,
@@ -45,7 +42,6 @@ from .StockReportHistory import (
 )
 
 __all__ = [
-    'All_Stock_Filters_fuc',
     'OriginalStock',
     'OriginalStockByYahoo',
     'RangeDate_Stock',
