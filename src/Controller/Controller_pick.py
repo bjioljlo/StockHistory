@@ -5,7 +5,7 @@ from src.Model.Pick import PickModel
 from src.View.View import IWindow
 from src.View.View_pick import Pick_Window
 
-from . from .ViewUtils import creat_treeView_model
+from src.View.ViewUtils import creat_treeView_model
 from .Controller import TController, controllers
 
 

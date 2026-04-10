@@ -238,6 +238,11 @@ class TimedBlock:
 performance_monitor = PerformanceMonitor()
 
 
+def get_performance_monitor() -> PerformanceMonitor:
+    """Legacy compatibility factory function"""
+    return performance_monitor
+
+
 # Convenience decorator
 profile = performance_monitor.profile
 

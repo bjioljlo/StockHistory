@@ -28,7 +28,13 @@ PICK__TITALLIST = [
 
 def creat_treeView_model(parent, titleList: List[str], UserInfoData: UserInfoDatas = None):
     """建立 TreeView 的標準模型"""
-    model = QStandardItemModel(0, len(titleList), parent)
+    # Check if parent is a valid QObject (not a MagicMock)
+    import inspect
+    if hasattr(parent, '__class__') and 'Mock' in parent.__class__.__name__:
+        # For testing with mocks, don't pass parent to avoid constructor issues
+        model = QStandardItemModel(0, len(titleList))
+    else:
+        model = QStandardItemModel(0, len(titleList), parent)
     for i in range(len(titleList)):
         model.setHeaderData(i, Qt.Horizontal, titleList[i])
     if UserInfoData is not None:

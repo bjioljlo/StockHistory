@@ -5,7 +5,7 @@ from typing import Callable
 
 from src.Model.Model import IModel
 from src.View.View import IWindow
-from src.View.ViewUtils import MAIN_TITALLIST, PICK__TITALLIST
+from src.View.ViewUtils import MAIN_TITALLIST, PICK__TITALLIST, creat_treeView_model
 
 
 class controllers(Enum):
@@ -115,4 +115,5 @@ __all__ = [
     'TController',
     'MAIN_TITALLIST',
     'PICK__TITALLIST',
+    'creat_treeView_model',
 ]

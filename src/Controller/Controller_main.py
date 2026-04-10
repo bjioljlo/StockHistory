@@ -12,15 +12,19 @@ from src.View.View import IWindow
 from src.View.View_main import Main_Window
 
 from .Controller import MAIN_TITALLIST, TController, controllers
-from .ViewUtils import creat_treeView_model
+from src.View.ViewUtils import creat_treeView_model
 
 class Controller_main(TController):
-    def __init__(self, draw_figur_service:DrawFigur, report_factory: SeasonReportFactory, _view: IWindow = None, _model: IModel = None) -> None:
+    def __init__(self, draw_figur_service:DrawFigur, report_factory: SeasonReportFactory = None, report_services = None, _view: IWindow = None, _model: IModel = None) -> None:
         super().__init__(_view, _model)
         self.Init_Window()
         self.lock = threading.Lock()
         self._draw_figur_service: DrawFigur = draw_figur_service
         self._ReportFactory = report_factory
+        if report_services is not None:
+            self._ReportFactory = report_services
+        # Legacy attribute alias for backward compatibility
+        self._ReportServices = self._ReportFactory
 
     def __GetView(self) -> Main_Window:
         return self.View

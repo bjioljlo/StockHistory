@@ -34,6 +34,12 @@ from .DateUtils import (
     SEASON_RP_TIME_DAY,
 )
 
+# Legacy camelCase aliases for backward compatibility
+changeDateMonth = change_date_month
+QtDate2DateTime = qt_date_to_datetime
+DateTime2String = datetime_to_string
+backWorkDays = back_work_days
+
 from .FinancialUtils import (
     calculate_total_with_fees,
     calculate_max_shares,

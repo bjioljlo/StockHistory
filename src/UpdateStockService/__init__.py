@@ -10,9 +10,15 @@ Modular components:
 from .StockDataDownloader import StockDataDownloader
 from .StockDataSynchronizer import StockDataSynchronizer
 from .ADLUpdater import ADLUpdater
+from src.Common.DataValidationService import DataValidationService
+
+# Legacy compatibility alias
+UpdateStockService = StockDataSynchronizer
 
 __all__ = [
     'StockDataDownloader',
     'StockDataSynchronizer',
     'ADLUpdater',
+    'UpdateStockService',
+    'DataValidationService',
 ]

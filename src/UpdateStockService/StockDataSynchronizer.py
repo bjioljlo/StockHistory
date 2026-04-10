@@ -11,9 +11,10 @@ import pandas as pd
 
 
 class StockDataSynchronizer:
-    def __init__(self, sql_service, mongo_service):
+    def __init__(self, sql_service, mongo_service, read_load_system=None, config=None, **kwargs):
         self._sql_service = sql_service
         self._mongo_service = mongo_service
+        # read_load_system and config are deprecated and no longer used, kept for backward compatibility
 
     def sync_table_to_mongo(self, table_name: str):
         """

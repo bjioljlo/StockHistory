@@ -12,11 +12,11 @@ from src.Model.Model import TModel
 from src.Model.ModelValidation import ModelValidator, validate_parameters, ModelValidationError
 from src.ExternalService.ExternalDataFactory import ExternalDataFactory
 from src.FilterService.StockHistory import StockFilter, OriginalStockByYahoo
-from src.FilterService.StockReportHistory import ReportServices
+from src.FilterService.StockReportHistory import SeasonReportFactory
 from src.Common.Parameter import RecordPickParameter
 from src.Common import Tools
 
-from .PickParameterValidator import PickParameterValidator
+from .ParameterValidator import PickParameterValidator
 from .StockGroupService import StockGroupService
 from .DateValidatorService import DateValidatorService
 from .FilterDataMerger import FilterDataMerger
