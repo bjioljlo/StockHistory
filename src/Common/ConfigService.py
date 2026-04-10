@@ -100,7 +100,11 @@ def get_config() -> ConfigService:
 
 # 匯出靜態方法
 get_config_path = ConfigService.get_config_path
-load_config = get_config
+
+def load_config(config_path=None):
+    """Backward compatibility wrapper for load_config()"""
+    # config_path parameter is ignored - ConfigService handles path selection internally
+    return ConfigService()
 
 __all__ = [
     'ConfigService',
