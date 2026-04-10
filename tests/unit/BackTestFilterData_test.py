@@ -9,7 +9,7 @@ from src.BackTestService.BackTestFilterData import (
 )
 from src.BackTestService.BackTestFilter import BacktestFilterFactory, BacktestFilterType
 from src.BackTestService.BackTestSignal import BacktestSignalFactory, BacktestSignalType
-from src.FilterService.GetStockData import ROE_Indicator
+from src.FilterService.StockReportHistory import ROE_Indicator
 from src.FilterService.StockHistory import OriginalStockTest
 from src.FilterService.StockReportHistory import SeasonReportFactory
 from src.ExternalService.ExternalDataFactory import ExternalDataFactory, ExternalDataTypeEnum

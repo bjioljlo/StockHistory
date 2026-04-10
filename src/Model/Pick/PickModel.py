@@ -11,7 +11,8 @@ import pandas as pd
 from src.Model.Model import TModel
 from src.Model.ModelValidation import ModelValidator, validate_parameters, ModelValidationError
 from src.ExternalService.ExternalDataFactory import ExternalDataFactory
-from src.FilterService import GetStockData
+from src.FilterService.StockHistory import StockFilter, OriginalStockByYahoo
+from src.FilterService.StockReportHistory import ReportServices
 from src.Common.Parameter import RecordPickParameter
 from src.Common import Tools
 
@@ -30,7 +31,7 @@ class PickModel(TModel):
         super().__init__()
         self._external_data_factory = external_data_factory
         self._Groups = None
-        self._reportService = GetStockData.ReportServices(self._external_data_factory)
+        self._reportService = ReportServices(self._external_data_factory)
         self._logger = logging.getLogger(__name__)
         
         # Initialize refactored services
@@ -68,7 +69,7 @@ class PickModel(TModel):
             return financial_data
 
         # Initialize main filter
-        mainfun = GetStockData.All_fuc(date, self._reportService.Month_index)
+        mainfun = StockFilter(date, self._reportService.Month_index)
 
         # Apply financial filters - only apply when parameter > 0
         filters_to_apply = []
@@ -153,7 +154,7 @@ class PickModel(TModel):
             self._logger.warning("Base data for technical filter is empty")
             return base_data
 
-        mainStockfun = GetStockData.All_Stock_Filters_fuc(date, base_data, GetStockData.OriginalStockByYahoo(self._external_data_factory))
+        mainStockfun = StockFilter(date, base_data, OriginalStockByYahoo(self._external_data_factory))
         result_data = base_data
         filters_applied = 0
 
@@ -161,7 +162,7 @@ class PickModel(TModel):
         if params['price_high'] > 0 or params['price_low'] > 0:
             try:
                 price_data = mainStockfun.get_Filter(
-                    "price", params['price_high'], params['price_low'], GetStockData.info.Price_type.Close
+                    "price", params['price_high'], params['price_low'], info.Price_type.Close
                 )
                 if not price_data.empty:
                     result_data = self._merge_filter_data(result_data, price_data, "Price")
@@ -176,7 +177,7 @@ class PickModel(TModel):
         if params['flash_Day'] > 0 or params['record_Day'] > 0:
             try:
                 record_data = mainStockfun.get_Filter_RecordHigh(
-                    params['flash_Day'], params['record_Day'], GetStockData.info.Price_type.High
+                    params['flash_Day'], params['record_Day'], info.Price_type.High
                 )
                 if not record_data.empty:
                     result_data = self._merge_filter_data(result_data, record_data, "Historical High")
@@ -190,7 +191,7 @@ class PickModel(TModel):
         # Moving Average filter
         if params['BerMA'] > 0:
             try:
-                berma_data = mainStockfun.get_Filter_BetterMA(params['BerMA'], GetStockData.info.Price_type.Close)
+                berma_data = mainStockfun.get_Filter_BetterMA(params['BerMA'], info.Price_type.Close)
                 if not berma_data.empty:
                     result_data = self._merge_filter_data(result_data, berma_data, "Moving Average")
                     filters_applied += 1
@@ -217,7 +218,7 @@ class PickModel(TModel):
         if params['volum'] > 0:
             try:
                 volume_data = mainStockfun.get_Filter_SMA(
-                    "volume", params['volum'] * 100000000, params['volum'] * 10000, 5, GetStockData.info.Price_type.Volume
+                    "volume", params['volum'] * 100000000, params['volum'] * 10000, 5, info.Price_type.Volume
                 )
                 if not volume_data.empty:
                     result_data = self._merge_filter_data(result_data, volume_data, "Volume SMA")
