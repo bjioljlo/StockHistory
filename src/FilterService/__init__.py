@@ -4,7 +4,6 @@ FilterService Package
 Modular components:
 - StockHistory: Stock data filters and calculators
 - StockReportHistory: Financial report indicators
-- GetStockData: Legacy import forwarding (deprecated)
 
 Refactored at 2026-04-06 as part of project-refactoring-and-cleanup
 """
