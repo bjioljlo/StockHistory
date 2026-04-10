@@ -100,9 +100,11 @@ def get_config() -> ConfigService:
 
 # 匯出靜態方法
 get_config_path = ConfigService.get_config_path
+load_config = get_config
 
 __all__ = [
     'ConfigService',
     'get_config',
-    'get_config_path'
+    'get_config_path',
+    'load_config'
 ]
