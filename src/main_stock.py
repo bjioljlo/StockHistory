@@ -32,7 +32,7 @@ config = load_config(get_config_path())
 sql_service = SqlService()
 sql_service.RunMysql()
 mongo_service = MongoService()
-mongo_service.RunMongoDB(config['database']['mongodb'])
+mongo_service.RunMongoDB(config.get('database.mongodb'))
 draw_figur_service = DrawFigur()
 concurrent_utils = ConcurrentUtils()
 read_load_system = ReadLoadSystem(sqlservice=sql_service)
@@ -51,10 +51,12 @@ external_data_factory = ExternalDataFactory(
     read_load_system=read_load_system,
     cache_service=cache_service  # 注入快取服務
 )
-report_factory = SeasonReportFactory(external_data_factory=external_data_factory)
+# SeasonReportFactory 是靜態方法，需要傳入正確參數
+from src.Common.InfomationType import FS_type
+report_factory = SeasonReportFactory(FS_type.BS, external_data_factory)
 
 # Initialize Update Stock components (no facade)
-retry_attempts = config.get('external_apis', {}).get('yahoo_finance', {}).get('retry_attempts', 3) if config else 3
+retry_attempts = config.get('external_apis.yahoo_finance.retry_attempts', 3)
 stock_data_downloader = StockDataDownloader(retry_attempts, 1.0)
 stock_data_synchronizer = StockDataSynchronizer(sql_service, mongo_service)
 adl_updater = ADLUpdater(sql_service, external_data_factory)

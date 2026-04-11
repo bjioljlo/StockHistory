@@ -15,6 +15,7 @@ from src.FilterService.StockHistory import StockFilter, OriginalStockByYahoo
 from src.FilterService.StockReportHistory import SeasonReportFactory
 from src.Common.Parameter import RecordPickParameter
 from src.Common import Tools
+from src.Common import InfomationType as info
 
 from .ParameterValidator import PickParameterValidator
 from .StockGroupService import StockGroupService
@@ -31,7 +32,9 @@ class PickModel(TModel):
         super().__init__()
         self._external_data_factory = external_data_factory
         self._Groups = None
-        self._reportService = ReportServices(self._external_data_factory)
+        # 修正: SeasonReportFactory 需要兩個參數: FS_type 與外部資料服務
+        # 使用 BS 類型作為預設財報類型以建立完整的報表服務
+        self._reportService = SeasonReportFactory(info.FS_type.BS, self._external_data_factory)
         self._logger = logging.getLogger(__name__)
         
         # Initialize refactored services

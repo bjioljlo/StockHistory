@@ -6,7 +6,7 @@ from src.View.View import IWindow
 from src.View.View_pick import Pick_Window
 
 from src.View.ViewUtils import creat_treeView_model
-from .Controller import TController, controllers
+from .Controller import TController, controllers, PICK__TITALLIST
 
 
 class Controller_pick(TController):
@@ -33,7 +33,7 @@ class Controller_pick(TController):
         )  # 設定button功能
         UI_form.treeView_pick.setModel(
             creat_treeView_model(
-                UI_form.treeView_pick, Controller.PICK__TITALLIST
+                UI_form.treeView_pick, PICK__TITALLIST
             )
         )  # 設定treeView功能
         UI_form.button_inputNum.clicked.connect(
@@ -98,11 +98,11 @@ class Controller_pick(TController):
         endDate = self.GetController(controllers.Main).GetEndDate()
         pick_data = self.__GetModel().RunFilte(self.__GetView().Parament, endDate)
         UI_form.treeView_pick.setModel(
-            Controller.creat_treeView_model(
-                UI_form.treeView_pick, Controller.PICK__TITALLIST
+            creat_treeView_model(
+                UI_form.treeView_pick, PICK__TITALLIST
             )
         )  # 設定treeView功能
-        Controller.set_treeView2(UI_form.treeView_pick.model(), pick_data)
+        TController.set_treeView2(UI_form.treeView_pick.model(), pick_data)
 
     def button_inuptNumber_click(self):  # 帶入數值
         UI_form = self.__GetView().GetFormUI()

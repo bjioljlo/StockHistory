@@ -96,6 +96,10 @@ class Mediator_Controller(IMediator_Controller):
         
         return controller_map[receiver]
     
+    # 相容別名 - 解決 'Mediator_Controller' object has no attribute 'GetController' 錯誤
+    def GetController(self, receiver: controllers) -> IController:
+        return self.get_controller(receiver)
+    
     
     def send_message(self, receiver: controllers, message_type: str, **kwargs):
         """

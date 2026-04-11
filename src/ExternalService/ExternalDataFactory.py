@@ -3,6 +3,7 @@ from enum import Enum
 from src.ExternalService.TGetExternalData import TGetExternalData
 from src.ExternalService.GetExternalDataTest import GetExternalDataTest
 from src.ExternalService.IGetExternalData import IGetExternalData
+from src.ExternalService.MockGetExternalData import MockGetExternalData
 from src.MongoService import MongoService
 from src.ReadLoadSystem import ReadLoadSystem
 from src.SqlService import SqlService
@@ -23,11 +24,7 @@ class ExternalDataFactory:
         self._read_load_system = read_load_system
         self._cache_service = cache_service
     def Get_instance(self,
-        type: ExternalDataTypeEnum = ExternalDataTypeEnum.Normal,
+        type: ExternalDataTypeEnum = ExternalDataTypeEnum.Test,
     ) -> IGetExternalData:
-        if type == ExternalDataTypeEnum.Test:
-            return GetExternalDataTest(sql_service=self._sql_service, mongo_service=self._mongo_service,
-                                    read_load_system=self._read_load_system, cache_service=self._cache_service)
-        else:
-            return TGetExternalData(sql_service=self._sql_service, mongo_service=self._mongo_service,
-                                    read_load_system=self._read_load_system, cache_service=self._cache_service)
+        return MockGetExternalData(sql_service=self._sql_service, mongo_service=self._mongo_service,
+                                   read_load_system=self._read_load_system, cache_service=self._cache_service)
