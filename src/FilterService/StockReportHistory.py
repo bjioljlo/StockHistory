@@ -183,6 +183,10 @@ class Season_Report(AllStockReport):
     ):
         super().__init__(name, Unit, GetExternal)
         self._FS_type = _FS_type
+        # 相容性修復: 新增 RangeDate_Stock 屬性提供向後相容
+        from .StockHistory import RangeDate_Stock, OriginalStock
+        self.OriginalStock = OriginalStock(GetExternal)
+        self.RangeDate_Stock = RangeDate_Stock(self.OriginalStock, None, None)
 
     def get_ALL_Report(self, date, base_today=None) -> DataFrame:
         import Common.Tools as Tools
