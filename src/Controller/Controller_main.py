@@ -15,14 +15,12 @@ from .Controller import MAIN_TITALLIST, TController, controllers
 from src.View.ViewUtils import creat_treeView_model
 
 class Controller_main(TController):
-    def __init__(self, draw_figur_service:DrawFigur, report_factory: SeasonReportFactory = None, report_services = None, _view: IWindow = None, _model: IModel = None) -> None:
+    def __init__(self, draw_figur_service:DrawFigur, report_factory: SeasonReportFactory = None, _view: IWindow = None, _model: IModel = None) -> None:
         super().__init__(_view, _model)
         self.Init_Window()
         self.lock = threading.Lock()
         self._draw_figur_service: DrawFigur = draw_figur_service
         self._ReportFactory = report_factory
-        if report_services is not None:
-            self._ReportFactory = report_services
 
     def __GetView(self) -> Main_Window:
         return self.View
@@ -242,6 +240,7 @@ class Controller_main(TController):
             stock_number = self.__GetView().GetFormUI().input_stockNumber.toPlainText()
             self._ReportFactory.RangeDate_Stock.number = stock_number
             self._ReportFactory.RangeDate_Stock.StartDate = date
+            self._ReportFactory.RangeDate_Stock.EndDate = end_date
             m_history = self._ReportFactory.RangeDate_Stock.get_ALL()
             if (
                 self.__GetView().GetFormUI().check_ADL.isChecked()
