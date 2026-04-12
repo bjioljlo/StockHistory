@@ -23,8 +23,6 @@ class Controller_main(TController):
         self._ReportFactory = report_factory
         if report_services is not None:
             self._ReportFactory = report_services
-        # Legacy attribute alias for backward compatibility
-        self._ReportServices = self._ReportFactory
 
     def __GetView(self) -> Main_Window:
         return self.View

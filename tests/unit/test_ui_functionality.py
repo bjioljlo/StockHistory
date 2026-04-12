@@ -48,7 +48,7 @@ class UIControllerTests(unittest.TestCase):
         self.assertEqual(controller.View, self.mock_view)
         self.assertEqual(controller.Model, self.mock_model)
         self.assertIsNotNone(controller._draw_figur_service)
-        self.assertIsNotNone(controller._ReportServices)
+        self.assertIsNotNone(controller._ReportFactory)
 
     def test_controller_event_binding(self):
         """
