@@ -27,7 +27,7 @@ class MonthlyStatementProvider:
         self._read_load_system = read_load_system
         self._cache_service = cache_service
         self._logger = logging.getLogger(__name__)
-        self._file_path = read_load_system.get_data_path() if read_load_system else os.getcwd()
+        self._file_path = os.getcwd()
 
     def get_allstock_monthly_statement(self, start: datetime) -> pd.DataFrame:
         """
