@@ -26,5 +26,14 @@ class ExternalDataFactory:
     def Get_instance(self,
         type: ExternalDataTypeEnum = ExternalDataTypeEnum.Test,
     ) -> IGetExternalData:
-        return MockGetExternalData(sql_service=self._sql_service, mongo_service=self._mongo_service,
+        if type == ExternalDataTypeEnum.Normal:
+            return TGetExternalData(sql_service=self._sql_service, mongo_service=self._mongo_service,
                                    read_load_system=self._read_load_system, cache_service=self._cache_service)
+        elif type == ExternalDataTypeEnum.Test:
+            return GetExternalDataTest(sql_service=self._sql_service, mongo_service=self._mongo_service,
+                                       read_load_system=self._read_load_system, cache_service=self._cache_service)
+        else:
+            # Default fallback to Mock for safety
+            return MockGetExternalData(sql_service=self._sql_service, mongo_service=self._mongo_service,
+                                       read_load_system=self._read_load_system, cache_service=self._cache_service)
+
