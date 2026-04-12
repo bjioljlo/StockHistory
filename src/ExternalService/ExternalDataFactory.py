@@ -10,7 +10,7 @@ from src.SqlService import SqlService
 
 
 class ExternalDataTypeEnum(Enum):
-    Normal = (0,)
+    Normal = 0
     Test = 1
 
 class ExternalDataFactory:
