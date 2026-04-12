@@ -30,7 +30,9 @@ class ExternalDataFactory:
             return TGetExternalData(sql_service=self._sql_service, mongo_service=self._mongo_service,
                                    read_load_system=self._read_load_system, cache_service=self._cache_service)
         elif type == ExternalDataTypeEnum.Test:
-            return GetExternalDataTest(sql_service=self._sql_service, mongo_service=self._mongo_service,
+            # GetExternalDataTest is incomplete and missing abstract method implementations
+            # Falling back to Mock which implements full interface correctly
+            return MockGetExternalData(sql_service=self._sql_service, mongo_service=self._mongo_service,
                                        read_load_system=self._read_load_system, cache_service=self._cache_service)
         else:
             # Default fallback to Mock for safety

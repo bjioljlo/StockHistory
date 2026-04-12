@@ -28,6 +28,8 @@ from src.SqlService import SqlService
 import src.StockInfos as StockInfos
 from src.Common import Tools
 from src.Common.CacheService import HybridCacheService
+from src.ExternalService.providers.DividendYieldProvider import DividendYieldProvider
+from src.ExternalService.providers.MarketBreadthProvider import MarketBreadthProvider
 
 
 class TGetExternalData(IGetExternalData):
@@ -54,6 +56,14 @@ class TGetExternalData(IGetExternalData):
         }
         self._file_path = os.getcwd()  # 取得目錄路徑
         self._logger = logging.getLogger(__name__)
+        
+        # Initialize providers (Facade pattern)
+        self._dividend_provider = DividendYieldProvider(
+            sql_service, mongo_service, read_load_system, cache_service
+        )
+        self._market_breadth_provider = MarketBreadthProvider(
+            sql_service, mongo_service, read_load_system, cache_service
+        )
 
     def _get_file_path(self, type_key: str, filename: str) -> str:
         """取得檔案路徑"""
@@ -194,6 +204,30 @@ class TGetExternalData(IGetExternalData):
     def get_index_data(self, start: datetime, end: datetime) -> pd.DataFrame:
         """取得大盤指數資料"""
         return self._get_index_history_data(start, end)
+
+    def get_allstock_monthly_report(self, start: datetime):
+        """取得所有股票月營收報告"""
+        return self.get_allstock_monthly_statement(start)
+
+    def get_allstock_yield(self, start: datetime):
+        """爬某天所有股票殖利率"""
+        return self._dividend_provider.get_allstock_yield(start)
+
+    def get_allstock_dividend_yield(self):
+        """從數據庫獲取所有股票股息殖利率數據"""
+        return self._dividend_provider.get_allstock_dividend_yield()
+
+    def get_stock_AD_index(self, date: datetime, getNew=False):
+        """取得上漲和下跌家數"""
+        return self._market_breadth_provider.get_stock_AD_index(date, getNew)
+
+    def get_full_ad_index(self) -> pd.DataFrame:
+        """取得完整的上漲和下跌家數歷史資料"""
+        return self._market_breadth_provider.get_full_ad_index()
+
+    def get_full_adl(self) -> pd.DataFrame:
+        """取得完整的騰落指標歷史資料"""
+        return self._market_breadth_provider.get_full_adl()
 
     # Internal helper methods - implemented in separate provider modules
     def _get_financial_statement_from_sql(self, start: datetime, season: int, type: info.FS_type) -> pd.DataFrame:
