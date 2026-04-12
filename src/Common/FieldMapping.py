@@ -5,7 +5,10 @@
 """
 
 from enum import Enum
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, TYPE_CHECKING
+
+if TYPE_CHECKING:
+    import pandas as pd
 
 
 class FieldMapping:

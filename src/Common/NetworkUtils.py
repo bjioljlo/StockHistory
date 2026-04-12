@@ -7,6 +7,7 @@ HTTP request and network related utility functions.
 
 import random
 import requests
+import pandas as pd
 from typing import Dict
 
 
