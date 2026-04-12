@@ -15,7 +15,13 @@ def Controller_Factory(
     controller = None
     match windowType:
         case controllers.Main:
-            controller = Controller_main(draw_figur_service=draw_figur_service, _view=_view, _model=_model, report_factory=report_factory)
+            controller = Controller_main(
+                draw_figur_service=draw_figur_service, 
+                report_factory=report_factory, 
+                report_services=report_factory, 
+                _view=_view, 
+                _model=_model
+            )
         case controllers.Pick:
             controller = Controller_pick(_view, _model)
         case controllers.BackTest:
