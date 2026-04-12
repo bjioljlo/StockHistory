@@ -59,11 +59,13 @@ class TStock(IStock):
 class OriginalStock(TStock):
     """股票一般未處理歷史資料"""
 
-    @abstractmethod
+    def __init__(self, externalDataFactory: ExternalDataFactory, number: int = None) -> None:
+        super().__init__(number)
+        self._external_data_factory = externalDataFactory
+
     def get_ALL(self) -> DataFrame:
-        raise NotImplementedError(
-            "{} is virutal! Must be overwrited.".format(sys._getframe().f_code.co_name)
-        )
+        main_GetExternalData = self._external_data_factory.Get_instance(self)
+        return main_GetExternalData.get_stock_history(str(self._number))
 
     def get_PriceByType(self, _type: info.Price_type):
         Temp = self.get_ALL()

@@ -34,17 +34,23 @@ from .DateUtils import (
     SEASON_RP_TIME_DAY,
 )
 
-# Legacy camelCase aliases for backward compatibility
-changeDateMonth = change_date_month
-QtDate2DateTime = qt_date_to_datetime
-DateTime2String = datetime_to_string
-backWorkDays = back_work_days
-
 from .FinancialUtils import (
     calculate_total_with_fees,
     calculate_max_shares,
     smooth_data,
 )
+
+# Legacy camelCase aliases for backward compatibility
+changeDateMonth = change_date_month
+check_monthDate = check_month_date
+QtDate2DateTime = qt_date_to_datetime
+DateTime2String = datetime_to_string
+backWorkDays = back_work_days
+CheckFS_season = check_fs_season
+Have_MonthRP = have_month_rp
+Have_DayRP = have_day_rp
+Total_with_Handling_fee_and_Tax = calculate_total_with_fees
+Count_Stock_Amount = calculate_max_shares
 
 from .DataUtils import (
     merge_dataframes,
