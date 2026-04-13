@@ -213,16 +213,16 @@ class Controller_main(TController):
 
     def button_RunSchedule_click(self):
         self.__GetModel().RunSchedule(self._get_progress_callback())
-        
+
     def button_UpdateInfoNow_sp500_click(self):
         self.__GetModel().RunUpdateInfoNow_sp500(self._get_progress_callback())
-        
+
     def button_RunSyncToMongo_click(self):
-        self.__GetModel().RunSyncToMongo(self._get_progress_callback())    
+        self.__GetModel().RunSyncToMongo(self._get_progress_callback())
 
     def button_RunOtherSchedule_click(self):
         self.__GetModel().RunOtherSchedule(self._get_progress_callback())
-    
+
     def button_StopThreadSchedule_click(self):
         self.__GetModel().StopThreadSchedule()
 

@@ -16,10 +16,9 @@ def Controller_Factory(
     match windowType:
         case controllers.Main:
             controller = Controller_main(
-                draw_figur_service=draw_figur_service, 
-                report_factory=report_factory, 
-                report_services=report_factory, 
-                _view=_view, 
+                draw_figur_service=draw_figur_service,
+                report_factory=report_factory,
+                _view=_view,
                 _model=_model
             )
         case controllers.Pick:

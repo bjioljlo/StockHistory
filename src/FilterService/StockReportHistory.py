@@ -180,13 +180,15 @@ class Season_Report(AllStockReport):
         Unit: int,
         GetExternal: IGetExternalData,
         _FS_type: info.FS_type,
+        range_date_stock = None,
+        original_stock = None
     ):
         super().__init__(name, Unit, GetExternal)
         self._FS_type = _FS_type
-        # 相容性修復: 新增 RangeDate_Stock 屬性提供向後相容
+        # 依賴注入: 允許從外部注入 RangeDate_Stock 和 OriginalStock
         from .StockHistory import RangeDate_Stock, OriginalStock
-        self.OriginalStock = OriginalStock(GetExternal)
-        self.RangeDate_Stock = RangeDate_Stock(self.OriginalStock, None, None)
+        self.OriginalStock = original_stock if original_stock is not None else OriginalStock(GetExternal)
+        self.RangeDate_Stock = range_date_stock if range_date_stock is not None else RangeDate_Stock(self.OriginalStock, None, None)
 
     def get_ALL_Report(self, date, base_today=None) -> DataFrame:
         import Common.Tools as Tools
@@ -198,9 +200,9 @@ class Season_Report(AllStockReport):
 
 @staticmethod
 def SeasonReportFactory(
-    _FS_type: info.FS_type, _GetExternal: IGetExternalData
+    _FS_type: info.FS_type, _GetExternal: IGetExternalData, range_date_stock = None, original_stock = None
 ) -> Season_Report:
-    return Season_Report(_FS_type.value, 3, _GetExternal, _FS_type)
+    return Season_Report(_FS_type.value, 3, _GetExternal, _FS_type, range_date_stock, original_stock)
 
 
 class Month_Report(AllStockReport):

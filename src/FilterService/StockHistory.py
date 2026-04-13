@@ -64,8 +64,8 @@ class OriginalStock(TStock):
         self._external_data_factory = externalDataFactory
 
     def get_ALL(self) -> DataFrame:
-        main_GetExternalData = self._external_data_factory.Get_instance(self)
-        return main_GetExternalData.get_stock_history(str(self._number))
+        main_GetExternalData = self._external_data_factory.Get_instance(ExternalDataTypeEnum.Normal)
+        return main_GetExternalData.get_stock_history(str(self._number), datetime.strptime("2005-1-1", "%Y-%m-%d"))
 
     def get_PriceByType(self, _type: info.Price_type):
         Temp = self.get_ALL()
@@ -92,26 +92,24 @@ class OriginalStockByYahoo(OriginalStock):
     """股票一般未處理歷史資料(Yahoo資料)"""
     
     def __init__(self, externalDataFactory: ExternalDataFactory, number: int = None) -> None:
-        super().__init__(number)
-        self._external_data_fctory = externalDataFactory
+        super().__init__(externalDataFactory, number)
     
     def get_ALL(self) -> DataFrame:
-        main_GetExternalData = self._external_data_fctory.Get_instance(self)
-        return main_GetExternalData.get_stock_history(str(self._number))
+        main_GetExternalData = self._external_data_factory.Get_instance(ExternalDataTypeEnum.Normal)
+        return main_GetExternalData.get_stock_history(str(self._number), datetime.strptime("2005-1-1", "%Y-%m-%d"))
 
 
 class OriginalStockTest(OriginalStock):
     """unitTest 用的股票歷史資料其他請勿使用"""
     
     def __init__(self, externalDataFactory: ExternalDataFactory, number: int = None) -> None:
-        super().__init__(number)
-        self._external_data_fctory = externalDataFactory
+        super().__init__(externalDataFactory, number)
 
     def get_ALL(self) -> DataFrame:
-        main_GetExternalData = self._external_data_fctory.Get_instance(
+        main_GetExternalData = self._external_data_factory.Get_instance(
             ExternalDataTypeEnum.Test
         )
-        return main_GetExternalData.get_stock_history(str(self._number))
+        return main_GetExternalData.get_stock_history(str(self._number), datetime.strptime("2005-1-1", "%Y-%m-%d"))
 
 
 class VirtualStockFuc(TStock):
