@@ -12,7 +12,7 @@ from src.UpdateStockService.StockDataSynchronizer import StockDataSynchronizer
 from src.UpdateStockService.ADLUpdater import ADLUpdater
 from src.Common.CacheService import HybridCacheService
 from src.Common.DataValidationService import DataValidationService
-from src.ExternalService.ExternalDataFactory import ExternalDataFactory
+from src.ExternalService.ExternalDataFactory import ExternalDataFactory, ExternalDataTypeEnum
 from src.MongoService import MongoService
 from src.SqlService import SqlService
 from src.ReadLoadSystem import ReadLoadSystem
@@ -189,8 +189,9 @@ class ScheduleService:
                 stock_code = stock_item.code
                 stock_name = stock_code + info.local_type.Taiwan
             
-            # Check local data
-            df_check = self.external_data_factory.Get_instance(self).get_stock_history(
+            # Check local data - 每次建立獨立實例避免多執行緒問題 (使用 Normal 模式真實資料)
+            external_data = self.external_data_factory.Get_instance(ExternalDataTypeEnum.Normal)
+            df_check = external_data.get_stock_history(
                 stock_code, start=start_date
             )
             if not df_check.empty:
@@ -204,7 +205,7 @@ class ScheduleService:
                 
                 # Try to get last month data to determine if there are trading days
                 recent_start = end_date - timedelta(days=30)
-                df_recent = self.external_data_factory.Get_instance(self).get_stock_history(
+                df_recent = external_data.get_stock_history(
                     stock_code, start=recent_start
                 )
                 
