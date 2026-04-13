@@ -24,18 +24,13 @@ class ExternalDataFactory:
         self._read_load_system = read_load_system
         self._cache_service = cache_service
     def Get_instance(self,
-        type: ExternalDataTypeEnum = ExternalDataTypeEnum.Test,
+        type: ExternalDataTypeEnum = ExternalDataTypeEnum.Normal,
     ) -> IGetExternalData:
-        if type == ExternalDataTypeEnum.Normal:
-            return TGetExternalData(sql_service=self._sql_service, mongo_service=self._mongo_service,
-                                   read_load_system=self._read_load_system, cache_service=self._cache_service)
-        elif type == ExternalDataTypeEnum.Test:
-            # GetExternalDataTest is incomplete and missing abstract method implementations
-            # Falling back to Mock which implements full interface correctly
-            return MockGetExternalData(sql_service=self._sql_service, mongo_service=self._mongo_service,
-                                       read_load_system=self._read_load_system, cache_service=self._cache_service)
-        else:
-            # Default fallback to Mock for safety
-            return MockGetExternalData(sql_service=self._sql_service, mongo_service=self._mongo_service,
-                                       read_load_system=self._read_load_system, cache_service=self._cache_service)
+        # 直接回傳 TGetExternalData 實例，不要使用 Interface 轉型，避免 debug 符號遺失
+        return TGetExternalData(
+            sql_service=self._sql_service, 
+            mongo_service=self._mongo_service,
+            read_load_system=self._read_load_system, 
+            cache_service=self._cache_service
+        )
 
