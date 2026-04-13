@@ -103,7 +103,7 @@ class ScheduleService:
         # Get Taiwan listed stock list
         import twstock
         from src.Common import Tools
-        codes = [value for key, value in twstock.codes.items() if value.market == "上市" and len(value.code) >= 4 and not (len(value.code) >= 5 and Tools.check_ETF_stock(value.code) is False)]
+        codes = [value for key, value in twstock.codes.items() if value.market == "上市" and len(value.code) >= 4 and not Tools.is_etf_stock(value.code)]
         
         # Use common method
         self._update_stocks_common(
