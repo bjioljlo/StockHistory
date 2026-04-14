@@ -54,7 +54,7 @@ class MongoService:
     def _readStockInfo(self):
         for key, value in twstock.codes.items():
             if value.market == "上市" and len(value.code) >= 4:
-                if not len(value.code) >= 5 and Tools.check_ETF_stock(value.code):
+                if not len(value.code) >= 5 and Tools.is_etf_stock(value.code):
                     continue
                 _saveData: dict = {}
                 _saveData["type"] = value[0]

@@ -106,8 +106,33 @@ class DailyDataProvider:
 
     def _get_daily_data_from_sql(self, start: datetime, end: datetime) -> pd.DataFrame:
         """Get daily price data from SQL database"""
-        # TODO: Implement SQL query
-        return pd.DataFrame()
+        try:
+            with self._sql_service.server_flask.app_context():
+                query = """
+                SELECT symbol, date as Date, open as Open, high as High, low as Low,
+                       close as Close, adj_close as `Adj Close`, volume as Volume
+                FROM stock_daily_prices
+                WHERE date BETWEEN :start_date AND :end_date
+                ORDER BY date
+                """
+                
+                params = {
+                    'start_date': start.date(),
+                    'end_date': end.date()
+                }
+                
+                from sqlalchemy import text
+                dataframe = pd.read_sql(
+                    sql=text(query),
+                    con=self._sql_service.MySql_server.engine,
+                    params=params,
+                    index_col=["symbol", "Date"]
+                )
+                
+                return dataframe
+        except Exception as e:
+            self._logger.error(f"SQL Error when getting daily data: {e}")
+            return pd.DataFrame()
 
     def _download_daily_data(self, start: datetime, end: datetime) -> pd.DataFrame:
         """Download daily price data from external source"""
@@ -116,20 +141,63 @@ class DailyDataProvider:
 
     def _save_daily_data_to_db(self, data: pd.DataFrame) -> None:
         """Save daily price data to database"""
-        # TODO: Implement database save
-        pass
+        if data.empty:
+            return
+        
+        try:
+            # Reset index to get symbol and date as columns
+            save_data = data.reset_index()
+            
+            # Use SqlService save method
+            self._sql_service.saveTable('stock_daily_prices', save_data)
+            self._logger.info(f"Saved {len(data)} daily price records to database")
+        except Exception as e:
+            self._logger.error(f"Error saving daily data to database: {e}")
 
     def _get_stock_history_data(self, stock_count: int, start_date: datetime) -> pd.DataFrame:
         """Get stock history data"""
-        # TODO: Implement
-        return pd.DataFrame()
+        # Convert stock code to string format
+        stock_symbol = str(stock_count)
+        
+        # Get all available data from database
+        full_data = self._sql_service.readStockDay(stock_symbol)
+        
+        if full_data.empty:
+            return pd.DataFrame()
+        
+        # Filter by start date
+        filtered_data = full_data[full_data.index >= start_date]
+        
+        return filtered_data
 
     def _get_stock_info_data(self) -> pd.DataFrame:
         """Get stock basic information"""
-        # TODO: Implement
-        return pd.DataFrame()
+        try:
+            with self._sql_service.server_flask.app_context():
+                from sqlalchemy import text
+                query = text("SELECT code, name, group_code, group_name, market FROM stock_info")
+                dataframe = pd.read_sql(
+                    sql=query,
+                    con=self._sql_service.MySql_server.engine,
+                    index_col="code"
+                )
+                return dataframe
+        except Exception as e:
+            self._logger.error(f"SQL Error when getting stock info: {e}")
+            return pd.DataFrame()
 
     def _get_index_history_data(self, start: datetime, end: datetime) -> pd.DataFrame:
         """Get market index history data"""
-        # TODO: Implement
-        return pd.DataFrame()
+        try:
+            import yfinance as yf
+            index_symbol = "^TWII"  # Taiwan Weighted Index
+            ticker = yf.Ticker(index_symbol)
+            history = ticker.history(start=start, end=end)
+            
+            # Standardize column names
+            history.columns = [col.title() for col in history.columns]
+            
+            return history
+        except Exception as e:
+            self._logger.error(f"Error getting index history: {e}")
+            return pd.DataFrame()

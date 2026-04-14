@@ -19,7 +19,7 @@ from src.ReadLoadSystem import ReadLoadSystem
 from src.Common import InfomationType as info
 
 class ScheduleService:
-    def __init__(self, concurrent_utils: ConcurrentUtils, 
+    def __init__(self, concurrent_utils: ConcurrentUtils,
                  stock_data_downloader: StockDataDownloader,
                  stock_data_synchronizer: StockDataSynchronizer,
                  adl_updater: ADLUpdater,
@@ -48,7 +48,7 @@ class ScheduleService:
             progress_callback,
             MainUserInfoDatas=MainUserInfoDatas
         )
-        
+
     def RunUpdateInfoNow_sp500(self, MainUserInfoDatas: UserInfoDatas, progress_callback=None):
         self.isUpdating = True
         self.concurrent_utils.submit_task(
@@ -95,16 +95,20 @@ class ScheduleService:
         print("開始清理異步內存")
         self.concurrent_utils.shutdown()
         print("thread all stop")
-        
+
     def _update_taiwan_stocks(self, MainUserInfoDatas: UserInfoDatas, callback=None):
         """Update Taiwan stocks"""
         print("Update all TW stocks start! Fetching and Saving will run concurrently.")
-        
+
         # Get Taiwan listed stock list
         import twstock
         from src.Common import Tools
-        codes = [value for key, value in twstock.codes.items() if value.market == "上市" and len(value.code) >= 4 and not Tools.is_etf_stock(value.code)]
-        
+        codes = []
+        for key, value in twstock.codes.items():
+            if value.market == "上市":
+                if value.type == "股票" or (value.type == "ETF" and Tools.is_etf_stock(value.code)):
+                    codes.append(value)
+
         # Use common method
         self._update_stocks_common(
             mainUserInfoDatas=MainUserInfoDatas,
@@ -114,15 +118,15 @@ class ScheduleService:
             callback=callback
         )
         print("TW stocks update completed successfully.")
-        
+
     def _update_sp500_stocks(self, MainUserInfoDatas: UserInfoDatas, callback=None):
         """Update S&P 500 stocks"""
         print("Update all sp500 stocks start! Fetching and Saving will run concurrently.")
-        
+
         # Get S&P 500 stock list
         from src.Common import Tools
         sp500 = Tools.get_SP500_list()
-        
+
         # Use common method
         self._update_stocks_common(
             mainUserInfoDatas=MainUserInfoDatas,
@@ -133,7 +137,7 @@ class ScheduleService:
             callback=callback
         )
         print("SP500 stocks update completed successfully.")
-        
+
     def _sync_to_mongo(self, callback=None):
         all_tables = self.sql_service.get_all_table_names()
         total_tables = len(all_tables)
@@ -142,11 +146,11 @@ class ScheduleService:
             if callback:
                 progress = int((i + 1) / total_tables * 100)
                 callback(progress)
-                
+
     def _update_stocks_common(self, mainUserInfoDatas: UserInfoDatas, stock_list, update_date_attr, initial_date, timezone=None, callback=None, areacode=None):
         """
         Common stock update method for handling different market stock updates
-        
+
         Args:
             MainUserInfoDatas: User info object
             stock_list: Stock list (can be codes or sp500 list)
@@ -160,10 +164,10 @@ class ScheduleService:
         import threading
         import time
         from datetime import datetime, timedelta
-        
+
         data_queue = queue.Queue()
         update_adl_flag = {'should_update': False}  # Track if ADL index needs to be updated
-        
+
         save_thread = threading.Thread(
             target=self._save_stock_data_to_db, args=(data_queue, update_adl_flag)
         )
@@ -172,7 +176,7 @@ class ScheduleService:
 
         start_date = datetime.strptime(getattr(mainUserInfoDatas, update_date_attr), "%Y-%m-%d")
         end_date = datetime.today()
-        
+
         total_stocks = len(stock_list)
         for i, stock_item in enumerate(stock_list):
             if not self.isUpdating:
@@ -180,7 +184,7 @@ class ScheduleService:
                 print(f"Update stocks {stock_name} be Stop")
                 data_queue.put(None)
                 break
-            
+
             # Get stock code and name
             if isinstance(stock_item, str):
                 stock_code = stock_item
@@ -188,11 +192,18 @@ class ScheduleService:
             else:
                 stock_code = stock_item.code
                 stock_name = stock_code + info.local_type.Taiwan
-            
+
             # Check local data - 每次建立獨立實例避免多執行緒問題 (使用 Normal 模式真實資料)
             external_data = self.external_data_factory.Get_instance(ExternalDataTypeEnum.Normal)
+
+            # 強制將 stock_code 轉換為 int，符合 get_stock_history 方法簽章
+            try:
+                stock_num = int(stock_code)
+            except ValueError:
+                stock_num = stock_code
+
             df_check = external_data.get_stock_history(
-                stock_code, start=start_date
+                stock_num, start_date
             )
             if not df_check.empty:
                 # Has local data, start from latest date +1 day to avoid duplicate downloads
@@ -202,13 +213,13 @@ class ScheduleService:
                 # Check if really no historical data, or just weekend/holiday
                 # If weekend/holiday, try to find most recent trading day
                 print(f"No local data found for {stock_code}, checking for recent trading days...")
-                
+
                 # Try to get last month data to determine if there are trading days
                 recent_start = end_date - timedelta(days=30)
                 df_recent = external_data.get_stock_history(
-                    stock_code, start=recent_start
+                    stock_num, recent_start
                 )
-                
+
                 if not df_recent.empty:
                     # Has recent data, start from latest date +1 day
                     latest_date = df_recent.index.max()
@@ -218,14 +229,14 @@ class ScheduleService:
                     # Really no historical data, use initial date
                     fetch_start_date = initial_date
                     print(f"No historical data found for {stock_code}, using initial date")
-            
+
             if fetch_start_date >= end_date:
                 print(f"Date time is same {stock_code} {fetch_start_date}")
                 if callback:
                     progress = int((i + 1) / total_stocks * 100)
                     callback(progress)
                 continue
-            
+
             # Download data
             if timezone:
                 df_result = self.stock_data_downloader.download_with_retry(stock_name, fetch_start_date, end_date, tz=timezone)
@@ -240,12 +251,12 @@ class ScheduleService:
                 continue
 
             # Process data
-            from src.Common import Tools
+            from src.Common import DataUtils
             if isinstance(stock_item, str):
-                df_result = Tools.TidyTicketData(df_result, stock_code)
+                df_result = DataUtils.extract_ticker_data(df_result, stock_code)
             else:
-                df_result = Tools.TidyTicketData(df_result, stock_code + ".TW")
-            
+                df_result = DataUtils.extract_ticker_data(df_result, stock_code + ".TW")
+
             data_queue.put((stock_name, df_result, fetch_start_date))
 
             print(f"Update stocks {stock_name} OK!")
@@ -257,7 +268,7 @@ class ScheduleService:
         data_queue.put(None)
         # Wait for save thread to complete
         save_thread.join()
-        
+
         # Check if ADL index needs to be updated
         adl_update_enabled = self.config.get('app', {}).get('auto_adl_update', True) if self.config else True
         if adl_update_enabled and update_adl_flag.get('should_update', False):
@@ -267,14 +278,14 @@ class ScheduleService:
                 print("ADL refresh failed after stock update, but stock data update remains committed.")
         else:
             print("No new trading day data detected, skipping ADL update.")
-        
+
         setattr(mainUserInfoDatas, update_date_attr, str(datetime.today())[0:10])
         print("Stocks update completed successfully.")
-        
+
     def _save_stock_data_to_db(self, data_queue: queue.Queue, update_adl_flag: dict):
         """
         Save stock data to database, and track if new trading day data has been updated
-        
+
         Args:
             data_queue: Data queue
             update_adl_flag: Dictionary for flagging if ADL index needs to be updated
@@ -283,7 +294,7 @@ class ScheduleService:
         new_trading_day_updated = False
         from datetime import datetime, timedelta
         from src.Common.DataValidationService import DataValidationService
-        
+
         while True:
             item = data_queue.get()
             if item is None:
@@ -296,7 +307,7 @@ class ScheduleService:
                 # Data validation and cleanup
                 default_config = self.config if self.config else {'app': {'data_validation': True}}
                 data_validator = DataValidationService(default_config)
-                
+
                 if data_validator:
                     is_valid, errors, cleaned_df = data_validator.validate_stock_data(
                         stock_name, df_result, source='yahoo'
@@ -332,7 +343,7 @@ class ScheduleService:
                             # Get latest trading day
                             latest_date = df_result.index.max()
                             today = datetime.today().date()
-                            
+
                             # If updated data includes today or recent trading day, flag for ADL update
                             if latest_date.date() == today or (latest_date.date() > today - timedelta(days=3)):
                                 new_trading_day_updated = True
