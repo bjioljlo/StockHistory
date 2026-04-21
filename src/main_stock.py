@@ -16,7 +16,7 @@ from src.Common.DataCleanupService import DataCleanupService
 from src.Controller.MediatorController import Mediator_Controller, controllers
 from src.DrawFigur import DrawFigur
 from src.ExternalService.ExternalDataFactory import ExternalDataFactory
-from src.FilterService.StockReportHistory import SeasonReportFactory
+from src.FilterService.StockReportHistory import SeasonReportFactory, MonthReportFactory, DayReportFactory, ADLReportFactory
 from src.MongoService import MongoService
 from src.ReadLoadSystem import ReadLoadSystem
 from src.ScheduleService import ScheduleService
@@ -51,9 +51,14 @@ external_data_factory = ExternalDataFactory(
     read_load_system=read_load_system,
     cache_service=cache_service  # 注入快取服務
 )
-# SeasonReportFactory 是靜態方法，需要傳入正確參數
+# 初始化所有 Report Factory - Mediator 預期是已經建立好的 Report 實例
 from src.Common.InfomationType import FS_type
-report_factory = SeasonReportFactory(FS_type.BS, external_data_factory)
+
+# 正確作法：先建立 Report 實例，因為 MediatorController 設計是直接使用實例而非工廠函數
+season_report_factory = SeasonReportFactory(FS_type.BS, external_data_factory)
+month_report_factory = MonthReportFactory(external_data_factory)
+day_report_factory = DayReportFactory(external_data_factory)
+adl_report_factory = ADLReportFactory(external_data_factory)
 
 # Initialize Update Stock components (no facade)
 retry_attempts = config.get('external_apis.yahoo_finance.retry_attempts', 3)
@@ -81,7 +86,10 @@ mediator_controller = Mediator_Controller(
     mongo_service=mongo_service,
     draw_figur_service=draw_figur_service,
     concurrent_utils=concurrent_utils,
-    report_factory=report_factory,
+    season_report_factory=season_report_factory,
+    month_report_factory=month_report_factory,
+    day_report_factory=day_report_factory,
+    adl_report_factory=adl_report_factory,
     external_data_factory=external_data_factory
 )
 

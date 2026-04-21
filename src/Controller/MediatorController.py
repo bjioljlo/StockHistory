@@ -1,7 +1,7 @@
 from abc import ABC, abstractmethod
 
 from src.ExternalService.ExternalDataFactory import ExternalDataFactory
-from src.FilterService.StockReportHistory import SeasonReportFactory
+from src.FilterService.StockReportHistory import SeasonReportFactory, MonthReportFactory, DayReportFactory, ADLReportFactory
 from src.Model.Model_backtest import Model_backtest
 from src.Model.Model_main import Model_main
 from src.Model.Pick import PickModel
@@ -45,7 +45,10 @@ class Mediator_Controller(IMediator_Controller):
         mongo_service: MongoService,
         draw_figur_service: DrawFigur,
         concurrent_utils: ConcurrentUtils,
-        report_factory: SeasonReportFactory,
+        season_report_factory: SeasonReportFactory,
+        month_report_factory: MonthReportFactory,
+        day_report_factory: DayReportFactory,
+        adl_report_factory: ADLReportFactory,
         external_data_factory: ExternalDataFactory
     ) -> None:
         # 1. 將接收到的服務儲存為實例變數
@@ -54,7 +57,10 @@ class Mediator_Controller(IMediator_Controller):
         self._mongo_service = mongo_service
         self._draw_figur_service = draw_figur_service
         self._concurrent_utils = concurrent_utils
-        self._report_factory = report_factory
+        self._season_report_factory = season_report_factory
+        self._month_report_factory = month_report_factory
+        self._day_report_factory = day_report_factory
+        self._adl_report_factory = adl_report_factory
         self._external_data_factory = external_data_factory
 
         # 2. 建立 Controller 時，將依賴傳遞給 Model
@@ -62,10 +68,13 @@ class Mediator_Controller(IMediator_Controller):
             controllers.Main,
             Main_Window(MyWindow(self._schedule.StopThreadSchedule)),
             Model_main(schedule=self._schedule, draw_figur_service=self._draw_figur_service, 
-                        external_data_service=self._external_data_factory.Get_instance(), report_factory=self._report_factory),
+                        external_data_service=self._external_data_factory.Get_instance(),
+                        season_report_factory=self._season_report_factory,
+                        month_report_factory=self._month_report_factory,
+                        day_report_factory=self._day_report_factory,
+                        adl_report_factory=self._adl_report_factory),
             self.get_controller,
-            self._draw_figur_service,
-            report_factory=self._report_factory
+            self._draw_figur_service
         )
         self._pick_controller: IController = Controller_Factory(
             controllers.Pick,

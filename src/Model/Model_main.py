@@ -2,7 +2,7 @@ from datetime import datetime
 
 from src.Common import Tools
 from src.DrawFigur import DrawFigur
-from src.FilterService.StockReportHistory import SeasonReportFactory
+from src.FilterService.StockReportHistory import SeasonReportFactory, MonthReportFactory, DayReportFactory, ADLReportFactory
 from src.Model.Model import TModel
 from src.Common.Parameter import RecordMainParameter
 from src.ScheduleService import ScheduleService
@@ -13,7 +13,11 @@ from src.ExternalService.IGetExternalData import IGetExternalData
 
 class Model_main(TModel):
     def __init__(self, schedule: ScheduleService, draw_figur_service: DrawFigur,
-                 external_data_service: IGetExternalData, report_factory: SeasonReportFactory) -> None:
+                 external_data_service: IGetExternalData, 
+                 season_report_factory: SeasonReportFactory,
+                 month_report_factory: MonthReportFactory,
+                 day_report_factory: DayReportFactory,
+                 adl_report_factory: ADLReportFactory) -> None:
         super().__init__()
         self._main_user_info_data: UserInfoDatas = UserInfoDatas(
             "stock_info_list.npy", "Update_date.npy", "TW_Update_date.npy", "US_Update_date.npy"
@@ -22,7 +26,10 @@ class Model_main(TModel):
         self._schedule_service = schedule
         self._draw_figur_service = draw_figur_service
         self._external_data_service = external_data_service
-        self._report_factory = report_factory
+        self._season_report_factory = season_report_factory
+        self._month_report_factory = month_report_factory
+        self._day_report_factory = day_report_factory
+        self._adl_report_factory = adl_report_factory
 
     @property
     def main_user_info_data(self):
@@ -57,27 +64,62 @@ class Model_main(TModel):
             print("今天還沒過完無資資訊")
             return None
 
-        from src.FilterService.StockReportHistory import ChartDataGenerator
-        main_imge = ChartDataGenerator(
-            record_parameter.startdate,
-            record_parameter.enddate,
-            report_index,
-            self._external_data_service,
-        )
+        # 直接從 ReportFactory 取得數據，不再使用 ChartDataGenerator
+        report = None
+        
+        # 根據指標索引取得對應的報表物件
+        if report_index == self._month_report_factory.Month_index:
+            report = self._month_report_factory
+        elif report_index == self._month_report_factory.MR_Growth_index:
+            report = self._month_report_factory
+        elif report_index == self._day_report_factory.Yield_index:
+            report = self._day_report_factory
+        elif report_index == self._day_report_factory.PCF_index:
+            report = self._day_report_factory
+        elif report_index == self._season_report_factory.OM_index:
+            report = self._season_report_factory
+        elif report_index == self._season_report_factory.OM_Growth_index:
+            report = self._season_report_factory
+        elif report_index == self._season_report_factory.ROE_index:
+            report = self._season_report_factory
+        elif report_index == self._season_report_factory.OCF_index:
+            report = self._season_report_factory
+        elif report_index == self._season_report_factory.ICF_index:
+            report = self._season_report_factory
+        elif report_index == self._season_report_factory.FreeCF_index:
+            report = self._season_report_factory
+        elif report_index == self._season_report_factory.EPS_index:
+            report = self._season_report_factory
+        elif report_index == self._season_report_factory.Debt_index:
+            report = self._season_report_factory
+        elif report_index == self._season_report_factory.SR_Growth_index:
+            report = self._season_report_factory
+        elif report_index == self._adl_report_factory.ADL_index:
+            report = self._adl_report_factory
+        elif report_index == self._adl_report_factory.ADLs_index:
+            report = self._adl_report_factory
 
-        if stock_number_required:
-            data_result = main_imge.get_Chart(record_parameter.number)
+        if report is None:
+            print(f"錯誤：無法識別的報表索引 {report_index}")
+            return None
+
+        # 取得數據
+        if stock_number_required and record_parameter.number is not None:
+            data_result = report.get_ReportByNumber(record_parameter.enddate, record_parameter.number)
             stock_number_for_draw = record_parameter.number
         else:
-            data_result = main_imge.get_Chart()
+            data_result = report.get_ALL_Report(record_parameter.enddate)
             stock_number_for_draw = 0
 
-        if draw and data_result is not None:
+        # 繪製圖表
+        if draw and data_result is not None and not data_result.empty:
+            # 取得第一個欄位名稱做為繪圖欄位
+            column_name = data_result.columns[0] if len(data_result.columns) > 0 else data_result.index.name
             self._draw_figur_service.draw_RP(
                 data_result,
                 stock_number_for_draw,
-                main_imge._report._name,
-                main_imge._report._name,
+                column_name,
+                report._name,
                 chart_title,
             )
         
@@ -101,7 +143,7 @@ class Model_main(TModel):
         
         self._create_and_draw_chart(
             record_main_parameter,
-            self._report_factory.Month_index,
+            self._month_report_factory.Month_index,
             "Monthly Revenue(UNIT-->NTD:1000,000)",
         )
 
@@ -109,7 +151,7 @@ class Model_main(TModel):
         """某股票殖利率曲線"""
         self._create_and_draw_chart(
             record_main_parameter,
-            self._report_factory.Yield_index,
+            self._day_report_factory.Yield_index,
             "Dividend yield",
         )
 
@@ -117,7 +159,7 @@ class Model_main(TModel):
         """某股票營業利益率曲線"""
         self._create_and_draw_chart(
             record_main_parameter,
-            self._report_factory.OM_index,
+            self._season_report_factory.OM_index,
             "Operating Margin Ratio",
         )
 
@@ -125,7 +167,7 @@ class Model_main(TModel):
         """#某股票營業利益成長率曲線"""
         self._create_and_draw_chart(
             record_main_parameter,
-            self._report_factory.OM_Growth_index,
+            self._season_report_factory.OM_Growth_index,
             "Operating Margin Growth Up (season by season)(%)",
         )
 
@@ -133,7 +175,7 @@ class Model_main(TModel):
         """#某股票ROE曲線"""
         self._create_and_draw_chart(
             record_main_parameter,
-            self._report_factory.ROE_index,
+            self._season_report_factory.ROE_index,
             "Return On Equity Ratio(ROE)",
         )
 
@@ -141,7 +183,7 @@ class Model_main(TModel):
         """某股票營業現金流"""
         self._create_and_draw_chart(
             record_main_parameter,
-            self._report_factory.OCF_index,
+            self._season_report_factory.OCF_index,
             "Operating cash flow",
         )
 
@@ -149,7 +191,7 @@ class Model_main(TModel):
         """某股票投資現金流"""
         self._create_and_draw_chart(
             record_main_parameter,
-            self._report_factory.ICF_index,
+            self._season_report_factory.ICF_index,
             "Investment cash flow",
         )
 
@@ -157,7 +199,7 @@ class Model_main(TModel):
         """某股票自由現金流"""
         self._create_and_draw_chart(
             record_main_parameter,
-            self._report_factory.FreeCF_index,
+            self._season_report_factory.FreeCF_index,
             "Free cash flow",
         )
 
@@ -165,7 +207,7 @@ class Model_main(TModel):
         """某股票股價現金流量比"""
         self._create_and_draw_chart(
             record_main_parameter,
-            self._report_factory.PCF_index,
+            self._day_report_factory.PCF_index,
             "Price to Cash Flow Ratio(P/CF)",
         )
 
@@ -173,7 +215,7 @@ class Model_main(TModel):
         """某股票eps"""
         self._create_and_draw_chart(
             record_main_parameter,
-            self._report_factory.EPS_index,
+            self._season_report_factory.EPS_index,
             "Earnings Per Share(EPS)",
         )
 
@@ -181,7 +223,7 @@ class Model_main(TModel):
         """某股票資產負債比率"""
         self._create_and_draw_chart(
             record_main_parameter,
-            self._report_factory.Debt_index,
+            self._season_report_factory.Debt_index,
             "Debt Asset Ratio",
         )
 
@@ -189,7 +231,7 @@ class Model_main(TModel):
         """騰落指標"""
         return self._create_and_draw_chart(
             record_main_parameter,
-            self._report_factory.ADL_index,
+            self._adl_report_factory.ADL_index,
             "",
             stock_number_required=False,
             draw=False,
@@ -199,7 +241,7 @@ class Model_main(TModel):
         """騰落比例指標"""
         self._create_and_draw_chart(
             record_main_parameter,
-            self._report_factory.ADLs_index,
+            self._adl_report_factory.ADLs_index,
             "ADLs",
             stock_number_required=False,
         )
@@ -208,7 +250,7 @@ class Model_main(TModel):
         """月營收成長率"""
         self._create_and_draw_chart(
             record_main_parameter,
-            self._report_factory.MR_Growth_index,
+            self._month_report_factory.MR_Growth_index,
             "Month Revenue Growth",
         )
 
@@ -216,7 +258,7 @@ class Model_main(TModel):
         """季營收成長率"""
         self._create_and_draw_chart(
             record_main_parameter,
-            self._report_factory.SR_Growth_index,
+            self._season_report_factory.SR_Growth_index,
             "Season Revenue Growth",
         )
 

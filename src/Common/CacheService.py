@@ -138,6 +138,14 @@ class HybridCacheService:
 
         return None
 
+    def get(self, key: str) -> Optional[Any]:
+        """通用快取取得方法 - 相容舊程式碼介面"""
+        return self.get_redis_cache(key)
+    
+    def set(self, key: str, value: Any, ttl: Optional[int] = None) -> bool:
+        """通用快取設定方法 - 相容舊程式碼介面"""
+        return self.set_redis_cache(key, value, ttl)
+
     def set_redis_cache(self, key: str, data: Any, ttl: Optional[int] = None) -> bool:
         """設定 Redis 快取"""
         if not self.redis_client:

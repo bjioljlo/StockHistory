@@ -29,7 +29,7 @@ class IGetExternalData(ABC):
 
     @abstractmethod
     def get_stock_history(
-        self, number: str, start=datetime.strptime("2005-1-1", "%Y-%m-%d")
+        self, symbol: str, start_date=None, end_date=None
     ) -> pd.DataFrame:
         """#爬某個股票的歷史紀錄"""
         pass

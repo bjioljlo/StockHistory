@@ -104,9 +104,9 @@ class TGetExternalData(IGetExternalData):
         """取得所有股票每日股價資料"""
         return self._daily_data_provider.get_allstock_daily_data(start, end)
 
-    def get_stock_history(self, stock_count: int, start_date: datetime) -> pd.DataFrame:
+    def get_stock_history(self, symbol: str, start_date=None, end_date=None) -> pd.DataFrame:
         """取得股票歷史資料"""
-        return self._daily_data_provider.get_stock_history(stock_count, start_date)
+        return self._daily_data_provider.get_stock_history(symbol, start_date)
 
     def get_stock_info(self) -> pd.DataFrame:
         """取得股票基本資訊"""

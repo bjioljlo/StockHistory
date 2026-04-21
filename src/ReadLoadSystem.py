@@ -1,5 +1,7 @@
 import pandas as pd
 from pandas import DataFrame
+from datetime import datetime
+from sqlalchemy import text
 
 from src.SqlService import SqlService
 
@@ -28,7 +30,6 @@ class ReadLoadSystem:
                 f.writelines(stringText[pos:pos2])
 
     def load_month_file(self, fileName: str, file: str = ""):
-        """#讀取月資料"""
         df = DataFrame()
         if file != "":
             df = self._sqlservice.readDividendYield(file)
@@ -55,3 +56,78 @@ class ReadLoadSystem:
                 print("no " + fileName + " csv file" + " " + str(e))
                 return df
         return df
+
+    def calculate_ad_index_for_date(self, date: datetime) -> pd.DataFrame:
+        """
+        計算指定日期的漲跌指數 (AD Index)
+
+        Args:
+            date: 目標日期
+
+        Returns:
+            DataFrame 包含 up_count, down_count
+        """
+        date_str = date.strftime('%Y-%m-%d')
+
+        # 讀取指定日期所有有收盤價的股票，過濾排除ETF
+        query = text("""
+            SELECT DISTINCT symbol FROM stock_daily_prices
+            WHERE date = :target_date
+            AND symbol NOT LIKE '%%ETF%%'
+            AND symbol NOT LIKE '%%0050%%'
+            AND symbol NOT LIKE '%%0051%%'
+            AND symbol NOT LIKE '%%0052%%'
+            AND symbol NOT LIKE '%%0053%%'
+            AND symbol NOT LIKE '%%0055%%'
+            AND symbol NOT LIKE '%%0056%%'
+            AND symbol NOT LIKE '%%0057%%'
+            AND symbol NOT LIKE '%%006201%%'
+            AND symbol NOT LIKE '%%00631L%%'
+            AND symbol NOT LIKE '%%00632R%%'
+            AND symbol REGEXP '^[0-9]{4}$'
+        """)
+
+        with self._sqlservice.server_flask.app_context():
+            stock_list = pd.read_sql(query,
+                                     con=self._sqlservice.MySql_server.engine,
+                                     params={'target_date': date_str})
+
+        up_count = 0
+        down_count = 0
+        unchanged_count = 0
+
+        for _, stock in stock_list.iterrows():
+            symbol = stock['symbol']
+            history = self._sqlservice.readStockDay(symbol)
+
+            if history.empty or date_str not in history.index:
+                continue
+
+            today_close = history.loc[date_str, 'Close']
+            prev_idx = history.index.get_loc(date_str) - 1
+
+            if prev_idx < 0:
+                unchanged_count += 1
+                continue
+
+            prev_close = history.iloc[prev_idx]['Close']
+
+            if today_close > prev_close:
+                up_count += 1
+            elif today_close < prev_close:
+                down_count += 1
+            else:
+                unchanged_count += 1
+
+        result = pd.DataFrame([{
+            'date': date,
+            'up_count': up_count,
+            'down_count': down_count,
+            'created_at': datetime.now(),
+            'updated_at': datetime.now()
+        }])
+
+        result['date'] = pd.to_datetime(result['date'])
+        result = result.set_index('date')
+
+        return result

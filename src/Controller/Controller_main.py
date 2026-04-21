@@ -20,7 +20,7 @@ class Controller_main(TController):
         self.Init_Window()
         self.lock = threading.Lock()
         self._draw_figur_service: DrawFigur = draw_figur_service
-        self._ReportFactory = report_factory
+        # 向後相容：保留參數但不再使用，實例統一從 Model 取得
 
     def __GetView(self) -> Main_Window:
         return self.View
@@ -238,10 +238,10 @@ class Controller_main(TController):
             print("請輸入股票代號")
         else:
             stock_number = self.__GetView().GetFormUI().input_stockNumber.toPlainText()
-            self._ReportFactory.RangeDate_Stock.number = stock_number
-            self._ReportFactory.RangeDate_Stock.StartDate = date
-            self._ReportFactory.RangeDate_Stock.EndDate = end_date
-            m_history = self._ReportFactory.RangeDate_Stock.get_ALL()
+            self.__GetModel()._season_report_factory.RangeDate_Stock.number = stock_number
+            self.__GetModel()._season_report_factory.RangeDate_Stock.StartDate = date
+            self.__GetModel()._season_report_factory.RangeDate_Stock.EndDate = end_date
+            m_history = self.__GetModel()._season_report_factory.RangeDate_Stock.get_ALL()
             if (
                 self.__GetView().GetFormUI().check_ADL.isChecked()
                 or self.__GetView().GetFormUI().check_ADLs.isChecked()

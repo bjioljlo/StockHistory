@@ -46,12 +46,31 @@ class MarketBreadthProvider:
             if cached is not None:
                 return cached
         
-        # TODO: Implement actual database query
-        # TODO: Implement external source if getNew=True
+        date_str = date.strftime('%Y-%m-%d')
         
-        result = pd.DataFrame(columns=['up_count', 'down_count', 'unchanged_count'])
-        self._cache_service.set(cache_key, result, ttl=1800)
-        return result
+        # 從資料庫查詢指定日期
+        df = self._sql_service.read_ad_index(start_date=date_str, end_date=date_str, limit=1)
+        
+        if not df.empty:
+            # 找到記錄，補上不變動數量欄位
+            df['unchanged_count'] = 0
+            self._cache_service.set(cache_key, df, ttl=1800)
+            return df
+            
+        # 當getNew=True或快取/資料庫沒有資料時，從外部來源計算
+        if getNew or df.empty:
+            self._logger.debug(f"Calculating new AD index for {date_str}")
+            # 調用ReadLoadSystem計算當天漲跌數量
+            result = self._read_load_system.calculate_ad_index_for_date(date)
+            if not result.empty:
+                # 寫入資料庫時需要重設索引，讓date成為一般欄位
+                df_to_insert = result.reset_index()
+                self._sql_service.insert_data('ad_index', df_to_insert)
+                self._cache_service.set(cache_key, result, ttl=1800)
+                return result
+                
+        # 返回結構正確的空DataFrame
+        return pd.DataFrame(columns=['up_count', 'down_count', 'unchanged_count'])
 
     def get_full_ad_index(self) -> pd.DataFrame:
         """
@@ -68,10 +87,12 @@ class MarketBreadthProvider:
         if cached is not None:
             return cached
         
-        # TODO: Implement actual database query
+        # 從資料庫讀取完整AD index歷史
+        result = self._sql_service.read_ad_index(limit=100000)
         
-        result = pd.DataFrame(columns=['date', 'up_count', 'down_count'])
-        self._cache_service.set(cache_key, result, ttl=3600)
+        if not result.empty:
+            self._cache_service.set(cache_key, result, ttl=3600)
+            
         return result
 
     def get_full_adl(self) -> pd.DataFrame:
@@ -89,8 +110,24 @@ class MarketBreadthProvider:
         if cached is not None:
             return cached
         
-        # TODO: Implement actual calculation from AD index data
+        # 先取得完整AD index歷史
+        ad_index_history = self.get_full_ad_index()
         
-        result = pd.DataFrame(columns=['date', 'adl_value'])
-        self._cache_service.set(cache_key, result, ttl=3600)
+        if ad_index_history.empty:
+            return pd.DataFrame(columns=['ADL'])
+        
+        # 依日期排序
+        ad_index_history = ad_index_history.sort_index()
+        
+        # 計算每日淨漲跌
+        daily_diff = ad_index_history["up_count"] - ad_index_history["down_count"]
+        
+        # 累計計算ADL線
+        adl_series = daily_diff.cumsum()
+        
+        result = pd.DataFrame({"ADL": adl_series})
+        
+        if not result.empty:
+            self._cache_service.set(cache_key, result, ttl=3600)
+            
         return result

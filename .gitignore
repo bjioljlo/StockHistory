@@ -256,3 +256,6 @@ backups/
 
 # gemini
 .gemini
+
+# github copilot
+.github
