@@ -106,7 +106,24 @@ class TGetExternalData(IGetExternalData):
 
     def get_stock_history(self, symbol: str, start_date=None, end_date=None) -> pd.DataFrame:
         """取得股票歷史資料"""
-        return self._daily_data_provider.get_stock_history(symbol, start_date)
+        # 建立快取鍵值
+        cache_key = f"stock_history:{symbol}:{start_date}:{end_date}"
+        
+        # 檢查快取
+        cached_data = self._get_cached_data(cache_key)
+        if cached_data is not None:
+            self._logger.debug(f"Cache HIT for {cache_key}")
+            return cached_data
+            
+        self._logger.debug(f"Cache MISS for {cache_key}")
+        
+        # 呼叫底層實作
+        data = self._daily_data_provider.get_stock_history(symbol, start_date, end_date)
+        
+        # 儲存到快取 (128筆限制由底層CacheService處理, TTL 600秒)
+        self._cache_service.set(cache_key, data, ttl=600)
+        
+        return data
 
     def get_stock_info(self) -> pd.DataFrame:
         """取得股票基本資訊"""

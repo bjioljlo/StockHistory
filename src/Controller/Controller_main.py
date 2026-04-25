@@ -238,10 +238,7 @@ class Controller_main(TController):
             print("請輸入股票代號")
         else:
             stock_number = self.__GetView().GetFormUI().input_stockNumber.toPlainText()
-            self.__GetModel()._season_report_factory.RangeDate_Stock.number = stock_number
-            self.__GetModel()._season_report_factory.RangeDate_Stock.StartDate = date
-            self.__GetModel()._season_report_factory.RangeDate_Stock.EndDate = end_date
-            m_history = self.__GetModel()._season_report_factory.RangeDate_Stock.get_ALL()
+            m_history = self.__GetModel()._external_data_service.get_stock_history(stock_number, date)
             if (
                 self.__GetView().GetFormUI().check_ADL.isChecked()
                 or self.__GetView().GetFormUI().check_ADLs.isChecked()

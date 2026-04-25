@@ -36,9 +36,9 @@ class MockGetExternalData(IGetExternalData):
         print("[Mock] get_allstock_dividend_yield called")
         return pd.DataFrame()
 
-    def get_stock_history(self, number: str, start=datetime.strptime("2005-1-1", "%Y-%m-%d")) -> pd.DataFrame:
+    def get_stock_history(self, symbol: str, start_date=None, end_date=None) -> pd.DataFrame:
         """模擬股票歷史資料"""
-        print(f"[Mock] get_stock_history called for stock: {number}")
+        print(f"[Mock] get_stock_history called for stock: {symbol}, start: {start_date}, end: {end_date}")
         return pd.DataFrame(columns=['Open', 'High', 'Low', 'Close', 'Adj Close', 'Volume'])
 
     def get_stock_AD_index(self, date: datetime, getNew=False):

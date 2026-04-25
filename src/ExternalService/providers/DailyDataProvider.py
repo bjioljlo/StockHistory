@@ -56,19 +56,23 @@ class DailyDataProvider:
         
         return daily_data
 
-    def get_stock_history(self, stock_count: int, start_date: datetime) -> pd.DataFrame:
+    def get_stock_history(self, symbol: int | str, start_date: datetime | None = None, end_date: datetime | None = None) -> pd.DataFrame:
         """
         Get historical data for specific stock
         
         Args:
-            stock_count: Stock ID/number
-            start_date: Start date for history
+            symbol: Stock symbol (integer stock code or string format)
+            start_date: Start date for history (optional)
+            end_date: End date for history (optional)
             
         Returns:
             DataFrame with stock history
         """
-        self._logger.info(f"Getting stock history: {stock_count} from {start_date}")
-        return self._get_stock_history_data(stock_count, start_date)
+        self._logger.info(f"Getting stock history: {symbol} from {start_date} to {end_date}")
+        
+        stock_count = symbol
+            
+        return self._get_stock_history_data(stock_count, start_date, end_date)
 
     def get_stock_info(self) -> pd.DataFrame:
         """
@@ -154,7 +158,7 @@ class DailyDataProvider:
         except Exception as e:
             self._logger.error(f"Error saving daily data to database: {e}")
 
-    def _get_stock_history_data(self, stock_count: int, start_date: datetime) -> pd.DataFrame:
+    def _get_stock_history_data(self, stock_count: int, start_date: datetime | None = None, end_date: datetime | None = None) -> pd.DataFrame:
         """Get stock history data"""
         # Convert stock code to string format
         stock_symbol = str(stock_count)
@@ -165,8 +169,14 @@ class DailyDataProvider:
         if full_data.empty:
             return pd.DataFrame()
         
-        # Filter by start date
-        filtered_data = full_data[full_data.index >= start_date]
+        # Filter by date range
+        filtered_data = full_data
+        
+        if start_date is not None:
+            filtered_data = filtered_data[filtered_data.index >= start_date]
+            
+        if end_date is not None:
+            filtered_data = filtered_data[filtered_data.index <= end_date]
         
         return filtered_data
 

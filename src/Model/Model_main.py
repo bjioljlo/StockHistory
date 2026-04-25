@@ -13,7 +13,7 @@ from src.ExternalService.IGetExternalData import IGetExternalData
 
 class Model_main(TModel):
     def __init__(self, schedule: ScheduleService, draw_figur_service: DrawFigur,
-                 external_data_service: IGetExternalData, 
+                 external_data_service: IGetExternalData,
                  season_report_factory: SeasonReportFactory,
                  month_report_factory: MonthReportFactory,
                  day_report_factory: DayReportFactory,
@@ -47,26 +47,26 @@ class Model_main(TModel):
         if record_parameter is None:
             print("錯誤：參數對象為空")
             return None
-        
+
         if stock_number_required and record_parameter.number is None:
             print("請輸入股票號碼")
             return None
-        
+
         if record_parameter.enddate is None:
             print("錯誤：結束日期未設定")
             return None
-            
+
         if record_parameter.startdate is None:
             print("錯誤：開始日期未設定")
             return None
-        
+
         if record_parameter.enddate.day == datetime.today().day:
             print("今天還沒過完無資資訊")
             return None
 
         # 直接從 ReportFactory 取得數據，不再使用 ChartDataGenerator
         report = None
-        
+
         # 根據指標索引取得對應的報表物件
         if report_index == self._month_report_factory.Month_index:
             report = self._month_report_factory
@@ -122,7 +122,7 @@ class Model_main(TModel):
                 report._name,
                 chart_title,
             )
-        
+
         return data_result
 
     def month_rp(self, record_main_parameter: RecordMainParameter):
@@ -140,7 +140,7 @@ class Model_main(TModel):
         ):
             print("還沒15號沒有上個月的資料")
             return
-        
+
         self._create_and_draw_chart(
             record_main_parameter,
             self._month_report_factory.Month_index,
@@ -229,13 +229,26 @@ class Model_main(TModel):
 
     def adl(self, record_main_parameter: RecordMainParameter):
         """騰落指標"""
-        return self._create_and_draw_chart(
-            record_main_parameter,
-            self._adl_report_factory.ADL_index,
-            "",
-            stock_number_required=False,
-            draw=False,
-        )
+        from src.FilterService.StockReportHistory import ADL_Indicator
+
+        # Create ADL Indicator which calculates the actual cumulative ADL (not just raw Ad_index)
+        adl_indicator = ADL_Indicator("ADL", self._adl_report_factory)
+
+        # Calculate full ADL history
+        if adl_indicator._adl_data is None:
+            adl_indicator._calculate_adl()
+
+        # Return full date range between startdate and enddate (not just single day)
+        if adl_indicator._adl_data.empty:
+            return adl_indicator._adl_data
+
+        # Filter data for the requested date range
+        data_result = adl_indicator._adl_data[
+            (adl_indicator._adl_data.index >= record_main_parameter.startdate) &
+            (adl_indicator._adl_data.index <= record_main_parameter.enddate)
+        ].copy()
+
+        return data_result
 
     def adls(self, record_main_parameter: RecordMainParameter):
         """騰落比例指標"""
@@ -264,7 +277,7 @@ class Model_main(TModel):
 
     def RunSchedule(self, progress_callback=None):
         self._schedule_service.RunUpdateInfoNow(self.main_user_info_data, progress_callback)
-        
+
     def RunUpdateInfoNow_sp500(self, progress_callback=None):
         self._schedule_service.RunUpdateInfoNow_sp500(self.main_user_info_data, progress_callback)
 

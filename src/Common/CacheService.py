@@ -30,7 +30,7 @@ class HybridCacheService:
             host=redis_config.get('host', 'localhost'),
             port=redis_config.get('port', 6379),
             db=redis_config.get('db', 0),
-            decode_responses=True,
+            decode_responses=False,
             socket_timeout=redis_config.get('socket_timeout', 5),
             socket_connect_timeout=redis_config.get('socket_connect_timeout', 5)
         )
@@ -129,10 +129,10 @@ class HybridCacheService:
         try:
             data = self.redis_client.get(key)
             if data:
-                try:
-                    return json.loads(data)
-                except json.JSONDecodeError:
-                    return data
+                import pickle
+                # 使用 pickle 原生反序列化，完整還原原生物件
+                return pickle.loads(data)
+            return None
         except Exception as e:
             self.logger.error(f"Redis 獲取快取失敗: {e}")
 
@@ -152,14 +152,9 @@ class HybridCacheService:
             return False
 
         try:
-            if isinstance(data, (dict, list, pd.DataFrame)):
-                if isinstance(data, pd.DataFrame):
-                    serialized_data = self._serialize_dataframe(data)
-                else:
-                    serialized_data = json.dumps(data, default=str)
-            else:
-                serialized_data = str(data)
-
+            import pickle
+            # 使用 pickle 原生序列化，完整保留物件型別
+            serialized_data = pickle.dumps(data)
             self.redis_client.set(key, serialized_data, ex=ttl or self.redis_config['data_cache_ttl'])
             return True
 

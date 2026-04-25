@@ -196,14 +196,8 @@ class ScheduleService:
             # Check local data - 每次建立獨立實例避免多執行緒問題 (使用 Normal 模式真實資料)
             external_data = self.external_data_factory.Get_instance(ExternalDataTypeEnum.Normal)
 
-            # 強制將 stock_code 轉換為 int，符合 get_stock_history 方法簽章
-            try:
-                stock_num = int(stock_code)
-            except ValueError:
-                stock_num = stock_code
-
             df_check = external_data.get_stock_history(
-                stock_num, start_date
+                stock_code, start_date
             )
             if not df_check.empty:
                 # Has local data, start from latest date +1 day to avoid duplicate downloads
@@ -217,7 +211,7 @@ class ScheduleService:
                 # Try to get last month data to determine if there are trading days
                 recent_start = end_date - timedelta(days=30)
                 df_recent = external_data.get_stock_history(
-                    stock_num, recent_start
+                    stock_code, recent_start
                 )
 
                 if not df_recent.empty:

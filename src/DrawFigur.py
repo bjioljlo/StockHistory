@@ -17,34 +17,34 @@ class DrawFigur:
 
     def draw_stock(self, table: DataFrame, number: int, adl_data: DataFrame = None):
         """繪製股票 K 線圖，可選包含 ADL 指標
-        
+
         Args:
             table: 股票價格數據，需包含 High, Low, Close, Volume 欄位
             number: 股票代號
             adl_data: 可選的 ADL 數據 DataFrame，用於在主圖中顯示 ADL 指標
         """
         import pandas as pd
-        
+
         mc = mpf.make_marketcolors(
             up="r", down="g", edge="", wick="inherit", volume="inherit"
         )
         s = mpf.make_mpf_style(base_mpf_style="charles", marketcolors=mc)
-        
+
         # Process ADL data if provided
         if adl_data is not None and not adl_data.empty:
             try:
                 # Filter ADL data to only include dates that exist in main table
                 # This ensures dimensions match exactly
                 common_indices = table.index.intersection(adl_data.index)
-                
+
                 if len(common_indices) > 0:
                     # Get column name from adl_data (could be 'ADL' or a numeric column)
                     adl_column = adl_data.columns[0] if len(adl_data.columns) > 0 else None
-                    
+
                     if adl_column is not None:
                         # Create a Series with the exact same index as table
                         adl_values = adl_data.reindex(table.index)[adl_column]
-                        
+
                         # Add to PICS before plotting
                         self.panelCount = self.panelCount + 1
                         self.PICS.append(
@@ -54,7 +54,7 @@ class DrawFigur:
                 print(f"處理 ADL 數據時發生錯誤: {e}")
                 import traceback
                 traceback.print_exc()
-        
+
         mpf.plot(
             table,
             type="candle",
@@ -132,47 +132,47 @@ class DrawFigur:
                 if table is None or table.empty:
                     print("警告：沒有數據可以繪圖")
                     return
-                
+
                 if columnName not in table.columns:
                     print(f"錯誤：欄位 '{columnName}' 不存在於數據中")
                     print(f"可用的欄位: {list(table.columns)}")
                     return
-                
+
                 # 檢查是否有 NaN 或無限值
                 if table[columnName].isna().any():
                     print(f"警告：數據包含 NaN 值，將進行清理")
                     table = table.dropna(subset=[columnName])
-                
+
                 if table.empty:
                     print("警告：數據清理後為空，無法繪圖")
                     return
-                
+
                 # 創建新的圖形，使用唯一的編號避免衝突
                 fig = plt.figure(num=f"Chart_{stockNum}_{title}")
                 plt.clf()  # 清除圖形內容
-                
+
                 ax = fig.add_subplot(111)
                 ax.plot(table.index, table[columnName], label=title, linewidth=2)
-                
+
                 # 設置標籤和標題
                 ax.set_xlabel("Date", fontsize=12)
                 ax.set_ylabel(ylabel, fontsize=12)
                 ax.set_title(f"{stockNum} - {title}", fontsize=14, fontweight='bold')
-                
+
                 # 旋轉 x 軸標籤以便閱讀
                 plt.xticks(rotation=45, ha='right')
-                
+
                 # 添加網格和圖例
                 ax.grid(True, alpha=0.3)
                 ax.legend(loc='best')
-                
+
                 # 調整佈局以避免標籤被切掉
                 plt.tight_layout()
-                
+
                 # 使用 show() 顯示圖表，但不阻塞主線程
                 plt.show(block=False)
                 plt.pause(0.001)  # 讓 matplotlib 處理事件
-                
+
         except Exception as e:
             print(f"繪圖時發生錯誤: {e}")
             import traceback

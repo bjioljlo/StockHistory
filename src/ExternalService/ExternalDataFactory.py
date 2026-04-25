@@ -51,6 +51,7 @@ class ExternalDataFactory(IGetExternalData):
     # ==================================================
 
     def get_stock_history(self, symbol: str, start_date=None, end_date=None):
+        # TODO: 此方法已過時，將在下個版本移除，請直接呼叫 Get_instance() 取得實例
         return self.Get_instance().get_stock_history(symbol, start_date, end_date)
 
     def get_allstock_daily_data(self, start_date, end_date):
