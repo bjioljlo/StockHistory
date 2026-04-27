@@ -375,43 +375,39 @@ class ReportDataMigrator:
                 report_season INT NOT NULL COMMENT '報表季別(1-4)',
                 report_type ENUM('PLA', 'BS', 'CPL', 'SCF') NOT NULL COMMENT '報表類型',
 
-                -- PLA欄位 (損益分析表)
-                revenue BIGINT COMMENT '營業收入',
-                gross_margin DECIMAL(10,2) COMMENT '毛利率(%)',
-                operating_margin DECIMAL(10,2) COMMENT '營業利益率(%)',
-                pre_tax_margin DECIMAL(10,2) COMMENT '稅前純益率(%)',
-                net_margin DECIMAL(10,2) COMMENT '稅後純益率(%)',
+                    revenue BIGINT COMMENT '營業收入',
+                    gross_margin DECIMAL(10,2) COMMENT '毛利率(%)',
+                    operating_margin DECIMAL(10,2) COMMENT '營業利益率(%)',
+                    pre_tax_margin DECIMAL(10,2) COMMENT '稅前純益率(%)',
+                    net_margin DECIMAL(10,2) COMMENT '稅後純益率(%)',
 
-                -- CPL欄位 (合併損益表)
-                consolidated_net_income BIGINT COMMENT '合併淨利',
-                consolidated_eps DECIMAL(5,2) COMMENT '每股盈餘',
+                    consolidated_net_income BIGINT COMMENT '合併淨利',
+                    consolidated_eps DECIMAL(5,2) COMMENT '每股盈餘',
 
-                -- BS欄位 (資產負債表)
-                total_assets BIGINT COMMENT '總資產',
-                total_liabilities BIGINT COMMENT '總負債',
-                equity BIGINT COMMENT '股東權益',
-                capital BIGINT COMMENT '股本',
-                book_value_per_share DECIMAL(10,2) COMMENT '每股參考淨值',
+                    total_assets BIGINT COMMENT '總資產',
+                    total_liabilities BIGINT COMMENT '總負債',
+                    equity BIGINT COMMENT '股東權益',
+                    capital BIGINT COMMENT '股本',
+                    book_value_per_share DECIMAL(10,2) COMMENT '每股參考淨值',
 
-                -- SCF欄位 (現金流量表)
-                operating_cash_flow BIGINT COMMENT '營業現金流量',
-                investing_cash_flow BIGINT COMMENT '投資現金流量',
-                financing_cash_flow BIGINT COMMENT '融資現金流量',
+                    operating_cash_flow BIGINT COMMENT '營業現金流量',
+                    investing_cash_flow BIGINT COMMENT '投資現金流量',
+                    financing_cash_flow BIGINT COMMENT '融資現金流量',
 
-                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
 
-                UNIQUE KEY unique_symbol_period_type (symbol, report_year, report_season, report_type),
-                INDEX idx_symbol (symbol),
-                INDEX idx_period (report_year, report_season),
-                INDEX idx_type (report_type),
-                INDEX idx_symbol_period (symbol, report_year, report_season),
-                INDEX idx_revenue (revenue),
-                INDEX idx_net_margin (net_margin),
-                INDEX idx_consolidated_net_income (consolidated_net_income)
-            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
-            """
-        ]
+                    UNIQUE KEY unique_symbol_period_type (symbol, report_year, report_season, report_type),
+                    INDEX idx_symbol (symbol),
+                    INDEX idx_period (report_year, report_season),
+                    INDEX idx_type (report_type),
+                    INDEX idx_symbol_period (symbol, report_year, report_season),
+                    INDEX idx_revenue (revenue),
+                    INDEX idx_net_margin (net_margin),
+                    INDEX idx_consolidated_net_income (consolidated_net_income)
+                ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+                """
+            ]
 
         try:
             with self.engine.connect() as conn:

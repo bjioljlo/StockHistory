@@ -221,6 +221,10 @@ class Month_Report(AllStockReport):
         # 直接調用外部服務，讓它處理快取
         result_data = self._main_GetExternalData.get_allstock_monthly_report(safe_date)
 
+        # ✅ 統一設定 index 為 symbol 欄位
+        if 'symbol' in result_data.columns:
+            result_data = result_data.set_index('symbol', drop=True)
+
         # 只在必要時進行後處理
         return result_data
 

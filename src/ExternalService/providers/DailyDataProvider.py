@@ -140,8 +140,92 @@ class DailyDataProvider:
 
     def _download_daily_data(self, start: datetime, end: datetime) -> pd.DataFrame:
         """Download daily price data from external source"""
-        # TODO: Implement crawler
-        return pd.DataFrame()
+        try:
+            import yfinance as yf
+            
+            self._logger.info(f"Downloading daily data from Yahoo Finance: {start.date()} ~ {end.date()}")
+            
+            # Get all stock symbols from stock info
+            stock_info = self._get_stock_info_data()
+            
+            if stock_info.empty:
+                self._logger.warning("No stock symbols found for download")
+                return pd.DataFrame()
+            
+            # Format symbols for Yahoo Finance (TW stocks use .TW suffix)
+            symbols = []
+            for code in stock_info.index:
+                # Convert to 4-digit string, add .TW suffix for Taiwan stocks
+                symbol_str = str(code).zfill(4) + ".TW"
+                symbols.append(symbol_str)
+            
+            self._logger.info(f"Downloading data for {len(symbols)} stocks")
+            
+            # Batch download all stocks
+            all_data = yf.download(
+                tickers=symbols,
+                start=start,
+                end=end,
+                group_by='ticker',
+                auto_adjust=False,
+                progress=False
+            )
+            
+            if all_data.empty:
+                self._logger.warning("No data returned from Yahoo Finance")
+                return pd.DataFrame()
+            
+            # Reshape data to match our database format
+            result_rows = []
+            
+            for symbol in symbols:
+                if symbol not in all_data.columns.get_level_values(0):
+                    continue
+                    
+                stock_data = all_data[symbol].dropna(how='all')
+                
+                if stock_data.empty:
+                    continue
+                
+                # Extract base code without .TW suffix
+                base_code = int(symbol.replace('.TW', ''))
+                
+                # Add symbol column and format
+                stock_data = stock_data.copy()
+                stock_data['symbol'] = base_code
+                
+                # Rename columns to match database schema
+                stock_data = stock_data.rename(columns={
+                    'Open': 'open',
+                    'High': 'high',
+                    'Low': 'low',
+                    'Close': 'close',
+                    'Adj Close': 'adj_close',
+                    'Volume': 'volume'
+                })
+                
+                # Reset index to get date as column
+                stock_data = stock_data.reset_index().rename(columns={'Date': 'date'})
+                
+                result_rows.append(stock_data)
+            
+            if not result_rows:
+                self._logger.warning("No valid stock data after processing")
+                return pd.DataFrame()
+            
+            # Combine all data
+            combined_data = pd.concat(result_rows, ignore_index=True)
+            
+            # Set index same as SQL query output
+            combined_data = combined_data.set_index(['symbol', 'date'])
+            
+            self._logger.info(f"Successfully downloaded {len(combined_data)} daily records")
+            
+            return combined_data
+            
+        except Exception as e:
+            self._logger.error(f"Error downloading daily data: {str(e)}", exc_info=True)
+            return pd.DataFrame()
 
     def _save_daily_data_to_db(self, data: pd.DataFrame) -> None:
         """Save daily price data to database"""

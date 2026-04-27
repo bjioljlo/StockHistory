@@ -146,10 +146,6 @@ class MonthlyStatementProvider:
             if col in data.columns:
                 data[col] = pd.to_numeric(data[col], errors='coerce')
 
-        # ✅ 統一設定 index 為 symbol 欄位
-        if 'symbol' in data.columns:
-            data = data.set_index('symbol', drop=True)
-
         return data
 
     def _get_monthly_statement_from_file(self, filename: str, start: datetime) -> pd.DataFrame:
@@ -172,27 +168,21 @@ class MonthlyStatementProvider:
             return
 
         try:
-            # ✅ 正確的儲存方式: 使用upsert_data不會清空整張表格
-            # 先刪除同一月份舊資料再新增，或是使用upsert處理重複
-            save_data = data.reset_index()
-            
-            # 先刪除同一月份的舊資料 (只刪該月份，不會清空整張表)
-            with self._sql_service.server_flask.app_context():
-                delete_query = text("DELETE FROM monthly_reports WHERE report_year = :year AND report_month = :month")
-                self._sql_service.MySql_server.engine.execute(
-                    delete_query,
-                    {'year': save_data['report_year'].iloc[0], 'month': save_data['report_month'].iloc[0]}
-                )
-                
-                # 再新增新資料，使用append不會覆蓋其他月份
-                save_data.to_sql(
-                    name='monthly_reports',
-                    con=self._sql_service.MySql_server.engine,
-                    if_exists='append',
-                    index=False
-                )
-            
-            self._logger.info(f"Saved {len(data)} monthly revenue records to database (只更新該月份)")
+            # 確保所有欄位都存在於資料庫表格中，如果不存在則跳過
+            table_columns = [col['name'] for col in self._sql_service.get_table_columns('monthly_reports')]
+            # 只保留資料庫表格中存在的欄位
+            df_to_insert = data[[col for col in data.columns if col in table_columns]]
+            if df_to_insert.empty:
+                self._logger.warning(f"No valid columns found in dataframe for table {'monthly_reports'}")
+                return 0
+
+            self._logger.info(f"Inserting {len(df_to_insert)} records with columns: {list(df_to_insert.columns)}")
+
+            susses = self._sql_service.saveTable('monthly_reports', df_to_insert)
+            if not susses:
+                self._logger.error(f"Failed to save monthly statement to database")
+
+            self._logger.info(f"Saved {len(df_to_insert)} monthly revenue records to database (只更新該月份)")
         except Exception as e:
             self._logger.error(f"Error saving monthly statement to database: {e}")
 

@@ -308,6 +308,52 @@ class SqlService:
             print(f"SQL Error getting table names: {e}")
             return []
 
+    def get_table_columns(self, table_name: str) -> list[dict]:
+        """
+        Retrieves column information for a specified table.
+
+        Args:
+            table_name (str): The name of the table to get columns for.
+
+        Returns:
+            list[dict]: A list of dictionaries containing column information:
+                - name: Column name
+                - type: Column data type
+                - nullable: Whether the column allows NULL values
+                - default: Default value for the column
+                - primary_key: Whether this column is part of the primary key
+        """
+        if not table_name.islower():
+            table_name = table_name.lower()
+            
+        try:
+            with self.server_flask.app_context():
+                with self.MySql_server.engine.connect() as connection:
+                    inspector = inspect(connection)
+                    
+                    if table_name not in inspector.get_table_names():
+                        print(f"Table '{table_name}' does not exist in the database")
+                        return []
+                    
+                    columns = inspector.get_columns(table_name)
+                    
+                    # Format column information for easier use
+                    result = []
+                    for col in columns:
+                        result.append({
+                            'name': col['name'],
+                            'type': str(col['type']),
+                            'nullable': col['nullable'],
+                            'default': col['default'],
+                            'primary_key': col.get('primary_key', False)
+                        })
+                    
+                    return result
+                    
+        except Exception as e:
+            print(f"SQL Error getting columns for table '{table_name}': {e}")
+            return []
+
     def yfInfo(self, name: str):
         if name in self._CantUseStocks:
             print("CantUseStock:" + str(name))
