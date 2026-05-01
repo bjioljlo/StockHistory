@@ -352,6 +352,8 @@ class ReportDataMigrator:
                 revenue_last_year_same_month BIGINT COMMENT '去年當月營收',
                 revenue_ytd BIGINT COMMENT '當月累計營收',
                 revenue_last_year_ytd BIGINT COMMENT '去年累計營收',
+                revenue_growth_rate DECIMAL(5,2) COMMENT '上月比較增減(%)',
+                revenue_last_year_same_month_growth_rate DECIMAL(5,2) COMMENT '去年同月增減(%)',
                 notes TEXT COMMENT '備註',
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
@@ -599,6 +601,8 @@ class ReportDataMigrator:
             '去年當月營收': 'revenue_last_year_same_month',
             '當月累計營收': 'revenue_ytd',
             '去年累計營收': 'revenue_last_year_ytd',
+            '上月比較增減(%)': 'revenue_growth_rate',
+            '去年同月增減(%)': 'revenue_last_year_same_month_growth_rate',
             '備註': 'notes'
         }
 

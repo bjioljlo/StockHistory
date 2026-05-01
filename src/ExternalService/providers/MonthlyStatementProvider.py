@@ -92,10 +92,9 @@ class MonthlyStatementProvider:
         try:
             with self._sql_service.server_flask.app_context():
                 query = """
-                SELECT code, year, month, revenue, revenue_change,
-                       cumulative_revenue, cumulative_change
-                FROM monthly_revenue
-                WHERE year = :year AND month = :month
+                SELECT *
+                FROM monthly_reports
+                WHERE report_year = :year AND report_month = :month
                 """
 
                 from sqlalchemy import text
@@ -106,7 +105,7 @@ class MonthlyStatementProvider:
                         'year': start.year,
                         'month': start.month
                     },
-                    index_col="code"
+                    index_col="id"
                 )
 
                 return dataframe
@@ -132,6 +131,8 @@ class MonthlyStatementProvider:
             '去年當月營收': 'revenue_last_year_same_month',
             '當月累計營收': 'revenue_ytd',
             '去年累計營收': 'revenue_last_year_ytd',
+            '上月比較增減(%)': 'revenue_growth_rate',
+            '去年同月增減(%)': 'revenue_last_year_same_month_growth_rate',
             '備註': 'notes'
         }
 
@@ -145,6 +146,16 @@ class MonthlyStatementProvider:
         for col in numeric_columns:
             if col in data.columns:
                 data[col] = pd.to_numeric(data[col], errors='coerce')
+
+        # 🔧 修正: 限制成長率數值範圍在 MySQL DECIMAL(5,2) 可以接受的範圍內 (-999.99 ~ 999.99)
+        # 避免 Out of range value 錯誤，當公司營收爆增超過 1000% 時經常發生
+        # ✅ 實際表格定義是 DECIMAL(5,2)，最大只能到 999.99
+        growth_rate_columns = ['revenue_growth_rate', 'revenue_last_year_same_month_growth_rate']
+        for col in growth_rate_columns:
+            if col in data.columns:
+                data[col] = pd.to_numeric(data[col], errors='coerce')
+                # 限制最大值 999.99，最小值 -999.99 (DECIMAL(5,2) 合法範圍)
+                data[col] = data[col].clip(lower=-999.99, upper=999.99)
 
         return data
 
@@ -174,15 +185,25 @@ class MonthlyStatementProvider:
             df_to_insert = data[[col for col in data.columns if col in table_columns]]
             if df_to_insert.empty:
                 self._logger.warning(f"No valid columns found in dataframe for table {'monthly_reports'}")
-                return 0
+                return
 
-            self._logger.info(f"Inserting {len(df_to_insert)} records with columns: {list(df_to_insert.columns)}")
+            self._logger.info(f"Upserting {len(df_to_insert)} records with columns: {list(df_to_insert.columns)}")
 
-            susses = self._sql_service.saveTable('monthly_reports', df_to_insert)
-            if not susses:
+            # ✅ 使用 upsert_data 而不是先刪除再插入
+            # 唯一鍵是: 股票代號 + 年份 + 月份
+            # 特點: 資料不會被清掉，有重複就覆蓋更新，沒有就新增，完全原子性操作
+            success = self._sql_service.upsert_data(
+                table_name='monthly_reports',
+                data_df=df_to_insert,
+                key_columns=['symbol', 'report_year', 'report_month']
+            )
+
+            if not success:
                 self._logger.error(f"Failed to save monthly statement to database")
 
-            self._logger.info(f"Saved {len(df_to_insert)} monthly revenue records to database (只更新該月份)")
+            report_year = int(data.iloc[0]['report_year'])
+            report_month = int(data.iloc[0]['report_month'])
+            self._logger.info(f"Saved {len(df_to_insert)} monthly revenue records to database for {report_year}-{report_month}")
         except Exception as e:
             self._logger.error(f"Error saving monthly statement to database: {e}")
 

@@ -60,18 +60,25 @@ class Model_main(TModel):
             print("錯誤：開始日期未設定")
             return None
 
-        if record_parameter.enddate.day == datetime.today().day:
+        # 月營收的日期驗證已經在各自方法 (month_rp, month_revenue_growth) 中做過了
+        # 這邊只需要針對其他報表類型做日期檢查
+        if report_index != self._month_report_factory.Month_index and \
+           report_index != self._month_report_factory.MR_Growth_index and \
+           record_parameter.enddate.day == datetime.today().day:
             print("今天還沒過完無資資訊")
             return None
 
         # 直接從 ReportFactory 取得數據，不再使用 ChartDataGenerator
         report = None
+        showClumn = 0
 
         # 根據指標索引取得對應的報表物件
         if report_index == self._month_report_factory.Month_index:
             report = self._month_report_factory
+            showClumn = 3
         elif report_index == self._month_report_factory.MR_Growth_index:
             report = self._month_report_factory
+            showClumn = 5  # ✅ 直接使用SQL中已存在的月營收成長率欄位，不需要現場計算
         elif report_index == self._day_report_factory.Yield_index:
             report = self._day_report_factory
         elif report_index == self._day_report_factory.PCF_index:
@@ -105,16 +112,16 @@ class Model_main(TModel):
 
         # 取得數據
         if stock_number_required and record_parameter.number is not None:
-            data_result = report.get_ReportByNumber(record_parameter.enddate, record_parameter.number)
+            data_result = report.get_ReportByNumber(record_parameter.startdate, record_parameter.number, record_parameter.enddate)
             stock_number_for_draw = record_parameter.number
         else:
-            data_result = report.get_ALL_Report(record_parameter.enddate)
+            data_result = report.get_ALL_Report(record_parameter.startdate, record_parameter.enddate)
             stock_number_for_draw = 0
 
         # 繪製圖表
         if draw and data_result is not None and not data_result.empty:
             # 取得第一個欄位名稱做為繪圖欄位
-            column_name = data_result.columns[0] if len(data_result.columns) > 0 else data_result.index.name
+            column_name = data_result.columns[showClumn] if len(data_result.columns) > 0 else data_result.index.name
             self._draw_figur_service.draw_RP(
                 data_result,
                 stock_number_for_draw,

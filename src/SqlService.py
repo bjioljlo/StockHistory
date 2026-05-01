@@ -17,11 +17,11 @@ class SqlService:
         self.server_flask: Flask = Flask(__name__)  # 初始化server
         self.MySql_server: SQLAlchemy = None
         self._CantUseStocks = [] # 無法使用的股票
-    
+
     @property
     def CantUseStocks(self):
         return  self._CantUseStocks
-    
+
     def RunMysql(self):
         temp_thread = threading.Thread(target=self.__SetMysqlServer)
         temp_thread.start()
@@ -101,7 +101,7 @@ class SqlService:
         """
         if not table_name.islower():
             table_name = table_name.lower()
-        
+
         try:
             with self.server_flask.app_context():
                 data_df.to_sql(
@@ -122,7 +122,7 @@ class SqlService:
         """
         if not table_name.islower():
             table_name = table_name.lower()
-        
+
         try:
             with self.server_flask.app_context():
                 data_df.to_sql(
@@ -152,7 +152,7 @@ class SqlService:
         try:
             with self.server_flask.app_context():
                 with self.MySql_server.engine.begin() as connection:
-                    
+
                     # 檢查表格是否存在
                     inspector = inspect(connection)
                     if table_name not in inspector.get_table_names():
@@ -173,18 +173,18 @@ class SqlService:
                         columns = list(data_df.columns)
                         placeholders = ', '.join([f':{col}' for col in columns])
                         column_names = ', '.join([f'`{col}`' for col in columns])
-                        
+
                         # 構建UPDATE部分
                         update_columns = [col for col in columns if col not in key_columns]
-                        
+
                         # 添加時間戳欄位到更新列表，確保created_at和updated_at被正確處理
                         timestamp_columns = ['created_at', 'updated_at']
                         for ts_col in timestamp_columns:
                             if ts_col not in update_columns and ts_col in columns:
                                 update_columns.append(ts_col)
-                        
+
                         update_clause = ', '.join([f'`{col}` = VALUES(`{col}`)' for col in update_columns])
-                        
+
                         sql = f"""
                         INSERT INTO `{table_name}` ({column_names})
                         VALUES ({placeholders})
@@ -192,14 +192,14 @@ class SqlService:
                         {update_clause},
                         updated_at = CURRENT_TIMESTAMP
                         """
-                        
+
                         # 處理NaN值並構建參數字典
                         row_dict = {}
                         for col in columns:
                             value = row[col]
                             if pd.isna(value) or value is None:
                                 # 對於數值欄位使用0，其他使用None
-                                if col in ['open', 'high', 'low', 'close', 'adj_close', 'volume', 
+                                if col in ['open', 'high', 'low', 'close', 'adj_close', 'volume',
                                          'dividend_yield', 'pe_ratio', 'pb_ratio']:
                                     row_dict[col] = 0.0 if col != 'volume' else 0
                                 else:
@@ -212,7 +212,7 @@ class SqlService:
 
                     print(f"Successfully upserted {success_count} rows to table '{table_name}'.")
                     return True
-                    
+
         except Exception as e:
             print(f"SQL Error during upsert into {table_name}: {e}")
             return False
@@ -223,11 +223,11 @@ class SqlService:
         使用 scripts/migration 中的欄位結構
         """
         table_name = 'dividend_yield'
-        
+
         try:
             with self.server_flask.app_context():
                 with self.MySql_server.engine.begin() as connection:
-                    
+
                     # 檢查表格是否存在
                     inspector = inspect(connection)
                     if table_name not in inspector.get_table_names():
@@ -269,7 +269,7 @@ class SqlService:
                         pb_ratio = VALUES(pb_ratio),
                         updated_at = CURRENT_TIMESTAMP
                         """
-                        
+
                         # 處理NaN值
                         row_dict = {}
                         for col in ['symbol', 'date', 'company_name', 'pe_ratio', 'dividend_yield', 'pb_ratio']:
@@ -287,7 +287,7 @@ class SqlService:
 
                     print(f"Successfully upserted {success_count} rows to dividend_yield table.")
                     return True
-                    
+
         except Exception as e:
             print(f"SQL Error during dividend_yield upsert: {e}")
             return False
@@ -325,18 +325,18 @@ class SqlService:
         """
         if not table_name.islower():
             table_name = table_name.lower()
-            
+
         try:
             with self.server_flask.app_context():
                 with self.MySql_server.engine.connect() as connection:
                     inspector = inspect(connection)
-                    
+
                     if table_name not in inspector.get_table_names():
                         print(f"Table '{table_name}' does not exist in the database")
                         return []
-                    
+
                     columns = inspector.get_columns(table_name)
-                    
+
                     # Format column information for easier use
                     result = []
                     for col in columns:
@@ -347,9 +347,9 @@ class SqlService:
                             'default': col['default'],
                             'primary_key': col.get('primary_key', False)
                         })
-                    
+
                     return result
-                    
+
         except Exception as e:
             print(f"SQL Error getting columns for table '{table_name}': {e}")
             return []
@@ -615,10 +615,7 @@ class SqlService:
                 where_clause = " AND ".join(conditions) if conditions else "1=1"
 
                 query = text("""
-                SELECT symbol, company_name, report_year, report_month,
-                       revenue_current_month, revenue_last_month,
-                       revenue_last_year_same_month, revenue_ytd,
-                       revenue_last_year_ytd, notes
+                SELECT *
                 FROM monthly_reports
                 WHERE """ + where_clause + """
                 ORDER BY symbol, report_year DESC, report_month DESC
@@ -672,7 +669,7 @@ class SqlService:
                     else:
                         # 如果是字符串
                         report_type_value = str(report_type)
-                    
+
                     # 將長名稱轉換為短代碼
                     type_mapping = {
                         'profit-and-loss-analysis-summary': 'PLA',
@@ -680,7 +677,7 @@ class SqlService:
                         'consolidated-profit-and-loss-summary': 'CPL',
                         'statement-of-cash-flows': 'SCF'
                     }
-                    
+
                     short_type = type_mapping.get(report_type_value, report_type_value)
                     conditions.append("report_type = :report_type")
                     params['report_type'] = short_type.upper()
@@ -890,7 +887,7 @@ class SqlService:
             print(f"SQL Error in get_quarterly_financial_summary: {e}")
             return {}
 
-    def read_ad_index(self, start_date: str = None, end_date: str = None, 
+    def read_ad_index(self, start_date: str = None, end_date: str = None,
                      limit: int = 1000) -> pd.DataFrame:
         """
         讀取騰落指數數據
@@ -935,12 +932,12 @@ class SqlService:
                 # 使用參數化查詢
                 params['limit'] = limit
                 df = pd.read_sql(query, con=self.MySql_server.engine, params=params)
-                
+
                 # 設定索引
                 if not df.empty:
                     df['date'] = pd.to_datetime(df['date'])
                     df = df.set_index('date')
-                
+
                 return df
 
         except Exception as e:

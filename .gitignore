@@ -242,20 +242,3 @@ seasonInfo/
 data/
 logs/
 backups/
-
-# cline
-.cline
-.clinerules
-
-# claude
-.agent
-.claude
-
-# codex
-.codex
-
-# gemini
-.gemini
-
-# github copilot
-.github

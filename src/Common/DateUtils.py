@@ -57,12 +57,22 @@ def change_date_month(date: datetime, change_month: int) -> datetime:
             day=check_month_date(temp_month, date.day)
         )
     
-    # Adjust for weekend
-    while new_date.isoweekday() in [6, 7]:
+    # ⚠️ 月份運算絕對不能調整到跨月份！
+    # 當週末調整會跨月份時，強制停止在當月最後一個工作日
+    original_month = new_date.month
+    
+    # Adjust for weekend, but NEVER cross month boundary
+    while new_date.isoweekday() in [6, 7] and new_date.month == original_month:
         if new_date.day < 15:
-            new_date = back_work_days(new_date, -1)
+            next_date = back_work_days(new_date, -1)
+            if next_date.month != original_month:
+                break  # 往回調會跨月份，取消調整
+            new_date = next_date
         else:
-            new_date = back_work_days(new_date, 1)
+            next_date = back_work_days(new_date, 1)
+            if next_date.month != original_month:
+                break  # 往前調會跨月份，取消調整
+            new_date = next_date
     
     return new_date
 

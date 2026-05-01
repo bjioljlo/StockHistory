@@ -16,7 +16,12 @@ class IReport(ABC):
     """指標歷史資料"""
 
     @abstractmethod
-    def get_ALL_Report(self, date) -> DataFrame:
+    def get_ALL_Report(self, start_date, end_date=None) -> DataFrame:
+        """
+        取得指標歷史資料
+        :param start_date: 起始日期 (如果只提供單一日期，則只查詢該日期)
+        :param end_date: 結束日期 (可選，若提供則查詢時間區間)
+        """
         raise NotImplementedError(
             "{} is virutal! Must be overwrited.".format(sys._getframe().f_code.co_name)
         )
@@ -34,16 +39,23 @@ class TReport(IReport):
         return self._name
 
     @abstractmethod
-    def get_ALL_Report(self, date, base_today=None) -> DataFrame:
+    def get_ALL_Report(self, start_date, end_date=None, base_today=None) -> DataFrame:
+        """
+        取得指標歷史資料
+        :param start_date: 起始日期 (如果只提供單一日期，則只查詢該日期)
+        :param end_date: 結束日期 (可選，若提供則查詢時間區間)
+        :param base_today: 基準日期 (可選，用於計算最近可用報表日期)
+        """
         raise NotImplementedError(
             "{} is virutal! Must be overwrited.".format(sys._getframe().f_code.co_name)
         )
 
-    def get_ReportByNumber(self, date, number: int, base_today=None) -> DataFrame:
-        Temp = self.get_ALL_Report(date, base_today=base_today)
+    def get_ReportByNumber(self, start_date, number: int, end_date=None, base_today=None) -> DataFrame:
+        Temp = self.get_ALL_Report(start_date, end_date=end_date, base_today=base_today)
 
         if Temp.empty:
-            print(f"{date}的{self._name}表沒出")
+            date_str = f"{start_date}~{end_date}" if end_date else str(start_date)
+            print(f"{date_str}的{self._name}表沒出")
             return DataFrame()
 
         # 嘗試多種索引格式進行匹配
@@ -51,7 +63,8 @@ class TReport(IReport):
 
         for key in search_keys:
             if key in Temp.index:
-                print(f"{date}的{number}公司成立")
+                date_str = f"{start_date}~{end_date}" if end_date else str(start_date)
+                print(f"{date_str}的{number}公司成立")
                 result = Temp.loc[key]
 
                 # 確保返回 DataFrame 格式
@@ -60,35 +73,49 @@ class TReport(IReport):
                 elif isinstance(result, DataFrame):
                     return result
 
-        print(f"{date}的{number}公司尚未成立")
+        date_str = f"{start_date}~{end_date}" if end_date else str(start_date)
+        print(f"{date_str}的{number}公司尚未成立")
         return DataFrame()
 
-    def get_ReportByType(self, date, _type: info.StrEnum, base_today=None) -> Series:
-        Temp = self.get_ALL_Report(date, base_today=base_today)
+    def get_ReportByType(self, start_date, _type: info.StrEnum, end_date=None, base_today=None) -> Series:
+        Temp = self.get_ALL_Report(start_date, end_date=end_date, base_today=base_today)
         try:
             return Temp[_type.get_sql_column()]
         except Exception:
-            print("".join([str(date), "的", self._name, "表沒出"]))
+            date_str = f"{start_date}~{end_date}" if end_date else str(start_date)
+            print("".join([date_str, "的", self._name, "表沒出"]))
             return DataFrame()
 
-    def get_ReportByTypeAndNumber(self, date, _type: info.StrEnum, number: int, base_today=None):
-        Temp = self.get_ReportByType(date, _type, base_today=base_today)
+    def get_ReportByTypeAndNumber(self, start_date, _type: info.StrEnum, number: int, end_date=None, base_today=None):
+        Temp = self.get_ReportByType(start_date, _type, end_date=end_date, base_today=base_today)
         try:
             return Temp[number]
         except Exception:
             if not Temp.empty:
-                print("".join([str(date), "的", str(number), "公司尚未成立"]))
+                date_str = f"{start_date}~{end_date}" if end_date else str(start_date)
+                print("".join([date_str, "的", str(number), "公司尚未成立"]))
             return None
 
     def Next_date(self, date):
         return Tools.changeDateMonth(date, -self._Unit)
 
-    def check_and_convert_to_series(self, tableFirst, tableSecond):
-        """增強的數據對齊方法，處理不同類型的索引對齊問題"""
+    def check_and_convert_to_series(self, tableFirst, tableSecond, join_type='outer', fill_value=None):
+        """增強的數據對齊方法，處理不同類型的索引對齊問題
+
+        Args:
+            tableFirst: 第一個數據表
+            tableSecond: 第二個數據表
+            join_type: 對齊方式 'outer' 保留所有索引, 'inner' 只保留共同索引
+            fill_value: 缺失值填充值，預設為 None (NaN)
+        """
         print(f"check_and_convert_to_series: 處理數據對齊，tableFirst類型: {type(tableFirst)}, tableSecond類型: {type(tableSecond)}")
 
+        # ✅ 絕不修改原始傳入物件，先建立副本
+        tableFirst_copy = tableFirst.copy() if hasattr(tableFirst, 'copy') else tableFirst
+        tableSecond_copy = tableSecond.copy() if hasattr(tableSecond, 'copy') else tableSecond
+
         # 確保兩個表都是 Series，如果不是則轉換
-        if isinstance(tableFirst, DataFrame):
+        if isinstance(tableFirst_copy, DataFrame):
             if tableFirst.empty:
                 print("check_and_convert_to_series: tableFirst 為空 DataFrame")
                 return DataFrame(), DataFrame()
@@ -115,47 +142,32 @@ class TReport(IReport):
                 print("check_and_convert_to_series: Series 為空")
                 return DataFrame(), DataFrame()
 
-            # 檢查是否有共同的索引
-            common_index = tableFirst.index.intersection(tableSecond.index)
+            # 策略1: 如果其中一個是單一值，嘗試廣播
+            if len(tableFirst) == 1 and len(tableSecond) > 1:
+                print("check_and_convert_to_series: tableFirst 為單一值，嘗試廣播到 tableSecond")
+                tableFirst_aligned = Series([tableFirst.iloc[0]] * len(tableSecond), index=tableSecond.index)
+                tableSecond_aligned = tableSecond
+                return tableFirst_aligned, tableSecond_aligned
 
-            if len(common_index) == 0:
-                print("check_and_convert_to_series: 沒有共同索引，嘗試不同的對齊策略")
+            if len(tableSecond) == 1 and len(tableFirst) > 1:
+                print("check_and_convert_to_series: tableSecond 為單一值，嘗試廣播到 tableFirst")
+                tableSecond_aligned = Series([tableSecond.iloc[0]] * len(tableFirst), index=tableFirst.index)
+                tableFirst_aligned = tableFirst
+                return tableFirst_aligned, tableSecond_aligned
 
-                # 策略1: 如果其中一個是單一值，嘗試廣播
-                if len(tableFirst) == 1 and len(tableSecond) > 1:
-                    print("check_and_convert_to_series: tableFirst 為單一值，嘗試廣播到 tableSecond")
-                    tableFirst_aligned = Series([tableFirst.iloc[0]] * len(tableSecond), index=tableSecond.index)
-                    tableSecond_aligned = tableSecond
-                    return tableFirst_aligned, tableSecond_aligned
+            # 策略2: 如果索引類型不同，嘗試轉換
+            if tableFirst.index.dtype != tableSecond.index.dtype:
+                print("check_and_convert_to_series: 索引類型不同，嘗試轉換")
+                try:
+                    # 嘗試將兩個索引都轉換為字串
+                    tableFirst.index = tableFirst.index.astype(str)
+                    tableSecond.index = tableSecond.index.astype(str)
+                    print(f"check_and_convert_to_series: 索引轉換完成")
+                except Exception as e:
+                    print(f"check_and_convert_to_series: 索引轉換失敗: {e}")
 
-                if len(tableSecond) == 1 and len(tableFirst) > 1:
-                    print("check_and_convert_to_series: tableSecond 為單一值，嘗試廣播到 tableFirst")
-                    tableSecond_aligned = Series([tableSecond.iloc[0]] * len(tableFirst), index=tableFirst.index)
-                    tableFirst_aligned = tableFirst
-                    return tableFirst_aligned, tableSecond_aligned
-
-                # 策略2: 如果索引類型不同，嘗試轉換
-                if tableFirst.index.dtype != tableSecond.index.dtype:
-                    print("check_and_convert_to_series: 索引類型不同，嘗試轉換")
-                    try:
-                        # 嘗試將兩個索引都轉換為字串
-                        tableFirst.index = tableFirst.index.astype(str)
-                        tableSecond.index = tableSecond.index.astype(str)
-                        common_index = tableFirst.index.intersection(tableSecond.index)
-                        print(f"check_and_convert_to_series: 轉換後共同索引: {common_index.tolist()}")
-
-                        if len(common_index) > 0:
-                            tableFirst_aligned, tableSecond_aligned = tableFirst.align(tableSecond, join='inner', fill_value=0)
-                            return tableFirst_aligned, tableSecond_aligned
-                    except Exception as e:
-                        print(f"check_and_convert_to_series: 索引轉換失敗: {e}")
-
-                # 策略3: 如果都失敗，返回空結果
-                print("check_and_convert_to_series: 所有對齊策略都失敗，返回空結果")
-                return DataFrame(), DataFrame()
-
-            # 有共同索引，正常對齊
-            tableFirst_aligned, tableSecond_aligned = tableFirst.align(tableSecond, join='inner', fill_value=0)
+            # 正常對齊 - 使用指定的 join 方式
+            tableFirst_aligned, tableSecond_aligned = tableFirst.align(tableSecond, join=join_type, fill_value=fill_value)
             print(f"check_and_convert_to_series: 對齊成功，結果長度: {len(tableFirst_aligned)}")
             return tableFirst_aligned, tableSecond_aligned
 
@@ -190,12 +202,42 @@ class Season_Report(AllStockReport):
         self.OriginalStock = original_stock if original_stock is not None else OriginalStock(GetExternal)
         self.RangeDate_Stock = range_date_stock if range_date_stock is not None else RangeDate_Stock(self.OriginalStock, None, None)
 
-    def get_ALL_Report(self, date, base_today=None) -> DataFrame:
+    def get_ALL_Report(self, start_date, end_date=None, base_today=None) -> DataFrame:
         import Common.Tools as Tools
-        safe_date = Tools.get_latest_season_report_date(date, base_today)
-        return self._main_GetExternalData.get_allstock_financial_statement(
-            safe_date, self._FS_type
-        )
+
+        if end_date is None:
+            # 單一日期查詢 - 原有邏輯
+            safe_date = Tools.get_latest_season_report_date(start_date, base_today)
+            result_data = self._main_GetExternalData.get_allstock_financial_statement(
+                safe_date, self._FS_type
+            )
+        else:
+            # 時間區間查詢 - 批次取得多個季度的財報
+            result_data = DataFrame()
+            current_date = start_date
+
+            while current_date <= end_date:
+                safe_date = Tools.get_latest_season_report_date(current_date, base_today)
+                season_data = self._main_GetExternalData.get_allstock_financial_statement(
+                    safe_date, self._FS_type
+                )
+
+                if not season_data.empty:
+                    season_data['report_date'] = safe_date
+                    result_data = pd.concat([result_data, season_data], ignore_index=True)
+
+                # 前進一個季度 (3個月)
+                current_date = Tools.changeDateMonth(current_date, 3)
+
+        # ✅ 統一設定 index
+        if 'symbol' in result_data.columns:
+            if end_date is None:
+                result_data = result_data.set_index('symbol', drop=True)
+            else:
+                # 區間查詢時使用複合索引 (symbol, report_date)
+                result_data = result_data.set_index(['symbol', 'report_date'], drop=True)
+
+        return result_data
 
 class Month_Report(AllStockReport):
     """以月為單位的指標歷史資料"""
@@ -214,16 +256,57 @@ class Month_Report(AllStockReport):
         self.OriginalStock = original_stock if original_stock is not None else OriginalStock(GetExternal)
         self.RangeDate_Stock = range_date_stock if range_date_stock is not None else RangeDate_Stock(self.OriginalStock, None, None)
 
-    def get_ALL_Report(self, date, base_today=None):
+    def get_ALL_Report(self, start_date, end_date=None, base_today=None):
         import Common.Tools as Tools
-        safe_date = Tools.get_latest_monthly_report_date(date, base_today)
+        from datetime import datetime
 
-        # 直接調用外部服務，讓它處理快取
-        result_data = self._main_GetExternalData.get_allstock_monthly_report(safe_date)
+        if end_date is None:
+            # 單一日期查詢 - 原有邏輯
+            safe_date = Tools.get_latest_monthly_report_date(start_date, base_today)
+            result_data = self._main_GetExternalData.get_allstock_monthly_report(safe_date)
+        else:
+            # 時間區間查詢 - 批次取得多個月份的月營收
+            result_data = DataFrame()
+            current_date = start_date
+            last_safe_date = None
+            loop_count = 0
+            max_loops = 120  # 最多查詢10年的資料，防止無窮迴圈
+
+            while current_date <= end_date and loop_count < max_loops:
+                safe_date = Tools.get_latest_monthly_report_date(current_date, base_today)
+
+                # 避免重複獲取同一個月的資料
+                if safe_date == last_safe_date:
+                    # 跳到下一個月
+                    current_date = Tools.changeDateMonth(current_date, 1)
+                    loop_count += 1
+                    continue
+
+                # 安全檢查：不查詢未來日期
+                if safe_date > datetime.today():
+                    break
+
+                month_data = self._main_GetExternalData.get_allstock_monthly_report(safe_date)
+
+                if not month_data.empty:
+                    month_data['report_date'] = safe_date
+                    result_data = pd.concat([result_data, month_data], ignore_index=True)
+
+                last_safe_date = safe_date
+                # 前進一個月
+                current_date = Tools.changeDateMonth(safe_date, 1)
+                loop_count += 1
+
+            if loop_count >= max_loops:
+                print(f"⚠️ 警告：月營收查詢已達最大次數限制 {max_loops}，已停止查詢")
 
         # ✅ 統一設定 index 為 symbol 欄位
         if 'symbol' in result_data.columns:
-            result_data = result_data.set_index('symbol', drop=True)
+            if end_date is None:
+                result_data = result_data.set_index('symbol', drop=True)
+            else:
+                # 區間查詢時使用複合索引 (symbol, report_date)
+                result_data = result_data.set_index(['symbol', 'report_date'], drop=True)
 
         # 只在必要時進行後處理
         return result_data
@@ -246,29 +329,37 @@ class Day_Report(AllStockReport):
         self.OriginalStock = original_stock if original_stock is not None else OriginalStock(GetExternal)
         self.RangeDate_Stock = range_date_stock if range_date_stock is not None else RangeDate_Stock(self.OriginalStock, None, None)
 
-    def get_ALL_Report(self, date, base_today=None):
+    def get_ALL_Report(self, start_date, end_date=None, base_today=None):
         import Common.Tools as Tools
-        # 殖利率數據應該使用當前日期，不需要往回找
-        # 只有在當天沒有交易數據時才往回找
-        try:
-            # 檢查當天是否有交易數據
-            # 正確呼叫方式：symbol, start_date, end_date 三個參數
-            stock_data = self._main_GetExternalData.get_stock_history("2330", date, date)
-            if date in stock_data.index:
-                # 當天有交易數據，直接使用當天日期
-                result = self._main_GetExternalData.get_allstock_daily_data(date, date)
-                return result
-            else:
-                # 當天沒有交易數據，往回找最近的交易日
-                safe_date = Tools.get_latest_daily_report_date(date, base_today)
+
+        if end_date is None:
+            # 單一日期查詢 - 原有邏輯
+            try:
+                # 檢查當天是否有交易數據
+                stock_data = self._main_GetExternalData.get_stock_history("2330", start_date, start_date)
+                if start_date in stock_data.index:
+                    # 當天有交易數據，直接使用當天日期
+                    result = self._main_GetExternalData.get_allstock_daily_data(start_date, start_date)
+                    return result
+                else:
+                    # 當天沒有交易數據，往回找最近的交易日
+                    safe_date = Tools.get_latest_daily_report_date(start_date, base_today)
+                    result = self._main_GetExternalData.get_allstock_daily_data(safe_date, safe_date)
+                    return result
+            except Exception as e:
+                print(f"Day_Report.get_ALL_Report 錯誤: {e}")
+                # 如果出錯，使用安全的日期獲取方式
+                safe_date = Tools.get_latest_daily_report_date(start_date, base_today)
                 result = self._main_GetExternalData.get_allstock_daily_data(safe_date, safe_date)
                 return result
-        except Exception as e:
-            print(f"Day_Report.get_ALL_Report 錯誤: {e}")
-            # 如果出錯，使用安全的日期獲取方式
-            safe_date = Tools.get_latest_daily_report_date(date, base_today)
-            result = self._main_GetExternalData.get_allstock_daily_data(safe_date, safe_date)
-            return result
+        else:
+            # 時間區間查詢 - 直接使用外部服務的區間查詢
+            result_data = self._main_GetExternalData.get_allstock_daily_data(start_date, end_date)
+
+            if 'symbol' in result_data.columns:
+                result_data = result_data.set_index(['symbol', 'date'], drop=True)
+
+            return result_data
 
     def Next_date(self, date):
         date = Tools.backWorkDays(date, self._Unit)
@@ -296,7 +387,7 @@ class ADL_Report(AllStockReport):
         self.OriginalStock = original_stock if original_stock is not None else OriginalStock(GetExternal)
         self.RangeDate_Stock = range_date_stock if range_date_stock is not None else RangeDate_Stock(self.OriginalStock, None, None)
 
-    def get_ALL_Report(self, date):
+    def get_ALL_Report(self, start_date, end_date=None, base_today=None):
         # The date parameter is ignored to fetch the full history for cumsum calculation.
         return self._main_GetExternalData.get_full_ad_index()
 
@@ -310,7 +401,7 @@ class ADL_Report(AllStockReport):
 class DividendYield_Report(AllStockReport):
     """以日為單位的股息殖利率歷史資料"""
 
-    def get_ALL_Report(self, date, base_today=None):
+    def get_ALL_Report(self, start_date, end_date=None, base_today=None):
         """從數據庫獲取股息殖利率數據"""
         try:
             # 使用SqlService從dividend_yield表格讀取數據
@@ -332,9 +423,9 @@ class DividendYield_Report(AllStockReport):
             print(f"Error getting dividend yield data: {e}")
             return DataFrame()
 
-    def get_ReportByType(self, date, _type: info.StrEnum, base_today=None) -> Series:
+    def get_ReportByType(self, start_date, _type: info.StrEnum, end_date=None, base_today=None) -> Series:
         """根據類型獲取特定欄位的數據"""
-        Temp = self.get_ALL_Report(date, base_today=base_today)
+        Temp = self.get_ALL_Report(start_date, end_date=end_date, base_today=base_today)
         try:
             if _type == info.Day_type.Yield:
                 # 返回殖利率欄位
@@ -433,10 +524,10 @@ class ROE_Indicator(Indicator):
         self.CPL = CPL_RP
         self.BS = BS_RP
 
-    def get_ALL_Report(self, date, base_today=None) -> DataFrame:
+    def get_ALL_Report(self, start_date, end_date=None, base_today=None) -> DataFrame:
         table_result = DataFrame()
-        table_CPL = self.CPL.get_ReportByType(date, info.CPL_type.type_0, base_today=base_today)
-        table_BS = self.BS.get_ReportByType(date, info.BS_type.type_3, base_today=base_today)
+        table_CPL = self.CPL.get_ReportByType(start_date, info.CPL_type.type_0, end_date=end_date, base_today=base_today)
+        table_BS = self.BS.get_ReportByType(start_date, info.BS_type.type_3, end_date=end_date, base_today=base_today)
 
         table_CPL, table_BS = self.check_and_convert_to_series(table_CPL, table_BS)
         if table_BS.empty or table_CPL.empty:
@@ -452,10 +543,10 @@ class FreeCF_Indicator(Indicator):
         super().__init__(name, SCF_RP._Unit)
         self.SCF = SCF_RP
 
-    def get_ALL_Report(self, date, base_today=None) -> DataFrame:
+    def get_ALL_Report(self, start_date, end_date=None, base_today=None) -> DataFrame:
         table_result = DataFrame()
-        table_ICF = self.SCF.get_ReportByType(date, info.SCF_type.ICF, base_today=base_today)
-        table_OCF = self.SCF.get_ReportByType(date, info.SCF_type.OCF, base_today=base_today)
+        table_ICF = self.SCF.get_ReportByType(start_date, info.SCF_type.ICF, end_date=end_date, base_today=base_today)
+        table_OCF = self.SCF.get_ReportByType(start_date, info.SCF_type.OCF, end_date=end_date, base_today=base_today)
 
         table_ICF, table_OCF = self.check_and_convert_to_series(table_ICF, table_OCF)
         if table_ICF.empty or table_OCF.empty:
@@ -472,10 +563,10 @@ class Debt_Indicator(Indicator):
         super().__init__(name, BS_RP._Unit)
         self.BS = BS_RP
 
-    def get_ALL_Report(self, date, base_today=None) -> DataFrame:
+    def get_ALL_Report(self, start_date, end_date=None, base_today=None) -> DataFrame:
         table_result = DataFrame()
-        table_Assets = self.BS.get_ReportByType(date, info.BS_type.type_0, base_today=base_today)
-        table_Debt = self.BS.get_ReportByType(date, info.BS_type.type_1, base_today=base_today)
+        table_Assets = self.BS.get_ReportByType(start_date, info.BS_type.type_0, end_date=end_date, base_today=base_today)
+        table_Debt = self.BS.get_ReportByType(start_date, info.BS_type.type_1, end_date=end_date, base_today=base_today)
         table_Assets, table_Debt = self.check_and_convert_to_series(table_Assets, table_Debt)
         if table_Debt.empty or table_Assets.empty:
             return DataFrame()
@@ -490,16 +581,39 @@ class MR_Growth_Indicator(Indicator):
         super().__init__(name, monthRP._Unit)
         self.monthRP = monthRP
 
-    def get_ALL_Report(self, date, base_today=None):
+    def get_ALL_Report(self, start_date, end_date=None, base_today=None):
         data_result = DataFrame()
-        MR_now = self.monthRP.get_ReportByType(date, info.Month_type.MR, base_today=base_today)
+        MR_now = self.monthRP.get_ReportByType(start_date, info.Month_type.MR, end_date=end_date, base_today=base_today)
         MR_old = self.monthRP.get_ReportByType(
-            Tools.changeDateMonth(date, -12), info.Month_type.MR, base_today=base_today
+            Tools.changeDateMonth(start_date, -12), info.Month_type.MR, end_date=end_date, base_today=base_today
         )
-        MR_now, MR_old = self.check_and_convert_to_series(MR_now, MR_old)
+
+        # 使用 outer join 保留所有股票，缺失值填 NaN
+        MR_now, MR_old = self.check_and_convert_to_series(MR_now, MR_old, join_type='inner', fill_value=None)
+
         if MR_now.empty or MR_old.empty:
+            print("MR_Growth_Indicator: 數據對齊後為空，返回空結果")
             return DataFrame()
-        data_result[self._name] = ((MR_now - MR_old) / MR_old) * 100
+
+        # 過濾掉分母為 0 或負數的情況，避免無意義的成長率
+        valid_mask = (MR_old > 0) & pd.notna(MR_old) & pd.notna(MR_now)
+
+        # 初始化結果為 NaN
+        growth_rates = pd.Series(index=MR_now.index, dtype='float64')
+
+        # 只對有效的數據計算成長率
+        growth_rates[valid_mask] = ((MR_now[valid_mask] - MR_old[valid_mask]) / MR_old[valid_mask]) * 100
+
+        # 限制合理範圍 (-90% ~ 1000%)，超過範圍標記為 NaN
+        reasonable_mask = (growth_rates >= -90) & (growth_rates <= 1000)
+        growth_rates[~reasonable_mask] = pd.NA
+
+        data_result[self._name] = growth_rates
+
+        valid_count = valid_mask.sum()
+        total_count = len(growth_rates)
+        print(f"MR_Growth_Indicator: 計算完成，有效資料 {valid_count}/{total_count} 筆")
+
         return data_result
 
 
@@ -510,11 +624,11 @@ class SR_Growth_Indicator(Indicator):
         super().__init__(name, PLA_RP._Unit)
         self.PLA_RP = PLA_RP
 
-    def get_ALL_Report(self, date, base_today=None):
+    def get_ALL_Report(self, start_date, end_date=None, base_today=None):
         data_result = DataFrame()
-        SR_now = self.PLA_RP.get_ReportByType(date, info.PLA_type.type_0, base_today=base_today)
+        SR_now = self.PLA_RP.get_ReportByType(start_date, info.PLA_type.type_0, end_date=end_date, base_today=base_today)
         SR_old = self.PLA_RP.get_ReportByType(
-            Tools.changeDateMonth(date, -12), info.PLA_type.type_0, base_today=base_today
+            Tools.changeDateMonth(start_date, -12), info.PLA_type.type_0, end_date=end_date, base_today=base_today
         )
         SR_now, SR_old = self.check_and_convert_to_series(SR_now, SR_old)
         if SR_now.empty or SR_old.empty:
@@ -530,11 +644,11 @@ class OM_Growth_Indicator(Indicator):
         super().__init__(name, PLA_RP._Unit)
         self.PLA = PLA_RP
 
-    def get_ALL_Report(self, date, base_today=None) -> DataFrame:
+    def get_ALL_Report(self, start_date, end_date=None, base_today=None) -> DataFrame:
         data_result = DataFrame()
-        OM_now = self.PLA.get_ReportByType(date, info.PLA_type.type_2, base_today=base_today)
+        OM_now = self.PLA.get_ReportByType(start_date, info.PLA_type.type_2, end_date=end_date, base_today=base_today)
         OM_old = self.PLA.get_ReportByType(
-            Tools.changeDateMonth(date, -12), info.PLA_type.type_2, base_today=base_today
+            Tools.changeDateMonth(start_date, -12), info.PLA_type.type_2, end_date=end_date, base_today=base_today
         )
         OM_now, OM_old = self.check_and_convert_to_series(OM_now, OM_old)
         if OM_now.empty or OM_old.empty:
@@ -553,10 +667,10 @@ class PEG_Indicator(Indicator):
         self.Yield = Yield_RP
         self.OM_Growth = OM_Growth
 
-    def get_ALL_Report(self, date, base_today=None) -> DataFrame:
+    def get_ALL_Report(self, start_date, end_date=None, base_today=None) -> DataFrame:
         table_result = DataFrame()
-        table_PE = self.Yield.get_ReportByType(date, info.Day_type.PER, base_today=base_today)
-        table_OM_Growth = self.OM_Growth.get_ALL_Report(date, base_today=base_today)
+        table_PE = self.Yield.get_ReportByType(start_date, info.Day_type.PER, end_date=end_date, base_today=base_today)
+        table_OM_Growth = self.OM_Growth.get_ALL_Report(start_date, end_date=end_date, base_today=base_today)
 
         table_PE, table_OM_Growth = self.check_and_convert_to_series(table_PE, table_OM_Growth)
         if table_OM_Growth.empty or table_PE.empty:
@@ -573,10 +687,10 @@ class OCFPerShare_Indicator(Indicator):
         self.SCF_RP = SCF_RP
         self.BS_RP = BS_RP
 
-    def get_ALL_Report(self, date, base_today=None):
+    def get_ALL_Report(self, start_date, end_date=None, base_today=None):
         table_result = DataFrame()
-        table_OCF = self.SCF_RP.get_ReportByType(date, info.SCF_type.OCF, base_today=base_today)
-        table_BS = self.BS_RP.get_ReportByType(date, info.BS_type.type_2, base_today=base_today)
+        table_OCF = self.SCF_RP.get_ReportByType(start_date, info.SCF_type.OCF, end_date=end_date, base_today=base_today)
+        table_BS = self.BS_RP.get_ReportByType(start_date, info.BS_type.type_2, end_date=end_date, base_today=base_today)
         table_OCF, table_BS = self.check_and_convert_to_series(table_OCF, table_BS)
         if table_OCF.empty or table_BS.empty:
             return DataFrame()
@@ -600,18 +714,18 @@ class PCF_Indicator(Indicator):
         self._StockPrice = StockPrice
         self._main_GetExternalData = GetExternal
 
-    def get_ALL_Report(self, date, base_today=None):
+    def get_ALL_Report(self, start_date, end_date=None, base_today=None):
         """增強的 PCF 計算方法，包含詳細的錯誤處理和數據驗證"""
         if self._number is None:
             raise TypeError("please set number! type now:" + str(self._number))
 
-        print(f"PCF_Indicator.get_ALL_Report: 開始計算 {self._number} 的 PCF，日期: {date}")
+        print(f"PCF_Indicator.get_ALL_Report: 開始計算 {self._number} 的 PCF，日期: {start_date}")
         table_result = DataFrame()
 
         try:
             # 獲取每股營業現金流數據
             print(f"PCF_Indicator: 獲取 {self._number} 的每股營業現金流數據")
-            table_OCFPerShare = self.OCFPerShare.get_ReportByNumber(date, self._number, base_today=base_today)
+            table_OCFPerShare = self.OCFPerShare.get_ReportByNumber(start_date, self._number, end_date=end_date, base_today=base_today)
 
             if table_OCFPerShare.empty:
                 print(f"PCF計算失敗: {self._number} 的每股營業現金流數據為空")
@@ -624,7 +738,7 @@ class PCF_Indicator(Indicator):
             print(f"PCF_Indicator: 獲取 {self._number} 的股票價格")
             self._StockPrice.number = self._number
             stock_price = self._StockPrice.get_PriceByDateAndType(
-                date, info.Price_type.Close
+                start_date, info.Price_type.Close
             )
 
             print(f"PCF_Indicator: 股票價格原始值: {stock_price}，類型: {type(stock_price)}")
@@ -698,9 +812,9 @@ class PCF_Indicator(Indicator):
             traceback.print_exc()
             return DataFrame()
 
-    def get_ReportByNumber(self, date, number: int) -> Series:
+    def get_ReportByNumber(self, start_date, number: int, end_date=None, base_today=None) -> Series:
         self._number = number
-        return super().get_ReportByNumber(date, number)
+        return super().get_ReportByNumber(start_date, number, end_date=end_date, base_today=base_today)
 
     def Next_date(self, date):  # 有用到每日的價格所以用天為單位
         date = Tools.backWorkDays(date, self._Unit)
@@ -727,9 +841,9 @@ class Original_Indicator(Indicator):
         self._Report = Report
         self._type = type
 
-    def get_ALL_Report(self, date, base_today=None) -> DataFrame:
+    def get_ALL_Report(self, start_date, end_date=None, base_today=None) -> DataFrame:
         table_result = DataFrame()
-        table_temp = self._Report.get_ReportByType(date, self._type, base_today=base_today)
+        table_temp = self._Report.get_ReportByType(start_date, self._type, end_date=end_date, base_today=base_today)
         if table_temp.empty:
             return DataFrame()
         table_result[self._name] = table_temp
@@ -858,17 +972,17 @@ class ADL_Indicator(Indicator):
 
         return full_adl_df
 
-    def get_ALL_Report(self, date, base_today=None):
+    def get_ALL_Report(self, start_date, end_date=None, base_today=None):
         # Calculate and cache the full ADL data if not already done
         if self._adl_data is None:
             self._calculate_adl()
 
         # Return the specific date's data from the cached DataFrame
-        if self._adl_data.empty or date not in self._adl_data.index:
+        if self._adl_data.empty or start_date not in self._adl_data.index:
             return pandas.DataFrame()
 
         # Return as a DataFrame with the same structure as the original code
-        return self._adl_data.loc[[date]]
+        return self._adl_data.loc[[start_date]]
 
     def Next_date(self, date):
         return self._AD_RP.Next_date(date)
@@ -904,17 +1018,17 @@ class ADLs_Indicator(Indicator):
         self._adls_data.columns = [self._name]
         print("Full ADLS data calculated and cached.")
 
-    def get_ALL_Report(self, date, base_today=None):
+    def get_ALL_Report(self, start_date, end_date=None, base_today=None):
         # Calculate and cache the full ADLS data if not already done
         if self._adls_data is None:
             self._calculate_adls()
 
         # Return the specific date's data from the cached DataFrame
-        if self._adls_data.empty or date not in self._adls_data.index:
+        if self._adls_data.empty or start_date not in self._adls_data.index:
             return pandas.DataFrame()
 
         # Return as a DataFrame with the same structure as the original code
-        return self._adls_data.loc[[date]]
+        return self._adls_data.loc[[start_date]]
 
     def Next_date(self, date):
         return self._AD_RP.Next_date(date)
