@@ -109,13 +109,12 @@ class DailyDataProvider:
         return self._get_index_history_data(start, end)
 
     def _get_daily_data_from_sql(self, start: datetime, end: datetime) -> pd.DataFrame:
-        """Get daily price data from SQL database"""
+        """Get daily dividend yield data from SQL database"""
         try:
             with self._sql_service.server_flask.app_context():
                 query = """
-                SELECT symbol, date as Date, open as Open, high as High, low as Low,
-                       close as Close, adj_close as `Adj Close`, volume as Volume
-                FROM stock_daily_prices
+                SELECT symbol, date as Date, dividend_yield
+                FROM dividend_yield
                 WHERE date BETWEEN :start_date AND :end_date
                 ORDER BY date
                 """
@@ -135,7 +134,7 @@ class DailyDataProvider:
                 
                 return dataframe
         except Exception as e:
-            self._logger.error(f"SQL Error when getting daily data: {e}")
+            self._logger.error(f"SQL Error when getting daily dividend yield data: {e}")
             return pd.DataFrame()
 
     def _download_daily_data(self, start: datetime, end: datetime) -> pd.DataFrame:
