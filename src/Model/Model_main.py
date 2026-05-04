@@ -2,11 +2,12 @@ from datetime import datetime
 
 from src.Common import Tools
 from src.DrawFigur import DrawFigur
-from src.FilterService.StockReportHistory import SeasonReportFactory, MonthReportFactory, DayReportFactory, ADLReportFactory
+from src.FilterService.StockReportHistory import Season_Report, SeasonReportFactory, MonthReportFactory, DayReportFactory, ADLReportFactory
 from src.Model.Model import TModel
 from src.Common.Parameter import RecordMainParameter
 from src.ScheduleService import ScheduleService
 from src.StockInfos import UserInfoDatas
+from src.Common import InfomationType as info
 
 from src.ExternalService.IGetExternalData import IGetExternalData
 
@@ -90,9 +91,13 @@ class Model_main(TModel):
         elif report_index == self._season_report_factory.ROE_index:
             report = self._season_report_factory
         elif report_index == self._season_report_factory.OCF_index:
-            report = self._season_report_factory
+            report: Season_Report = self._season_report_factory
+            report._FS_type = info.FS_type.SCF
+            showClumn = 16
         elif report_index == self._season_report_factory.ICF_index:
-            report = self._season_report_factory
+            report: Season_Report = self._season_report_factory
+            report._FS_type = info.FS_type.SCF
+            showClumn = 17
         elif report_index == self._season_report_factory.FreeCF_index:
             report = self._season_report_factory
         elif report_index == self._season_report_factory.EPS_index:

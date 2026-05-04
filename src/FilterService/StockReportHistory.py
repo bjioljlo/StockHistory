@@ -234,7 +234,7 @@ class Season_Report(AllStockReport):
             if end_date is None:
                 result_data = result_data.set_index('symbol', drop=True)
             else:
-                # 區間查詢時使用複合索引 (symbol, report_date)
+                # 區間查詢時使用複合索引 (symbol, report_season, report_year)
                 result_data = result_data.set_index(['symbol', 'report_date'], drop=True)
 
         return result_data
