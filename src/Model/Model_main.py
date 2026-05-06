@@ -79,7 +79,7 @@ class Model_main(TModel):
             showClumn = 3
         elif report_index == self._month_report_factory.MR_Growth_index:
             report = self._month_report_factory
-            showClumn = 5  # ✅ 直接使用SQL中已存在的月營收成長率欄位，不需要現場計算
+            showClumn = 5
         elif report_index == self._day_report_factory.Yield_index:
             report = self._day_report_factory
         elif report_index == self._day_report_factory.PCF_index:

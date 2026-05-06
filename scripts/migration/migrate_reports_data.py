@@ -672,16 +672,12 @@ class ReportDataMigrator:
         elif report_type == 'CPL':
             # 合併損益表欄位（和PLA類似）
             cpl_mappings = {
-                'revenue': [
-                    '營業收入', '收入', '營收', 'revenue', 'Revenue', '營業收入淨額', '合併營業收入',
-                    '營業收入合計', '合併營業收入淨額', 'Xlq`B]|^'  # 加入實際的亂碼欄位名稱
+                'net_income': [
+                    '本期綜合損益總額（稅後）', '淨利', '淨損益', 'net_income', 'Net Income',
+                    'net_margin'  # 將之前錯誤映射的net_margin改為net_income
                 ],
-                'gross_margin': ['毛利率(%)', '毛利率', 'gross_margin', 'Gross Margin'],
-                'operating_margin': ['營業利益率(%)', '營業利益率', 'operating_margin', 'Operating Margin'],
-                'pre_tax_margin': ['稅前純益率(%)', '稅前純益率', 'pre_tax_margin', 'Pre-tax Margin'],
-                'net_margin': [
-                    '稅後純益率(%)', '稅後純益率', 'net_margin', 'Net Margin', '純益率',
-                    '򥻨CѬվl]^'  # 加入實際的亂碼欄位名稱
+                'eps': [
+                    '基本每股盈餘（元）', '每股盈餘', 'EPS', 'eps', '基本每股盈餘'
                 ]
             }
             base_mappings.update(cpl_mappings)
