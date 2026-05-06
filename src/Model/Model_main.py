@@ -86,6 +86,7 @@ class Model_main(TModel):
             report = self._day_report_factory
         elif report_index == self._season_report_factory.OM_index:
             report = self._season_report_factory
+            report._FS_type = info.FS_type.PLA
         elif report_index == self._season_report_factory.OM_Growth_index:
             report = self._season_report_factory
         elif report_index == self._season_report_factory.ROE_index:
@@ -100,8 +101,11 @@ class Model_main(TModel):
             showClumn = 17
         elif report_index == self._season_report_factory.FreeCF_index:
             report = self._season_report_factory
+            report._FS_type = info.FS_type.SCF
         elif report_index == self._season_report_factory.EPS_index:
             report = self._season_report_factory
+            report._FS_type = info.FS_type.CPL
+            showClumn = 10
         elif report_index == self._season_report_factory.Debt_index:
             report = self._season_report_factory
         elif report_index == self._season_report_factory.SR_Growth_index:
