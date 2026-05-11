@@ -2,7 +2,7 @@ from datetime import datetime
 
 from src.Common import Tools
 from src.DrawFigur import DrawFigur
-from src.FilterService.StockReportHistory import Season_Report, SeasonReportFactory, MonthReportFactory, DayReportFactory, ADLReportFactory
+from src.FilterService.StockReportHistory import Season_Report, SeasonReportFactory, MonthReportFactory, DayReportFactory, DividendYieldReportFactory, ADLReportFactory
 from src.Model.Model import TModel
 from src.Common.Parameter import RecordMainParameter
 from src.ScheduleService import ScheduleService
@@ -18,6 +18,7 @@ class Model_main(TModel):
                  season_report_factory: SeasonReportFactory,
                  month_report_factory: MonthReportFactory,
                  day_report_factory: DayReportFactory,
+                 dividend_yield_report_factory: DividendYieldReportFactory,
                  adl_report_factory: ADLReportFactory) -> None:
         super().__init__()
         self._main_user_info_data: UserInfoDatas = UserInfoDatas(
@@ -30,6 +31,7 @@ class Model_main(TModel):
         self._season_report_factory = season_report_factory
         self._month_report_factory = month_report_factory
         self._day_report_factory = day_report_factory
+        self._dividend_yield_report_factory = dividend_yield_report_factory
         self._adl_report_factory = adl_report_factory
 
     @property
@@ -80,8 +82,9 @@ class Model_main(TModel):
         elif report_index == self._month_report_factory.MR_Growth_index:
             report = self._month_report_factory
             showClumn = 5
-        elif report_index == self._day_report_factory.Yield_index:
-            report = self._day_report_factory
+        elif report_index == self._dividend_yield_report_factory.Yield_index:
+            report = self._dividend_yield_report_factory
+            showClumn = 4
         elif report_index == self._day_report_factory.PCF_index:
             report = self._day_report_factory
         elif report_index == self._season_report_factory.OM_index:
@@ -167,7 +170,7 @@ class Model_main(TModel):
         """某股票殖利率曲線"""
         self._create_and_draw_chart(
             record_main_parameter,
-            self._day_report_factory.Yield_index,
+            self._dividend_yield_report_factory.Yield_index,
             "Dividend yield",
         )
 

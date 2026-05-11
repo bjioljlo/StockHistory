@@ -75,8 +75,8 @@ class ExternalDataFactory(IGetExternalData):
     def get_stock_AD_index(self, date, getNew=False):
         return self.Get_instance().get_stock_AD_index(date, getNew)
 
-    def get_allstock_yield(self, start):
-        return self.Get_instance().get_allstock_yield(start)
+    def get_allstock_yield(self, symbol, start, end):
+        return self.Get_instance().get_allstock_yield(symbol, start, end)
 
     # 自動轉送所有其他 IGetExternalData 介面方法
     def __getattr__(self, name):

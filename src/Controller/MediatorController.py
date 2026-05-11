@@ -1,7 +1,7 @@
 from abc import ABC, abstractmethod
 
 from src.ExternalService.ExternalDataFactory import ExternalDataFactory
-from src.FilterService.StockReportHistory import SeasonReportFactory, MonthReportFactory, DayReportFactory, ADLReportFactory
+from src.FilterService.StockReportHistory import SeasonReportFactory, MonthReportFactory, DayReportFactory, DividendYieldReportFactory, ADLReportFactory
 from src.Model.Model_backtest import Model_backtest
 from src.Model.Model_main import Model_main
 from src.Model.Pick import PickModel
@@ -23,12 +23,12 @@ class IMediator_Controller(ABC):
     def get_controller(self, receiver: controllers) -> IController:
         """取得指定類型的 Controller 實例"""
         raise NotImplementedError
-    
+
     @abstractmethod
     def send_message(self, receiver: controllers, message_type: str, **kwargs):
         """傳送訊息給指定 Controller"""
         raise NotImplementedError
-    
+
     @abstractmethod
     def broadcast_message(self, message_type: str, **kwargs):
         """廣播訊息給所有 Controller"""
@@ -48,6 +48,7 @@ class Mediator_Controller(IMediator_Controller):
         season_report_factory: SeasonReportFactory,
         month_report_factory: MonthReportFactory,
         day_report_factory: DayReportFactory,
+        dividend_yield_report_factory: DividendYieldReportFactory,
         adl_report_factory: ADLReportFactory,
         external_data_factory: ExternalDataFactory
     ) -> None:
@@ -60,6 +61,7 @@ class Mediator_Controller(IMediator_Controller):
         self._season_report_factory = season_report_factory
         self._month_report_factory = month_report_factory
         self._day_report_factory = day_report_factory
+        self._dividend_yield_report_factory = dividend_yield_report_factory
         self._adl_report_factory = adl_report_factory
         self._external_data_factory = external_data_factory
 
@@ -67,11 +69,12 @@ class Mediator_Controller(IMediator_Controller):
         self._main_controller: IController = Controller_Factory(
             controllers.Main,
             Main_Window(MyWindow(self._schedule.StopThreadSchedule)),
-            Model_main(schedule=self._schedule, draw_figur_service=self._draw_figur_service, 
+            Model_main(schedule=self._schedule, draw_figur_service=self._draw_figur_service,
                         external_data_service=self._external_data_factory.Get_instance(),
                         season_report_factory=self._season_report_factory,
                         month_report_factory=self._month_report_factory,
                         day_report_factory=self._day_report_factory,
+                        dividend_yield_report_factory=self._dividend_yield_report_factory,
                         adl_report_factory=self._adl_report_factory),
             self.get_controller,
             self._draw_figur_service
@@ -99,17 +102,17 @@ class Mediator_Controller(IMediator_Controller):
             controllers.Pick: self._pick_controller,
             controllers.BackTest: self._backtest_controller
         }
-        
+
         if receiver not in controller_map:
             raise ValueError(f"Invalid controller type: {receiver}")
-        
+
         return controller_map[receiver]
-    
+
     # 相容別名 - 解決 'Mediator_Controller' object has no attribute 'GetController' 錯誤
     def GetController(self, receiver: controllers) -> IController:
         return self.get_controller(receiver)
-    
-    
+
+
     def send_message(self, receiver: controllers, message_type: str, **kwargs):
         """
         傳送訊息給指定 Controller
@@ -119,7 +122,7 @@ class Mediator_Controller(IMediator_Controller):
         if hasattr(controller, 'handle_message'):
             return controller.handle_message(message_type, **kwargs)
         return None
-    
+
     def broadcast_message(self, message_type: str, **kwargs):
         """廣播訊息給所有註冊的 Controller"""
         results = {}

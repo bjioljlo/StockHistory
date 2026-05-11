@@ -37,7 +37,7 @@ from src.ExternalService.providers.DailyDataProvider import DailyDataProvider
 
 class TGetExternalData(IGetExternalData):
     """讀取外部資料
-    
+
     重構後作為 Facade 外觀類別，所有實作已移至獨立模組
     """
 
@@ -52,14 +52,14 @@ class TGetExternalData(IGetExternalData):
         self._cache_service = cache_service
         self._file_paths = {
             'monthRP': "monthRP",
-            'stockInfo': "stockInfo", 
+            'stockInfo': "stockInfo",
             'yield': "yieldInfo",
             'season': "seasonInfo",
             'index': "indexInfo"
         }
         self._file_path = os.getcwd()  # 取得目錄路徑
         self._logger = logging.getLogger(__name__)
-        
+
         # Initialize providers (Facade pattern)
         self._dividend_provider = DividendYieldProvider(
             sql_service, mongo_service, read_load_system, cache_service
@@ -108,21 +108,21 @@ class TGetExternalData(IGetExternalData):
         """取得股票歷史資料"""
         # 建立快取鍵值
         cache_key = f"stock_history:{symbol}:{start_date}:{end_date}"
-        
+
         # 檢查快取
         cached_data = self._get_cached_data(cache_key)
         if cached_data is not None:
             self._logger.debug(f"Cache HIT for {cache_key}")
             return cached_data
-            
+
         self._logger.debug(f"Cache MISS for {cache_key}")
-        
+
         # 呼叫底層實作
         data = self._daily_data_provider.get_stock_history(symbol, start_date, end_date)
-        
+
         # 儲存到快取 (128筆限制由底層CacheService處理, TTL 600秒)
         self._cache_service.set(cache_key, data, ttl=600)
-        
+
         return data
 
     def get_stock_info(self) -> pd.DataFrame:
@@ -137,9 +137,9 @@ class TGetExternalData(IGetExternalData):
         """取得所有股票月營收報告 (相容舊介面)"""
         return self._monthly_statement_provider.get_allstock_monthly_report(start)
 
-    def get_allstock_yield(self, start: datetime):
+    def get_allstock_yield(self, symbol: str, start: datetime, end: datetime):
         """爬某天所有股票殖利率"""
-        return self._dividend_provider.get_allstock_yield(start)
+        return self._dividend_provider.get_allstock_yield(symbol, start, end)
 
     def get_allstock_dividend_yield(self):
         """從數據庫獲取所有股票股息殖利率數據"""

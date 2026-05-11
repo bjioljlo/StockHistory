@@ -12,11 +12,10 @@ if PROJECT_ROOT not in sys.path:
 from src.Common.CacheService import HybridCacheService
 from src.Common.ConfigService import load_config, get_config_path
 from src.Common.ConcurrentUtils import ConcurrentUtils
-from src.Common.DataCleanupService import DataCleanupService
 from src.Controller.MediatorController import Mediator_Controller, controllers
 from src.DrawFigur import DrawFigur
 from src.ExternalService.ExternalDataFactory import ExternalDataFactory
-from src.FilterService.StockReportHistory import SeasonReportFactory, MonthReportFactory, DayReportFactory, ADLReportFactory
+from src.FilterService.StockReportHistory import SeasonReportFactory, MonthReportFactory, DayReportFactory, DividendYieldReportFactory, ADLReportFactory
 from src.MongoService import MongoService
 from src.ReadLoadSystem import ReadLoadSystem
 from src.ScheduleService import ScheduleService
@@ -58,6 +57,7 @@ from src.Common.InfomationType import FS_type
 season_report_factory = SeasonReportFactory(FS_type.BS, external_data_factory)
 month_report_factory = MonthReportFactory(external_data_factory)
 day_report_factory = DayReportFactory(external_data_factory)
+dividend_yield_report_factory = DividendYieldReportFactory(external_data_factory)
 adl_report_factory = ADLReportFactory(external_data_factory)
 
 # Initialize Update Stock components (no facade)
@@ -89,6 +89,7 @@ mediator_controller = Mediator_Controller(
     season_report_factory=season_report_factory,
     month_report_factory=month_report_factory,
     day_report_factory=day_report_factory,
+    dividend_yield_report_factory=dividend_yield_report_factory,
     adl_report_factory=adl_report_factory,
     external_data_factory=external_data_factory
 )

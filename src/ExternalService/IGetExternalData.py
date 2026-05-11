@@ -18,7 +18,7 @@ class IGetExternalData(ABC):
         pass
 
     @abstractmethod
-    def get_allstock_yield(self, start: datetime):
+    def get_allstock_yield(self, symbol: str, start: datetime, end: datetime | None = None):
         """#爬某天所有股票殖利率"""
         pass
 

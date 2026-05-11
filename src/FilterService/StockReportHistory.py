@@ -401,27 +401,69 @@ class ADL_Report(AllStockReport):
 class DividendYield_Report(AllStockReport):
     """以日為單位的股息殖利率歷史資料"""
 
-    def get_ALL_Report(self, start_date, end_date=None, base_today=None):
+    def __init__(
+        self,
+        name: str,
+        Unit: int,
+        GetExternal: IGetExternalData,
+        range_date_stock = None,
+        original_stock = None
+    ):
+        super().__init__(name, Unit, GetExternal)
+        # 依賴注入: 允許從外部注入 RangeDate_Stock 和 OriginalStock
+        from .StockHistory import RangeDate_Stock, OriginalStock
+        self.OriginalStock = original_stock if original_stock is not None else OriginalStock(GetExternal)
+        self.RangeDate_Stock = range_date_stock if range_date_stock is not None else RangeDate_Stock(self.OriginalStock, None, None)
+
+    def get_ALL_Report(self, symbol: str, start_date, end_date=None, base_today=None):
         """從數據庫獲取股息殖利率數據"""
         try:
-            # 使用SqlService從dividend_yield表格讀取數據
-            result = self._main_GetExternalData.get_allstock_dividend_yield()
+            # 使用統一的殖利率查詢方法（日期參數）
+            result = self._main_GetExternalData.get_allstock_yield(symbol, start_date, end_date)
 
             # 數據清理和驗證
-            if not result.empty:
+            # if not result.empty:
 
-                # 確保索引是字串類型
-                if 'symbol' in result.columns:
-                    result['symbol'] = result['symbol'].astype(str)
-                    result = result.set_index('symbol')
-                elif 'code' in result.columns:
-                    result['code'] = result['code'].astype(str)
-                    result = result.set_index('code')
+            #     # 確保索引是字串類型
+            #     if 'symbol' in result.columns:
+            #         result['symbol'] = result['symbol'].astype(str)
+            #         result = result.set_index('symbol')
+            #     elif 'code' in result.columns:
+            #         result['code'] = result['code'].astype(str)
+            #         result = result.set_index('code')
 
             return result
         except Exception as e:
             print(f"Error getting dividend yield data: {e}")
             return DataFrame()
+
+    def get_ReportByNumber(self, start_date, number: int, end_date=None, base_today=None) -> DataFrame:
+        Temp = self.get_ALL_Report(str(number), start_date, end_date=end_date, base_today=base_today)
+
+        if Temp.empty:
+            date_str = f"{start_date}~{end_date}" if end_date else str(start_date)
+            print(f"{date_str}的{self._name}表沒出")
+            return DataFrame()
+        
+        return Temp
+        # 嘗試多種索引格式進行匹配
+        search_keys = [str(number), number, f"{number:04d}"]
+
+        for key in search_keys:
+            if key in Temp.index:
+                date_str = f"{start_date}~{end_date}" if end_date else str(start_date)
+                print(f"{date_str}的{number}公司成立")
+                result = Temp.loc[key]
+
+                # 確保返回 DataFrame 格式
+                if isinstance(result, Series):
+                    return result.to_frame().T
+                elif isinstance(result, DataFrame):
+                    return result
+
+        date_str = f"{start_date}~{end_date}" if end_date else str(start_date)
+        print(f"{date_str}的{number}公司尚未成立")
+        return DataFrame()
 
     def get_ReportByType(self, start_date, _type: info.StrEnum, end_date=None, base_today=None) -> Series:
         """根據類型獲取特定欄位的數據"""
@@ -494,8 +536,17 @@ def DayReportFactory(_GetExternal: IGetExternalData, range_date_stock = None, or
     factory = Day_Report("DayReport", 1, _GetExternal, range_date_stock, original_stock)
 
     # 日報表指標
-    factory.Yield_index = 2
     factory.PCF_index = 3
+
+    return factory
+
+
+@staticmethod
+def DividendYieldReportFactory(_GetExternal: IGetExternalData, range_date_stock = None, original_stock = None) -> DividendYield_Report:
+    factory = DividendYield_Report("DividendYield", 1, _GetExternal, range_date_stock, original_stock)
+
+    # 股息殖利率指標
+    factory.Yield_index = 2
 
     return factory
 
