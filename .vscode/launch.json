@@ -5,50 +5,51 @@
   "version": "0.2.0",
   "configurations": [
     {
-      "name": "Python: main_stock.py",
+      "name": "UV: Debug main_stock.py",
       "type": "debugpy",
       "request": "launch",
-      "program": "${workspaceRoot}/src/main_stock.py",
-      "console": "integratedTerminal"
+      "program": "${workspaceFolder}/src/main_stock.py",
+      "console": "integratedTerminal",
+      "python": "${workspaceFolder}/.venv/Scripts/python.exe",
+      "preLaunchTask": "uv sync"
     },
     {
-      "name": "Python: ui2py.py",
+      "name": "UV: Debug ui2py.py",
       "type": "debugpy",
       "request": "launch",
-      "program": "${workspaceRoot}/UI/ui2py.py",
+      "program": "${workspaceFolder}/UI/ui2py.py",
       "cwd": "${workspaceFolder}/UI",
-      "console": "integratedTerminal"
+      "console": "integratedTerminal",
+      "python": "${workspaceFolder}/.venv/Scripts/python.exe",
+      "preLaunchTask": "uv sync"
     },
     {
-      "name": "PowerShell: docker-compose",
-      "type": "PowerShell",
-      "request": "launch",
-      "script": "docker-compose up --build",
-      "cwd": "${workspaceFolder}"
-    },
-    {
-      "name": "Python: migration season reports",
+      "name": "UV: Debug migration quarterly_reports",
       "type": "debugpy",
       "request": "launch",
-      "program": "${workspaceRoot}/scripts/migration/migrate_reports_data.py",
+      "program": "${workspaceFolder}/scripts/migration/migrate_reports_data.py",
       "console": "integratedTerminal",
       "cwd": "${workspaceFolder}",
+      "python": "${workspaceFolder}/.venv/Scripts/python.exe",
+      "preLaunchTask": "uv sync",
       "args": [
         "--type",
         "quarterly_reports",
         "--start-year",
-        "2023",
+        "2025",
         "--end-year",
         "2025"
       ]
     },
     {
-      "name": "Python: migration month reports",
+      "name": "UV: Debug migration monthly_reports",
       "type": "debugpy",
       "request": "launch",
-      "program": "${workspaceRoot}/scripts/migration/migrate_reports_data.py",
+      "program": "${workspaceFolder}/scripts/migration/migrate_reports_data.py",
       "console": "integratedTerminal",
       "cwd": "${workspaceFolder}",
+      "python": "${workspaceFolder}/.venv/Scripts/python.exe",
+      "preLaunchTask": "uv sync",
       "args": [
         "--type",
         "monthly_reports",
@@ -59,12 +60,14 @@
       ]
     },
     {
-      "name": "Python: migration dividend_yield reports",
+      "name": "UV: Debug migration dividend_yield",
       "type": "debugpy",
       "request": "launch",
-      "program": "${workspaceRoot}/scripts/migration/migrate_reports_data.py",
+      "program": "${workspaceFolder}/scripts/migration/migrate_reports_data.py",
       "console": "integratedTerminal",
       "cwd": "${workspaceFolder}",
+      "python": "${workspaceFolder}/.venv/Scripts/python.exe",
+      "preLaunchTask": "uv sync",
       "args": [
         "--type",
         "dividend_yield",
