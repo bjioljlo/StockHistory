@@ -5,3 +5,21 @@ description = "Add your description here"
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = []
+
+[project.optional-dependencies]
+dev = [
+    "pre-commit",
+    "black",
+    "isort",
+    "flake8==7.1.2",
+    "flake8-docstrings",
+    "flake8-bugbear",
+    "mypy",
+    "types-requests",
+    "pandas-stubs",
+    "networkx",
+    "freezegun==1.5.0",
+    "pytest==8.2.0",
+    "pytest-cov==4.1.0",
+    "pytest-mock==3.12.0",
+]
