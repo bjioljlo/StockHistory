@@ -260,9 +260,9 @@ class FinancialStatementProvider:
 
             # 對應不同財報類型的 URL 路徑
             type_paths = {
-                info.FS_type.BALANCE_SHEET: 'bps',
-                info.FS_type.INCOME_STATEMENT: 'is',
-                info.FS_type.CASH_FLOW: 'cf'
+                info.FS_type.BS: 'bps',
+                info.FS_type.CPL: 'is',
+                info.FS_type.SCF: 'cf'
             }
 
             report_type = type_paths.get(type, 'is')
