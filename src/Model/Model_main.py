@@ -2,7 +2,7 @@ from datetime import datetime
 
 from src.Common import Tools
 from src.DrawFigur import DrawFigur
-from src.FilterService.StockReportHistory import Season_Report, SeasonReportFactory, MonthReportFactory, DayReportFactory, DividendYieldReportFactory, ADLReportFactory
+from src.FilterService.StockReportHistory import Season_Report, SeasonReportFactory, MonthReportFactory, DayReportFactory, DividendYieldReportFactory, ADLReportFactory, FreeCF_Indicator
 from src.Model.Model import TModel
 from src.Common.Parameter import RecordMainParameter
 from src.ScheduleService import ScheduleService
@@ -103,8 +103,11 @@ class Model_main(TModel):
             report._FS_type = info.FS_type.SCF
             showClumn = 17
         elif report_index == self._season_report_factory.FreeCF_index:
-            report = self._season_report_factory
-            report._FS_type = info.FS_type.SCF
+            # 使用 FreeCF_Indicator 計算自由現金流 = 營業活動現金流(OCF) + 投資活動現金流(ICF)
+            scf_report = Season_Report(
+                "SCF", 3, self._external_data_service, info.FS_type.SCF
+            )
+            report = FreeCF_Indicator("FreeCF", scf_report)
         elif report_index == self._season_report_factory.EPS_index:
             report = self._season_report_factory
             report._FS_type = info.FS_type.CPL
