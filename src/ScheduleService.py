@@ -1,8 +1,10 @@
 import queue
-import threading
 import time
 from datetime import datetime, timedelta
-import twstock
+import requests
+from io import StringIO
+import pandas as pd
+import logging
 
 from src.StockInfos import UserInfoDatas
 from src.Common import Tools
@@ -11,12 +13,12 @@ from src.UpdateStockService.StockDataDownloader import StockDataDownloader
 from src.UpdateStockService.StockDataSynchronizer import StockDataSynchronizer
 from src.UpdateStockService.ADLUpdater import ADLUpdater
 from src.Common.CacheService import HybridCacheService
-from src.Common.DataValidationService import DataValidationService
 from src.ExternalService.ExternalDataFactory import ExternalDataFactory, ExternalDataTypeEnum
 from src.MongoService import MongoService
 from src.SqlService import SqlService
 from src.ReadLoadSystem import ReadLoadSystem
 from src.Common import InfomationType as info
+from src.ExternalService.providers.DividendYieldProvider import DividendYieldProvider
 
 class ScheduleService:
     def __init__(self, concurrent_utils: ConcurrentUtils,
@@ -40,11 +42,17 @@ class ScheduleService:
         self.config = config
         self.cache_service = cache_service
         self.isUpdating: bool = False
+        self.dividend_yield_provider = DividendYieldProvider(
+            sql_service=self.sql_service,
+            mongo_service=self.mongo_service,
+            read_load_system=self.read_load_system,
+            cache_service=self.cache_service
+        )
 
     def RunUpdateInfoNow(self, MainUserInfoDatas: UserInfoDatas, progress_callback=None):
         self.isUpdating = True
         self.concurrent_utils.submit_task(
-            self._update_taiwan_stocks,
+            self._update_taiwan_stocks_and_yield,
             progress_callback,
             MainUserInfoDatas=MainUserInfoDatas
         )
@@ -118,6 +126,56 @@ class ScheduleService:
             callback=callback
         )
         print("TW stocks update completed successfully.")
+
+    def _update_taiwan_stocks_and_yield(self, MainUserInfoDatas: UserInfoDatas, callback=None):
+        """Update Taiwan stocks and then dividend yield data"""
+        self._update_dividend_yield_data(MainUserInfoDatas)
+        self._update_taiwan_stocks(MainUserInfoDatas, callback)
+
+    def _update_dividend_yield_data(self, MainUserInfoDatas: UserInfoDatas):
+        """Update dividend yield data after Taiwan stocks update"""
+        print("Update dividend yield data start!")
+
+        try:
+            # Use the same date range as Taiwan stocks update
+            tw_update_date = datetime.strptime(getattr(MainUserInfoDatas, "TW_UpdateDate"), "%Y-%m-%d")
+            end_date = datetime.today()
+
+            # Check if we have any dividend yield data in SQL after TW_UpdateDate
+            latest_saved_date = self.sql_service.get_latest_dividend_yield_date()
+            if latest_saved_date:
+                latest_saved_date = pd.to_datetime(latest_saved_date).date()
+                sql_latest_date = datetime(latest_saved_date.year, latest_saved_date.month, latest_saved_date.day)
+
+                # If SQL has data newer than TW_UpdateDate, start from next trade date after SQL latest
+                if sql_latest_date > tw_update_date:
+                    start_date = self._next_trade_date(sql_latest_date)
+                    print(f"SQL has newer data than TW_UpdateDate. Starting dividend yield update from next trade date after latest SQL record: {start_date.date()}")
+                else:
+                    # SQL data is not newer than TW_UpdateDate, start from TW_UpdateDate
+                    start_date = sql_latest_date
+                    print(f"Starting dividend yield update from TW_UpdateDate: {start_date.date()}")
+            else:
+                # No dividend yield data in SQL, start from TW_UpdateDate
+                start_date = tw_update_date
+                print(f"No existing dividend yield records found in SQL. Starting from TW_UpdateDate: {start_date.date()}")
+
+            if start_date.date() >= end_date.date():
+                print("Dividend yield data is up to date.")
+                return
+
+            # Download yield data using the provider's logic
+            download_data = self._download_yield_data(start_date, end_date)
+            if not download_data.empty:
+                self._save_yield_to_db(download_data)
+                print(f"Successfully updated {len(download_data)} dividend yield records.")
+            else:
+                print("No new dividend yield data to update.")
+
+        except Exception as e:
+            print(f"Error updating dividend yield data: {e}")
+
+        print("Dividend yield data update completed.")
 
     def _update_sp500_stocks(self, MainUserInfoDatas: UserInfoDatas, callback=None):
         """Update S&P 500 stocks"""
@@ -364,3 +422,173 @@ class ScheduleService:
         # Set ADL index update flag
         update_adl_flag['should_update'] = new_trading_day_updated
         print("Database save thread finished.")
+
+    def _download_yield_data(self, start: datetime, end: datetime) -> pd.DataFrame:
+        """
+        Download yield data from TWSE (copied from DividendYieldProvider)
+        """
+        logger = logging.getLogger(__name__)
+        logger.info(f"Downloading yield data from TWSE: {start.date()} ~ {end.date()}")
+
+        all_data = []
+        current_date = start
+
+        while current_date <= end:
+            date_str = f"{current_date.year}{current_date.month:02d}{current_date.day:02d}"
+            url = (
+                "https://www.twse.com.tw/exchangeReport/BWIBBU_d"
+                f"?response=csv&date={date_str}&selectType=ALL"
+            )
+
+            logger.debug(f"Downloading yield data for {date_str}")
+
+            try:
+                response = requests.get(url, headers=Tools.get_random_headers(), timeout=30)
+
+                if response.status_code != 200:
+                    logger.warning(f"TWSE returned status {response.status_code} for {date_str}")
+                    current_date = self._next_trade_date(current_date)
+                    continue
+
+                # Parse CSV response (TWSE uses ANSI/CP950 encoding)
+                try:
+                    # Skip first 1-2 lines (metadata) and last few lines (footer)
+                    lines = response.text.split('\n')
+
+                    # Find the header line
+                    csv_start = 0
+                    for i, line in enumerate(lines):
+                        if '證券代號' in line:
+                            csv_start = i
+                            break
+
+                    # Find the data end (stop at empty lines or footer)
+                    csv_end = len(lines)
+                    for i in range(csv_start, len(lines)):
+                        if not lines[i].strip() or lines[i].startswith('-'):
+                            csv_end = i
+                            break
+
+                    # Join the CSV portion
+                    csv_text = '\n'.join(lines[csv_start:csv_end])
+
+                    if not csv_text.strip():
+                        logger.debug(f"No data in TWSE response for {date_str}")
+                        current_date = self._next_trade_date(current_date)
+                        continue
+
+                    # Parse CSV
+                    for encoding in ['cp950', 'big5', 'ANSI', 'utf-8']:
+                        try:
+                            df = pd.read_csv(StringIO(csv_text), encoding=encoding)
+                            break
+                        except (UnicodeDecodeError, UnicodeError):
+                            continue
+                    else:
+                        logger.warning(f"Could not decode TWSE data for {date_str}")
+                        current_date = self._next_trade_date(current_date)
+                        continue
+
+                    if df.empty:
+                        logger.debug(f"Empty TWSE response for {date_str}")
+                        current_date = self._next_trade_date(current_date)
+                        continue
+
+                    # Rename columns to match our schema
+                    column_mapping = {
+                        '證券代號': 'symbol',
+                        '證券名稱': 'company_name',
+                        '本益比': 'pe_ratio',
+                        '殖利率(%)': 'dividend_yield',
+                        '股價淨值比': 'pb_ratio'
+                    }
+
+                    # Find matching columns
+                    rename_map = {}
+                    for old_col in df.columns:
+                        col_clean = old_col.strip().replace('=', '').replace('"', '')
+                        if col_clean in column_mapping:
+                            rename_map[old_col] = column_mapping[col_clean]
+
+                    # if 'symbol' not in rename_map:
+                    #     logger.warning(f"No recognizable columns in TWSE data for {date_str}")
+                    #     current_date = self._next_trade_date(current_date)
+                    #     continue
+
+                    df = df.rename(columns=rename_map)
+
+                    # Keep only mapped columns
+                    keep_cols = [v for v in rename_map.values() if v in df.columns]
+                    df = df[keep_cols]
+
+                    # Add date column
+                    df['date'] = current_date
+
+                    # Convert numeric columns
+                    numeric_cols = ['pe_ratio', 'dividend_yield', 'pb_ratio']
+                    for col in numeric_cols:
+                        if col in df.columns:
+                            df[col] = pd.to_numeric(df[col], errors='coerce')
+
+                    # Remove rows with no valid symbol
+                    df = df[df['symbol'].notna()]
+
+                    # Clean symbol (remove quotes, non-digit chars)
+                    df['symbol'] = df['symbol'].astype(str).str.replace(r'[^0-9]', '', regex=True)
+
+                    # Remove non-numeric symbols
+                    df = df[df['symbol'].str.match(r'^\d+$')]
+                    df['symbol'] = df['symbol'].astype(int)
+
+                    if not df.empty:
+                        all_data.append(df)
+                        logger.debug(f"Got {len(df)} records for {date_str}")
+
+                    # Throttle to avoid TWSE rate limiting
+                    time.sleep(3)
+
+                except Exception as parse_err:
+                    logger.warning(f"Error parsing TWSE response for {date_str}: {parse_err}")
+
+            except requests.exceptions.RequestException as req_err:
+                logger.warning(f"Request failed for {date_str}: {req_err}")
+                time.sleep(5)
+
+            current_date = self._next_trade_date(current_date)
+
+        if not all_data:
+            logger.warning("No yield data downloaded from TWSE")
+            return pd.DataFrame()
+
+        # Combine all dates
+        combined = pd.concat(all_data, ignore_index=True)
+
+        # Standardize column order
+        column_order = ['symbol', 'date', 'company_name', 'pe_ratio', 'dividend_yield', 'pb_ratio']
+        available_cols = [c for c in column_order if c in combined.columns]
+        combined = combined[available_cols]
+
+        logger.info(f"Successfully downloaded {len(combined)} yield records from TWSE "
+                    f"for {len(all_data)} trading days")
+
+        return combined
+
+    def _save_yield_to_db(self, data: pd.DataFrame) -> None:
+        """Save yield data to dividend_yield table (copied from DividendYieldProvider)"""
+        if data.empty:
+            return
+
+        try:
+            self.sql_service.upsert_dividend_yield(data)
+            print(f"Saved {len(data)} yield records to dividend_yield table")
+        except Exception as e:
+            print(f"Error saving yield data to database: {e}")
+
+    @staticmethod
+    def _next_trade_date(current_date: datetime) -> datetime:
+        """Move to next calendar date (skip weekends) (copied from DividendYieldProvider)"""
+        next_date = current_date + timedelta(days=1)
+        # Skip weekends (Saturday=5, Sunday=6 in Python weekday)
+        while next_date.weekday() >= 5:
+            next_date += timedelta(days=1)
+        return next_date

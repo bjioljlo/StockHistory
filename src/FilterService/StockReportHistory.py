@@ -422,6 +422,13 @@ class DividendYield_Report(AllStockReport):
             result = self._main_GetExternalData.get_allstock_yield(symbol, start_date, end_date)
 
             # 數據清理和驗證
+            # ✅ 統一設定 index
+            if 'date' in result.columns:
+                if end_date is None:
+                    result_data = result.set_index('date', drop=True)
+                else:
+                    # 區間查詢時使用複合索引 (symbol, report_season, report_year)
+                    result_data = result.set_index(['date'], drop=True)
             # if not result.empty:
 
             #     # 確保索引是字串類型
@@ -432,7 +439,7 @@ class DividendYield_Report(AllStockReport):
             #         result['code'] = result['code'].astype(str)
             #         result = result.set_index('code')
 
-            return result
+            return result_data
         except Exception as e:
             print(f"Error getting dividend yield data: {e}")
             return DataFrame()
@@ -444,7 +451,7 @@ class DividendYield_Report(AllStockReport):
             date_str = f"{start_date}~{end_date}" if end_date else str(start_date)
             print(f"{date_str}的{self._name}表沒出")
             return DataFrame()
-        
+
         return Temp
         # 嘗試多種索引格式進行匹配
         search_keys = [str(number), number, f"{number:04d}"]

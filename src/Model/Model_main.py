@@ -84,7 +84,7 @@ class Model_main(TModel):
             showClumn = 5
         elif report_index == self._dividend_yield_report_factory.Yield_index:
             report = self._dividend_yield_report_factory
-            showClumn = 4
+            showClumn = 3
         elif report_index == self._day_report_factory.PCF_index:
             report = self._day_report_factory
         elif report_index == self._season_report_factory.OM_index:

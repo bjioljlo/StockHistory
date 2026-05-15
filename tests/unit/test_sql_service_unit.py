@@ -6,6 +6,7 @@
 import unittest
 import sys
 import os
+import pandas as pd
 from unittest.mock import MagicMock, patch
 
 # 添加專案根目錄到Python路徑
@@ -70,6 +71,16 @@ class TestSqlServiceOptimizedMethods(unittest.TestCase):
             self.assertIn('end_year', call_args[1]['params'])
             self.assertEqual(call_args[1]['params']['start_year'], 2023)
             self.assertEqual(call_args[1]['params']['end_year'], 2024)
+
+    def test_get_latest_dividend_yield_date(self):
+        """測試獲取最新股息殖利率日期"""
+        mock_df = pd.DataFrame([{'latest_date': '2025-11-24'}])
+
+        with patch('pandas.read_sql', return_value=mock_df) as mock_read_sql:
+            latest_date = self.sql_service.get_latest_dividend_yield_date()
+
+            self.assertEqual(latest_date, '2025-11-24')
+            mock_read_sql.assert_called_once()
 
     def test_read_quarterly_reports_with_type_filter(self):
         """測試讀取季報數據（類型過濾）"""
@@ -176,6 +187,49 @@ class TestSqlServiceOptimizedMethods(unittest.TestCase):
         self.assertEqual(result4, {})
         self.assertTrue(result5.empty)
         self.assertEqual(result6, {})
+
+    def test_upsert_dividend_yield_batch_insert(self):
+        """測試批量UPSERT股息殖利率數據"""
+        # 準備測試數據
+        test_data = pd.DataFrame({
+            'symbol': ['1101', '1101', '1102'],
+            'date': ['2025-01-01', '2025-01-02', '2025-01-01'],
+            'company_name': ['台積電', '台積電', '技嘉'],
+            'pe_ratio': [15.5, 15.6, 12.3],
+            'dividend_yield': [2.5, 2.4, 3.1],
+            'pb_ratio': [1.5, 1.5, 0.9]
+        })
+
+        # 模擬資料庫連接和 inspector
+        mock_connection = MagicMock()
+        mock_engine = MagicMock()
+        mock_engine.begin.return_value.__enter__.return_value = mock_connection
+        mock_engine.begin.return_value.__exit__.return_value = False
+
+        self.sql_service.MySql_server.engine = mock_engine
+
+        # 模擬 app_context
+        self.sql_service.server_flask = MagicMock()
+        mock_context = MagicMock()
+        mock_context.__enter__ = MagicMock(return_value=None)
+        mock_context.__exit__ = MagicMock(return_value=False)
+        self.sql_service.server_flask.app_context = MagicMock(return_value=mock_context)
+
+        # Mock inspector
+        mock_inspector = MagicMock()
+        mock_inspector.get_table_names.return_value = ['dividend_yield']
+
+        with patch('src.SqlService.inspect', return_value=mock_inspector):
+            result = self.sql_service.upsert_dividend_yield(test_data)
+            self.assertTrue(result)
+            # 驗證批量 SQL 執行
+            mock_connection.execute.assert_called_once()
+
+    def test_upsert_dividend_yield_empty_dataframe(self):
+        """測試UPSERT空DataFrame時的行為"""
+        empty_df = pd.DataFrame()
+        result = self.sql_service.upsert_dividend_yield(empty_df)
+        self.assertTrue(result)
 
 
 if __name__ == '__main__':

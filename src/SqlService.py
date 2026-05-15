@@ -219,9 +219,13 @@ class SqlService:
 
     def upsert_dividend_yield(self, data_df: pd.DataFrame) -> bool:
         """
-        專門用於股息殖利率數據的Upsert操作
+        專門用於股息殖利率數據的Upsert操作 (批量插入，避免逐行卡住)
         使用 scripts/migration 中的欄位結構
         """
+        if data_df.empty:
+            print("No data to upsert")
+            return True
+
         table_name = 'dividend_yield'
 
         try:
@@ -255,41 +259,64 @@ class SqlService:
                         connection.execute(text(create_table_sql))
                         print(f"Table '{table_name}' created.")
 
-                    # 使用UPSERT插入數據
-                    success_count = 0
-                    for _, row in data_df.iterrows():
-                        # 構建INSERT ... ON DUPLICATE KEY UPDATE語句
-                        sql = """
-                        INSERT INTO dividend_yield (symbol, date, company_name, pe_ratio, dividend_yield, pb_ratio)
-                        VALUES (:symbol, :date, :company_name, :pe_ratio, :dividend_yield, :pb_ratio)
-                        ON DUPLICATE KEY UPDATE
-                        company_name = VALUES(company_name),
-                        pe_ratio = VALUES(pe_ratio),
-                        dividend_yield = VALUES(dividend_yield),
-                        pb_ratio = VALUES(pb_ratio),
-                        updated_at = CURRENT_TIMESTAMP
-                        """
+                    # 批量UPSERT插入數據（避免逐行執行）
+                    # 準備數據
+                    clean_df = data_df.copy()
+                    for col in ['pe_ratio', 'dividend_yield', 'pb_ratio']:
+                        if col in clean_df.columns:
+                            clean_df[col] = clean_df[col].fillna(0.0)
+                    for col in ['company_name']:
+                        if col in clean_df.columns:
+                            clean_df[col] = clean_df[col].fillna('')
 
-                        # 處理NaN值
-                        row_dict = {}
-                        for col in ['symbol', 'date', 'company_name', 'pe_ratio', 'dividend_yield', 'pb_ratio']:
-                            value = row[col] if col in row.index else None
-                            if pd.isna(value) or value is None:
-                                if col in ['pe_ratio', 'dividend_yield', 'pb_ratio']:
-                                    row_dict[col] = 0.0
-                                else:
-                                    row_dict[col] = None
-                            else:
-                                row_dict[col] = value
+                    # 批量構建VALUES子句
+                    values_list = []
+                    params_dict = {}
+                    for idx, (_, row) in enumerate(clean_df.iterrows()):
+                        symbol = row.get('symbol')
+                        date = row.get('date')
+                        company_name = row.get('company_name')
+                        pe_ratio = row.get('pe_ratio', 0.0)
+                        dividend_yield = row.get('dividend_yield', 0.0)
+                        pb_ratio = row.get('pb_ratio', 0.0)
 
-                        connection.execute(text(sql), row_dict)
-                        success_count += 1
+                        # 避免參數重複，使用索引區分
+                        param_keys = (f':symbol_{idx}', f':date_{idx}', f':company_name_{idx}',
+                                     f':pe_ratio_{idx}', f':dividend_yield_{idx}', f':pb_ratio_{idx}')
+                        values_list.append(f"({param_keys[0]}, {param_keys[1]}, {param_keys[2]}, {param_keys[3]}, {param_keys[4]}, {param_keys[5]})")
 
-                    print(f"Successfully upserted {success_count} rows to dividend_yield table.")
+                        params_dict[f'symbol_{idx}'] = symbol
+                        params_dict[f'date_{idx}'] = date
+                        params_dict[f'company_name_{idx}'] = company_name
+                        params_dict[f'pe_ratio_{idx}'] = pe_ratio
+                        params_dict[f'dividend_yield_{idx}'] = dividend_yield
+                        params_dict[f'pb_ratio_{idx}'] = pb_ratio
+
+                    if not values_list:
+                        print("No valid data to insert")
+                        return True
+
+                    # 批量執行一次INSERT ... ON DUPLICATE KEY UPDATE
+                    values_clause = ','.join(values_list)
+                    sql = f"""
+                    INSERT INTO dividend_yield (symbol, date, company_name, pe_ratio, dividend_yield, pb_ratio)
+                    VALUES {values_clause}
+                    ON DUPLICATE KEY UPDATE
+                    company_name = VALUES(company_name),
+                    pe_ratio = VALUES(pe_ratio),
+                    dividend_yield = VALUES(dividend_yield),
+                    pb_ratio = VALUES(pb_ratio),
+                    updated_at = CURRENT_TIMESTAMP
+                    """
+
+                    connection.execute(text(sql), params_dict)
+                    print(f"Successfully upserted {len(clean_df)} rows to dividend_yield table.")
                     return True
 
         except Exception as e:
             print(f"SQL Error during dividend_yield upsert: {e}")
+            import traceback
+            traceback.print_exc()
             return False
 
     def get_all_table_names(self) -> list[str]:
@@ -573,6 +600,30 @@ class SqlService:
         except Exception as e:
             print(f"SQL Error in read_dividend_yield: {e}")
             return pd.DataFrame()
+
+    def get_latest_dividend_yield_date(self) -> str | None:
+        """
+        Get the most recent dividend yield date saved in SQL.
+
+        Returns:
+            The latest date as YYYY-MM-DD string, or None if there is no record.
+        """
+        if self.MySql_server is None:
+            print("Database connection not initialized")
+            return None
+
+        try:
+            with self.server_flask.app_context():
+                query = text("SELECT MAX(date) AS latest_date FROM dividend_yield")
+                result = pd.read_sql(query, con=self.MySql_server.engine)
+                if not result.empty and 'latest_date' in result.columns:
+                    latest_date = result.iloc[0]['latest_date']
+                    if latest_date is not None:
+                        return str(latest_date)
+                return None
+        except Exception as e:
+            print(f"SQL Error in get_latest_dividend_yield_date: {e}")
+            return None
 
     def read_monthly_reports(self, symbol: str = None, start_year: int = None,
                            end_year: int = None, limit: int = 1000) -> pd.DataFrame:

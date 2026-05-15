@@ -36,7 +36,7 @@ class DividendYieldProvider:
         """
         Get all stock yield data (PER, dividend yield, PBR) for specific date range
 
-        Follows DailyDataProvider pattern: cache -> SQL -> download -> save
+        Follows DailyDataProvider pattern: cache -> SQL only (no download)
 
         Args:
             symbol: Stock symbol (optional, if None, query all stocks)
@@ -60,24 +60,15 @@ class DividendYieldProvider:
             self._logger.debug(f"Cache HIT for {cache_key}")
             return cached
 
-        # 2. Get from SQL database
+        # 2. Get from SQL database only (no download)
         sql_data = self._get_yield_from_sql(symbol=symbol, start=start, end=end)
         if not sql_data.empty:
             self._logger.debug(f"Loaded yield data from SQL database")
             self._cache_service.set(cache_key, sql_data, ttl=3600)
             return sql_data
 
-        # 3. Download from external source (TWSE)
-        self._logger.info(f"No yield data in SQL for {start.date()} ~ {end.date()}, downloading from TWSE")
-        download_data = self._download_yield_data(start, end)
-        if not download_data.empty:
-            # 4. Save to database
-            self._save_yield_to_db(download_data)
-            self._cache_service.set(cache_key, download_data, ttl=3600)
-            return download_data
-
-        # No data available at all
-        self._logger.warning(f"No yield data available for {start.date()} ~ {end.date()}")
+        # No data available in SQL
+        self._logger.warning(f"No yield data available in SQL for {start.date()} ~ {end.date()}")
         empty_result = pd.DataFrame()
         self._cache_service.set(cache_key, empty_result, ttl=600)
         return empty_result

@@ -132,12 +132,14 @@ if (not result_data.empty and
 
 ### 3. get_allstock_yield方法
 
-**文件位置**: `src/ExternalService/TGetExternalData.py`
+**文件位置**: `src/ExternalService/providers/DividendYieldProvider.py`
 
-**計劃修改**:
-- 整合混合緩存服務
-- 添加L1/L2緩存支持
-- 實現緩存鍵: `yield_data_{year}_{month}_{day}`
+**當前行為**:
+- 僅從 SQL 資料庫和快取獲取資料
+- 不會自動下載新資料
+- 資料更新由 `ScheduleService` 負責
+
+**快取鍵**: `stock_yield_{symbol}_{start_date}_{end_date}`
 
 ## 效能改進
 
