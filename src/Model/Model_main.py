@@ -175,18 +175,138 @@ class Model_main(TModel):
         )
 
     def operating_margin(self, record_main_parameter: RecordMainParameter):
-        """某股票營業利益率曲線"""
-        self._create_and_draw_chart(
-            record_main_parameter,
-            self._season_report_factory.OM_index,
+        """某股票營業利益率曲線 (operating_income / operating_revenue)"""
+        if record_main_parameter is None:
+            print("錯誤：參數對象為空")
+            return
+
+        if record_main_parameter.number is None:
+            print("請輸入股票號碼")
+            return
+
+        if record_main_parameter.enddate is None:
+            print("錯誤：結束日期未設定")
+            return
+
+        if record_main_parameter.startdate is None:
+            print("錯誤：開始日期未設定")
+            return
+
+        # 設定為 PLA 類型取得損益表資料
+        report = self._season_report_factory
+        report._FS_type = info.FS_type.PLA
+
+        # 取得多個季度的 PLA 資料以便計算各期營業利益率
+        data_result = report.get_ReportByNumber(
+            record_main_parameter.startdate,
+            record_main_parameter.number,
+            record_main_parameter.enddate,
+        )
+
+        if data_result is None or data_result.empty:
+            print("無營業利益率資料")
+            return
+
+        # 檢查必要欄位
+        print(f"[DEBUG] operating_margin 可用欄位: {list(data_result.columns)}")
+
+        # 嘗試多種可能的欄位名稱
+        income_col = None
+        revenue_col = None
+        for col in data_result.columns:
+            col_lower = str(col).lower().replace(' ', '_').replace('(', '').replace(')', '')
+            if 'operating_income' in col_lower or '營業利益' in col:
+                income_col = col
+            if 'operating_revenue' in col_lower or '營業收入' in col:
+                revenue_col = col
+
+        if income_col is None or revenue_col is None:
+            print(f"錯誤：PLA 資料缺少營業利益或營業收入欄位")
+            print(f"可用欄位: {list(data_result.columns)}")
+            return
+
+        print(f"[DEBUG] 使用欄位: income='{income_col}', revenue='{revenue_col}'")
+
+        # 計算營業利益率 = operating_income / operating_revenue
+        data_result['operating_margin'] = (
+            data_result[income_col] / data_result[revenue_col]
+        )
+
+        # 繪製圖表
+        self._draw_figur_service.draw_RP(
+            data_result,
+            record_main_parameter.number,
+            'operating_margin',
+            self._season_report_factory._name,
             "Operating Margin Ratio",
         )
 
     def operating_margin_ratio(self, record_main_parameter: RecordMainParameter):
-        """#某股票營業利益成長率曲線"""
-        self._create_and_draw_chart(
-            record_main_parameter,
-            self._season_report_factory.OM_Growth_index,
+        """某股票營業利益成長率曲線 (季增率)"""
+        if record_main_parameter is None:
+            print("錯誤：參數對象為空")
+            return
+
+        if record_main_parameter.number is None:
+            print("請輸入股票號碼")
+            return
+
+        if record_main_parameter.enddate is None:
+            print("錯誤：結束日期未設定")
+            return
+
+        if record_main_parameter.startdate is None:
+            print("錯誤：開始日期未設定")
+            return
+
+        # 設定為 PLA 類型取得損益表資料
+        report = self._season_report_factory
+        report._FS_type = info.FS_type.PLA
+
+        # 取得多個季度的 PLA 資料
+        data_result = report.get_ReportByNumber(
+            record_main_parameter.startdate,
+            record_main_parameter.number,
+            record_main_parameter.enddate,
+        )
+
+        if data_result is None or data_result.empty:
+            print("無營業利益成長率資料")
+            return
+
+        print(f"[DEBUG] operating_margin_ratio 可用欄位: {list(data_result.columns)}")
+
+        # 嘗試多種可能的欄位名稱
+        income_col = None
+        revenue_col = None
+        for col in data_result.columns:
+            col_lower = str(col).lower().replace(' ', '_').replace('(', '').replace(')', '')
+            if 'operating_income' in col_lower or '營業利益' in col:
+                income_col = col
+            if 'operating_revenue' in col_lower or '營業收入' in col:
+                revenue_col = col
+
+        if income_col is None or revenue_col is None:
+            print(f"錯誤：PLA 資料缺少營業利益或營業收入欄位")
+            print(f"可用欄位: {list(data_result.columns)}")
+            return
+
+        print(f"[DEBUG] 使用欄位: income='{income_col}', revenue='{revenue_col}'")
+
+        # Step1: 計算各期營業利益率
+        data_result['operating_margin'] = (
+            data_result[income_col] / data_result[revenue_col]
+        )
+
+        # Step2: 計算營業利益率季增率 (本季 - 上季) / 上季
+        data_result['operating_margin_growth'] = data_result['operating_margin'].pct_change() * 100
+
+        # 繪製成長率圖表
+        self._draw_figur_service.draw_RP(
+            data_result,
+            record_main_parameter.number,
+            'operating_margin_growth',
+            self._season_report_factory._name,
             "Operating Margin Growth Up (season by season)(%)",
         )
 
@@ -216,9 +336,73 @@ class Model_main(TModel):
 
     def free_scf(self, record_main_parameter: RecordMainParameter):
         """某股票自由現金流"""
-        self._create_and_draw_chart(
-            record_main_parameter,
-            self._season_report_factory.FreeCF_index,
+        if record_main_parameter is None:
+            print("錯誤：參數對象為空")
+            return
+
+        if record_main_parameter.number is None:
+            print("請輸入股票號碼")
+            return
+
+        if record_main_parameter.enddate is None:
+            print("錯誤：結束日期未設定")
+            return
+
+        if record_main_parameter.startdate is None:
+            print("錯誤：開始日期未設定")
+            return
+
+        report = self._season_report_factory
+        report._FS_type = info.FS_type.SCF
+
+        data_result = report.get_ReportByNumber(
+            record_main_parameter.startdate,
+            record_main_parameter.number,
+            record_main_parameter.enddate,
+        )
+
+        if data_result is None or data_result.empty:
+            print("無自由現金流資料")
+            return
+
+        print(f"[DEBUG] free_scf 可用欄位: {list(data_result.columns)}")
+
+        operating_cash_flow_col = None
+        investing_cash_flow_col = None
+        for col in data_result.columns:
+            col_lower = str(col).lower().replace(" ", "_").replace("(", "").replace(")", "")
+            if (
+                "operating_cash_flow" in col_lower
+                or "cash_flow_from_operations" in col_lower
+                or "營業活動" in str(col)
+            ):
+                operating_cash_flow_col = col
+            if (
+                "investing_cash_flow" in col_lower
+                or "cash_flow_from_investing" in col_lower
+                or "投資活動" in str(col)
+            ):
+                investing_cash_flow_col = col
+
+        if operating_cash_flow_col is None or investing_cash_flow_col is None:
+            print("錯誤：SCF 資料缺少營業現金流或投資現金流欄位")
+            print(f"可用欄位: {list(data_result.columns)}")
+            return
+
+        print(
+            f"[DEBUG] 使用欄位: operating='{operating_cash_flow_col}', "
+            f"investing='{investing_cash_flow_col}'"
+        )
+
+        data_result["free_cash_flow"] = (
+            data_result[operating_cash_flow_col] + data_result[investing_cash_flow_col]
+        )
+
+        self._draw_figur_service.draw_RP(
+            data_result,
+            record_main_parameter.number,
+            "free_cash_flow",
+            self._season_report_factory._name,
             "Free cash flow",
         )
 

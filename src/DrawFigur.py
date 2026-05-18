@@ -3,6 +3,7 @@ matplotlib.use('Qt5Agg')  # 使用 Qt5Agg 後端以匹配 PyQt5
 import matplotlib.pyplot as plt
 import mplfinance as mpf
 import numpy as np
+import pandas as pd
 import seaborn as sns
 import talib
 from pandas import DataFrame
@@ -147,17 +148,28 @@ class DrawFigur:
                     print("警告：數據清理後為空，無法繪圖")
                     return
 
+                plot_table = table.copy()
+
+                # 單一股票區間查詢常使用 MultiIndex(symbol, report_date)，
+                # matplotlib 無法直接將 tuple 作為 x 軸類別值處理，改用最後一層日期索引繪圖。
+                if isinstance(plot_table.index, pd.MultiIndex):
+                    plot_table.index = plot_table.index.get_level_values(-1)
+
+                plot_series = plot_table[columnName]
+                if isinstance(plot_series, DataFrame):
+                    plot_series = plot_series.iloc[:, 0]
+
                 # 創建新的圖形，使用唯一的編號避免衝突
-                fig = plt.figure(num=f"Chart_{stockNum}_{title}")
+                fig = plt.figure(num=f"Chart_{stockNum}_{str(title)}")
                 plt.clf()  # 清除圖形內容
 
                 ax = fig.add_subplot(111)
-                ax.plot(table.index, table[columnName], label=title, linewidth=2)
+                ax.plot(plot_table.index, plot_series, label=str(title), linewidth=2)
 
                 # 設置標籤和標題
                 ax.set_xlabel("Date", fontsize=12)
-                ax.set_ylabel(ylabel, fontsize=12)
-                ax.set_title(f"{stockNum} - {title}", fontsize=14, fontweight='bold')
+                ax.set_ylabel(str(ylabel), fontsize=12)
+                ax.set_title(f"{stockNum} - {str(title)}", fontsize=14, fontweight='bold')
 
                 # 旋轉 x 軸標籤以便閱讀
                 plt.xticks(rotation=45, ha='right')
