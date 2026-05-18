@@ -1,29 +1,39 @@
-## 描述
+# Pull Request 範本
 
-**將這支 PR 所做的事情，取代這段文字，描述越詳細越好。**
+## 變更摘要
 
-相關的 issue #(ticket number) / 無
+<!-- 簡短描述此 PR 的變更內容 -->
 
-## 變更的類型
+## 變更原因
 
-- [ ] Bug fix (non-breaking change which fixes an issue)
-- [ ] New feature (non-breaking change which adds functionality)
-- [ ] Breaking change (fix or feature that would cause existing functionality to not work as expected)
-- [ ] This change requires a documentation update
+<!-- 為什麼需要進行這些變更？解決了什麼問題？ -->
 
-## 影響的頁面
+## 測試結果
 
-- [] 首頁
-- [] 個人資料與設定
-- [] 其他（請填寫）
+<!-- 貼上測試執行結果或描述如何驗證這些變更 -->
 
-## 相關的 專案網站(ex.Redmine) Task
+```
+# 執行測試指令輸出
+uv run pytest -q
+```
 
-(如果有相關的 task，請填寫連結，如果沒有請刪除此行，並填「無」)
+## API 變更影響
+
+<!-- 若有變更公開 API，請在此提供使用範例 -->
+
+## 變更類型
+
+- [ ] Bug 修正
+- [ ] 新功能
+- [ ] 文件更新
+- [ ] 重構
+- [ ] 效能最佳化
+- [ ] 測試調整
 
 ## 檢查清單
 
-- [] 我已經在本地手動測試過，確保功能的完整性和穩定性
-- [] 我對我的程式碼進行了註解，特別是在難以理解的地方
-- [] 我已經更新了文件，或者我的更改不需要更新文件
-- [] 我的 PR 有明確的標題與內容描述
+- [ ] 現有測試全部通過
+- [ ] 已新增相關測試案例
+- [ ] 文件已同步更新
+- [ ] Commit 訊息符合 Conventional Commit 格式
+- [ ] 此 PR 對應一個 OpenSpec 變更

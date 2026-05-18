@@ -6,7 +6,7 @@ compatibility: Requires openspec CLI.
 metadata:
   author: openspec
   version: "1.0"
-  generatedBy: "1.3.0"
+  generatedBy: "1.2.0"
 ---
 
 Propose a new change - create the change and generate all artifacts in one step.
@@ -79,10 +79,19 @@ When ready to implement, run /opsx:apply
       - Use **AskUserQuestion tool** to clarify
       - Then continue with creation
 
-5. **Show final status**
-   ```bash
-   openspec status --change "<name>"
-   ```
+5. **建立功能分支**
+    ```bash
+    git checkout develop
+    git pull origin develop
+    git checkout -b feature/<name>
+    ```
+    
+    自動從最新的 develop 分支建立對應名稱的功能分支
+
+6. **Show final status**
+    ```bash
+    openspec status --change "<name>"
+    ```
 
 **Output**
 
