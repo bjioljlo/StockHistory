@@ -103,11 +103,10 @@ class Model_main(TModel):
             report._FS_type = info.FS_type.SCF
             showClumn = 17
         elif report_index == self._season_report_factory.FreeCF_index:
-            # 使用 FreeCF_Indicator 計算自由現金流 = 營業活動現金流(OCF) + 投資活動現金流(ICF)
-            scf_report = Season_Report(
-                "SCF", 3, self._external_data_service, info.FS_type.SCF
-            )
-            report = FreeCF_Indicator("FreeCF", scf_report)
+            from src.FilterService.StockReportHistory import FreeCF_Indicator
+            report = self._season_report_factory
+            report._FS_type = info.FS_type.SCF
+            report = FreeCF_Indicator("FreeCF", report)
         elif report_index == self._season_report_factory.EPS_index:
             report = self._season_report_factory
             report._FS_type = info.FS_type.CPL
