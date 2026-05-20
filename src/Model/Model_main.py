@@ -110,11 +110,17 @@ class Model_main(TModel):
             report._FS_type = info.FS_type.CPL
             showClumn = 10
         elif report_index == self._season_report_factory.Debt_index:
+            from src.FilterService.StockReportHistory import Debt_Indicator
             report = self._season_report_factory
             report._FS_type = info.FS_type.BS
+            report = Debt_Indicator("Debt Asset Ratio", report)
+            showClumn = 0
         elif report_index == self._season_report_factory.SR_Growth_index:
+            from src.FilterService.StockReportHistory import SR_Growth_Indicator
             report = self._season_report_factory
             report._FS_type = info.FS_type.PLA
+            report = SR_Growth_Indicator("Season Revenue Growth (year by year)(%)", report)
+            showClumn = 0
         elif report_index == self._adl_report_factory.ADL_index:
             report = self._adl_report_factory
         elif report_index == self._adl_report_factory.ADLs_index:
