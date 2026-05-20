@@ -631,6 +631,51 @@ class Debt_Indicator(Indicator):
         table_result[self._name] = table_Debt / table_Assets
         return table_result
 
+    def get_ReportByNumber(self, start_date, number: int, end_date=None, base_today=None) -> DataFrame:
+        """計算單一股票的歷史資產負債率時間序列"""
+        if end_date is None:
+            return super().get_ReportByNumber(start_date, number, end_date=end_date, base_today=base_today)
+
+        import Common.Tools as Tools
+
+        data_result = DataFrame()
+        str_number = str(number)
+        current_date = start_date
+        loop_count = 0
+        max_loops = 120
+
+        while current_date <= end_date and loop_count < max_loops:
+            safe_date = Tools.get_latest_season_report_date(current_date, base_today)
+            season_data = self.BS._main_GetExternalData.get_allstock_financial_statement(
+                safe_date, self.BS._FS_type
+            )
+
+            if not season_data.empty and str_number in season_data['symbol'].values:
+                stock_row = season_data[season_data['symbol'] == str_number]
+                if not stock_row.empty:
+                    try:
+                        assets = float(stock_row.iloc[0]['total_assets'])
+                        liabilities = float(stock_row.iloc[0]['total_liabilities'])
+                        if assets > 0:
+                            ratio = liabilities / assets
+                            df_row = DataFrame(
+                                {self._name: [ratio], 'report_date': [safe_date]}
+                            )
+                            data_result = pd.concat([data_result, df_row], ignore_index=True)
+                    except (KeyError, ValueError, TypeError):
+                        print(f"Debt_Indicator: {number} 在 {safe_date} 缺少資產或負債資料")
+                        pass
+
+            current_date = Tools.changeDateMonth(current_date, 3)
+            loop_count += 1
+
+        if data_result.empty:
+            print(f"{start_date}~{end_date}的{self._name}表沒出")
+            return DataFrame()
+
+        data_result = data_result.set_index('report_date', drop=True)
+        return data_result
+
 
 class MR_Growth_Indicator(Indicator):
     """#取得月營收成長率"""
@@ -692,6 +737,62 @@ class SR_Growth_Indicator(Indicator):
         if SR_now.empty or SR_old.empty:
             return DataFrame()
         data_result[self._name] = ((SR_now - SR_old) / SR_old) * 100
+        return data_result
+
+    def get_ReportByNumber(self, start_date, number: int, end_date=None, base_today=None) -> DataFrame:
+        """計算單一股票的歷史季營收成長率時間序列"""
+        if end_date is None:
+            return super().get_ReportByNumber(start_date, number, end_date=end_date, base_today=base_today)
+
+        import Common.Tools as Tools
+
+        data_result = DataFrame()
+        str_number = str(number)
+        current_date = start_date
+        loop_count = 0
+        max_loops = 120
+
+        while current_date <= end_date and loop_count < max_loops:
+            safe_date = Tools.get_latest_season_report_date(current_date, base_today)
+            safe_date_old = Tools.get_latest_season_report_date(
+                Tools.changeDateMonth(current_date, -12), base_today
+            )
+
+            # 取得當季營收 (PLA type_0 = revenue)
+            current_data = self.PLA_RP._main_GetExternalData.get_allstock_financial_statement(
+                safe_date, self.PLA_RP._FS_type
+            )
+            old_data = self.PLA_RP._main_GetExternalData.get_allstock_financial_statement(
+                safe_date_old, self.PLA_RP._FS_type
+            )
+
+            if (not current_data.empty and str_number in current_data['symbol'].values and
+                    not old_data.empty and str_number in old_data['symbol'].values):
+                current_row = current_data[current_data['symbol'] == str_number]
+                old_row = old_data[old_data['symbol'] == str_number]
+
+                if not current_row.empty and not old_row.empty:
+                    try:
+                        revenue_now = float(current_row.iloc[0]['revenue'])
+                        revenue_old = float(old_row.iloc[0]['revenue'])
+                        if revenue_old > 0:
+                            growth = ((revenue_now - revenue_old) / revenue_old) * 100
+                            df_row = DataFrame(
+                                {self._name: [growth], 'report_date': [safe_date]}
+                            )
+                            data_result = pd.concat([data_result, df_row], ignore_index=True)
+                    except (KeyError, ValueError, TypeError):
+                        print(f"SR_Growth_Indicator: {number} 在 {safe_date} 缺少營收資料")
+                        pass
+
+            current_date = Tools.changeDateMonth(current_date, 3)
+            loop_count += 1
+
+        if data_result.empty:
+            print(f"{start_date}~{end_date}的{self._name}表沒出")
+            return DataFrame()
+
+        data_result = data_result.set_index('report_date', drop=True)
         return data_result
 
 
