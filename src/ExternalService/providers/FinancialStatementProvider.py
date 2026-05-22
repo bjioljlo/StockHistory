@@ -16,6 +16,11 @@ from src.MongoService import MongoService
 from src.ReadLoadSystem import ReadLoadSystem
 from src.Common.CacheService import HybridCacheService
 from src.Common import Tools
+from src.ExternalService.providers.crawlers.base_crawler import BaseFinancialCrawler
+from src.ExternalService.providers.crawlers.bs_crawler import BsCrawler
+from src.ExternalService.providers.crawlers.cpl_crawler import CplCrawler
+from src.ExternalService.providers.crawlers.scf_crawler import ScfCrawler
+from src.ExternalService.providers.crawlers.pla_crawler import PlaCrawler
 
 
 class FinancialStatementProvider:
@@ -30,6 +35,13 @@ class FinancialStatementProvider:
         self._cache_service = cache_service
         self._logger = logging.getLogger(__name__)
         self._file_path = os.getcwd()
+        # 初始化各報表類型專用爬蟲
+        self._crawlers = {
+            info.FS_type.BS: BsCrawler(),
+            info.FS_type.CPL: CplCrawler(),
+            info.FS_type.SCF: ScfCrawler(),
+            info.FS_type.PLA: PlaCrawler(),
+        }
 
     def get_allstock_financial_statement(self, start: datetime, type: info.FS_type) -> pd.DataFrame:
         """
@@ -77,12 +89,16 @@ class FinancialStatementProvider:
             self._cache_service.set(cache_key, processed_data, ttl=86400)
             return processed_data
 
-        # 4. Download from external source
-        self._financial_statement(start.year, season, type)
-        self._logger.info(f"Downloaded {start.month} financial statement OK")
+        # 4. Download from external source using dedicated crawler
+        crawler_df = self._financial_statement_download(start.year, season, type)
+        if crawler_df.empty:
+            self._logger.error(
+                "Failed to download %s statement for %d Q%d",
+                type.name, start.year, season
+            )
+            return pd.DataFrame()
 
-        crawler_data = pd.read_csv(f"{file_path}.csv")
-        processed_data = self._process_financial_statement_data(crawler_data, start, season, type)
+        processed_data = self._process_financial_statement_data(crawler_df, start, season, type)
         self._save_financial_statement_to_db(processed_data, type)
         self._cache_service.set(cache_key, processed_data, ttl=86400)
 
@@ -252,75 +268,61 @@ class FinancialStatementProvider:
         except Exception as e:
             self._logger.error(f"Error saving {type} financial statement to database: {e}")
 
+    def _get_crawler(self, fs_type: info.FS_type) -> BaseFinancialCrawler:
+        """Get the appropriate crawler for the given financial statement type.
+
+        Args:
+            fs_type: Financial statement type
+
+        Returns:
+            Crawler instance for the specified report type
+        """
+        return self._crawlers[fs_type]
+
+    def _financial_statement_download(
+        self, year: int, season: int, fs_type: info.FS_type
+    ) -> pd.DataFrame:
+        """Download financial statement using the appropriate dedicated crawler.
+
+        Args:
+            year: Western calendar year
+            season: Quarter number (1-4)
+            fs_type: Financial statement type
+
+        Returns:
+            DataFrame with parsed data, or empty DataFrame on failure
+        """
+        crawler = self._get_crawler(fs_type)
+        result = crawler.download(year, season)
+
+        if not result.success:
+            self._logger.error(
+                "Failed to download %s statement for %d Q%d",
+                fs_type.name, year, season
+            )
+            return pd.DataFrame()
+
+        # Save to local file
+        file_name = f"{year}-season{season}-{fs_type.value}"
+        file_path = os.path.join(self._file_path, "seasonInfo", f"{file_name}.csv")
+        os.makedirs(os.path.dirname(file_path), exist_ok=True)
+        result.df.to_csv(file_path, index=False)
+
+        self._logger.info(
+            "Downloaded %s statement: %d Q%d (%d rows)",
+            fs_type.name, year, season, len(result.df)
+        )
+        return result.df
+
     def _financial_statement(self, year: int, season: int, type: info.FS_type) -> None:
-        """Download financial statement data from external source"""
-        try:
-            # 轉換為民國年
-            roc_year = year - 1911 if year > 1990 else year
+        """Download financial statement data from external source (deprecated).
 
-            # 對應不同財報類型的 URL 路徑
-            type_paths = {
-                info.FS_type.BS: 'bps',
-                info.FS_type.CPL: 'is',
-                info.FS_type.SCF: 'cf'
-            }
-
-            report_type = type_paths.get(type, 'is')
-
-            # ✅ 2026/04 TWSE 最新公開資訊觀測站網址
-            url = f"https://mopsov.twse.com.tw/server-java/t164sb01?step=1&CO_ID=&SYEAR={roc_year}&SSEASON={season}&REPORT_ID={report_type}"
-
-            import requests
-            import time
-
-            # 重試機制
-            max_retries = 3
-            retry_delay = 3
-
-            for attempt in range(max_retries):
-                try:
-                    r = requests.get(url, headers=Tools.get_random_headers(), timeout=45)
-                    r.raise_for_status()
-                    break
-                except requests.exceptions.RequestException as e:
-                    self._logger.warning(f"Download attempt {attempt+1} failed: {e}")
-                    if attempt < max_retries - 1:
-                        time.sleep(retry_delay)
-                    else:
-                        raise
-
-            time.sleep(0.8)
-
-            # 編碼處理
-            for encoding in ['big5', 'cp950', 'big5-hkscs', 'utf-8']:
-                try:
-                    r.encoding = encoding
-                    test_text = r.text
-                    break
-                except LookupError:
-                    continue
-
-            # 解析 HTML 表格
-            dfs = pd.read_html(StringIO(r.text))
-
-            # 尋找正確的資料表格 (通常是第2個表格)
-            if len(dfs) >= 2:
-                df = dfs[1]
-            else:
-                df = dfs[0]
-
-            # 處理多層次欄位名稱
-            if hasattr(df.columns, 'levels') and len(df.columns.levels) > 1:
-                df.columns = df.columns.get_level_values(-1)
-
-            # 儲存到檔案
-            file_name = f"{year}-season{season}-{type.value}"
-            file_path = os.path.join(self._file_path, "seasonInfo", f"{file_name}.csv")
-            os.makedirs(os.path.dirname(file_path), exist_ok=True)
-            df.to_csv(file_path, index=False)
-
-            self._logger.info(f"Downloaded {type} financial statement: {year} Q{season}")
-
-        except Exception as e:
-            self._logger.error(f"Download error for {type} statement {year} Q{season}: {e}")
-            raise
+        .. deprecated::
+            Use _financial_statement_download() instead, which delegates
+            to dedicated crawler classes per report type.
+        """
+        crawler_data = self._financial_statement_download(year, season, type)
+        if crawler_data.empty:
+            self._logger.error("Legacy _financial_statement failed for %s %d Q%d", type.name, year, season)
+            raise RuntimeError(f"Failed to download {type.name} for {year} Q{season}")
+        self._logger.info("Legacy _financial_statement completed via crawler: %d rows", len(crawler_data))
