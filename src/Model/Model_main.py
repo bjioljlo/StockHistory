@@ -2,7 +2,7 @@ from datetime import datetime
 
 from src.Common import Tools
 from src.DrawFigur import DrawFigur
-from src.FilterService.StockReportHistory import Season_Report, SeasonReportFactory, MonthReportFactory, DayReportFactory, DividendYieldReportFactory, ADLReportFactory
+from src.FilterService.StockReportHistory import SeasonReportFactory, MonthReportFactory, DayReportFactory, DividendYieldReportFactory, ADLReportFactory
 from src.Model.Model import TModel
 from src.Common.Parameter import RecordMainParameter
 from src.ScheduleService import ScheduleService
@@ -310,7 +310,7 @@ class Model_main(TModel):
         return None
 
     def operating_margin(self, record_main_parameter: RecordMainParameter):
-        """某股票營業利益率曲線 (operating_income / operating_revenue)"""
+        """某股票營業利益率曲線"""
         if not self._validate_record_parameter(record_main_parameter):
             return
 
@@ -318,7 +318,7 @@ class Model_main(TModel):
         report = self._season_report_factory
         report._FS_type = info.FS_type.PLA
 
-        # 取得多個季度的 PLA 資料以便計算各期營業利益率
+        # 取得多個季度的 PLA 資料
         data_result = report.get_ReportByNumber(
             record_main_parameter.startdate,
             record_main_parameter.number,
@@ -329,31 +329,22 @@ class Model_main(TModel):
             print("無營業利益率資料")
             return
 
-        # 查找營業利益和營業收入欄位
-        income_col = self._find_column_by_keywords(
+        # 直接查找營業利益率欄位（已存在於資料中）
+        margin_col = self._find_column_by_keywords(
             data_result,
-            [('operating_income', '營業利益')]
-        )
-        revenue_col = self._find_column_by_keywords(
-            data_result,
-            [('operating_revenue', '營業收入')]
+            [('operating_margin', '營業利益率')]
         )
 
-        if income_col is None or revenue_col is None:
-            print(f"錯誤：PLA 資料缺少營業利益或營業收入欄位")
+        if margin_col is None:
+            print(f"錯誤：PLA 資料缺少營業利益率欄位")
             print(f"可用欄位: {list(data_result.columns)}")
             return
-
-        # 計算營業利益率 = operating_income / operating_revenue
-        data_result['operating_margin'] = (
-            data_result[income_col] / data_result[revenue_col]
-        )
 
         # 繪製圖表
         self._draw_figur_service.draw_RP(
             data_result,
             record_main_parameter.number,
-            'operating_margin',
+            margin_col,
             self._season_report_factory._name,
             "Operating Margin Ratio",
         )
@@ -378,28 +369,19 @@ class Model_main(TModel):
             print("無營業利益成長率資料")
             return
 
-        # 查找營業利益和營業收入欄位
-        income_col = self._find_column_by_keywords(
+        # 直接查找營業利益率欄位（已存在於資料中）
+        margin_col = self._find_column_by_keywords(
             data_result,
-            [('operating_income', '營業利益')]
-        )
-        revenue_col = self._find_column_by_keywords(
-            data_result,
-            [('operating_revenue', '營業收入')]
+            [('operating_margin', '營業利益率')]
         )
 
-        if income_col is None or revenue_col is None:
-            print(f"錯誤：PLA 資料缺少營業利益或營業收入欄位")
+        if margin_col is None:
+            print(f"錯誤：PLA 資料缺少營業利益率欄位")
             print(f"可用欄位: {list(data_result.columns)}")
             return
 
-        # Step1: 計算各期營業利益率
-        data_result['operating_margin'] = (
-            data_result[income_col] / data_result[revenue_col]
-        )
-
-        # Step2: 計算營業利益率季增率 (本季 - 上季) / 上季
-        data_result['operating_margin_growth'] = data_result['operating_margin'].pct_change() * 100
+        # 計算營業利益率季增率 (本季 - 上季) / 上季
+        data_result['operating_margin_growth'] = data_result[margin_col].pct_change() * 100
 
         # 繪製成長率圖表
         self._draw_figur_service.draw_RP(
