@@ -582,6 +582,16 @@ class Model_main(TModel):
             "Free cash flow",
         )
 
+        if data_result is not None and not data_result.empty:
+            column_name = data_result.columns[0]
+            self._draw_figur_service.draw_RP(
+                data_result,
+                record_main_parameter.number,
+                column_name,
+                "Free cash flow",
+                "Free cash flow",
+            )
+
     def pcf(self, record_main_parameter: RecordMainParameter):
         """某股票股價現金流量比"""
         self._create_and_draw_chart(

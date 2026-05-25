@@ -78,16 +78,24 @@ class FinancialStatementProvider:
         sql_data = self._get_financial_statement_from_sql(start, season, type)
         if not sql_data.empty:
             processed_data = self._process_financial_statement_data(sql_data, start, season, type)
-            self._cache_service.set(cache_key, processed_data, ttl=86400)
-            return processed_data
+            # 只在有有效數值資料時才寫入 Redis，避免空白資料被快取後永不爬蟲更新
+            if self._has_valid_financial_data(processed_data):
+                self._cache_service.set(cache_key, processed_data, ttl=86400)
+                return processed_data
+            else:
+                self._logger.warning("SQL returned empty/nan data for %s %d Q%d, skipping cache and trying crawler", type.name, start.year, season)
+                # 不 return，繼續嘗試爬蟲下載
 
         # 3. Get from local file
         file_data = self._get_financial_statement_from_file(file_path, start, season, type)
         if not file_data.empty:
             processed_data = self._process_financial_statement_data(file_data, start, season, type)
-            self._save_financial_statement_to_db(processed_data, type)
-            self._cache_service.set(cache_key, processed_data, ttl=86400)
-            return processed_data
+            if self._has_valid_financial_data(processed_data):
+                self._save_financial_statement_to_db(processed_data, type)
+                self._cache_service.set(cache_key, processed_data, ttl=86400)
+                return processed_data
+            else:
+                self._logger.warning("File data is empty/nan for %s %d Q%d, skipping cache and trying crawler", type.name, start.year, season)
 
         # 4. Download from external source using dedicated crawler
         crawler_df = self._financial_statement_download(start.year, season, type)
@@ -103,6 +111,30 @@ class FinancialStatementProvider:
         self._cache_service.set(cache_key, processed_data, ttl=86400)
 
         return processed_data
+
+    def _has_valid_financial_data(self, data: pd.DataFrame) -> bool:
+        """檢查 DataFrame 中是否包含有效的數值資料（非全部 NaN/空白）。
+
+        Args:
+            data: 財務報表 DataFrame
+
+        Returns:
+            True 如果有任何有效的數值資料，False 如果全部為 NaN 或空白
+        """
+        if data is None or data.empty:
+            return False
+
+        # 排除非數值欄位（symbol, company_name, statement_type 等）
+        numeric_cols = data.select_dtypes(include=['number']).columns
+        if numeric_cols.empty:
+            return False
+
+        # 檢查是否有任何非 NaN 的數值
+        for col in numeric_cols:
+            if data[col].notna().any():
+                return True
+
+        return False
 
     def _get_financial_statement_from_sql(self, start: datetime, season: int, type: info.FS_type) -> pd.DataFrame:
         """Get financial statement data from SQL database"""
