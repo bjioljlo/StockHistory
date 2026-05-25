@@ -1,7 +1,7 @@
 """Profit/Loss Analysis (PLA) crawler for TWSE MOPS.
 
-PLA (營益分析彙總表) uses the same t164sb01 endpoint
-as BS/CPL/SCF, with REPORT_ID=pl instead of bps/is/cf.
+PLA (營益分析彙總表) uses a different TWSE endpoint (t167sb03)
+compared to BS/CPL/SCF which use t164sb01.
 """
 
 from src.ExternalService.providers.crawlers.base_crawler import (
@@ -13,16 +13,30 @@ from src.ExternalService.providers.crawlers.base_crawler import (
 class PlaCrawler(BaseFinancialCrawler):
     """Crawler for Profit/Loss Analysis (營益分析彙總表).
 
-    TWSE uses the same t164sb01 endpoint with REPORT_ID=pl.
+    TWSE uses t167sb03 endpoint (not t164sb01 like other report types).
+    No REPORT_ID parameter needed.
     """
 
     @property
     def report_id(self) -> str:
-        return "pl"
+        # PLA uses a different endpoint without REPORT_ID
+        return ""
 
     @property
     def report_type_value(self) -> str:
         return "profit-and-loss-analysis-summary"
+
+    def build_url(self, year: int, season: int) -> str:
+        """Build TWSE URL for PLA using t167sb03 endpoint.
+
+        PLA (營益分析彙總表) is served by a different endpoint
+        compared to BS/CPL/SCF which use t164sb01.
+        """
+        roc_year = year - 1911 if year > 1990 else year
+        return (
+            f"https://mopsov.twse.com.tw/server-java/t167sb03"
+            f"?step=1&CO_ID=&SYEAR={roc_year}&SSEASON={season}"
+        )
 
     def download(self, year: int, season: int) -> DownloadResult:
         url = self.build_url(year, season)
