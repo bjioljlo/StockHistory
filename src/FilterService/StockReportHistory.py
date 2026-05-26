@@ -58,20 +58,37 @@ class TReport(IReport):
             print(f"{date_str}的{self._name}表沒出")
             return DataFrame()
 
-        # 嘗試多種索引格式進行匹配
-        search_keys = [str(number), number, f"{number:04d}"]
-
-        for key in search_keys:
-            if key in Temp.index:
+        # 支援單一索引 (symbol) 和 MultiIndex (symbol, report_date)
+        if isinstance(Temp.index, pd.MultiIndex):
+            # MultiIndex / 區間查詢: 第一層是 symbol
+            symbol_str = str(number)
+            if symbol_str in Temp.index.get_level_values(0):
                 date_str = f"{start_date}~{end_date}" if end_date else str(start_date)
                 print(f"{date_str}的{number}公司成立")
-                result = Temp.loc[key]
+                result = Temp.xs(symbol_str, level=0, drop_level=False)
+                return result if isinstance(result, DataFrame) else result.to_frame().T
 
-                # 確保返回 DataFrame 格式
-                if isinstance(result, Series):
-                    return result.to_frame().T
-                elif isinstance(result, DataFrame):
-                    return result
+            # 也嘗試用整數匹配
+            for try_key in [number, f"{number:04d}"]:
+                try_key_str = str(try_key)
+                if try_key_str in Temp.index.get_level_values(0):
+                    result = Temp.xs(try_key_str, level=0, drop_level=False)
+                    return result if isinstance(result, DataFrame) else result.to_frame().T
+        else:
+            # 單一索引 - 原有邏輯
+            search_keys = [str(number), number, f"{number:04d}"]
+
+            for key in search_keys:
+                if key in Temp.index:
+                    date_str = f"{start_date}~{end_date}" if end_date else str(start_date)
+                    print(f"{date_str}的{number}公司成立")
+                    result = Temp.loc[key]
+
+                    # 確保返回 DataFrame 格式
+                    if isinstance(result, Series):
+                        return result.to_frame().T
+                    elif isinstance(result, DataFrame):
+                        return result
 
         date_str = f"{start_date}~{end_date}" if end_date else str(start_date)
         print(f"{date_str}的{number}公司尚未成立")
