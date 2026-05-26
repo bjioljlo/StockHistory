@@ -5,12 +5,14 @@ Handles quarterly financial statement data operations
 Part of TGetExternalData refactoring
 """
 import os
+import re
 from io import StringIO
 from datetime import datetime
 import pandas as pd
 import logging
 
 from src.Common import InfomationType as info
+from src.Common.FieldMapping import FieldMapping
 from src.SqlService import SqlService
 from src.MongoService import MongoService
 from src.ReadLoadSystem import ReadLoadSystem
@@ -164,6 +166,86 @@ class FinancialStatementProvider:
             self._logger.error(f"SQL Error when getting {type} financial statement: {e}")
             return pd.DataFrame()
 
+    def _normalize_column_name(self, column_name: str) -> str:
+        raw_name = str(column_name).strip()
+        raw_name = raw_name.replace('　', ' ').replace('％', '%').replace('／', '/')
+        raw_name = re.sub(r'\s+', ' ', raw_name).strip()
+
+        alias_map = {
+            '毛利率/': '毛利率(%)',
+            '營業利益率/': '營業利益率(%)',
+            '稅前純益率/': '稅前純益率(%)',
+            '稅後純益率/': '稅後純益率(%)',
+            '稅後 純益率/': '稅後純益率(%)',
+            '股東權益總額': '權益總額',
+            '稅前淨利': '稅前純益',
+            '營業活動現金流量': '營業活動之淨現金流入（流出）',
+            '投資活動現金流量': '投資活動之淨現金流入（流出）',
+            '籌資活動現金流量': '籌資活動之淨現金流入（流出）',
+        }
+
+        if raw_name in alias_map:
+            return alias_map[raw_name]
+
+        if FieldMapping.get_sql_column(raw_name) is not None:
+            return raw_name
+
+        normalized = re.sub(r'\s*\([^)]*\)', '', raw_name).strip()
+        normalized = re.sub(r'\s*（[^）]*）', '', normalized).strip()
+        normalized = normalized.rstrip('/').strip()
+        return normalized
+
+    def _load_reference_csv_columns(self, year: int, season: int, fs_type: info.FS_type) -> list[str]:
+        reference_file = os.path.join(self._file_path, "seasonInfo", f"{year}-season{season}-{fs_type.value}.csv")
+        if not os.path.exists(reference_file):
+            return []
+
+        try:
+            reference_df = pd.read_csv(reference_file, nrows=0)
+            return list(reference_df.columns)
+        except Exception:
+            return []
+
+    def _filter_data_by_reference_columns(
+        self,
+        data: pd.DataFrame,
+        year: int,
+        season: int,
+        fs_type: info.FS_type,
+    ) -> pd.DataFrame:
+        reference_columns = self._load_reference_csv_columns(year, season, fs_type)
+        if not reference_columns:
+            return data
+
+        common_name_map = {
+            '公司代號': 'symbol',
+            '公司名稱': 'company_name',
+            '會計年度': 'fiscal_year',
+            '季度': 'fiscal_season'
+        }
+
+        keep_columns = []
+        for ref_col in reference_columns:
+            if ref_col in data.columns:
+                target_column = ref_col
+            elif ref_col in common_name_map and common_name_map[ref_col] in data.columns:
+                target_column = common_name_map[ref_col]
+            else:
+                mapped_column = FieldMapping.get_sql_column(ref_col, fs_type.name)
+                target_column = mapped_column if mapped_column and mapped_column in data.columns else None
+
+            if target_column and target_column not in keep_columns:
+                keep_columns.append(target_column)
+
+        for extra in ['symbol', 'company_name', 'report_year', 'report_season', 'report_type']:
+            if extra in data.columns and extra not in keep_columns:
+                keep_columns.append(extra)
+
+        if not keep_columns:
+            return data
+
+        return data.loc[:, keep_columns]
+
     def _process_financial_statement_data(self, data: pd.DataFrame, start: datetime, season: int, type: info.FS_type) -> pd.DataFrame:
         """Process and clean financial statement data"""
         if data.empty:
@@ -172,7 +254,16 @@ class FinancialStatementProvider:
         # 加入報表年度與季度欄位
         data['report_year'] = start.year
         data['report_season'] = season
-        data['statement_type'] = type.value
+        data['report_type'] = type.name
+
+        # Normalize column names by removing unit annotations, slashes, and variant labels.
+        normalized_columns = {}
+        for col in data.columns:
+            if isinstance(col, str):
+                normalized_name = self._normalize_column_name(col)
+                normalized_columns[col] = normalized_name
+        if normalized_columns:
+            data = data.rename(columns=normalized_columns)
 
         # 財務報表欄位對應
         common_column_mapping = {
@@ -184,45 +275,8 @@ class FinancialStatementProvider:
 
         # 不同財報類型的額外欄位對應
         type_specific_mapping = {}
-
-        if type == info.FS_type.BS:
-            type_specific_mapping = {
-                '現金及約當現金': 'cash_and_equivalents',
-                '應收帳款': 'accounts_receivable',
-                '存貨': 'inventory',
-                '流動資產': 'current_assets',
-                '固定資產': 'fixed_assets',
-                '資產總額': 'total_assets',
-                '應付帳款': 'accounts_payable',
-                '流動負債': 'current_liabilities',
-                '長期負債': 'long_term_liabilities',
-                '負債總額': 'total_liabilities',
-                '股本': 'capital_stock',
-                '保留盈餘': 'retained_earnings',
-                '股東權益總額': 'total_equity'
-            }
-        elif type == info.FS_type.PLA:
-            type_specific_mapping = {
-                '營業收入': 'operating_revenue',
-                '營業成本': 'operating_costs',
-                '營業毛利': 'gross_profit',
-                '營業費用': 'operating_expenses',
-                '營業利益': 'operating_income',
-                '營業外收入及支出': 'non_operating_income',
-                '稅前淨利': 'income_before_tax',
-                '所得稅費用': 'income_tax_expense',
-                '稅後淨利': 'net_income',
-                '每股盈餘': 'eps'
-            }
-        elif type == info.FS_type.SCF:
-            type_specific_mapping = {
-                '營業活動現金流量': 'cash_flow_from_operations',
-                '投資活動現金流量': 'cash_flow_from_investing',
-                '籌資活動現金流量': 'cash_flow_from_financing',
-                '匯率變動影響數': 'exchange_rate_effects',
-                '現金及約當現金增加數': 'net_change_in_cash',
-                '期末現金及約當現金': 'ending_cash_and_equivalents'
-            }
+        if type.name in FieldMapping.ALL_MAPPINGS:
+            type_specific_mapping = FieldMapping.get_all_mappings(type.name)
 
         # 合併欄位對應
         column_mapping = {**common_column_mapping, **type_specific_mapping}
@@ -232,8 +286,10 @@ class FinancialStatementProvider:
             if old_name in data.columns:
                 data = data.rename(columns={old_name: new_name})
 
+        data = self._filter_data_by_reference_columns(data, start.year, season, type)
+
         # 轉換數值欄位
-        numeric_columns = [col for col in data.columns if col not in ['symbol', 'company_name', 'statement_type']]
+        numeric_columns = [col for col in data.columns if col not in ['symbol', 'company_name', 'report_type']]
         for col in numeric_columns:
             if col in data.columns:
                 data[col] = pd.to_numeric(data[col], errors='coerce')
@@ -338,7 +394,7 @@ class FinancialStatementProvider:
         file_name = f"{year}-season{season}-{fs_type.value}"
         file_path = os.path.join(self._file_path, "seasonInfo", f"{file_name}.csv")
         os.makedirs(os.path.dirname(file_path), exist_ok=True)
-        result.df.to_csv(file_path, index=False)
+        result.df.to_csv(file_path, index=False, encoding='utf-8-sig')
 
         self._logger.info(
             "Downloaded %s statement: %d Q%d (%d rows)",

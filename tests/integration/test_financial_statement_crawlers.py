@@ -64,9 +64,9 @@ class TestFinancialStatementCrawlersIntegration:
         assert "SSEASON=3" in url
 
     def test_pla_builds_correct_url(self):
-        """PLA should use t167sb03 endpoint (different from other three)."""
+        """PLA should use ajax_t163sb06 endpoint (different from other three)."""
         crawler = PlaCrawler()
         url = crawler.build_url(2024, 1)
-        assert "t167sb03" in url
+        assert "ajax_t163sb06" in url
         assert "t164sb01" not in url, "PLA must NOT use t164sb01"
         assert "REPORT_ID" not in url, "PLA has no REPORT_ID parameter"

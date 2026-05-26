@@ -2,7 +2,7 @@ from datetime import datetime
 
 from src.Common import Tools
 from src.DrawFigur import DrawFigur
-from src.FilterService.StockReportHistory import SeasonReportFactory, MonthReportFactory, DayReportFactory, DividendYieldReportFactory, ADLReportFactory
+from src.FilterService.StockReportHistory import Season_Report, SeasonReportFactory, MonthReportFactory, DayReportFactory, DividendYieldReportFactory, ADLReportFactory
 from src.Model.Model import TModel
 from src.Common.Parameter import RecordMainParameter
 from src.ScheduleService import ScheduleService
@@ -100,7 +100,7 @@ class Model_main(TModel):
             self._season_report_factory.OM_index: {
                 'factory': self._season_report_factory,
                 'fs_type': info.FS_type.PLA,
-                'show_column': 0,
+                'show_column': 3,
             },
             self._season_report_factory.OM_Growth_index: {
                 'factory': self._season_report_factory,
@@ -113,12 +113,12 @@ class Model_main(TModel):
             self._season_report_factory.OCF_index: {
                 'factory': self._season_report_factory,
                 'fs_type': info.FS_type.SCF,
-                'show_column': 16,
+                'show_column': 1,
             },
             self._season_report_factory.ICF_index: {
                 'factory': self._season_report_factory,
                 'fs_type': info.FS_type.SCF,
-                'show_column': 17,
+                'show_column': 2,
             },
             self._season_report_factory.FreeCF_index: {
                 'factory': self._season_report_factory,
@@ -128,7 +128,8 @@ class Model_main(TModel):
             self._season_report_factory.EPS_index: {
                 'factory': self._season_report_factory,
                 'fs_type': info.FS_type.CPL,
-                'show_column': 10,
+                'show_column': 2,
+                'skip_date_check': True,
             },
             self._season_report_factory.Debt_index: {
                 'factory': self._season_report_factory,
@@ -212,22 +213,6 @@ class Model_main(TModel):
         if not self._validate_date_for_chart(record_parameter, report_index):
             return None
 
-        if record_parameter.enddate is None:
-            print("錯誤：結束日期未設定")
-            return None
-
-        if record_parameter.startdate is None:
-            print("錯誤：開始日期未設定")
-            return None
-
-        # 月營收的日期驗證已經在各自方法 (month_rp, month_revenue_growth) 中做過了
-        # 這邊只需要針對其他報表類型做日期檢查
-        if report_index != self._month_report_factory.Month_index and \
-           report_index != self._month_report_factory.MR_Growth_index and \
-           record_parameter.enddate.day == datetime.today().day:
-            print("今天還沒過完無資資訊")
-            return None
-
         # 直接從 ReportFactory 取得數據，不再使用 ChartDataGenerator
         report = None
         showClumn = 0
@@ -249,7 +234,7 @@ class Model_main(TModel):
             # 營業利益率：從 PLA 報表中取出營業利益率(operating_margin)欄位
             report = self._season_report_factory
             report._FS_type = info.FS_type.PLA
-            showClumn = 2  # operating_margin 在 PLA 資料中的欄位索引
+            showClumn = 3  # operating_margin 在 PLA 資料中的欄位索引 (0:company_name, 1:revenue, 2:gross_margin, 3:operating_margin)
         elif report_index == self._season_report_factory.OM_Growth_index:
             # 營業利益成長率：使用 OM_Growth_Indicator 計算
             is_indicator = True
@@ -259,18 +244,18 @@ class Model_main(TModel):
         elif report_index == self._season_report_factory.OCF_index:
             report: Season_Report = self._season_report_factory
             report._FS_type = info.FS_type.SCF
-            showClumn = 16
+            showClumn = 1
         elif report_index == self._season_report_factory.ICF_index:
             report: Season_Report = self._season_report_factory
             report._FS_type = info.FS_type.SCF
-            showClumn = 17
+            showClumn = 2
         elif report_index == self._season_report_factory.FreeCF_index:
             report = self._season_report_factory
             report._FS_type = info.FS_type.SCF
         elif report_index == self._season_report_factory.EPS_index:
             report = self._season_report_factory
             report._FS_type = info.FS_type.CPL
-            showClumn = 10
+            showClumn = 2  # eps 在 CPL 資料中的欄位索引 (0:company_name, 1:net_income, 2:eps)
         elif report_index == self._season_report_factory.Debt_index:
             from src.FilterService.StockReportHistory import Debt_Indicator
             report = self._season_report_factory
@@ -307,13 +292,7 @@ class Model_main(TModel):
             print(f"錯誤：無法識別的報表索引 {report_index}")
             return None
 
-        report = config['factory']
-
-        # Step 4: 應用財務表類型（如有）
-        if 'fs_type' in config:
-            report._FS_type = config['fs_type']
-
-        # Step 5: 取得數據
+        # 取得數據
         if stock_number_required and record_parameter.number is not None:
             data_result = report.get_ReportByNumber(
                 record_parameter.startdate,
@@ -581,16 +560,6 @@ class Model_main(TModel):
             self._season_report_factory._name,
             "Free cash flow",
         )
-
-        if data_result is not None and not data_result.empty:
-            column_name = data_result.columns[0]
-            self._draw_figur_service.draw_RP(
-                data_result,
-                record_main_parameter.number,
-                column_name,
-                "Free cash flow",
-                "Free cash flow",
-            )
 
     def pcf(self, record_main_parameter: RecordMainParameter):
         """某股票股價現金流量比"""

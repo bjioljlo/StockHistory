@@ -64,3 +64,68 @@ class TestFinancialStatementProviderCrawler:
             )
             assert not result.empty
             mock_download.assert_called_once()
+
+    def test_process_pla_dataframe_maps_to_sql_columns(self, provider):
+        """PLA data should normalize headers and map to quarterly_reports SQL columns."""
+        raw_df = DataFrame({
+            '公司代號': ['1101'],
+            '公司名稱': ['台泥'],
+            '營業收入': ['34956.26'],
+            '毛利率/': ['16.86'],
+            '營業利益率/': ['6.58'],
+            '稅前純益率/': ['5.41'],
+            '稅後 純益率/': ['2.20'],
+        })
+
+        processed = provider._process_financial_statement_data(
+            raw_df,
+            datetime(2025, 3, 15),
+            1,
+            info.FS_type.PLA,
+        )
+
+        assert 'report_type' in processed.columns
+        assert processed.loc[0, 'report_type'] == 'PLA'
+        assert 'revenue' in processed.columns
+        assert 'gross_margin' in processed.columns
+        assert 'operating_margin' in processed.columns
+        assert 'pre_tax_margin' in processed.columns
+        assert 'net_margin' in processed.columns
+        assert 'statement_type' not in processed.columns
+        assert processed.loc[0, 'revenue'] == pytest.approx(34956.26)
+        assert processed.loc[0, 'gross_margin'] == pytest.approx(16.86)
+
+    def test_filter_data_by_reference_csv(self, provider, tmp_path):
+        reference_dir = tmp_path / "seasonInfo"
+        reference_dir.mkdir()
+        reference_file = reference_dir / "2025-season4-profit-and-loss-analysis-summary.csv"
+        reference_file.write_text(
+            "公司名稱,公司代號,營業收入,毛利率(%),營業利益率(%),稅前純益率(%),稅後純益率(%)\n",
+            encoding='utf-8'
+        )
+        provider._file_path = str(tmp_path)
+
+        raw_df = DataFrame({
+            '公司代號': ['1101'],
+            '公司名稱': ['台泥'],
+            '營業收入': ['149804.14'],
+            '毛利率/': ['18.40'],
+            '營業利益率/': ['6.73'],
+            '稅前純益率/': ['-6.29'],
+            '稅後 純益率/': ['-7.92'],
+            'extra': ['ignore_me'],
+        })
+
+        processed = provider._process_financial_statement_data(
+            raw_df,
+            datetime(2025, 10, 1),
+            4,
+            info.FS_type.PLA,
+        )
+
+        assert 'extra' not in processed.columns
+        assert 'revenue' in processed.columns
+        assert 'gross_margin' in processed.columns
+        assert 'operating_margin' in processed.columns
+        assert 'pre_tax_margin' in processed.columns
+        assert 'net_margin' in processed.columns

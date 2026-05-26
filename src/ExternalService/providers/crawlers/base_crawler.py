@@ -64,14 +64,24 @@ class BaseFinancialCrawler(ABC):
         )
 
     def _decode_response(self, response: requests.Response) -> str:
-        """Try multiple encodings to decode TWSE response."""
-        for encoding in ['big5', 'cp950', 'big5-hkscs', 'utf-8']:
+        """Decode TWSE response using the best available encoding."""
+        # Prefer the encoding declared by the server.
+        if response.encoding and response.encoding.lower() != 'iso-8859-1':
+            try:
+                response.encoding = response.encoding
+                return response.text
+            except (LookupError, UnicodeDecodeError):
+                pass
+
+        # Fall back to common TWSE encodings.
+        for encoding in ['utf-8', 'big5', 'cp950', 'big5-hkscs']:
             try:
                 response.encoding = encoding
                 return response.text
             except (LookupError, UnicodeDecodeError):
                 continue
-        # Fallback: let requests guess
+
+        # Last resort: allow requests to guess.
         return response.text
 
     def _parse_html_tables(self, html_text: str) -> Optional[pd.DataFrame]:
@@ -96,18 +106,23 @@ class BaseFinancialCrawler(ABC):
 
         return df
 
-    def _request_with_retry(self, url: str) -> Optional[str]:
+    def _request_with_retry(self, url: str, method: str = "get", data: dict | None = None) -> Optional[str]:
         """Send HTTP request with retry logic.
 
         Args:
             url: Target URL
+            method: HTTP method to use ('get' or 'post').
+            data: Form data for POST requests.
 
         Returns:
             Response text if successful, None otherwise
         """
         for attempt in range(self.max_retries):
             try:
-                r = requests.get(url, headers=Tools.get_random_headers(), timeout=45)
+                if method.lower() == "post":
+                    r = requests.post(url, data=data, headers=Tools.get_random_headers(), timeout=45)
+                else:
+                    r = requests.get(url, headers=Tools.get_random_headers(), timeout=45)
                 r.raise_for_status()
                 return self._decode_response(r)
             except requests.exceptions.RequestException as e:
