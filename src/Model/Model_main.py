@@ -212,9 +212,90 @@ class Model_main(TModel):
         if not self._validate_date_for_chart(record_parameter, report_index):
             return None
 
-        # Step 3: 取得報表配置
-        config = self._get_report_config(report_index)
-        if config is None:
+        if record_parameter.enddate is None:
+            print("錯誤：結束日期未設定")
+            return None
+
+        if record_parameter.startdate is None:
+            print("錯誤：開始日期未設定")
+            return None
+
+        # 月營收的日期驗證已經在各自方法 (month_rp, month_revenue_growth) 中做過了
+        # 這邊只需要針對其他報表類型做日期檢查
+        if report_index != self._month_report_factory.Month_index and \
+           report_index != self._month_report_factory.MR_Growth_index and \
+           record_parameter.enddate.day == datetime.today().day:
+            print("今天還沒過完無資資訊")
+            return None
+
+        # 直接從 ReportFactory 取得數據，不再使用 ChartDataGenerator
+        report = None
+        showClumn = 0
+        is_indicator = False  # 是否為衍生指標（需透過 Indicator 類計算）
+
+        # 根據指標索引取得對應的報表物件
+        if report_index == self._month_report_factory.Month_index:
+            report = self._month_report_factory
+            showClumn = 3
+        elif report_index == self._month_report_factory.MR_Growth_index:
+            report = self._month_report_factory
+            showClumn = 5
+        elif report_index == self._dividend_yield_report_factory.Yield_index:
+            report = self._dividend_yield_report_factory
+            showClumn = 3
+        elif report_index == self._day_report_factory.PCF_index:
+            report = self._day_report_factory
+        elif report_index == self._season_report_factory.OM_index:
+            # 營業利益率：從 PLA 報表中取出營業利益率(operating_margin)欄位
+            report = self._season_report_factory
+            report._FS_type = info.FS_type.PLA
+            showClumn = 2  # operating_margin 在 PLA 資料中的欄位索引
+        elif report_index == self._season_report_factory.OM_Growth_index:
+            # 營業利益成長率：使用 OM_Growth_Indicator 計算
+            is_indicator = True
+        elif report_index == self._season_report_factory.ROE_index:
+            # 歷史ROE：使用 ROE_Indicator 計算
+            is_indicator = True
+        elif report_index == self._season_report_factory.OCF_index:
+            report: Season_Report = self._season_report_factory
+            report._FS_type = info.FS_type.SCF
+            showClumn = 16
+        elif report_index == self._season_report_factory.ICF_index:
+            report: Season_Report = self._season_report_factory
+            report._FS_type = info.FS_type.SCF
+            showClumn = 17
+        elif report_index == self._season_report_factory.FreeCF_index:
+            report = self._season_report_factory
+            report._FS_type = info.FS_type.SCF
+        elif report_index == self._season_report_factory.EPS_index:
+            report = self._season_report_factory
+            report._FS_type = info.FS_type.CPL
+            showClumn = 10
+        elif report_index == self._season_report_factory.Debt_index:
+            report = self._season_report_factory
+        elif report_index == self._season_report_factory.SR_Growth_index:
+            report = self._season_report_factory
+        elif report_index == self._adl_report_factory.ADL_index:
+            report = self._adl_report_factory
+        elif report_index == self._adl_report_factory.ADLs_index:
+            report = self._adl_report_factory
+
+        # 處理衍生指標（ROE、營業利益成長率等）
+        if is_indicator and stock_number_required and record_parameter.number is not None:
+            data_result = self._get_indicator_data(record_parameter, report_index)
+            stock_number_for_draw = record_parameter.number
+            if draw and data_result is not None and not data_result.empty:
+                column_name = data_result.columns[0] if len(data_result.columns) > 0 else data_result.index.name
+                self._draw_figur_service.draw_RP(
+                    data_result,
+                    stock_number_for_draw,
+                    column_name,
+                    column_name,
+                    chart_title,
+                )
+            return data_result
+
+        if report is None:
             print(f"錯誤：無法識別的報表索引 {report_index}")
             return None
 
@@ -241,11 +322,9 @@ class Model_main(TModel):
 
         # Step 6: 繪製圖表
         if draw and data_result is not None and not data_result.empty:
-            show_column = config.get('show_column', 0)
-            column_name = (
-                data_result.columns[show_column]
-                if len(data_result.columns) > show_column
-                else data_result.index.name
+            # 取得第一個欄位名稱做為繪圖欄位
+            column_name = data_result.columns[showClumn] if len(data_result.columns) > 0 and showClumn < len(data_result.columns) else (
+                data_result.columns[0] if len(data_result.columns) > 0 else data_result.index.name
             )
             self._draw_figur_service.draw_RP(
                 data_result,
@@ -256,6 +335,40 @@ class Model_main(TModel):
             )
 
         return data_result
+
+    def _get_indicator_data(self, record_parameter: RecordMainParameter, report_index):
+        """
+        使用 Indicator 類計算衍生指標數據
+        """
+        from src.FilterService.StockReportHistory import OM_Growth_Indicator, ROE_Indicator
+
+        if report_index == self._season_report_factory.OM_Growth_index:
+            # 營業利益成長率 = (本季營業利益率 - 去年同期營業利益率) / 去年同期營業利益率 * 100
+            indicator = OM_Growth_Indicator("OM_Growth", self._season_report_factory)
+            # 設定正確的報表類型為 PLA
+            self._season_report_factory._FS_type = info.FS_type.PLA
+            return indicator.get_ReportByNumber(
+                record_parameter.startdate,
+                record_parameter.number,
+                end_date=record_parameter.enddate
+            )
+
+        elif report_index == self._season_report_factory.ROE_index:
+            # ROE = 本期綜合損益總額 / 權益總額 * 100
+            cpl_report = Season_Report(
+                info.FS_type.CPL.value, 3, self._external_data_service, info.FS_type.CPL
+            )
+            bs_report = Season_Report(
+                info.FS_type.BS.value, 3, self._external_data_service, info.FS_type.BS
+            )
+            indicator = ROE_Indicator("ROE", cpl_report, bs_report)
+            return indicator.get_ReportByNumber(
+                record_parameter.startdate,
+                record_parameter.number,
+                end_date=record_parameter.enddate
+            )
+
+        return None
 
     def month_rp(self, record_main_parameter: RecordMainParameter):
         """某股票月營收曲線"""
