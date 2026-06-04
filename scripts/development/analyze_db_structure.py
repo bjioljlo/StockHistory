@@ -8,8 +8,8 @@ import sys
 import os
 sys.path.append('src')
 
-from src.SqlService import SqlService
-from src.Common.ConfigService import ConfigService
+from pydb_core.sql_service import SqlService
+from pyutils_core.config import ConfigService
 import pandas as pd
 import time
 from collections import defaultdict

@@ -26,7 +26,7 @@ import yaml
 project_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 sys.path.insert(0, project_root)
 
-from src.Common.ConfigService import load_config, get_config_path
+from pyutils_core.config import load_config, get_config_path
 
 # 配置日誌
 logging.basicConfig(

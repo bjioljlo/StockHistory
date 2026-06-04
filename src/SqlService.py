@@ -9,7 +9,7 @@ from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy import inspect, text
 
 from src.Common import Tools
-from src.Common.ConfigService import get_config
+from pyutils_core.config import get_config
 
 
 class SqlService:

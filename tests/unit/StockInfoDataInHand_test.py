@@ -1,7 +1,7 @@
 import unittest
 
 from src.BackTestService.StockInfoDataInHand import StockInfoDataInHandWithWeightedAverage
-from src.Common.StockInfoData import StockInfoCurrentData, StockInfoData
+from pydb_core.stock_info_data import StockInfoCurrentData, StockInfoData
 
 
 class StockInfoDataInHand_test(unittest.TestCase):

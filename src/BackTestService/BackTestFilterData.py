@@ -7,7 +7,7 @@ from typing import Callable
 import twstock as ts  # 抓取台灣股票資料套件
 from pandas import Series
 
-from src.Common.StockInfoData import StockInfoData, StockInfoSignalData
+from pydb_core.stock_info_data import StockInfoData, StockInfoSignalData
 
 from .BackTestFilter import IBacktestFilter
 from .BackTestSignal import IBacktestSignal

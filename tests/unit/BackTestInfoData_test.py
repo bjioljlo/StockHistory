@@ -5,7 +5,7 @@ from unittest.mock import patch, MagicMock
 from src.BackTestService.BackTestInfoData import BackTestInfoDataPriceByToday
 from src.FilterService.StockHistory import OriginalStockTest
 from src.ExternalService.ExternalDataFactory import ExternalDataFactory, ExternalDataTypeEnum
-from src.Common.StockInfoData import BaseInfoData
+from pydb_core.stock_info_data import BaseInfoData
 
 
 class BackTestInfoDataPriceByToday_test(unittest.TestCase):

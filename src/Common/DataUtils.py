@@ -7,7 +7,7 @@ Data processing and DataFrame manipulation functions.
 
 import pandas as pd
 from typing import Dict, Optional
-from .Exceptions import InvalidDataError
+from pyutils_core.exceptions import InvalidDataError
 
 
 def merge_dataframes(

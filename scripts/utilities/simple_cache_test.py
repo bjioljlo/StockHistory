@@ -16,7 +16,7 @@ def test_basic_import():
     try:
         # 測試類別匯入
         print("1. 測試類別匯入...")
-        from src.Common.CacheService import HybridCacheService, CacheService
+        from pydb_core.cache_service import HybridCacheService, CacheService
         print("[OK] 類別匯入成功")
 
         # 測試別名
@@ -42,7 +42,7 @@ def test_basic_import():
             print(f"[OK] 方法 {method} 存在")
 
         print("\n4. 測試全域函數...")
-        from src.Common.CacheService import get_cache_service
+        from pydb_core.cache_service import get_cache_service
         assert callable(get_cache_service)
         print("[OK] 全域函數 get_cache_service 存在")
 

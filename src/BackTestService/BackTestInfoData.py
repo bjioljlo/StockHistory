@@ -7,7 +7,7 @@ from pandas import DataFrame
 from src.Common import Tools
 from src.FilterService.StockHistory import OriginalStock
 from src.Common.InfomationType import stock_data_kind
-from src.Common.StockInfoData import BaseInfoData
+from pydb_core.stock_info_data import BaseInfoData
 
 from .BackTestRecord import BackTestRecord_indexWithDate, IBackTestRecord
 from .StockInfoDataInHand import IStockInfoDataInHand, StockInfoDataInHandFactory

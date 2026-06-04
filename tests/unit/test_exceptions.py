@@ -3,7 +3,7 @@ Unit tests for Exceptions module.
 """
 
 import pytest
-from src.Common.Exceptions import (
+from pyutils_core.exceptions import (
     StockHistoryError,
     ConfigurationError,
     ConfigNotFoundError,

@@ -9,9 +9,9 @@ import sys
 import os
 sys.path.insert(0, os.path.dirname(__file__))
 
-from src.Common.CacheService import HybridCacheService
-from src.MongoService import MongoService
-from src.SqlService import SqlService
+from pydb_core.cache_service import HybridCacheService
+from pydb_core.mongo_service import MongoService
+from pydb_core.sql_service import SqlService
 import pandas as pd
 from datetime import datetime
 

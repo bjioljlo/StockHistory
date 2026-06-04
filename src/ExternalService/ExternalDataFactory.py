@@ -4,10 +4,10 @@ from src.ExternalService.TGetExternalData import TGetExternalData
 from src.ExternalService.GetExternalDataTest import GetExternalDataTest
 from src.ExternalService.IGetExternalData import IGetExternalData
 from src.ExternalService.MockGetExternalData import MockGetExternalData
-from src.MongoService import MongoService
-from src.ReadLoadSystem import ReadLoadSystem
-from src.SqlService import SqlService
-from src.Common.CacheService import HybridCacheService
+from pydb_core.mongo_service import MongoService
+from pydb_core.read_load_system import ReadLoadSystem
+from pydb_core.sql_service import SqlService
+from pydb_core.cache_service import HybridCacheService
 
 
 class ExternalDataTypeEnum(Enum):

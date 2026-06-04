@@ -1,7 +1,7 @@
 # test_concurrent_utils.py
 import unittest
 import time
-from src.Common.ConcurrentUtils import ConcurrentUtils
+from pyutils_core.concurrent import ConcurrentUtils
 
 
 class TestConcurrentUtils(unittest.TestCase):

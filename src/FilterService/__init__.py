@@ -1,42 +1,44 @@
-"""
-FilterService Package
+"""Legacy FilterService compatibility layer.
 
-Modular components:
-- StockHistory: Stock data filters and calculators
-- StockReportHistory: Financial report indicators
-
-Refactored at 2026-04-06 as part of project-refactoring-and-cleanup
+The canonical indicator package has moved to the standalone ``indicator-core``
+repo. This module keeps the historical ``src.FilterService`` import path alive
+for the rest of the StockHistory application.
 """
-from .StockHistory import (
-    OriginalStock,
-    OriginalStockByYahoo,
-    RangeDate_Stock,
-    RecordHigh_Stock,
-    SMA_Stock,
-    StockFilter,
-    StockFilterInfo,
-    StockPriceBetterMA,
-    StockRecordHigh,
-    StockAvgVolMultiple,
-)
-from .StockReportHistory import (
+from indicator_core import (
+    ADLReportFactory,
     ADL_Indicator,
     ADL_Report,
     ADLs_Indicator,
+    DayReportFactory,
     Day_Report,
     Debt_Indicator,
+    DividendYieldReportFactory,
+    DividendYield_Report,
     FreeCF_Indicator,
     Indicator,
+    IReport,
+    MonthReportFactory,
     Month_Report,
     MR_Growth_Indicator,
     OCFPerShare_Indicator,
     OM_Growth_Indicator,
+    OriginalStock,
+    OriginalStockByYahoo,
     Original_Indicator,
     PCF_Indicator,
     PEG_Indicator,
     ROE_Indicator,
-    Season_Report,
+    RangeDate_Stock,
+    RecordHigh_Stock,
+    SMA_Stock,
     SR_Growth_Indicator,
+    SeasonReportFactory,
+    Season_Report,
+    StockAvgVolMultiple,
+    StockFilter,
+    StockFilterInfo,
+    StockPriceBetterMA,
+    StockRecordHigh,
     TReport,
 )
 

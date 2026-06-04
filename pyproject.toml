@@ -4,11 +4,22 @@ version = "0.1.0"
 description = "Add your description here"
 readme = "README.md"
 requires-python = ">=3.12"
-dependencies = []
+dependencies = [
+    "pyutils-core @ file:///D:/Python/pyutils-core",
+    "pydb-core @ file:///D:/Python/pydb-core",
+    "datafetcher-core @ file:///D:/Python/datafetcher-core",
+    "indicator-core @ file:///D:/Python/indicator-core",
+    "backtest-engine @ file:///D:/Python/backtest-engine",
+]
 
 [tool.pytest.ini_options]
 markers = [
     "integration: Integration tests that hit external services (TWSE API).",
+]
+
+[dependency-groups]
+dev = [
+    "pytest>=8.2.0",
 ]
 
 [project.optional-dependencies]

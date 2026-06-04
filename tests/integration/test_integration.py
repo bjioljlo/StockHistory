@@ -14,14 +14,14 @@ def test_cache_integration():
     try:
         # 模擬 main_stock.py 的初始化過程
         print("1. 載入配置...")
-        from src.Common.ConfigService import load_config, get_config_path
+        from pyutils_core.config import load_config, get_config_path
         config = load_config(get_config_path())
         print("[OK] 配置載入成功")
 
         print("2. 初始化基礎服務...")
-        from src.SqlService import SqlService
-        from src.MongoService import MongoService
-        from src.ReadLoadSystem import ReadLoadSystem
+        from pydb_core.sql_service import SqlService
+        from pydb_core.mongo_service import MongoService
+        from pydb_core.read_load_system import ReadLoadSystem
 
         sql_service = SqlService()
         # 注意：這裡不實際連線資料庫，只測試類別初始化
@@ -35,7 +35,7 @@ def test_cache_integration():
         print("[OK] 讀取載入系統初始化成功")
 
         print("3. 初始化混合快取服務...")
-        from src.Common.CacheService import HybridCacheService
+        from pydb_core.cache_service import HybridCacheService
 
         # 創建快取服務（不實際連線 Redis/MongoDB）
         cache_service = HybridCacheService(

@@ -12,10 +12,10 @@ import pandas as pd
 import logging
 import requests
 
-from src.SqlService import SqlService
-from src.MongoService import MongoService
-from src.ReadLoadSystem import ReadLoadSystem
-from src.Common.CacheService import HybridCacheService
+from pydb_core.sql_service import SqlService
+from pydb_core.mongo_service import MongoService
+from pydb_core.read_load_system import ReadLoadSystem
+from pydb_core.cache_service import HybridCacheService
 from src.Common import Tools
 
 

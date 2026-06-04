@@ -9,7 +9,7 @@ from datetime import datetime
 import numpy as np
 import twstock as ts  # 抓取台灣股票資料套件
 
-from src.Common.StockInfoData import StockInfoData
+from pydb_core.stock_info_data import StockInfoData
 
 
 class IStockInfoDatas(ABC):

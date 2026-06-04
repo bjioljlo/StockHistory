@@ -9,7 +9,7 @@ import unittest
 import time
 from unittest.mock import Mock, patch
 
-from src.Common.PerformanceMonitor import (
+from pyutils_core.performance import (
     PerformanceMonitor,
     PerformanceMetrics,
     TimedBlock,

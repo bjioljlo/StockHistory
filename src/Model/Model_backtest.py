@@ -4,10 +4,10 @@ from src.ExternalService.ExternalDataFactory import ExternalDataFactory
 from src.FilterService.StockHistory import OriginalStockByYahoo
 from src.Model.Model import TModel
 from src.Common.Parameter import RecordBackTestParameter
-from src.Common.ConcurrentUtils import ConcurrentUtils
+from pyutils_core.concurrent import ConcurrentUtils
 import os
 import pandas as pd
-from src.SqlService import SqlService
+from pydb_core.sql_service import SqlService
 
 
 class Model_backtest(TModel):

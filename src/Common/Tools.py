@@ -18,7 +18,7 @@ New code should import directly from the specialized modules.
 import warnings
 
 # Re-export all functions from new modules
-from .DateUtils import (
+from indicator_core.date_utils import (
     change_date_month,
     check_month_date,
     back_work_days,
@@ -34,7 +34,7 @@ from .DateUtils import (
     SEASON_RP_TIME_DAY,
 )
 
-from .FinancialUtils import (
+from indicator_core.financial_utils import (
     calculate_total_with_fees,
     calculate_max_shares,
     smooth_data,
@@ -52,19 +52,19 @@ Have_DayRP = have_day_rp
 Total_with_Handling_fee_and_Tax = calculate_total_with_fees
 Count_Stock_Amount = calculate_max_shares
 
-from .DataUtils import (
+from indicator_core.data_utils import (
     merge_dataframes,
     extract_ticker_data,
 )
 
-from .NetworkUtils import (
+from indicator_core.network_utils import (
     get_random_user_agent,
     get_random_headers,
     get_sp500_tickers,
     _USER_AGENTS,
 )
 
-from .StockUtils import (
+from indicator_core.stock_utils import (
     is_excluded_stock,
     is_etf_stock,
     EXCLUDED_STOCKS,

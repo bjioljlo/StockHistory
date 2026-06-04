@@ -11,7 +11,7 @@ import time
 project_root = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, project_root)
 
-from src.SqlService import SqlService
+from pydb_core.sql_service import SqlService
 
 def test_new_sql_methods():
     """測試新的優化查詢方法"""

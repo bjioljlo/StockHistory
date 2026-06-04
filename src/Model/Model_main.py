@@ -255,7 +255,7 @@ class Model_main(TModel):
         elif report_index == self._season_report_factory.EPS_index:
             report = self._season_report_factory
             report._FS_type = info.FS_type.CPL
-            showClumn = 2  # eps 在 CPL 資料中的欄位索引 (0:company_name, 1:net_income, 2:eps)
+            showClumn = -1  # 將使用 keyword 查找 EPS 欄位
         elif report_index == self._season_report_factory.Debt_index:
             from src.FilterService.StockReportHistory import Debt_Indicator
             report = self._season_report_factory
@@ -570,10 +570,39 @@ class Model_main(TModel):
         )
 
     def eps(self, record_main_parameter: RecordMainParameter):
-        """某股票eps"""
-        self._create_and_draw_chart(
-            record_main_parameter,
-            self._season_report_factory.EPS_index,
+        """某股票eps，使用 keyword 查找 consolidated_eps 欄位"""
+        if not self._validate_record_parameter(record_main_parameter):
+            return
+
+        report = self._season_report_factory
+        report._FS_type = info.FS_type.CPL
+
+        data_result = report.get_ReportByNumber(
+            record_main_parameter.startdate,
+            record_main_parameter.number,
+            record_main_parameter.enddate,
+        )
+
+        if data_result is None or data_result.empty:
+            print("無 EPS 資料")
+            return
+
+        # 用 keyword 查找 EPS 欄位
+        eps_col = self._find_column_by_keywords(
+            data_result,
+            [('consolidated_eps', '每股盈餘'), ('eps', '基本每股盈餘')]
+        )
+
+        if eps_col is None:
+            print(f"錯誤：CPL 資料缺少 EPS 欄位")
+            print(f"可用欄位: {list(data_result.columns)}")
+            return
+
+        self._draw_figur_service.draw_RP(
+            data_result,
+            record_main_parameter.number,
+            eps_col,
+            self._season_report_factory._name,
             "Earnings Per Share(EPS)",
         )
 

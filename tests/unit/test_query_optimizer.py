@@ -9,7 +9,7 @@ from unittest.mock import Mock, patch, MagicMock
 from sqlalchemy import text
 import pandas as pd
 
-from src.Common.QueryOptimizer import QueryOptimizer
+from pydb_core.query_optimizer import QueryOptimizer
 
 
 class TestQueryOptimizer(unittest.TestCase):

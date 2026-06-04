@@ -13,7 +13,7 @@ from unittest.mock import MagicMock, patch
 project_root = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, project_root)
 
-from src.SqlService import SqlService
+from pydb_core.sql_service import SqlService
 
 
 class TestSqlServiceOptimizedMethods(unittest.TestCase):

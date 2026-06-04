@@ -772,6 +772,11 @@ dev = [
     { name = "types-requests" },
 ]
 
+[package.dev-dependencies]
+dev = [
+    { name = "pytest" },
+]
+
 [package.metadata]
 requires-dist = [
     { name = "black", marker = "extra == 'dev'" },
@@ -790,6 +795,9 @@ requires-dist = [
     { name = "types-requests", marker = "extra == 'dev'" },
 ]
 provides-extras = ["dev"]
+
+[package.metadata.requires-dev]
+dev = [{ name = "pytest", specifier = ">=8.2.0" }]
 
 [[package]]
 name = "types-requests"

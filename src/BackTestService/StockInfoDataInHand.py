@@ -3,7 +3,7 @@ from abc import ABC, abstractmethod
 
 import twstock as ts  # 抓取台灣股票資料套件
 
-from src.Common.StockInfoData import StockInfoCurrentData, StockInfoData
+from pydb_core.stock_info_data import StockInfoCurrentData, StockInfoData
 
 
 class IStockInfoDataInHand(ABC):

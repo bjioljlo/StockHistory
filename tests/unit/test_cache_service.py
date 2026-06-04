@@ -10,7 +10,7 @@ from unittest.mock import Mock, patch
 import pandas as pd
 import redis
 
-from src.Common.CacheService import HybridCacheService, get_cache_service
+from pydb_core.cache_service import HybridCacheService, get_cache_service
 
 
 def create_test_cache_service(config_path='config.yml'):
@@ -44,7 +44,7 @@ def create_cached_sql_service(sql_service, mongo_service=None, sql_service_insta
     Returns:
         CachedSqlService: 測試用的 CachedSqlService 實例
     """
-    from src.Common.CacheService import CachedSqlService
+    from pydb_core.cache_service import CachedSqlService
     
     # 創建 mock 服務
     mock_mongo_service = mongo_service or Mock()

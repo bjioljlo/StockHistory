@@ -32,7 +32,7 @@ from src.FilterService.StockHistory import OriginalStock
 from src.FilterService.StockReportHistory import Day_Report, Month_Report, OM_Growth_Indicator, Original_Indicator, PEG_Indicator, ROE_Indicator, SeasonReportFactory
 
 from src.Common.Parameter import RecordBackTestParameter
-from src.Common.StockInfoData import BaseInfoData
+from pydb_core.stock_info_data import BaseInfoData
 
 
 class BackTestStock:

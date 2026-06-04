@@ -6,8 +6,8 @@ from src.Model.Model_backtest import Model_backtest
 from src.Model.Model_main import Model_main
 from src.Model.Pick import PickModel
 from src.ScheduleService import ScheduleService
-from src.SqlService import SqlService
-from src.Common.ConcurrentUtils import ConcurrentUtils
+from pydb_core.sql_service import SqlService
+from pyutils_core.concurrent import ConcurrentUtils
 from src.View.View_backtest import BackTest_Window, MyBacktestWindow
 from src.View.View_main import Main_Window, MyWindow
 from src.View.View_pick import MyPickWindow, Pick_Window
@@ -15,7 +15,7 @@ from src.View.View_pick import MyPickWindow, Pick_Window
 from .Controller import IController, controllers
 from .ControllerFactory import Controller_Factory
 from src.DrawFigur import DrawFigur
-from src.MongoService import MongoService
+from pydb_core.mongo_service import MongoService
 
 
 class IMediator_Controller(ABC):
