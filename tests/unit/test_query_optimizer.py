@@ -38,9 +38,9 @@ class TestQueryOptimizer(unittest.TestCase):
 
         self.assertEqual(optimizer.db_config, self.config['database']['mysql'])
 
-    @patch('src.Common.QueryOptimizer.yaml.safe_load')
+    @patch('pydb_core.query_optimizer.yaml.safe_load')
     @patch('builtins.open')
-    @patch('src.Common.QueryOptimizer.create_engine')
+    @patch('pydb_core.query_optimizer.create_engine')
     def test_analyze_slow_queries(self, mock_engine, mock_open, mock_yaml):
         """測試慢查詢分析"""
         mock_yaml.return_value = self.config
@@ -67,7 +67,7 @@ class TestQueryOptimizer(unittest.TestCase):
         self.assertEqual(query['avg_time_sec'], 5.5)
         self.assertIn('optimization_suggestions', query)
 
-    @patch('src.Common.QueryOptimizer.yaml.safe_load')
+    @patch('pydb_core.query_optimizer.yaml.safe_load')
     @patch('builtins.open')
     def test_analyze_query_pattern(self, mock_open, mock_yaml):
         """測試查詢模式分析"""
@@ -91,9 +91,9 @@ class TestQueryOptimizer(unittest.TestCase):
         suggestions = optimizer._analyze_query_pattern("SELECT * FROM users WHERE id IN (SELECT user_id FROM orders)")
         self.assertTrue(any("子查詢" in s for s in suggestions))
 
-    @patch('src.Common.QueryOptimizer.yaml.safe_load')
+    @patch('pydb_core.query_optimizer.yaml.safe_load')
     @patch('builtins.open')
-    @patch('src.Common.QueryOptimizer.create_engine')
+    @patch('pydb_core.query_optimizer.create_engine')
     def test_analyze_table_indexes(self, mock_engine, mock_open, mock_yaml):
         """測試資料表索引分析"""
         mock_yaml.return_value = self.config
@@ -119,9 +119,9 @@ class TestQueryOptimizer(unittest.TestCase):
         self.assertIn('idx_name', analysis['indexes'])
         self.assertIn('recommendations', analysis)
 
-    @patch('src.Common.QueryOptimizer.yaml.safe_load')
+    @patch('pydb_core.query_optimizer.yaml.safe_load')
     @patch('builtins.open')
-    @patch('src.Common.QueryOptimizer.create_engine')
+    @patch('pydb_core.query_optimizer.create_engine')
     def test_optimize_query(self, mock_engine, mock_open, mock_yaml):
         """測試查詢優化"""
         mock_yaml.return_value = self.config
@@ -149,9 +149,9 @@ class TestQueryOptimizer(unittest.TestCase):
         analysis = result['analysis']
         self.assertLess(analysis['performance_score'], 100)  # 應該有優化建議
 
-    @patch('src.Common.QueryOptimizer.yaml.safe_load')
+    @patch('pydb_core.query_optimizer.yaml.safe_load')
     @patch('builtins.open')
-    @patch('src.Common.QueryOptimizer.create_engine')
+    @patch('pydb_core.query_optimizer.create_engine')
     def test_get_database_performance_stats(self, mock_engine, mock_open, mock_yaml):
         """測試資料庫效能統計獲取"""
         mock_yaml.return_value = self.config
@@ -178,7 +178,7 @@ class TestQueryOptimizer(unittest.TestCase):
         self.assertEqual(buffer_pool['pool_size'], 8)
         self.assertEqual(buffer_pool['pages_total'], 1000)
 
-    @patch('src.Common.QueryOptimizer.yaml.safe_load')
+    @patch('pydb_core.query_optimizer.yaml.safe_load')
     @patch('builtins.open')
     def test_generate_optimization_report(self, mock_open, mock_yaml):
         """測試優化報告生成"""
@@ -197,7 +197,7 @@ class TestQueryOptimizer(unittest.TestCase):
             self.assertIn('slow_queries', report)
             self.assertIn('recommendations', report)
 
-    @patch('src.Common.QueryOptimizer.yaml.safe_load')
+    @patch('pydb_core.query_optimizer.yaml.safe_load')
     @patch('builtins.open')
     def test_create_index_recommendations(self, mock_open, mock_yaml):
         """測試索引建議創建"""
@@ -216,7 +216,7 @@ class TestQueryOptimizer(unittest.TestCase):
             self.assertIsInstance(recommendations, list)
             self.assertEqual(len(recommendations), 1)
 
-    @patch('src.Common.QueryOptimizer.yaml.safe_load')
+    @patch('pydb_core.query_optimizer.yaml.safe_load')
     @patch('builtins.open')
     def test_analyze_explain_result(self, mock_open, mock_yaml):
         """測試 EXPLAIN 結果分析"""
@@ -242,9 +242,9 @@ class TestQueryOptimizer(unittest.TestCase):
         # 效能評分應該低於 100
         self.assertLess(analysis['performance_score'], 100)
 
-    @patch('src.Common.QueryOptimizer.yaml.safe_load')
+    @patch('pydb_core.query_optimizer.yaml.safe_load')
     @patch('builtins.open')
-    @patch('src.Common.QueryOptimizer.create_engine')
+    @patch('pydb_core.query_optimizer.create_engine')
     def test_suggest_new_indexes(self, mock_engine, mock_open, mock_yaml):
         """測試新增索引建議"""
         mock_yaml.return_value = self.config

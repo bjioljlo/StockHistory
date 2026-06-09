@@ -2,43 +2,31 @@
 Legacy Tools module - Backward compatibility wrapper
 ===================================================
 
-⚠️  DEPRECATED: This module is maintained for backward compatibility only.
-Please import directly from the new utility modules:
-
-- DateUtils: date and time handling functions
-- FinancialUtils: financial and trading calculations
-- DataUtils: DataFrame and data processing functions
-- NetworkUtils: HTTP and network functions
-- StockUtils: stock classification utilities
-
-All functions are re-exported here for existing code.
-New code should import directly from the specialized modules.
+Now imports from extracted packages: indicator-core, pyutils-core.
+Original definitions moved to standalone repos.
 """
 
 import warnings
 
-# Re-export all functions from new modules
-from indicator_core.date_utils import (
-    change_date_month,
-    check_month_date,
-    back_work_days,
-    qt_date_to_datetime,
-    datetime_to_string,
-    check_fs_season,
-    have_month_rp,
-    have_day_rp,
-    get_latest_season_report_date,
-    get_latest_monthly_report_date,
-    get_latest_daily_report_date,
-    SEASON_RP_TIME_MONTH,
-    SEASON_RP_TIME_DAY,
+from indicator_core import DateUtils as _DateUtils
+from indicator_core.financial_utils import (
+    calculate_total_with_fees, calculate_max_shares, smooth_data,
 )
 
-from indicator_core.financial_utils import (
-    calculate_total_with_fees,
-    calculate_max_shares,
-    smooth_data,
-)
+# Re-export date_utils functions via DateUtils module
+change_date_month = _DateUtils.change_date_month
+check_month_date = _DateUtils.check_month_date
+back_work_days = _DateUtils.back_work_days
+qt_date_to_datetime = _DateUtils.qt_date_to_datetime
+datetime_to_string = _DateUtils.datetime_to_string
+check_fs_season = _DateUtils.check_fs_season
+have_month_rp = _DateUtils.have_month_rp
+have_day_rp = _DateUtils.have_day_rp
+get_latest_season_report_date = _DateUtils.get_latest_season_report_date
+get_latest_monthly_report_date = _DateUtils.get_latest_monthly_report_date
+get_latest_daily_report_date = _DateUtils.get_latest_daily_report_date
+SEASON_RP_TIME_MONTH = _DateUtils.SEASON_RP_TIME_MONTH
+SEASON_RP_TIME_DAY = _DateUtils.SEASON_RP_TIME_DAY
 
 # Legacy camelCase aliases for backward compatibility
 changeDateMonth = change_date_month
@@ -52,31 +40,26 @@ Have_DayRP = have_day_rp
 Total_with_Handling_fee_and_Tax = calculate_total_with_fees
 Count_Stock_Amount = calculate_max_shares
 
-from indicator_core.data_utils import (
-    merge_dataframes,
-    extract_ticker_data,
-)
+from src.Common.DataUtils import TidyTicketData
 
-from indicator_core.network_utils import (
-    get_random_user_agent,
-    get_random_headers,
-    get_sp500_tickers,
-    _USER_AGENTS,
-)
+from indicator_core import DataUtils
+merge_dataframes = DataUtils.merge_dataframes
+extract_ticker_data = DataUtils.extract_ticker_data
 
-from indicator_core.stock_utils import (
-    is_excluded_stock,
-    is_etf_stock,
-    EXCLUDED_STOCKS,
-    ETF_LIST,
-)
+from indicator_core import NetworkUtils
+get_random_user_agent = NetworkUtils.get_random_user_agent
+get_random_headers = NetworkUtils.get_random_headers
+get_sp500_tickers = NetworkUtils.get_sp500_tickers
+_USER_AGENTS = getattr(NetworkUtils, "USER_AGENTS", getattr(NetworkUtils, "_USER_AGENTS", []))
 
+from indicator_core import StockUtils
+is_excluded_stock = StockUtils.is_excluded_stock
+is_etf_stock = StockUtils.is_etf_stock
+EXCLUDED_STOCKS = StockUtils.EXCLUDED_STOCKS
+ETF_LIST = StockUtils.ETF_LIST
 
-
-# Show deprecation warning when module is imported
 warnings.warn(
-    "Tools module is deprecated. Please import from specialized utility modules: "
-    "DateUtils, FinancialUtils, DataUtils, NetworkUtils, StockUtils",
+    "Tools module is deprecated. Use indicator_core.*, pyutils_core.*",
     DeprecationWarning,
     stacklevel=2
 )
