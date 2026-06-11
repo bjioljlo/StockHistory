@@ -46,11 +46,13 @@ from indicator_core import DataUtils
 merge_dataframes = DataUtils.merge_dataframes
 extract_ticker_data = DataUtils.extract_ticker_data
 
+from pyutils_core.network import NetworkUtils as _NetworkUtils
+get_random_headers = _NetworkUtils.get_random_headers
+_USER_AGENTS = _NetworkUtils.USER_AGENTS
+
 from indicator_core import NetworkUtils
 get_random_user_agent = NetworkUtils.get_random_user_agent
-get_random_headers = NetworkUtils.get_random_headers
 get_sp500_tickers = NetworkUtils.get_sp500_tickers
-_USER_AGENTS = getattr(NetworkUtils, "USER_AGENTS", getattr(NetworkUtils, "_USER_AGENTS", []))
 
 from indicator_core import StockUtils
 is_excluded_stock = StockUtils.is_excluded_stock

@@ -5,12 +5,7 @@
 from abc import abstractmethod
 from enum import Enum
 
-
-class FS_type(Enum):
-    CPL = "consolidated-profit-and-loss-summary"  # '綜合損益彙總表'
-    BS = "balance-sheet"  # '資產負債彙總表'
-    PLA = "profit-and-loss-analysis-summary"  # '營益分析彙總表'
-    SCF = "statement-of-cash-flows"  # 現金流量表
+from datafetcher_core.types import FS_type
 
 
 class StrEnum(str, Enum):
@@ -23,7 +18,7 @@ class StrEnum(str, Enum):
 class CPL_type(StrEnum):
     type_0 = "本期綜合損益總額（稅後）"
     EPS = "基本每股盈餘（元）"
-    
+
     def get_sql_column(self) -> str:
         """獲取對應的 SQL 欄位名稱"""
         mapping = {
@@ -39,7 +34,7 @@ class BS_type(StrEnum):
     type_2 = "股本"
     type_3 = "權益總額"
     type_4 = "每股參考淨值"
-    
+
     def get_sql_column(self) -> str:
         """獲取對應的 SQL 欄位名稱"""
         mapping = {
@@ -58,7 +53,7 @@ class PLA_type(StrEnum):
     type_2 = "營業利益率(%)"
     type_3 = "稅前純益率(%)"
     type_4 = "稅後純益率(%)"
-    
+
     def get_sql_column(self) -> str:
         """獲取對應的 SQL 欄位名稱"""
         mapping = {
@@ -75,7 +70,7 @@ class SCF_type(StrEnum):
     OCF = "營業活動之淨現金流入（流出）"
     ICF = "投資活動之淨現金流入（流出）"
     FCF = "籌資活動之淨現金流入（流出）"
-    
+
     def get_sql_column(self) -> str:
         """獲取對應的 SQL 欄位名稱"""
         mapping = {
@@ -88,7 +83,7 @@ class SCF_type(StrEnum):
 
 class Month_type(StrEnum):
     MR = "當月營收"
-    
+
     def get_sql_column(self) -> str:
         """獲取對應的 SQL 欄位名稱"""
         mapping = {
@@ -101,7 +96,7 @@ class Day_type(StrEnum):
     PER = "本益比"
     PBR = "股價淨值比"
     Yield = "殖利率(%)"
-    
+
     def get_sql_column(self) -> str:
         """獲取對應的 SQL 欄位名稱"""
         mapping = {
@@ -119,7 +114,7 @@ class Price_type(StrEnum):
     Close = "Close"
     AdjClose = "Adj Close"
     Volume = "Volume"
-    
+
     def get_sql_column(self) -> str:
         """獲取對應的 SQL 欄位名稱"""
         # Price_type 已經是英文，直接返回
@@ -135,7 +130,7 @@ class stock_data_kind(Enum):
     Close = "Close"
     AdjClose = "Adj Close"
     Volume = "Volume"
-    
+
     def get_sql_column(self) -> str:
         """獲取對應的 SQL 欄位名稱"""
         # stock_data_kind 已經是英文，直接返回
