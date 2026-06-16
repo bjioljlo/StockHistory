@@ -7,7 +7,7 @@ Modular components:
 - ADLUpdater: Advance-Decline Line calculation and updates
 """
 
-from .StockDataDownloader import StockDataDownloader
+from datafetcher_core.downloader import StockDataDownloader
 from .StockDataSynchronizer import StockDataSynchronizer
 from .ADLUpdater import ADLUpdater
 from src.Common.DataValidationService import DataValidationService

@@ -11,10 +11,11 @@ Refactored at 2026-04-06 as part of project-refactoring-and-cleanup
 
 from .IGetExternalData import IGetExternalData
 from .TGetExternalData import TGetExternalData
-from .ExternalDataFactory import ExternalDataFactory
+from .ExternalDataFactory import ExternalDataFactory, ExternalDataTypeEnum
 
 __all__ = [
     'IGetExternalData',
     'TGetExternalData',
     'ExternalDataFactory',
+    'ExternalDataTypeEnum',
 ]
