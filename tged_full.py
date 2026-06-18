@@ -9,6 +9,7 @@ import logging
 import numpy as np
 import pandas as pd
 import requests
+import yfinance as yf
 
 from src.Common import InfomationType as info
 from src.ExternalService.IGetExternalData import IGetExternalData
@@ -34,27 +35,28 @@ class TGetExternalData(IGetExternalData):
         self._cache_service = cache_service
         self._file_paths = {
             'monthRP': "monthRP",
-            'stockInfo': "stockInfo", 
+            'stockInfo': "stockInfo",
             'yield': "yieldInfo",
             'season': "seasonInfo",
             'index': "indexInfo"
         }
         self._file_path = os.getcwd()  # 取得目錄路徑
         self._logger = logging.getLogger(__name__)
+        self._cant_use_stocks = []  # 已確認無資料的股票列表
 
     def get_allstock_financial_statement(self, start: datetime, type: info.FS_type) -> pd.DataFrame:
         """
         爬取某季所有股票歷史財報
-        
+
         Args:
             start: 起始日期
             type: 財報類型
-            
+
         Returns:
             財務報表數據 DataFrame
         """
         self._logger.info(f"取得 {type} 的季財報資料: {start}")
-        
+
         if not Tools.Have_DayRP(start):
             return pd.DataFrame()
         season = int(((start.month - 1) / 3) + 1)
@@ -84,7 +86,7 @@ class TGetExternalData(IGetExternalData):
         """從 SQL 數據庫獲取財務報表數據"""
         cache_key = f"financial_statement_{start.year}_{season}_{type.value}"
         Temp_data = pd.DataFrame()
-        
+
         try:
             # 根據不同的報表類型，調用對應的 SQL 讀取方法
             # 直接傳遞 type 枚舉對象，讓 read_quarterly_reports 內部處理轉換
@@ -95,7 +97,7 @@ class TGetExternalData(IGetExternalData):
                 end_year=start.year,
                 limit=10000
             )
-            
+
             if not Temp_data.empty:
                 # 過濾出指定季節的數據
                 Temp_data = Temp_data[Temp_data['report_season'] == season]
@@ -106,13 +108,13 @@ class TGetExternalData(IGetExternalData):
                         Temp_data['symbol'] = Temp_data.index.astype(str)
                     Temp_data['symbol'] = Temp_data['symbol'].astype(str)
                     Temp_data.set_index("symbol", inplace=True)
-                    
+
                     # 保存到快取
                     self._save_to_cache(cache_key, Temp_data)
                     return Temp_data
         except Exception as e:
             self._logger.error(f"從 SQL 數據庫讀取財務報表失敗: {e}")
-        
+
         return pd.DataFrame()
 
     def _get_financial_statement_from_file(self, fileName: str, start: datetime, season: int, type: info.FS_type) -> pd.DataFrame:
@@ -128,7 +130,7 @@ class TGetExternalData(IGetExternalData):
 
             stock = pd.read_csv(fileName + ".csv")
             stock = self._process_financial_statement_data(stock, start, season, type)
-            
+
             # 保存到數據庫
             self._save_financial_statement_to_db(stock, type)
         else:
@@ -147,27 +149,27 @@ class TGetExternalData(IGetExternalData):
         # 整理資料
         stock.rename(columns={"公司代號": "symbol"}, inplace=True)
         stock.set_index("symbol", inplace=True)
-        
+
         # 添加年季和報表類型欄位
         stock['report_year'] = start.year
         stock['report_season'] = season
         stock['report_type'] = type.value
-        
+
         # 根據不同的報表類型，重新命名欄位
         column_mapping = self._get_financial_statement_column_mapping(type)
         stock = stock.rename(columns=column_mapping)
-        
+
         # 數據類型轉換
         numeric_columns = [col for col in stock.columns if col not in ['symbol', 'report_year', 'report_season', 'report_type']]
         for col in numeric_columns:
             if col in stock.columns:
                 stock[col] = pd.to_numeric(stock[col], errors='coerce').fillna(0)
-        
+
         # 確保 symbol 欄位存在且為字串類型
         if 'symbol' not in stock.columns:
             stock['symbol'] = stock.index.astype(str)
         stock.set_index("symbol", inplace=True)
-        
+
         return stock
 
     def _get_financial_statement_column_mapping(self, type: info.FS_type) -> Dict[str, str]:
@@ -205,7 +207,7 @@ class TGetExternalData(IGetExternalData):
     def _save_financial_statement_to_db(self, stock: pd.DataFrame, type: info.FS_type) -> None:
         """保存財務報表數據到數據庫"""
         try:
-            success = self._sql_service.upsert_data('quarterly_reports', stock.reset_index(), 
+            success = self._sql_service.upsert_data('quarterly_reports', stock.reset_index(),
                                                   ['symbol', 'report_year', 'report_season', 'report_type'])
             if success:
                 self._logger.info(f"Successfully saved quarterly report data to quarterly_reports table for {type.value}")
@@ -223,15 +225,15 @@ class TGetExternalData(IGetExternalData):
     def get_allstock_monthly_report(self, start: datetime) -> pd.DataFrame:
         """
         爬取某月所有股票月營收
-        
+
         Args:
             start: 起始日期
-            
+
         Returns:
             月營收數據 DataFrame
         """
         self._logger.info(f"取得月營收資料: {start}")
-        
+
         if not Tools.Have_MonthRP(start):
             return pd.DataFrame()
 
@@ -258,7 +260,7 @@ class TGetExternalData(IGetExternalData):
         cache_key = f"monthly_report_{start.year}_{start.month:02d}"
         m_data = pd.DataFrame()
         year = start.year
-        
+
         try:
             m_data = self._sql_service.read_monthly_reports(
                 symbol=None,
@@ -266,7 +268,7 @@ class TGetExternalData(IGetExternalData):
                 end_year=start.year,
                 limit=10000
             )
-            
+
             if not m_data.empty:
                 # 過濾出指定月份的數據
                 m_data = m_data[(m_data['report_year'] == start.year) & (m_data['report_month'] == start.month)]
@@ -277,13 +279,13 @@ class TGetExternalData(IGetExternalData):
                         m_data['symbol'] = m_data.index.astype(str)
                     m_data['symbol'] = m_data['symbol'].astype(str)
                     m_data.set_index("symbol", inplace=True)
-                    
+
                     # 保存到快取
                     self._save_to_cache(cache_key, m_data)
                     return m_data
         except Exception as e:
             self._logger.error(f"從 SQL 數據庫讀取月營收失敗: {e}")
-        
+
         return pd.DataFrame()
 
     def _get_monthly_report_from_file(self, fileName: str, start: datetime) -> pd.DataFrame:
@@ -299,7 +301,7 @@ class TGetExternalData(IGetExternalData):
 
             # 處理數據
             m_data = self._process_monthly_report_data(m_data, start)
-            
+
             # 保存到數據庫
             self._save_monthly_report_to_db(m_data)
         else:
@@ -373,11 +375,11 @@ class TGetExternalData(IGetExternalData):
         # 整理資料
         m_data.rename(columns={"公司代號": "symbol"}, inplace=True)
         m_data[["symbol"]] = m_data[["symbol"]].astype(str)
-        
+
         # 添加年月欄位
         m_data['report_year'] = start.year
         m_data['report_month'] = start.month
-        
+
         # 重新命名欄位以匹配 monthly_reports 表結構
         column_mapping = {
             '公司名稱': 'company_name',
@@ -389,25 +391,25 @@ class TGetExternalData(IGetExternalData):
             '備註': 'notes'
         }
         m_data = m_data.rename(columns=column_mapping)
-        
+
         # 數據類型轉換
         numeric_columns = ['revenue_current_month', 'revenue_last_month',
                           'revenue_last_year_same_month', 'revenue_ytd', 'revenue_last_year_ytd']
         for col in numeric_columns:
             if col in m_data.columns:
                 m_data[col] = pd.to_numeric(m_data[col], errors='coerce').fillna(0)
-        
+
         # 確保 symbol 欄位存在且為字串類型
         if 'symbol' not in m_data.columns:
             m_data['symbol'] = m_data.index.astype(str)
         m_data.set_index("symbol", inplace=True)
-        
+
         return m_data
 
     def _save_monthly_report_to_db(self, m_data: pd.DataFrame) -> None:
         """保存月營收數據到數據庫"""
         try:
-            success = self._sql_service.upsert_data('monthly_reports', m_data.reset_index(), 
+            success = self._sql_service.upsert_data('monthly_reports', m_data.reset_index(),
                                                   ['symbol', 'report_year', 'report_month'])
             if success:
                 self._logger.info("Successfully saved monthly report data to monthly_reports table")
@@ -425,10 +427,10 @@ class TGetExternalData(IGetExternalData):
     def get_allstock_yield(self, start: datetime) -> pd.DataFrame:
         """
         爬取某天所有股票殖利率
-        
+
         Args:
             start: 起始日期
-            
+
         Returns:
             殖利率數據 DataFrame
         """
@@ -456,7 +458,7 @@ class TGetExternalData(IGetExternalData):
         """從 SQL 數據庫獲取殖利率數據"""
         cache_key = f"yield_data_{start.year}_{start.month:02d}_{start.day:02d}"
         m_yield = pd.DataFrame()
-        
+
         try:
             m_yield = self._sql_service.read_dividend_yield(
                 symbol=None,
@@ -464,7 +466,7 @@ class TGetExternalData(IGetExternalData):
                 end_date=start.strftime('%Y-%m-%d'),
                 limit=10000
             )
-            
+
             if not m_yield.empty:
                 self._logger.info(f"從 SQL 數據庫成功讀取殖利率: {cache_key}")
                 # 確保 symbol 欄位存在且為字串類型
@@ -472,13 +474,13 @@ class TGetExternalData(IGetExternalData):
                     m_yield['symbol'] = m_yield.index.astype(str)
                 m_yield['symbol'] = m_yield['symbol'].astype(str)
                 m_yield.set_index("symbol", inplace=True)
-                
+
                 # 保存到快取
                 self._save_to_cache(cache_key, m_yield)
                 return m_yield
         except Exception as e:
             self._logger.error(f"從 SQL 數據庫讀取殖利率失敗: {e}")
-        
+
         return pd.DataFrame()
 
     def _get_yield_from_file(self, fileName: str, start: datetime) -> pd.DataFrame:
@@ -500,7 +502,7 @@ class TGetExternalData(IGetExternalData):
 
                 # 處理數據
                 m_yield = self._process_yield_data(m_yield, start)
-                
+
                 # 保存到數據庫
                 self._save_yield_to_db(m_yield)
         except Exception as e:
@@ -551,10 +553,10 @@ class TGetExternalData(IGetExternalData):
         # 整理資料
         m_yield.rename(columns={"證券代號": "symbol"}, inplace=True)
         m_yield[["symbol"]] = m_yield[["symbol"]].astype(str)
-        
+
         # 添加日期欄位
         m_yield['date'] = start.strftime('%Y-%m-%d')
-        
+
         # 重新命名欄位以匹配 dividend_yield 表結構
         column_mapping = {
             '證券代號': 'symbol',
@@ -564,7 +566,7 @@ class TGetExternalData(IGetExternalData):
             '股價淨值比': 'pb_ratio'
         }
         m_yield = m_yield.rename(columns=column_mapping)
-        
+
         # 確保所有必要欄位都存在
         required_columns = ['symbol', 'date', 'company_name', 'dividend_yield', 'pe_ratio', 'pb_ratio']
         for col in required_columns:
@@ -575,18 +577,18 @@ class TGetExternalData(IGetExternalData):
                     m_yield['date'] = start.strftime('%Y-%m-%d')
                 else:
                     m_yield[col] = 0
-        
+
         # 數據類型轉換
         numeric_columns = ['dividend_yield', 'pe_ratio', 'pb_ratio']
         for col in numeric_columns:
             if col in m_yield.columns:
                 m_yield[col] = pd.to_numeric(m_yield[col], errors='coerce').fillna(0)
-        
+
         # 確保 symbol 欄位存在且為字串類型
         if 'symbol' not in m_yield.columns:
             m_yield['symbol'] = m_yield.index.astype(str)
         m_yield.set_index("symbol", inplace=True)
-        
+
         return m_yield
 
     def _save_yield_to_db(self, m_yield: pd.DataFrame) -> None:
@@ -609,7 +611,7 @@ class TGetExternalData(IGetExternalData):
     def get_allstock_dividend_yield(self) -> pd.DataFrame:
         """
         從數據庫獲取所有股票股息殖利率數據
-        
+
         Returns:
             殖利率數據 DataFrame
         """
@@ -627,16 +629,16 @@ class TGetExternalData(IGetExternalData):
     ) -> pd.DataFrame:
         """
         爬取某個股票的歷史紀錄，加入快取統計
-        
+
         Args:
             number: 股票代碼
             start: 起始日期
-            
+
         Returns:
             股票歷史數據 DataFrame
         """
         self._logger.info(f"取得股票 {number} 的歷史資料從 {start} 到今天")
-        
+
         # 記錄查詢統計
         if self._cache_service:
             self._cache_service.record_query(number)
@@ -656,12 +658,12 @@ class TGetExternalData(IGetExternalData):
         if self._sql_service.CantUseStocks.__contains__(str(number) + ".TW"):
             self._logger.warning(f"ItsCantUseStock: {number}")
             return result
-            
+
         # Only check Taiwan stock codes for Taiwanese stocks
         if (number.replace('.TW', '').isdigit() or number.endswith('.TW')) and not StockInfos.ts.codes.__contains__(number):
             self._logger.warning("無此檔股票")
             return result
-            
+
         if start_time < data_time:
             self._logger.warning("日期請大於西元2005年")
             return result
@@ -701,7 +703,7 @@ class TGetExternalData(IGetExternalData):
                 return m_history
         except Exception as e:
             self._logger.error(f"Error getting data from cache for {stock_id}: {e}")
-        
+
         return None
 
     def _get_stock_history_from_sources(self, stock_id: str, filename: str) -> pd.DataFrame:
@@ -743,7 +745,7 @@ class TGetExternalData(IGetExternalData):
 
         # 4. Yahoo Finance
         self._logger.info(f"Data for {stock_id} not in any cache, fetching from Yahoo Finance.")
-        self._sql_service.yfInfo(stock_id)
+        self._yf_info(stock_id)
         time.sleep(1.5)
         m_history = self._sql_service.readStockDay(stock_id)
 
@@ -774,7 +776,7 @@ class TGetExternalData(IGetExternalData):
         # 進行日期比較
         mask = m_history.index >= start_time
         result = m_history[mask]
-        
+
         # 填充 Adj Close 的 NaN 值為 0
         if 'Adj Close' in result.columns:
             result['Adj Close'] = result['Adj Close'].fillna(0)
@@ -785,16 +787,16 @@ class TGetExternalData(IGetExternalData):
     def get_stock_AD_index(self, date: Union[str, datetime], getNew: bool = False) -> pd.DataFrame:
         """
         取得上漲和下跌家數 - 優化版本，整合快取機制
-        
+
         Args:
             date: 日期
             getNew: 是否強制重新計算
-            
+
         Returns:
             騰落指數數據 DataFrame
         """
         self._logger.info(f"取得騰落指數資料: {date}")
-        
+
         if isinstance(date, str):
             date = datetime.strptime(date, "%Y-%m-%d")
 
@@ -823,7 +825,7 @@ class TGetExternalData(IGetExternalData):
         str_yesterday = Tools.DateTime2String(time_yesterday)
 
         # 使用批量查詢來計算騰落指數
-        up, down = self._calculate_ad_index_batch(time, time_yesterday, 
+        up, down = self._calculate_ad_index_batch(time, time_yesterday,
                                                Tools.DateTime2String(time), str_yesterday)
 
         self._logger.info(f"Calculation result for {time.strftime('%Y-%m-%d')}: Up={up}, Down={down}")
@@ -852,7 +854,7 @@ class TGetExternalData(IGetExternalData):
         if not combined_data.empty:
             combined_data_reset = combined_data.reset_index()
             success = self._sql_service.upsert_data("ad_index", combined_data_reset, ["Date"])
-            
+
             if success:
                 self._logger.info(f"Successfully saved {len(combined_data)} total records to ad_index table using upsert")
             else:
@@ -865,7 +867,7 @@ class TGetExternalData(IGetExternalData):
             try:
                 # 更新 Redis 快取（單筆查詢結果）
                 self._save_to_cache(cache_key, ADindex_result_new)
-                
+
                 # 更新 MongoDB 快取（完整歷史數據）
                 self._cache_service.set_stock_data("ad_index", combined_data)
                 self._logger.info(f"已將完整 AD_index 歷史數據存到混合快取")
@@ -878,12 +880,12 @@ class TGetExternalData(IGetExternalData):
         """從 SQL 數據庫獲取騰落指數數據"""
         cache_key = f"ad_index_{time.strftime('%Y-%m-%d')}"
         ad_index_data = pd.DataFrame()
-        
+
         try:
             ad_index_data = self._sql_service.read_ad_index(limit=10000)
             if not ad_index_data.empty:
                 self._logger.info(f"Found AD_index historical data in MySQL ({len(ad_index_data)} records).")
-                
+
                 # 如果有當天數據，直接返回
                 if time in ad_index_data.index:
                     self._logger.info(f"Found AD_index for {time.strftime('%Y-%m-%d')} in MySQL.")
@@ -892,7 +894,7 @@ class TGetExternalData(IGetExternalData):
                     return ad_index_data.loc[[time]]
         except Exception as e:
             self._logger.error(f"Could not read AD_index from MySQL. Error: {e}")
-        
+
         return pd.DataFrame()
 
     def _get_existing_ad_index_data(self) -> pd.DataFrame:
@@ -903,44 +905,44 @@ class TGetExternalData(IGetExternalData):
             self._logger.error(f"Could not read existing AD_index data. Error: {e}")
             return pd.DataFrame()
 
-    def _calculate_ad_index_batch(self, time: datetime, time_yesterday: datetime, 
+    def _calculate_ad_index_batch(self, time: datetime, time_yesterday: datetime,
                                 str_date: str, str_yesterday: str) -> tuple[int, int]:
         """
         使用批量查詢來計算騰落指數，大幅提升性能
-        
+
         Args:
             time: 目標日期
             time_yesterday: 昨日日期
             str_date: 目標日期字串
             str_yesterday: 昨日日期字串
-            
+
         Returns:
             (上漲家數, 下跌家數)
         """
         up = 0
         down = 0
-        
+
         # 獲取所有上市股票代碼
         stock_codes = [
             value.code for value in StockInfos.ts.codes.values()
             if value.market == "上市" and len(value.code) == 4 and value.type == "股票"
             and not Tools.check_no_use_stock(value.code)
         ]
-        
+
         self._logger.info(f"Calculating AD index for {len(stock_codes)} stocks...")
-        
+
         # 批量查詢股票歷史數據
         batch_size = 50  # 每批處理的股票數量
         total_stocks = len(stock_codes)
         processed_stocks = 0
-        
+
         for i in range(0, total_stocks, batch_size):
             batch_codes = stock_codes[i:i + batch_size]
             batch_num = i // batch_size + 1
             total_batches = (total_stocks - 1) // batch_size + 1
-            
+
             self._logger.info(f"Processing batch {batch_num}/{total_batches} ({i+1}-{min(i+batch_size, total_stocks)}/{total_stocks})")
-            
+
             # 批量獲取股票數據
             batch_results = {}
             for code in batch_codes:
@@ -950,12 +952,12 @@ class TGetExternalData(IGetExternalData):
                 except Exception as e:
                     self._logger.debug(f"Failed to get history for {code}: {e}")
                     continue
-            
+
             # 計算漲跌
             for code, m_history in batch_results.items():
                 if m_history.empty:
                     continue
-                    
+
                 try:
                     price_Close = round(m_history["Close"].get(str_date), 2)
                     price_Open = round(m_history["Open"].get(str_yesterday), 2)
@@ -968,18 +970,18 @@ class TGetExternalData(IGetExternalData):
                 except Exception as e:
                     self._logger.debug(f"Failed to calculate AD index for {code}: {e}")
                     continue
-            
+
             processed_stocks += len(batch_codes)
             progress_percent = (processed_stocks / total_stocks) * 100
             self._logger.info(f"Progress: {processed_stocks}/{total_stocks} stocks processed ({progress_percent:.1f}%)")
-        
+
         self._logger.info(f"Calculation completed: Up={up}, Down={down}")
         return up, down
 
     def get_full_ad_index(self) -> pd.DataFrame:
         """
         取得完整的上漲和下跌家數歷史資料
-        
+
         Returns:
             騰落指數歷史數據 DataFrame
         """
@@ -996,7 +998,7 @@ class TGetExternalData(IGetExternalData):
     def get_allstock_dividend_yield(self) -> pd.DataFrame:
         """
         從數據庫獲取所有股票股息殖利率數據
-        
+
         Returns:
             殖利率數據 DataFrame
         """
@@ -1010,10 +1012,10 @@ class TGetExternalData(IGetExternalData):
     def _remove_td(self, column: str) -> str:
         """
         移除 HTML 標籤並清理數據
-        
+
         Args:
             column: 包含 HTML 標籤的字串
-            
+
         Returns:
             清理後的字串
         """
@@ -1024,10 +1026,10 @@ class TGetExternalData(IGetExternalData):
     def _translate_dataFrame(self, response: str) -> pd.DataFrame:
         """
         解析財務報表 HTML 響應
-        
+
         Args:
             response: HTML 響應字串
-            
+
         Returns:
             解析後的 DataFrame
         """
@@ -1061,26 +1063,26 @@ class TGetExternalData(IGetExternalData):
 
         return pd.DataFrame(data=data, columns=column)
 
-    def _translate_dataFrame2(self, response: str, type: info.FS_type, 
+    def _translate_dataFrame2(self, response: str, type: info.FS_type,
                             year: int, season: int = 1) -> pd.DataFrame:
         """
         解析財務報表 HTML 響應（第二種格式）
-        
+
         Args:
             response: HTML 響應字串
             type: 財報類型
             year: 年份
             season: 季度
-            
+
         Returns:
             解析後的 DataFrame
         """
         table_array = response.split("<table")
         tr_array_array = [table_array[i].split("<tr") for i in range(2, 8)]
-        
+
         # 根據年份和報表類型設定欄位位置
         column_pos_array = self._get_column_positions(year, type, season)
-        
+
         data = []
         column = []
 
@@ -1096,14 +1098,14 @@ class TGetExternalData(IGetExternalData):
                     name = self._remove_td(td_array[2])
                     revenue = self._remove_td(td_array[column_pos_array[k][0]])
                     profitRatio = self._remove_td(td_array[column_pos_array[k][1]])
-                    
+
                     if type == info.FS_type.BS:
                         profitMargin = self._remove_td(td_array[column_pos_array[k][2]])
                         preTaxIncomeMargin = self._remove_td(td_array[column_pos_array[k][3]])
                         afterTaxIncomeMargin = self._remove_td(td_array[column_pos_array[k][4]])
                     elif type == info.FS_type.SCF:
                         profitMargin2 = self._remove_td(td_array[column_pos_array[k][2]])
-                    
+
                     if i > 1:
                         if name == "公司名稱":
                             continue
@@ -1126,12 +1128,12 @@ class TGetExternalData(IGetExternalData):
     def _get_column_positions(self, year: int, type: info.FS_type, season: int) -> np.ndarray:
         """
         根據年份和報表類型獲取欄位位置
-        
+
         Args:
             year: 年份
             type: 財報類型
             season: 季度
-            
+
         Returns:
             欄位位置陣列
         """
@@ -1144,7 +1146,7 @@ class TGetExternalData(IGetExternalData):
             [16, 34, 35, 44, 48],
             [5, 8, 9, 17, 21]
         ])
-        
+
         # 根據年份調整
         if year <= 114:
             base_positions = np.array([
@@ -1219,7 +1221,7 @@ class TGetExternalData(IGetExternalData):
                 [14, 32, 33, 42, 45],
                 [5, 8, 9, 17, 20]
             ])
-        
+
         # 根據報表類型調整
         if type == info.FS_type.CPL:
             if year < 108:
@@ -1232,13 +1234,13 @@ class TGetExternalData(IGetExternalData):
                 base_positions = np.array([[15, 22], [15, 22], [23, 30], [15, 22], [16, 23], [11, 18]])
         elif type == info.FS_type.SCF:
             base_positions = np.array([[3, 4, 5], [3, 4, 5], [3, 4, 5], [3, 4, 5], [3, 4, 5], [3, 4, 5]])
-        
+
         return base_positions
 
     def _financial_statement(self, year: int, season: int, type: info.FS_type) -> None:
         """
         下載財務報表數據到本地文件
-        
+
         Args:
             year: 年份
             season: 季度
@@ -1253,7 +1255,7 @@ class TGetExternalData(IGetExternalData):
             info.FS_type.PLA: "https://mopsov.twse.com.tw/mops/web/ajax_t163sb06",
             info.FS_type.SCF: "https://mopsov.twse.com.tw/mops/web/ajax_t163sb20"
         }
-        
+
         url = url_mapping.get(type)
         if not url:
             self._logger.error("Invalid financial statement type")
@@ -1274,7 +1276,7 @@ class TGetExternalData(IGetExternalData):
             df = self._translate_dataFrame(response.text)
         else:
             df = self._translate_dataFrame2(response.text, type, myear, season)
-            
+
         file = f"{year}-season{season}-{type.value}"
         df.to_csv(
             self._get_file_path('season', file) + ".csv",
@@ -1342,3 +1344,38 @@ class TGetExternalData(IGetExternalData):
             self._logger.info(f"已將數據存到混合緩存: {cache_key}")
         except Exception as e:
             self._logger.error(f"儲存數據到緩存失敗: {e}")
+
+    def _yf_info(self, name: str):
+        """#獲取股票資訊 - 從 yfinance 下載並儲存至 SQL"""
+        if name in self._cant_use_stocks:
+            self._logger.warning(f"CantUseStock: {name}")
+            return
+        start_date = datetime(2005, 1, 1)
+        end_date = datetime.today()
+        df_result = yf.download([name], start_date, end_date)
+        if df_result.empty:
+            self._cant_use_stocks.append(name)
+            self._logger.warning(f"yahoo no data: {name}")
+        else:
+            df_result = Tools.TidyTicketData(df_result, name)
+            symbol = name.upper().replace('.TW', '').replace('.US', '').replace('.HK', '')
+            market = self._determine_market(name)
+            df_result = df_result.reset_index()
+            df_result['symbol'] = symbol
+            df_result['market'] = market
+            df_result = df_result.rename(columns={
+                'Date': 'date', 'Open': 'open', 'High': 'high', 'Low': 'low',
+                'Close': 'close', 'Adj Close': 'adj_close', 'Volume': 'volume'
+            })
+            self._sql_service.upsert_data('stock_daily_prices', df_result, ['symbol', 'date'])
+            self._logger.info(f"Update stocks {name} OK!")
+
+    def _determine_market(self, stock_name: str) -> str:
+        """Determine market type"""
+        name_lower = stock_name.lower()
+        if name_lower.endswith('.tw') or (name_lower.replace('.tw', '').isdigit() and len(name_lower.replace('.tw', '')) >= 4):
+            return 'TW'
+        elif len(name_lower) <= 5 and not name_lower.replace('.', '').isdigit():
+            return 'US'
+        else:
+            return 'OTHER'

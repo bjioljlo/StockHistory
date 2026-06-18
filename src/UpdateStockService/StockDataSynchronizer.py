@@ -103,8 +103,8 @@ class StockDataSynchronizer:
                 'Volume': 'volume'
             })
 
-            # Use SqlService's new method to insert data
-            return self._sql_service._insert_stock_data_to_unified_table(df_to_write)
+            # Use SqlService's public upsert method (handles duplicate key updates)
+            return self._sql_service.upsert_data('stock_daily_prices', df_to_write, ['symbol', 'date'])
 
         except Exception as e:
             print(f"Error during table replace for {stock_name}: {e}")
@@ -136,8 +136,8 @@ class StockDataSynchronizer:
                 'Volume': 'volume'
             })
 
-            # Use SqlService's new method to insert data (handles duplicate key updates)
-            return self._sql_service._insert_stock_data_to_unified_table(df_upsert)
+            # Use SqlService's public upsert method (handles duplicate key updates)
+            return self._sql_service.upsert_data('stock_daily_prices', df_upsert, ['symbol', 'date'])
 
         except Exception as e:
             print(f"Error during upsert for {stock_name}: {e}")

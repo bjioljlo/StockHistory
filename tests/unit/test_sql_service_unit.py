@@ -219,7 +219,7 @@ class TestSqlServiceOptimizedMethods(unittest.TestCase):
         mock_inspector = MagicMock()
         mock_inspector.get_table_names.return_value = ['dividend_yield']
 
-        with patch('src.SqlService.inspect', return_value=mock_inspector):
+        with patch('pydb_core.sql_service.inspect', return_value=mock_inspector):
             result = self.sql_service.upsert_dividend_yield(test_data)
             self.assertTrue(result)
             # 驗證批量 SQL 執行
