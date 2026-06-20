@@ -10,6 +10,7 @@ dependencies = [
     "datafetcher-core @ file:///D:/Python/datafetcher-core",
     "indicator-core @ file:///D:/Python/indicator-core",
     "backtest-engine @ file:///D:/Python/backtest-engine",
+    "stockpicker-core @ file:///D:/Python/stockpicker-core",
 ]
 
 [tool.pytest.ini_options]

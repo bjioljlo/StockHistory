@@ -1664,6 +1664,7 @@ dependencies = [
     { name = "indicator-core" },
     { name = "pydb-core" },
     { name = "pyutils-core" },
+    { name = "stockpicker-core" },
 ]
 
 [package.optional-dependencies]
@@ -1709,12 +1710,38 @@ requires-dist = [
     { name = "pytest-cov", marker = "extra == 'dev'", specifier = "==4.1.0" },
     { name = "pytest-mock", marker = "extra == 'dev'", specifier = "==3.12.0" },
     { name = "pyutils-core", directory = "D:/Python/pyutils-core" },
+    { name = "stockpicker-core", directory = "D:/Python/stockpicker-core" },
     { name = "types-requests", marker = "extra == 'dev'" },
 ]
 provides-extras = ["dev"]
 
 [package.metadata.requires-dev]
 dev = [{ name = "pytest", specifier = ">=8.2.0" }]
+
+[[package]]
+name = "stockpicker-core"
+version = "0.1.0"
+source = { directory = "D:/Python/stockpicker-core" }
+dependencies = [
+    { name = "datafetcher-core" },
+    { name = "numpy" },
+    { name = "pandas" },
+    { name = "pydb-core" },
+    { name = "pyutils-core" },
+    { name = "ta-lib" },
+    { name = "twstock" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "datafetcher-core", directory = "D:/Python/datafetcher-core" },
+    { name = "numpy", specifier = ">=1.24" },
+    { name = "pandas", specifier = ">=2.0" },
+    { name = "pydb-core", directory = "D:/Python/pydb-core" },
+    { name = "pyutils-core", directory = "D:/Python/pyutils-core" },
+    { name = "ta-lib", specifier = ">=0.4" },
+    { name = "twstock", specifier = ">=1.5.1" },
+]
 
 [[package]]
 name = "ta-lib"
