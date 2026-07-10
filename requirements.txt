@@ -1,7 +1,7 @@
-# requirements.txt（已棄用 -- 請改??pyproject.toml�?
+# requirements.txt（已棄用 -- 請改??pyproject.toml�?
 #
-# ?��??��?賴已?�移??pyproject.toml [project] dependencies??# 請使??uv 管�?：`uv sync`（含 dev ?��? `--extra dev`）�?
-# 此�?案�??��?供�??��?
+# ?��??��?賴已?�移??pyproject.toml [project] dependencies??# 請使??uv 管�?：`uv sync`（含 dev ?��? `--extra dev`）�?
+# 此�?案�??��?供�??��?
 #
 appdirs==1.4.4
 Backtesting==0.3.3
@@ -36,7 +36,7 @@ Jinja2==3.1.4
 kiwisolver==1.4.5
 lxml==5.2.1
 MarkupSafe==2.1.5
-matplotlib==3.8.4
+matplotlib==3.7.5
 mccabe==0.7.0
 mock==5.1.0
 mplfinance==0.12.10b0

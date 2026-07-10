@@ -70,7 +70,14 @@ class TGetExternalData(IGetExternalData):
 
     def get_allstock_financial_statement(self, start: datetime, type: info.FS_type) -> pd.DataFrame:
         """爬取某季所有股票歷史財報"""
-        return self._delegate.get_allstock_financial_statement(start, type)
+        from src.ExternalService.providers.FinancialStatementProvider import FinancialStatementProvider
+        provider = FinancialStatementProvider(
+            self._sql_service,
+            self._mongo_service,
+            self._read_load_system,
+            self._cache_service,
+        )
+        return provider.get_allstock_financial_statement(start, type)
 
     def get_allstock_monthly_statement(self, start: datetime) -> pd.DataFrame:
         """取得所有股票月營收資料"""

@@ -330,8 +330,40 @@ class FinancialStatementProvider:
 
             # 取得資料庫表格欄位
             table_columns = [col['name'] for col in self._sql_service.get_table_columns(table_name)]
-            # 只保留資料庫表格中存在的欄位
-            df_to_insert = data[[col for col in data.columns if col in table_columns]]
+
+            # 🔧 調試日誌：顯示表格欄位和數據欄位的詳細信息
+            self._logger.debug(f"[DEBUG] Database table '{table_name}' columns: {table_columns}")
+            self._logger.debug(f"[DEBUG] DataFrame columns: {list(data.columns)}")
+
+            # 若資料表不存在，直接傳遞全部欄位讓 upsert_data 自動建立表格
+            # 這樣可確保 symbol、report_year、report_season 等必要欄位都會被建立
+            if not table_columns:
+                self._logger.info(f"Table '{table_name}' does not exist, will let upsert_data create it")
+                df_to_insert = data.copy()
+            else:
+                # 檢查資料表是否包含必要的 key 欄位
+                required_key_columns = ['symbol', 'report_year', 'report_season']
+                missing_from_table = [col for col in required_key_columns if col not in table_columns]
+
+                if missing_from_table:
+                    self._logger.error(
+                        f"Table '{table_name}' exists but is missing required key columns: {missing_from_table}. "
+                        f"Current table columns: {table_columns}. "
+                        f"Data columns: {list(data.columns)}. "
+                        f"Please drop the table and rerun the migration script to recreate it with the correct schema."
+                    )
+                    return
+
+                # 只保留資料庫表格中存在的欄位
+                matching_cols = [col for col in data.columns if col in table_columns]
+                non_matching_cols = [col for col in data.columns if col not in table_columns]
+
+                # 🔧 調試日誌：顯示哪些欄位被保留和過濾
+                self._logger.debug(f"[DEBUG] Matching columns ({len(matching_cols)}): {matching_cols}")
+                if non_matching_cols:
+                    self._logger.debug(f"[DEBUG] Non-matching columns ({len(non_matching_cols)}) that will be skipped: {non_matching_cols}")
+
+                df_to_insert = data[matching_cols]
 
             if df_to_insert.empty:
                 self._logger.warning(f"No valid columns found in dataframe for table {table_name}")
@@ -389,6 +421,13 @@ class FinancialStatementProvider:
                 fs_type.name, year, season
             )
             return pd.DataFrame()
+
+        # 🔧 調試日誌：顯示爬蟲返回的數據框詳細信息
+        self._logger.debug(f"[DEBUG] Crawler result columns: {list(result.df.columns)}")
+        self._logger.debug(f"[DEBUG] Crawler result shape: {result.df.shape}")
+        self._logger.debug(f"[DEBUG] Crawler result dtypes: {result.df.dtypes.to_dict()}")
+        if not result.df.empty and len(result.df) > 0:
+            self._logger.debug(f"[DEBUG] Crawler result first row: {result.df.iloc[0].to_dict()}")
 
         # Save to local file
         file_name = f"{year}-season{season}-{fs_type.value}"

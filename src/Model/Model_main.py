@@ -321,6 +321,10 @@ class Model_main(TModel):
                 chart_title,
             )
 
+        if data_result is None or data_result.empty:
+            print('P1')
+            return None
+
         return data_result
 
     def _get_indicator_data(self, record_parameter: RecordMainParameter, report_index):

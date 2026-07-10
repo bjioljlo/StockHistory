@@ -75,15 +75,17 @@ class ScheduleService:
         )
 
     def RunOtherSchedule(self, progress_callback=None):
-        """執行其他排程任務，包括快取維護"""
+        """執行其他排程任務，包括快取維護、季報更新與 ADL 更新"""
         print("Update stocks other Info start!")
 
         # 檢查是否已有更新進行中
         if self.isUpdating:
-            print("ADL update already in progress, skipping duplicate request.")
+            print("Update already in progress, skipping duplicate request.")
             return
 
-        # 新增：快取維護
+        self.isUpdating = True
+
+        # 1. 快取維護
         if self.cache_service:
             print("Performing cache maintenance...")
 
@@ -97,8 +99,10 @@ class ScheduleService:
 
             print("Cache maintenance completed!")
 
-        # 現有的 ADL 更新邏輯
-        self.isUpdating = True
+        # 2. 主動更新季報資料
+        self._update_quarterly_reports()
+
+        # 3. ADL 更新邏輯
         # 使用 lambda 包裝，確保 progress_callback 以參數傳入 run_update_adl，
         # 而不是當成 done_callback（後者會收到 Future 物件而非進度值）
         future = self.concurrent_utils.submit_task(
@@ -110,6 +114,59 @@ class ScheduleService:
         future.add_done_callback(_reset_updating)
 
         print("Update stocks other Info end!")
+    def _update_quarterly_reports(self):
+        """主動更新最新可用的季報資料 (PLA, BS, CPL, SCF)"""
+        from src.Common import Tools
+        from src.Common.InfomationType import FS_type
+        from src.ExternalService.providers.FinancialStatementProvider import FinancialStatementProvider
+
+        print("Quarterly reports update start!")
+
+        try:
+            # 初始化財報提供者
+            financial_provider = FinancialStatementProvider(
+                self.sql_service,
+                self.mongo_service,
+                self.read_load_system,
+                self.cache_service
+            )
+            
+            # 取得最近可用的季度日期
+            report_date = Tools.get_latest_season_report_date(datetime.now(), datetime.now())
+            print(f"Updating quarterly reports for: {report_date.strftime('%Y-%m-%d')}")
+
+            # 依序更新 4 種財報類型
+            report_types = [
+                (FS_type.PLA, "Profit & Loss Statement (PLA)"),
+                (FS_type.BS, "Balance Sheet (BS)"),
+                (FS_type.CPL, "Cash Flow Statement (CPL)"),
+                (FS_type.SCF, "Statement of Changes in Equity (SCF)"),
+            ]
+
+            for fs_type, type_name in report_types:
+                try:
+                    print(f"  Downloading {type_name}...")
+                    data = financial_provider.get_allstock_financial_statement(report_date, fs_type)
+
+                    if data is not None and not data.empty:
+                        print(f"    ✓ {type_name}: {len(data)} records")
+                        # 保存到數據庫
+                        try:
+                            financial_provider._save_financial_statement_to_db(data, fs_type)
+                            print(f"    ✓ {type_name}: saved to database")
+                        except Exception as save_error:
+                            print(f"    ✗ {type_name} save to database failed: {save_error}")
+                    else:
+                        print(f"    ⚠ {type_name}: no data available (may not be announced yet)")
+                except Exception as e:
+                    print(f"    ✗ {type_name} update failed: {e}")
+                    continue
+
+        except Exception as e:
+            print(f"Quarterly reports update error: {e}")
+
+        print("Quarterly reports update completed!")
+
 
     def StopThreadSchedule(self):
         print("開始清理異步內存")
