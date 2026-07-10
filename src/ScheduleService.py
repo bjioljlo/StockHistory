@@ -51,30 +51,37 @@ class ScheduleService:
 
     def RunUpdateInfoNow(self, MainUserInfoDatas: UserInfoDatas, progress_callback=None):
         self.isUpdating = True
+        # 使用 lambda 確保 progress_callback 傳入函數而非 done_callback
         self.concurrent_utils.submit_task(
-            self._update_taiwan_stocks_and_yield,
-            progress_callback,
-            MainUserInfoDatas=MainUserInfoDatas
+            lambda: self._update_taiwan_stocks_and_yield(
+                MainUserInfoDatas=MainUserInfoDatas, callback=progress_callback
+            )
         )
 
     def RunUpdateInfoNow_sp500(self, MainUserInfoDatas: UserInfoDatas, progress_callback=None):
         self.isUpdating = True
+        # 使用 lambda 確保 progress_callback 傳入函數而非 done_callback
         self.concurrent_utils.submit_task(
-            self._update_sp500_stocks,
-            progress_callback,
-            MainUserInfoDatas=MainUserInfoDatas
+            lambda: self._update_sp500_stocks(
+                MainUserInfoDatas=MainUserInfoDatas, callback=progress_callback
+            )
         )
 
     def RunSyncToMongo(self, progress_callback=None):
         self.isUpdating = True
+        # 使用 lambda 確保 progress_callback 傳入函數而非 done_callback
         self.concurrent_utils.submit_task(
-            self._sync_to_mongo,
-            progress_callback
+            lambda: self._sync_to_mongo(callback=progress_callback)
         )
 
     def RunOtherSchedule(self, progress_callback=None):
         """執行其他排程任務，包括快取維護"""
         print("Update stocks other Info start!")
+
+        # 檢查是否已有更新進行中
+        if self.isUpdating:
+            print("ADL update already in progress, skipping duplicate request.")
+            return
 
         # 新增：快取維護
         if self.cache_service:
@@ -92,10 +99,15 @@ class ScheduleService:
 
         # 現有的 ADL 更新邏輯
         self.isUpdating = True
-        self.concurrent_utils.submit_task(
-            self.adl_updater.run_update_adl,
-            progress_callback
+        # 使用 lambda 包裝，確保 progress_callback 以參數傳入 run_update_adl，
+        # 而不是當成 done_callback（後者會收到 Future 物件而非進度值）
+        future = self.concurrent_utils.submit_task(
+            lambda: self.adl_updater.run_update_adl(callback=progress_callback)
         )
+        # 任務完成後重置更新標記
+        def _reset_updating(fut):
+            self.isUpdating = False
+        future.add_done_callback(_reset_updating)
 
         print("Update stocks other Info end!")
 

@@ -1,8 +1,14 @@
 from PyQt5 import QtWidgets, uic
+from PyQt5.QtCore import pyqtSignal, QObject
 
 from src.Common import Tools
 from src.Common.Parameter import RecordMainParameter
 from src.View.View import TWindow
+
+
+class ProgressSignal(QObject):
+    """跨執行緒安全更新進度條的信號中繼"""
+    value_changed = pyqtSignal(int)
 
 
 class Main_Window(TWindow):
@@ -10,12 +16,19 @@ class Main_Window(TWindow):
         super().__init__()
         self.FormUI = Ui_Window
         self._Parament = None  # 初始化參數對象
+        # 建立跨執行緒信號，確保背景執行緒可以安全更新UI
+        self._progress_signal = ProgressSignal()
+        self._progress_signal.value_changed.connect(self._set_progress_impl)
 
-    def set_progress(self, value):
+    def _set_progress_impl(self, value):
+        """實際更新進度條（在主執行緒執行）"""
         if value >= 0 and self.FormUI.progressBar_UpdateStock.isHidden():
             self.FormUI.progressBar_UpdateStock.setVisible(True)
-
         self.FormUI.progressBar_UpdateStock.setValue(value)
+
+    def set_progress(self, value):
+        """設定進度（可從任何執行緒安全呼叫，透過信號派發到主執行緒）"""
+        self._progress_signal.value_changed.emit(value)
 
     def GetFormUI(self) -> QtWidgets.QMainWindow:
         return self.FormUI

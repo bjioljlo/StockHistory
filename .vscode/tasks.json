@@ -2,23 +2,44 @@
   "version": "2.0.0",
   "tasks": [
     {
-      "label": "uv sync",
+      "label": "uv debug main_stock",
       "type": "shell",
-      "command": "uv pip install -r requirements.txt",
+      "command": "${workspaceFolder}\\.venv\\Scripts\\python.exe",
+      "args": [
+        "-m",
+        "debugpy",
+        "--listen",
+        "5678",
+        "--wait-for-client",
+        "-m",
+        "src.main_stock"
+      ],
+      "isBackground": true,
       "options": {
         "cwd": "${workspaceFolder}"
       },
-      "group": {
-        "kind": "build",
-        "isDefault": true
+      "env": {
+        "QT_QPA_PLATFORM_PLUGIN_PATH": "${workspaceFolder}\\.venv\\Lib\\site-packages\\PyQt5\\Qt5\\plugins\\platforms"
+      },
+      "problemMatcher": {
+        "pattern": [
+          {
+            "regexp": ".",
+            "file": 1,
+            "location": 1,
+            "message": 1
+          }
+        ],
+        "background": {
+          "beginsPattern": ".*"
+        }
       },
       "presentation": {
         "echo": true,
-        "reveal": "silent",
-        "focus": false,
-        "panel": "dedicated"
-      },
-      "problemMatcher": []
+        "reveal": "always",
+        "focus": true,
+        "panel": "new"
+      }
     }
   ]
 }

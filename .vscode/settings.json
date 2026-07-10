@@ -1,27 +1,5 @@
 {
-  "python.testing.pytestArgs": ["tests"],
-  "python.testing.unittestEnabled": false,
-  "python.testing.pytestEnabled": true,
-  "files.exclude": {
-    "out": true, // set this to true to hide the "out" folder with the compiled JS files
-    "dist": true,
-    "**/*.pyc": true,
-    ".nyc_output": true,
-    "obj": true,
-    "bin": true,
-    "**/__pycache__": true,
-    "**/node_modules": true,
-    ".vscode-test": false,
-    ".vscode test": false,
-    "**/.mypy_cache/**": true
-  },
-  "search.exclude": {
-    "out": true, // set this to false to include "out" folder in search results
-    "dist": true,
-    "**/node_modules": true,
-    "coverage": true,
-    "languageServer*/**": true,
-    ".vscode-test": true,
-    ".vscode test": true
-  }
+  "python.defaultInterpreterPath": "${workspaceFolder}\\.venv\\Scripts\\python.exe",
+  "python.terminal.activateEnvironment": true,
+  "debugpy.debugAdapterPython": "${workspaceFolder}\\.venv\\Scripts\\python.exe"
 }

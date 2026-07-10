@@ -1,5 +1,6 @@
 import threading
 from datetime import datetime
+from concurrent.futures import Future
 
 from PyQt5 import QtCore
 
@@ -132,9 +133,14 @@ class Controller_main(TController):
         self.__GetView().GetFormUI().input_stockNumber.setText(stockNumber)
 
     def _get_progress_callback(self):
+        print("[DEBUG] _get_progress_callback created")
         self.__GetView().set_progress(0)
         def callback(progress):
+            # 防禦性處理：若收到 Future 物件則提取結果值
+            if isinstance(progress, Future):
+                progress = progress.result()
             self.__GetView().set_progress(progress)
+            print(f"[DEBUG] callback called with progress={progress}")
         return callback
 
     def button_openPickWindow_click(self):

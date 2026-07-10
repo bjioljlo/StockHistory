@@ -1,12 +1,8 @@
-# requirements.txt
+# requirements.txt（已棄用 -- 請改??pyproject.toml�?
 #
-# 建議改由 pip-tools 管理，來源為 `requirements.in` / `dev-requirements.in`
-# 目前這份檔案仍可直接安裝，但未來更新建議流程：
+# ?��??��?賴已?�移??pyproject.toml [project] dependencies??# 請使??uv 管�?：`uv sync`（含 dev ?��? `--extra dev`）�?
+# 此�?案�??��?供�??��?
 #
-#   pip install pip-tools
-#   pip-compile requirements.in dev-requirements.in --output-file=requirements.txt
-#
-anyio==4.3.0
 appdirs==1.4.4
 Backtesting==0.3.3
 beautifulsoup4==4.12.3
