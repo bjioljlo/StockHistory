@@ -16,7 +16,7 @@ from pydb_core.sql_service import SqlService
 from pydb_core.mongo_service import MongoService
 from pydb_core.read_load_system import ReadLoadSystem
 from pydb_core.cache_service import HybridCacheService
-from src.Common import Tools
+from pyutils_core.network import NetworkUtils as PyNetworkUtils
 
 
 class DividendYieldProvider:
@@ -159,7 +159,7 @@ class DividendYieldProvider:
                 self._logger.debug(f"Downloading yield data for {date_str}")
 
                 try:
-                    response = requests.get(url, headers=Tools.get_random_headers(), timeout=30)
+                    response = requests.get(url, headers=PyNetworkUtils.get_random_headers(), timeout=30)
 
                     if response.status_code != 200:
                         self._logger.warning(f"TWSE returned status {response.status_code} for {date_str}")

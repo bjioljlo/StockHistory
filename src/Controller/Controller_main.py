@@ -4,9 +4,9 @@ from concurrent.futures import Future
 
 from PyQt5 import QtCore
 
-from src.Common import Tools
+from indicator_core.DateUtils import change_date_month as changeDateMonth, back_work_days as backWorkDays, qt_date_to_datetime as QtDate2DateTime, datetime_to_string as DateTime2String
 from src.DrawFigur import DrawFigur
-from src.FilterService.StockReportHistory import SeasonReportFactory
+from stockpicker_core.stock_report_history import SeasonReportFactory
 from src.Model.Model import IModel
 from src.Model.Model_main import Model_main
 from src.View.View import IWindow
@@ -102,9 +102,9 @@ class Controller_main(TController):
         )
         UI_form.date_startDate.setMaximumDate(today)
         UI_form.date_startDate.setMinimumDate(QtCore.QDate(2000, 1, 1))
-        enddate = Tools.changeDateMonth(Tools.QtDate2DateTime(date), -6)
-        yesterday = Tools.backWorkDays(datetime.today(), 1)
-        end_yesterday = Tools.changeDateMonth(yesterday, -6)
+        enddate = changeDateMonth(QtDate2DateTime(date), -6)
+        yesterday = backWorkDays(datetime.today(), 1)
+        end_yesterday = changeDateMonth(yesterday, -6)
         UI_form.date_startDate.setDate(
             QtCore.QDate(
                 (end_yesterday.year), (end_yesterday.month), (end_yesterday.day)
@@ -120,7 +120,7 @@ class Controller_main(TController):
         UI_form.input_SMA3.setPlainText("60")
 
     def GetEndDate(self) -> datetime:
-        endDate = Tools.QtDate2DateTime(
+        endDate = QtDate2DateTime(
             self.__GetView().GetFormUI().date_endDate.date()
         )
         return endDate
@@ -234,11 +234,11 @@ class Controller_main(TController):
 
     def button_getStockHistory(self):  # 某股票蠟燭圖
         # 存更新日期
-        date = Tools.QtDate2DateTime(self.__GetView().GetFormUI().date_startDate.date())
-        end_date = Tools.QtDate2DateTime(
+        date = QtDate2DateTime(self.__GetView().GetFormUI().date_startDate.date())
+        end_date = QtDate2DateTime(
             self.__GetView().GetFormUI().date_endDate.date()
         )
-        str_date = Tools.DateTime2String(date)
+        str_date = DateTime2String(date)
         self._draw_figur_service.Clear_PICS()
         if self.__GetView().GetFormUI().input_stockNumber.toPlainText() == "":
             print("請輸入股票代號")

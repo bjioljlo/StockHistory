@@ -3,11 +3,11 @@ from abc import ABC, abstractmethod
 
 import pandas as pd
 
-from src.FilterService.StockHistory import OriginalStock
+from stockpicker_core.stock_history import OriginalStock
 from src.BackTestService.BackTestFilterData import IBackTestFilterData
 from src.BackTestService.BackTestInfoData import IBackTestInfoData
-from src.Common.InfomationType import stock_data_kind
-from src.Common import Tools
+from datafetcher_core.types import stock_data_kind
+from indicator_core import calculate_max_shares as Count_Stock_Amount
 
 
 class IBackTestInOutStrategy(ABC):
@@ -394,7 +394,7 @@ class Regular_backTestInOutStrategy(TBacktestInOutStrategy):
             price = self._original_stock.get_PriceByDateAndType(
                 self._userInfo.BaseInfoData.now_day, stock_data_kind.Close
             )
-            Temp_stockNumber = Tools.Count_Stock_Amount(
+            Temp_stockNumber = Count_Stock_Amount(
                 self._userInfo.BaseInfoData.now_money, price
             )
             if self._userInfo.BuyStock(

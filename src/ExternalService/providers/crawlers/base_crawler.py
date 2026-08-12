@@ -9,7 +9,7 @@ from typing import Optional, NamedTuple
 import pandas as pd
 import requests
 
-from src.Common import Tools
+from pyutils_core.network import NetworkUtils as PyNetworkUtils
 
 
 class DownloadResult(NamedTuple):
@@ -120,9 +120,9 @@ class BaseFinancialCrawler(ABC):
         for attempt in range(self.max_retries):
             try:
                 if method.lower() == "post":
-                    r = requests.post(url, data=data, headers=Tools.get_random_headers(), timeout=45)
+                    r = requests.post(url, data=data, headers=PyNetworkUtils.get_random_headers(), timeout=45)
                 else:
-                    r = requests.get(url, headers=Tools.get_random_headers(), timeout=45)
+                    r = requests.get(url, headers=PyNetworkUtils.get_random_headers(), timeout=45)
                 r.raise_for_status()
                 return self._decode_response(r)
             except requests.exceptions.RequestException as e:

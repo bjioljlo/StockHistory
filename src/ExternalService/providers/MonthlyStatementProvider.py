@@ -14,7 +14,8 @@ from pydb_core.sql_service import SqlService
 from pydb_core.mongo_service import MongoService
 from pydb_core.read_load_system import ReadLoadSystem
 from pydb_core.cache_service import HybridCacheService
-from src.Common import Tools
+from indicator_core.DateUtils import have_month_rp as Have_MonthRP
+from pyutils_core.network import NetworkUtils as PyNetworkUtils
 
 
 class MonthlyStatementProvider:
@@ -42,7 +43,7 @@ class MonthlyStatementProvider:
         """
         self._logger.info(f"Getting monthly statement data: {start}")
 
-        if not Tools.Have_MonthRP(start):
+        if not Have_MonthRP(start):
             return pd.DataFrame()
 
         cache_key = f"monthly_statement_{start.year}_{start.month}"
@@ -227,7 +228,7 @@ class MonthlyStatementProvider:
 
             for attempt in range(max_retries):
                 try:
-                    r = requests.get(url, headers=Tools.get_random_headers(), timeout=30)
+                    r = requests.get(url, headers=PyNetworkUtils.get_random_headers(), timeout=30)
                     r.raise_for_status()
                     break
                 except requests.exceptions.RequestException as e:

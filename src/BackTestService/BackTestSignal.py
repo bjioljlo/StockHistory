@@ -7,10 +7,10 @@ import numpy as np
 import pandas as pd
 import talib
 
-from src.FilterService.StockHistory import SMA_Stock
-from src.Common import Tools
-from src.FilterService.StockHistory import OriginalStock
-from src.Common import InfomationType as info
+from stockpicker_core.stock_history import SMA_Stock
+from indicator_core.stock_utils import is_excluded_stock as check_no_use_stock
+from stockpicker_core.stock_history import OriginalStock
+import datafetcher_core.types as info
 
 class BacktestSignalType(Enum):
     KD = 1
@@ -79,7 +79,7 @@ class PERandPBR_pickBacktestSignal(TBacktestSignal):
                 All_stock_signal[key] = self._tempSignals[key]
             except KeyError:
                 print(f"Error: {key} not in data/msg:{KeyError}")
-                if Tools.check_no_use_stock(key):
+                if check_no_use_stock(key):
                     print("get_stock_price: " + str(key) + " in no use")
                     continue
                 self._getPrice.number = key
@@ -108,7 +108,7 @@ class PEG_pickBacktestSignal(TBacktestSignal):
                 All_stock_signal[key] = self._tempSignals[key]
             except KeyError:
                 print(f"Error: {key} not in data/msg:{KeyError}")
-                if Tools.check_no_use_stock(key):
+                if check_no_use_stock(key):
                     print("get_stock_price: " + str(key) + " in no use")
                     continue
                 self._getPrice.number = key
@@ -136,7 +136,7 @@ class KD_pickBacktestSignal(TBacktestSignal):
                 All_stock_signal[key] = self._tempSignals[key]
             except KeyError:
                 print(f"Error: {key} not in data/msg:{KeyError}")
-                if Tools.check_no_use_stock(key):
+                if check_no_use_stock(key):
                     print("get_stock_price: " + str(key) + " in no use")
                     continue
                 self._getPrice.number = key
@@ -181,7 +181,7 @@ class RecordHigh_pickBacktestSignal(TBacktestSignal):
                 All_stock_signal[key] = self._tempSignals[key]
             except KeyError:
                 print(f"Error: {key} not in data/msg:{KeyError}")
-                if Tools.check_no_use_stock(key):
+                if check_no_use_stock(key):
                     print("get_stock_price: " + str(key) + " in no use")
                     continue
                 self._getPrice.number = key
@@ -208,7 +208,7 @@ class MonthRpUp_pickBacktestSignal(TBacktestSignal):
                 All_stock_signal[key] = self._tempSignals[key]
             except KeyError:
                 print(f"Error: {key} not in data/msg:{KeyError}")
-                if Tools.check_no_use_stock(key):
+                if check_no_use_stock(key):
                     print("get_stock_price: " + str(key) + " in no use")
                     continue
                 self._getPrice.number = key

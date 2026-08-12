@@ -3,9 +3,10 @@ from datetime import datetime
 
 from unittest.mock import patch, MagicMock
 from src.BackTestService.BackTestInfoData import BackTestInfoDataPriceByToday
-from src.FilterService.StockHistory import OriginalStockTest
+from stockpicker_core.stock_history import OriginalStockTest
 from src.ExternalService.ExternalDataFactory import ExternalDataFactory, ExternalDataTypeEnum
 from pydb_core.stock_info_data import BaseInfoData
+from indicator_core import calculate_total_with_fees as Total_with_Handling_fee_and_Tax
 
 
 class BackTestInfoDataPriceByToday_test(unittest.TestCase):
@@ -115,12 +116,11 @@ class BackTestInfoDataPriceByToday_test(unittest.TestCase):
         self.BackTestInfoDataPriceByToday_test._TempTradeHandInfo.RunFinish.assert_called_once()
 
     def test_UserStockAsset_and_UserAllAsset(self):
-        from src.Common import Tools
         self.BackTestInfoDataPriceByToday_test._HandleStock = {}
         self.BackTestInfoDataPriceByToday_test.BuyStock("2330", 1000)
         stock_asset = self.BackTestInfoDataPriceByToday_test.UserStockAsset
         all_asset = self.BackTestInfoDataPriceByToday_test.UserAllAsset
-        total_cost = Tools.Total_with_Handling_fee_and_Tax(315, 1000)
+        total_cost = Total_with_Handling_fee_and_Tax(315, 1000)
         expected_all_asset = 5000000 - total_cost + 315000
         self.assertEqual(stock_asset, 315000)
         self.assertEqual(all_asset, expected_all_asset)

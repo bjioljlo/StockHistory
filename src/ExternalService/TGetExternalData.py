@@ -13,7 +13,7 @@ from typing import Optional
 
 import pandas as pd
 
-from src.Common import InfomationType as info
+import datafetcher_core.types as info
 from datafetcher_core.interfaces import IGetExternalData
 from datafetcher_core.external_data_facade import TGetExternalData as _TGetExternalData
 from pydb_core.mongo_service import MongoService

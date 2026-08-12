@@ -1,4 +1,4 @@
-from src.FilterService.StockReportHistory import SeasonReportFactory
+from stockpicker_core.stock_report_history import SeasonReportFactory
 from src.Model.Model import IModel
 from src.View.View import IWindow
 

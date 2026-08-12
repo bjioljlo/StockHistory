@@ -9,7 +9,7 @@ from typing import List, Optional, Tuple
 
 import pandas as pd
 
-from src.Common import InfomationType as info
+import datafetcher_core.types as info
 
 
 class IFilterService(ABC):

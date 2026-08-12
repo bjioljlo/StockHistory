@@ -22,9 +22,9 @@ class DataValidationService:
     委託 datafetcher_core.data_validation.DataValidationService 提供核心驗證功能。
     """
 
-    def __init__(self, config: Dict[str, Any]):
-        self.config = config
-        self.validation_enabled = config.get('app', {}).get('data_validation', True)
+    def __init__(self, config: Optional[Dict[str, Any]] = None):
+        self.config = config or {}
+        self.validation_enabled = self.config.get('app', {}).get('data_validation', True)
         self.max_date_range_days = 365 * 20  # 最多20年資料
         self.min_required_columns = ['Open', 'High', 'Low', 'Close', 'Volume']
         # Core validation delegate

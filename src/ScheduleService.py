@@ -7,17 +7,20 @@ import pandas as pd
 import logging
 
 from src.StockInfos import UserInfoDatas
-from src.Common import Tools
+from indicator_core.DateUtils import get_latest_season_report_date
+from indicator_core.stock_utils import is_etf_stock
+from indicator_core import NetworkUtils as IndicatorNetworkUtils
+from indicator_core.DataUtils import extract_ticker_data
 from pyutils_core.concurrent import ConcurrentUtils
-from src.UpdateStockService.StockDataDownloader import StockDataDownloader
-from src.UpdateStockService.StockDataSynchronizer import StockDataSynchronizer
-from src.UpdateStockService.ADLUpdater import ADLUpdater
+from datafetcher_core.downloader import StockDataDownloader
+from datafetcher_core.synchronizer import StockDataSynchronizer
+from datafetcher_core.adl_updater import ADLUpdater
 from pydb_core.cache_service import HybridCacheService
 from src.ExternalService.ExternalDataFactory import ExternalDataFactory, ExternalDataTypeEnum
 from pydb_core.mongo_service import MongoService
 from pydb_core.sql_service import SqlService
 from pydb_core.read_load_system import ReadLoadSystem
-from src.Common import InfomationType as info
+import datafetcher_core.types as info
 from src.ExternalService.providers.DividendYieldProvider import DividendYieldProvider
 
 class ScheduleService:
@@ -116,8 +119,7 @@ class ScheduleService:
         print("Update stocks other Info end!")
     def _update_quarterly_reports(self):
         """主動更新最新可用的季報資料 (PLA, BS, CPL, SCF)"""
-        from src.Common import Tools
-        from src.Common.InfomationType import FS_type
+        from datafetcher_core.types import FS_type
         from src.ExternalService.providers.FinancialStatementProvider import FinancialStatementProvider
 
         print("Quarterly reports update start!")
@@ -132,7 +134,7 @@ class ScheduleService:
             )
             
             # 取得最近可用的季度日期
-            report_date = Tools.get_latest_season_report_date(datetime.now(), datetime.now())
+            report_date = get_latest_season_report_date(datetime.now(), datetime.now())
             print(f"Updating quarterly reports for: {report_date.strftime('%Y-%m-%d')}")
 
             # 依序更新 4 種財報類型
@@ -179,11 +181,10 @@ class ScheduleService:
 
         # Get Taiwan listed stock list
         import twstock
-        from src.Common import Tools
         codes = []
         for key, value in twstock.codes.items():
             if value.market == "上市":
-                if value.type == "股票" or (value.type == "ETF" and Tools.is_etf_stock(value.code)):
+                if value.type == "股票" or (value.type == "ETF" and is_etf_stock(value.code)):
                     codes.append(value)
 
         # Use common method
@@ -251,8 +252,7 @@ class ScheduleService:
         print("Update all sp500 stocks start! Fetching and Saving will run concurrently.")
 
         # Get S&P 500 stock list
-        from src.Common import Tools
-        sp500 = Tools.get_SP500_list()
+        sp500 = IndicatorNetworkUtils.get_sp500_tickers()
 
         # Use common method
         self._update_stocks_common(
@@ -372,11 +372,10 @@ class ScheduleService:
                 continue
 
             # Process data
-            from src.Common import DataUtils
             if isinstance(stock_item, str):
-                df_result = DataUtils.extract_ticker_data(df_result, stock_code)
+                df_result = extract_ticker_data(df_result, stock_code)
             else:
-                df_result = DataUtils.extract_ticker_data(df_result, stock_code + ".TW")
+                df_result = extract_ticker_data(df_result, stock_code + ".TW")
 
             data_queue.put((stock_name, df_result, fetch_start_date))
 
@@ -414,7 +413,7 @@ class ScheduleService:
         print("Starting database save thread...")
         new_trading_day_updated = False
         from datetime import datetime, timedelta
-        from src.Common.DataValidationService import DataValidationService
+        from datafetcher_core.data_validation import DataValidationService
 
         while True:
             item = data_queue.get()
@@ -512,7 +511,7 @@ class ScheduleService:
             logger.debug(f"Downloading yield data for {date_str}")
 
             try:
-                response = requests.get(url, headers=Tools.get_random_headers(), timeout=30)
+                response = requests.get(url, headers=IndicatorNetworkUtils.get_random_headers(), timeout=30)
 
                 if response.status_code != 200:
                     logger.warning(f"TWSE returned status {response.status_code} for {date_str}")

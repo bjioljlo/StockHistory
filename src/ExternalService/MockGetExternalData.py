@@ -1,7 +1,7 @@
 from datetime import datetime
 import pandas as pd
-from src.Common import InfomationType as info
-from src.ExternalService.IGetExternalData import IGetExternalData
+import datafetcher_core.types as info
+from datafetcher_core.interfaces import IGetExternalData
 
 
 class MockGetExternalData(IGetExternalData):

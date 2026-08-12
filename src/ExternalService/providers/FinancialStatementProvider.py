@@ -11,13 +11,13 @@ from datetime import datetime
 import pandas as pd
 import logging
 
-from src.Common import InfomationType as info
+import datafetcher_core.types as info
 from pydb_core.field_mapping import FieldMapping
 from pydb_core.sql_service import SqlService
 from pydb_core.mongo_service import MongoService
 from pydb_core.read_load_system import ReadLoadSystem
 from pydb_core.cache_service import HybridCacheService
-from src.Common import Tools
+from indicator_core.DateUtils import have_day_rp as Have_DayRP, check_fs_season as CheckFS_season
 from src.ExternalService.providers.crawlers.base_crawler import BaseFinancialCrawler
 from src.ExternalService.providers.crawlers.bs_crawler import BsCrawler
 from src.ExternalService.providers.crawlers.cpl_crawler import CplCrawler
@@ -58,12 +58,12 @@ class FinancialStatementProvider:
         """
         self._logger.info(f"Getting {type} financial statement data: {start}")
 
-        if not Tools.Have_DayRP(start):
+        if not Have_DayRP(start):
             return pd.DataFrame()
 
         season = int(((start.month - 1) / 3) + 1)
 
-        if not Tools.CheckFS_season(start):
+        if not CheckFS_season(start):
             self._logger.warning("Season financial statement data not available yet")
             return pd.DataFrame()
 

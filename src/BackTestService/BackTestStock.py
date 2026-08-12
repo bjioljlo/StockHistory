@@ -12,8 +12,8 @@ Refactored at 2026-04-06 as part of project-refactoring-and-cleanup
 from datetime import datetime
 import pandas as pd
 
-from src.Common import InfomationType as info
-from src.Common import Tools
+import datafetcher_core.types as info
+from indicator_core.DateUtils import change_date_month as changeDateMonth
 
 from src.BackTestService.BackTestFilterData import BacktestFilterDataFactory, BacktestFilterDataType
 from src.BackTestService.BackTestInfoData import BackTestInfoDataPriceByToday
@@ -28,8 +28,8 @@ from src.BackTestService.BackTestInOutStrategy import (
 from src.BackTestService.BackTestFilter import BacktestFilterFactory, BacktestFilterType, Regular_quotatestFilter
 from src.BackTestService.BackTestSignal import BacktestSignalFactory, BacktestSignalType, TBacktestSignal
 from src.ExternalService.ExternalDataFactory import ExternalDataFactory
-from src.FilterService.StockHistory import OriginalStock
-from src.FilterService.StockReportHistory import Day_Report, Month_Report, OM_Growth_Indicator, Original_Indicator, PEG_Indicator, ROE_Indicator, SeasonReportFactory
+from stockpicker_core.stock_history import OriginalStock
+from stockpicker_core.stock_report_history import Day_Report, Month_Report, OM_Growth_Indicator, Original_Indicator, PEG_Indicator, ROE_Indicator, SeasonReportFactory
 
 from src.Common.Parameter import RecordBackTestParameter
 from pydb_core.stock_info_data import BaseInfoData
@@ -92,7 +92,7 @@ class BackTestStock:
             strategy.Out()
             if userInfo.BaseInfoData.now_day >= buy_month:
                 strategy.In()
-                buy_month = Tools.changeDateMonth(buy_month, 3)
+                buy_month = changeDateMonth(buy_month, 3)
             strategy.Record()
             
         strategy.Finish(folderName)

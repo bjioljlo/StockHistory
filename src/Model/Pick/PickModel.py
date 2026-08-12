@@ -11,11 +11,13 @@ import pandas as pd
 from src.Model.Model import TModel
 from src.Model.ModelValidation import ModelValidator, validate_parameters, ModelValidationError
 from src.ExternalService.ExternalDataFactory import ExternalDataFactory
-from src.FilterService.StockHistory import StockFilter, OriginalStockByYahoo
-from src.FilterService.StockReportHistory import SeasonReportFactory
+from stockpicker_core.stock_history import StockFilter, OriginalStockByYahoo
+from stockpicker_core.stock_report_history import SeasonReportFactory
 from src.Common.Parameter import RecordPickParameter
-from src.Common import Tools
-from src.Common import InfomationType as info
+from indicator_core.DateUtils import get_latest_season_report_date
+from indicator_core.DataUtils import merge_dataframes as MixDataFrames
+from indicator_core.DateUtils import change_date_month as changeDateMonth
+import datafetcher_core.types as info
 
 from .ParameterValidator import PickParameterValidator
 from .StockGroupService import StockGroupService
@@ -286,7 +288,7 @@ class PickModel(TModel):
         """Get financial statement filter results"""
         try:
             # Get latest financial report date
-            report_date = Tools.get_latest_season_report_date(date, date)
+            report_date = get_latest_season_report_date(date, date)
             self._logger.info(f"Using financial report date: {report_date.strftime('%Y-%m-%d')}")
             
             # Filter Profit & Loss statement
@@ -387,12 +389,12 @@ class PickModel(TModel):
                 
                 self._logger.info(f"Using index '{common_index}' for merging")
                 
-                result_temp = Tools.MixDataFrames({
+                result_temp = MixDataFrames({
                     "result_pl": result_pl, 
                     "result_bs": result_bs
                 }, index=common_index)
                 
-                final_result = Tools.MixDataFrames({
+                final_result = MixDataFrames({
                     "result_temp": result_temp, 
                     "result_cpl": result_cpl
                 }, index=common_index)

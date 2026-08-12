@@ -10,7 +10,7 @@ Modular components:
 from datafetcher_core.downloader import StockDataDownloader
 from .StockDataSynchronizer import StockDataSynchronizer
 from .ADLUpdater import ADLUpdater
-from src.Common.DataValidationService import DataValidationService
+from datafetcher_core.data_validation import DataValidationService
 
 # Legacy compatibility alias
 UpdateStockService = StockDataSynchronizer

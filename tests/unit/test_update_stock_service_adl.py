@@ -5,7 +5,7 @@ from unittest.mock import MagicMock, patch
 
 import pandas as pd
 
-from src.FilterService.StockReportHistory import ADL_Indicator, ADL_Report
+from stockpicker_core.stock_report_history import ADL_Indicator, ADL_Report
 from src.UpdateStockService import UpdateStockService
 
 

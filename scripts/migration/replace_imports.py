@@ -28,8 +28,8 @@ DELETE_FILES = {
     'src/Common/ReadWriteSplitService.py': 'pydb_core.read_write_split',
     'src/Common/QueryOptimizer.py': 'pydb_core.query_optimizer',
     # indicator-core 完整取代
-    'src/Common/DateUtils.py': 'indicator_core.date_utils',
-    'src/Common/FinancialUtils.py': 'indicator_core.financial_utils',
+    'src/Common/DateUtils.py': 'indicator_core.DateUtils',
+    'src/Common/FinancialUtils.py': 'indicator_core.FinancialUtils',
     'src/Common/StockUtils.py': 'indicator_core.stock_utils',
 }
 
@@ -46,12 +46,12 @@ def update_imports_in_file(filepath):
 
     original = content
 
-    # 取代相對 import: from indicator_core.date_utils import → from indicator_core.date_utils import
-    content = re.sub(r'from \.DateUtils import', 'from indicator_core.date_utils import', content)
-    content = re.sub(r'from \.FinancialUtils import', 'from indicator_core.financial_utils import', content)
+    # 取代相對 import
+    content = re.sub(r'from \.DateUtils import', 'from indicator_core.DateUtils import', content)
+    content = re.sub(r'from \.FinancialUtils import', 'from indicator_core.FinancialUtils import', content)
     content = re.sub(r'from \.StockUtils import', 'from indicator_core.stock_utils import', content)
-    content = re.sub(r'from \.DataUtils import', 'from indicator_core.data_utils import', content)
-    content = re.sub(r'from \.NetworkUtils import', 'from indicator_core.network_utils import', content)
+    content = re.sub(r'from \.DataUtils import', 'from indicator_core.DataUtils import', content)
+    content = re.sub(r'from \.NetworkUtils import', 'from indicator_core.NetworkUtils import', content)
     content = re.sub(r'from \.Exceptions import', 'from pyutils_core.exceptions import', content)
     content = re.sub(r'from \.FieldMapping import', 'from pydb_core.field_mapping import', content)
     content = re.sub(r'from \.CacheService import', 'from pydb_core.cache_service import', content)
@@ -67,11 +67,11 @@ def update_imports_in_file(filepath):
     # 取代絕對 import
     content = re.sub(r'from src\.Common\.ConfigService import', 'from pyutils_core.config import', content)
     content = re.sub(r'from src\.Common\.Exceptions import', 'from pyutils_core.exceptions import', content)
-    content = re.sub(r'from src\.Common\.DateUtils import', 'from indicator_core.date_utils import', content)
-    content = re.sub(r'from src\.Common\.FinancialUtils import', 'from indicator_core.financial_utils import', content)
+    content = re.sub(r'from src\.Common\.DateUtils import', 'from indicator_core.DateUtils import', content)
+    content = re.sub(r'from src\.Common\.FinancialUtils import', 'from indicator_core.FinancialUtils import', content)
     content = re.sub(r'from src\.Common\.StockUtils import', 'from indicator_core.stock_utils import', content)
-    content = re.sub(r'from src\.Common\.DataUtils import', 'from indicator_core.data_utils import', content)
-    content = re.sub(r'from src\.Common\.NetworkUtils import', 'from indicator_core.network_utils import', content)
+    content = re.sub(r'from src\.Common\.DataUtils import', 'from indicator_core.DataUtils import', content)
+    content = re.sub(r'from src\.Common\.NetworkUtils import', 'from indicator_core.NetworkUtils import', content)
     content = re.sub(r'from src\.Common\.FieldMapping import', 'from pydb_core.field_mapping import', content)
     content = re.sub(r'from src\.Common\.CacheService import', 'from pydb_core.cache_service import', content)
     content = re.sub(r'from src\.Common\.ServiceContainer import', 'from pyutils_core.container import', content)

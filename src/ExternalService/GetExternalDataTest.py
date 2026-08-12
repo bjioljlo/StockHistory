@@ -7,10 +7,11 @@ from io import StringIO
 import pandas as pd
 import requests
 
-from src.Common import InfomationType as info
+import datafetcher_core.types as info
 from src.ExternalService.TGetExternalData import TGetExternalData
 import src.StockInfos as StockInfos
-from src.Common import Tools
+from indicator_core.DateUtils import have_month_rp as Have_MonthRP
+from pyutils_core.network import NetworkUtils as PyNetworkUtils
 
 
 class GetExternalDataTest(TGetExternalData):
@@ -25,7 +26,7 @@ class GetExternalDataTest(TGetExternalData):
                 "月營收的資料:",
                 str(start),
             )
-            if not Tools.Have_MonthRP(start):
+            if not Have_MonthRP(start):
                 return pd.DataFrame()
             m_data = pd.DataFrame()
             year = start.year
@@ -54,7 +55,7 @@ class GetExternalDataTest(TGetExternalData):
                         )
 
                     # 下載該年月的網站，並用pandas轉換成 dataframe
-                    r = requests.get(url, headers=Tools.get_random_Header())
+                    r = requests.get(url, headers=PyNetworkUtils.get_random_headers())
                     r.encoding = "big5-hkscs"
 
                     try:

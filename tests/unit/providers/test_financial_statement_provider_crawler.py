@@ -5,7 +5,7 @@ from datetime import datetime
 from unittest.mock import MagicMock, patch
 from pandas import DataFrame
 
-from src.Common import InfomationType as info
+import datafetcher_core.types as info
 from src.ExternalService.providers.FinancialStatementProvider import (
     FinancialStatementProvider,
 )

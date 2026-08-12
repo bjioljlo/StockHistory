@@ -6,9 +6,9 @@ Extracted from Model_pick.py - single responsibility: valid trading date detecti
 import logging
 from datetime import datetime, timedelta
 from typing import Optional
-from src.Common import InfomationType as info
+import datafetcher_core.types as info
 from src.ExternalService.ExternalDataFactory import ExternalDataFactory
-from src.FilterService.StockHistory import OriginalStockByYahoo
+from stockpicker_core.stock_history import OriginalStockByYahoo
 
 
 logger = logging.getLogger(__name__)

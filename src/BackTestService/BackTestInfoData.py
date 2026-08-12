@@ -4,9 +4,9 @@ from datetime import datetime, timedelta
 
 from pandas import DataFrame
 
-from src.Common import Tools
-from src.FilterService.StockHistory import OriginalStock
-from src.Common.InfomationType import stock_data_kind
+from indicator_core import calculate_total_with_fees as Total_with_Handling_fee_and_Tax
+from stockpicker_core.stock_history import OriginalStock
+from datafetcher_core.types import stock_data_kind
 from pydb_core.stock_info_data import BaseInfoData
 
 from .BackTestRecord import BackTestRecord_indexWithDate, IBackTestRecord
@@ -216,7 +216,7 @@ class BackTestInfoDataPriceByToday(TBackTestInfoData):
             )
             self._BaseInfoData.now_money = (
                 self._BaseInfoData.now_money
-                + Tools.Total_with_Handling_fee_and_Tax(stock_price, amount, False)
+                + Total_with_Handling_fee_and_Tax(stock_price, amount, False)
             )
             if not self._HandleStock[number].MinusAmount(amount):
                 self._HandleStock.pop(number, None)
@@ -232,7 +232,7 @@ class BackTestInfoDataPriceByToday(TBackTestInfoData):
             print(str(number) + " no use stock")
             return False
         elif (
-            Tools.Total_with_Handling_fee_and_Tax(stock_price, amount)
+            Total_with_Handling_fee_and_Tax(stock_price, amount)
             > self._BaseInfoData.now_money
         ):
             print("錢不夠買：" + str(number) + " " + str(amount) + "股")
@@ -243,7 +243,7 @@ class BackTestInfoDataPriceByToday(TBackTestInfoData):
             self._HandleStock[number].AddAmount(amount, stock_price)
             self._BaseInfoData.now_money = (
                 self._BaseInfoData.now_money
-                - Tools.Total_with_Handling_fee_and_Tax(stock_price, amount)
+                - Total_with_Handling_fee_and_Tax(stock_price, amount)
             )
             return True
 

@@ -1,7 +1,7 @@
 from abc import ABC, abstractmethod
 
 from src.ExternalService.ExternalDataFactory import ExternalDataFactory
-from src.FilterService.StockReportHistory import SeasonReportFactory, MonthReportFactory, DayReportFactory, DividendYieldReportFactory, ADLReportFactory
+from stockpicker_core.stock_report_history import SeasonReportFactory, MonthReportFactory, DayReportFactory, DividendYieldReportFactory, ADLReportFactory
 from src.Model.Model_backtest import Model_backtest
 from src.Model.Model_main import Model_main
 from src.Model.Pick import PickModel

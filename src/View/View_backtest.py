@@ -1,6 +1,6 @@
 from PyQt5 import QtWidgets, uic
 
-from src.Common import Tools
+from indicator_core.DateUtils import qt_date_to_datetime as QtDate2DateTime
 from src.Common.Parameter import RecordBackTestParameter
 from src.View.View import TWindow
 
@@ -31,8 +31,8 @@ class BackTestParameter(RecordBackTestParameter):
             self.check_price_pick: bool = bool(UI_form.check_price_pick.isChecked())
             self.check_PBR_pick: bool = bool(UI_form.check_PBR_pick.isChecked())
             self.check_ROE_pick: bool = bool(UI_form.check_ROE_pick.isChecked())
-            self.date_start = Tools.QtDate2DateTime(UI_form.date_start.date())
-            self.date_end = Tools.QtDate2DateTime(UI_form.date_end.date())
+            self.date_start = QtDate2DateTime(UI_form.date_start.date())
+            self.date_end = QtDate2DateTime(UI_form.date_end.date())
             self.money_start = int(UI_form.input_startMoney.toPlainText())
             self.change_days = int(UI_form.input_changeDays.toPlainText())
             self.smoothAVG = int(UI_form.input_monthRP_smoothAVG.toPlainText())

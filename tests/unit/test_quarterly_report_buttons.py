@@ -198,7 +198,7 @@ class TestGetIndicatorData:
         model = create_model(mock_services)
 
         # Mock OM_Growth_Indicator (imported inside _get_indicator_data function)
-        with patch("src.FilterService.StockReportHistory.OM_Growth_Indicator") as mock_indicator_cls:
+        with patch("stockpicker_core.stock_report_history.OM_Growth_Indicator") as mock_indicator_cls:
             mock_indicator = Mock()
             mock_indicator.get_ReportByNumber = Mock(
                 return_value=pd.DataFrame({"OM_Growth": [15.5]}, index=["2330"])
@@ -219,7 +219,7 @@ class TestGetIndicatorData:
         model = create_model(mock_services)
 
         # Mock ROE_Indicator (imported inside _get_indicator_data function)
-        with patch("src.FilterService.StockReportHistory.ROE_Indicator") as mock_indicator_cls:
+        with patch("stockpicker_core.stock_report_history.ROE_Indicator") as mock_indicator_cls:
             mock_indicator = Mock()
             mock_indicator.get_ReportByNumber = Mock(
                 return_value=pd.DataFrame({"ROE": [18.5]}, index=["2330"])

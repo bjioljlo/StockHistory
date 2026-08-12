@@ -1,7 +1,7 @@
 from PyQt5 import QtWidgets, uic
 from PyQt5.QtCore import pyqtSignal, QObject
 
-from src.Common import Tools
+from indicator_core.DateUtils import qt_date_to_datetime as QtDate2DateTime
 from src.Common.Parameter import RecordMainParameter
 from src.View.View import TWindow
 
@@ -65,7 +65,7 @@ class MainParameter(RecordMainParameter):
             
             # 獲取開始日期
             try:
-                self.startdate = Tools.QtDate2DateTime(
+                self.startdate = QtDate2DateTime(
                     _view.GetFormUI().date_startDate.date()
                 )
             except Exception as e:
@@ -74,7 +74,7 @@ class MainParameter(RecordMainParameter):
             
             # 獲取結束日期
             try:
-                self.enddate = Tools.QtDate2DateTime(
+                self.enddate = QtDate2DateTime(
                     _view.GetFormUI().date_endDate.date()
                 )
             except Exception as e:

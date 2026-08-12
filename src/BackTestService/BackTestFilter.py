@@ -6,11 +6,11 @@ from typing import List
 
 import pandas as pd
 
-from src.FilterService.StockHistory import StockFilter
-from src.FilterService.StockReportHistory import Indicator
-from src.Common import Tools
-from src.Common import InfomationType as info
-from src.FilterService.StockHistory import OriginalStock
+from stockpicker_core.stock_history import StockFilter, OriginalStock
+from stockpicker_core.stock_report_history import Indicator
+from indicator_core.DataUtils import merge_dataframes as MixDataFrames
+from indicator_core.DateUtils import change_date_month as changeDateMonth
+import datafetcher_core.types as info
 
 
 class BacktestFilterType(Enum):
@@ -73,7 +73,7 @@ class PEG_pickBacktestFilter(TBacktestFilter):
         Result_data[self.MonthReportUp_indicator.name] = StockFilter(
             Date, self.MonthReportUp_indicator
         ).get_Smooth_Up_Auto(4, 5)
-        Result_data = Tools.MixDataFrames(Result_data)
+        Result_data = MixDataFrames(Result_data)
         return Result_data[self.PEG_Indicator.name]
 
 
@@ -100,9 +100,9 @@ class KD_pickBacktestFilter(TBacktestFilter):
         for num in range(1, 5):
             ResultKeyName = self._Indicator.name + "_data_" + str(num)
             Result_data[ResultKeyName] = StockFilter(
-                Tools.changeDateMonth(Date, (-3 * num)), self._Indicator
+                changeDateMonth(Date, (-3 * num)), self._Indicator
             ).get_Filter_Auto(0, 999)
-        mask = Tools.MixDataFrames(Result_data)
+        mask = MixDataFrames(Result_data)
 
         AVG_data = (
             mask[self._Indicator.name + "_data_1"]
@@ -136,7 +136,7 @@ class RecordHigh_pickBacktestFilter(TBacktestFilter):
         Result_data[self.PBR_indicator.name] = StockFilter(
             Date, self.PBR_indicator
         ).get_Filter_Auto(10000, 1)
-        Result = Tools.MixDataFrames(Result_data)
+        Result = MixDataFrames(Result_data)
         Result_data["RecordHigh"] = StockFilter(
             Date, Result, self._original_stock
         ).get_Filter_RecordHigh(
@@ -144,22 +144,22 @@ class RecordHigh_pickBacktestFilter(TBacktestFilter):
             1,
             info.Price_type.High,
         )
-        Result = Tools.MixDataFrames(Result_data)
+        Result = MixDataFrames(Result_data)
         Result_data["price"] = StockFilter(Date, Result, self._original_stock).get_Filter(
             "price", 2000, 7, info.Price_type.Close
         )
-        Result = Tools.MixDataFrames(Result_data)
+        Result = MixDataFrames(Result_data)
         Result_data["volume"] = StockFilter(Date, Result, self._original_stock).get_Filter_SMA(
             "volume", 99999999999, 500000, 5, info.Price_type.Volume
         )
-        Result = Tools.MixDataFrames(Result_data)
+        Result = MixDataFrames(Result_data)
         TempPointResult = Result_data["ROE"] / Result_data["ROE_last_seson"]
         Result_data["point"] = (
             pd.DataFrame(TempPointResult["ROE"] / Result_data["PBR"]["PBR"])
             .dropna()
             .rename(columns={0: "point"})
         )
-        Result = Tools.MixDataFrames(Result_data)
+        Result = MixDataFrames(Result_data)
         Result = Result.sort_values(by="point", ascending=False)
         return Result["point"]
 
@@ -179,7 +179,7 @@ class PERandPBR_pickBacktestFilter(TBacktestFilter):
         Result_data[self.PBR_indicator.name] = StockFilter(
             Date, self.PBR_indicator
         ).get_Filter_Auto(10000, 0.7)
-        Result = Tools.MixDataFrames(Result_data)
+        Result = MixDataFrames(Result_data)
         return Result[self.PER_Indicator.name]
     
 class MonthRpUp_pickbacktestFilter(TBacktestFilter):
@@ -205,5 +205,5 @@ class MonthRpUp_pickbacktestFilter(TBacktestFilter):
         Result_data[self.PBR_indicator.name] = StockFilter(
             Date, self.PBR_indicator
         ).get_Filter_Auto(10000, 0.7)
-        Result_data = Tools.MixDataFrames(Result_data)
+        Result_data = MixDataFrames(Result_data)
         return Result_data[self.PBR_indicator.name]

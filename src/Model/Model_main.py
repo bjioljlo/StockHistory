@@ -1,15 +1,15 @@
 from datetime import datetime
 
-from src.Common import Tools
+from indicator_core.DateUtils import change_date_month as changeDateMonth
 from src.DrawFigur import DrawFigur
-from src.FilterService.StockReportHistory import Season_Report, SeasonReportFactory, MonthReportFactory, DayReportFactory, DividendYieldReportFactory, ADLReportFactory
+from stockpicker_core.stock_report_history import Season_Report, SeasonReportFactory, MonthReportFactory, DayReportFactory, DividendYieldReportFactory, ADLReportFactory
 from src.Model.Model import TModel
 from src.Common.Parameter import RecordMainParameter
 from src.ScheduleService import ScheduleService
 from src.StockInfos import UserInfoDatas
-from src.Common import InfomationType as info
+import datafetcher_core.types as info
 
-from src.ExternalService.IGetExternalData import IGetExternalData
+from datafetcher_core.interfaces import IGetExternalData
 
 
 class Model_main(TModel):
@@ -257,13 +257,13 @@ class Model_main(TModel):
             report._FS_type = info.FS_type.CPL
             showClumn = -1  # 將使用 keyword 查找 EPS 欄位
         elif report_index == self._season_report_factory.Debt_index:
-            from src.FilterService.StockReportHistory import Debt_Indicator
+            from stockpicker_core.stock_report_history import Debt_Indicator
             report = self._season_report_factory
             report._FS_type = info.FS_type.BS
             report = Debt_Indicator("Debt Asset Ratio", report)
             showClumn = 0
         elif report_index == self._season_report_factory.SR_Growth_index:
-            from src.FilterService.StockReportHistory import SR_Growth_Indicator
+            from stockpicker_core.stock_report_history import SR_Growth_Indicator
             report = self._season_report_factory
             report._FS_type = info.FS_type.PLA
             report = SR_Growth_Indicator("Season Revenue Growth (year by year)(%)", report)
@@ -331,7 +331,7 @@ class Model_main(TModel):
         """
         使用 Indicator 類計算衍生指標數據
         """
-        from src.FilterService.StockReportHistory import OM_Growth_Indicator, ROE_Indicator
+        from stockpicker_core.stock_report_history import OM_Growth_Indicator, ROE_Indicator
 
         if report_index == self._season_report_factory.OM_Growth_index:
             # 營業利益成長率 = (本季營業利益率 - 去年同期營業利益率) / 去年同期營業利益率 * 100
@@ -371,7 +371,7 @@ class Model_main(TModel):
             return
         if (
             record_main_parameter.enddate.month
-            == Tools.changeDateMonth(datetime.today(), -1).month
+            == changeDateMonth(datetime.today(), -1).month
             and datetime.today().day < 15
         ):
             print("還沒15號沒有上個月的資料")
@@ -623,7 +623,7 @@ class Model_main(TModel):
         if not self._validate_record_parameter(record_main_parameter, stock_number_required=False):
             return
 
-        from src.FilterService.StockReportHistory import ADL_Indicator
+        from stockpicker_core.stock_report_history import ADL_Indicator
 
         # Create ADL Indicator which calculates the actual cumulative ADL (not just raw Ad_index)
         adl_indicator = ADL_Indicator("ADL", self._adl_report_factory)

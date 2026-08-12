@@ -16,14 +16,14 @@ from pyutils_core.concurrent import ConcurrentUtils
 from src.Controller.MediatorController import Mediator_Controller, controllers
 from src.DrawFigur import DrawFigur
 from src.ExternalService.ExternalDataFactory import ExternalDataFactory
-from src.FilterService.StockReportHistory import SeasonReportFactory, MonthReportFactory, DayReportFactory, DividendYieldReportFactory, ADLReportFactory
+from stockpicker_core.stock_report_history import SeasonReportFactory, MonthReportFactory, DayReportFactory, DividendYieldReportFactory, ADLReportFactory
 from pydb_core.mongo_service import MongoService
 from pydb_core.read_load_system import ReadLoadSystem
 from src.ScheduleService import ScheduleService
 from pydb_core.sql_service import SqlService
-from src.UpdateStockService.StockDataDownloader import StockDataDownloader
-from src.UpdateStockService.StockDataSynchronizer import StockDataSynchronizer
-from src.UpdateStockService.ADLUpdater import ADLUpdater
+from datafetcher_core.downloader import StockDataDownloader
+from datafetcher_core.synchronizer import StockDataSynchronizer
+from datafetcher_core.adl_updater import ADLUpdater
 
 app = QtWidgets.QApplication(sys.argv)
 config = load_config(get_config_path())
@@ -52,7 +52,7 @@ external_data_factory = ExternalDataFactory(
     cache_service=cache_service  # 注入快取服務
 )
 # 初始化所有 Report Factory - Mediator 預期是已經建立好的 Report 實例
-from src.Common.InfomationType import FS_type
+from datafetcher_core.types import FS_type
 
 # 正確作法：先建立 Report 實例，因為 MediatorController 設計是直接使用實例而非工廠函數
 season_report_factory = SeasonReportFactory(FS_type.BS, external_data_factory)

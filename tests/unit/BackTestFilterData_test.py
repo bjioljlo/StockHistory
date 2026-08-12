@@ -1,17 +1,15 @@
 import unittest
 from datetime import datetime
-from src.Common import Tools
-
-from src.Common import InfomationType as info
+from indicator_core.DateUtils import back_work_days as backWorkDays
+import datafetcher_core.types as info
 from src.BackTestService.BackTestFilterData import (
     BacktestFilterDataFactory,
     BacktestFilterDataType,
 )
 from src.BackTestService.BackTestFilter import BacktestFilterFactory, BacktestFilterType
 from src.BackTestService.BackTestSignal import BacktestSignalFactory, BacktestSignalType
-from src.FilterService.StockReportHistory import ROE_Indicator
-from src.FilterService.StockHistory import OriginalStockTest
-from src.FilterService.StockReportHistory import SeasonReportFactory
+from stockpicker_core.stock_report_history import ROE_Indicator, SeasonReportFactory
+from stockpicker_core.stock_history import OriginalStockTest
 from src.ExternalService.ExternalDataFactory import ExternalDataFactory, ExternalDataTypeEnum
 
 
@@ -50,13 +48,13 @@ class TKD_pickFilterData_Test(unittest.TestCase):
         temp_date = datetime.strptime("2020-09-16", "%Y-%m-%d")
         for i in range(1000):
             if temp_date not in self._external_data.get_stock_history("2330").index:
-                temp_date = Tools.backWorkDays(temp_date, -1)
+                temp_date = backWorkDays(temp_date, -1)
                 continue
             if temp_date > datetime.strptime("2020-11-5", "%Y-%m-%d"):
                 break
             self._BackTestFilterData.GoToNextWorkDay(temp_date)
             _buydata = self._BackTestFilterData.ShouldBuyStocks()
-            temp_date = Tools.backWorkDays(temp_date, -1)
+            temp_date = backWorkDays(temp_date, -1)
             if len(_buydata) != 0:
                 self.assertEqual(_buydata, {"2330"})
                 break
@@ -65,13 +63,13 @@ class TKD_pickFilterData_Test(unittest.TestCase):
         temp_date = datetime.strptime("2020-09-16", "%Y-%m-%d")
         for i in range(1000):
             if temp_date not in self._external_data.get_stock_history("2330").index:
-                temp_date = Tools.backWorkDays(temp_date, -1)
+                temp_date = backWorkDays(temp_date, -1)
                 continue
             if temp_date > datetime.strptime("2020-11-5", "%Y-%m-%d"):
                 break
             self._BackTestFilterData.GoToNextWorkDay(temp_date)
             _selldata = self._BackTestFilterData.ShouldSellStocks({"2330": "1"})
-            temp_date = Tools.backWorkDays(temp_date, -1)
+            temp_date = backWorkDays(temp_date, -1)
             if len(_selldata) != 0:
                 self.assertEqual(_selldata, {"2330"})
                 break

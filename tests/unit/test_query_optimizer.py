@@ -28,7 +28,7 @@ class TestQueryOptimizer(unittest.TestCase):
             }
         }
 
-    @patch('src.Common.QueryOptimizer.yaml.safe_load')
+    @patch('pydb_core.query_optimizer.yaml.safe_load')
     @patch('builtins.open')
     def test_initialization(self, mock_open, mock_yaml):
         """測試初始化"""
