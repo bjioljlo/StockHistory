@@ -78,12 +78,12 @@ class TestCacheService(unittest.TestCase):
     def tearDown(self):
         """測試後清理"""
         # 清理全域實例
-        import src.Common.CacheService
-        src.Common.CacheService._cache_service = None
+        import pydb_core.cache_service
+        pydb_core.cache_service._cache_service = None
 
-    @patch('src.Common.CacheService.yaml.safe_load')
+    @patch('pydb_core.cache_service.yaml.safe_load')
     @patch('builtins.open')
-    @patch('src.Common.CacheService.redis.Redis')
+    @patch('pydb_core.cache_service.redis.Redis')
     def test_initialization(self, mock_redis, mock_open, mock_yaml):
         """測試初始化"""
         mock_yaml.return_value = self.config
@@ -97,9 +97,9 @@ class TestCacheService(unittest.TestCase):
         mock_redis_instance.ping.assert_called_once()
         self.assertEqual(cache.redis_config['default_ttl'], 3600)
 
-    @patch('src.Common.CacheService.yaml.safe_load')
+    @patch('pydb_core.cache_service.yaml.safe_load')
     @patch('builtins.open')
-    @patch('src.Common.CacheService.redis.Redis')
+    @patch('pydb_core.cache_service.redis.Redis')
     def test_generate_cache_key(self, mock_redis, mock_open, mock_yaml):
         """測試快取鍵生成"""
         mock_yaml.return_value = self.config
@@ -120,9 +120,9 @@ class TestCacheService(unittest.TestCase):
         key3 = cache._generate_cache_key("stock", "GOOGL")
         self.assertNotEqual(key, key3)
 
-    @patch('src.Common.CacheService.yaml.safe_load')
+    @patch('pydb_core.cache_service.yaml.safe_load')
     @patch('builtins.open')
-    @patch('src.Common.CacheService.redis.Redis')
+    @patch('pydb_core.cache_service.redis.Redis')
     def test_dataframe_serialization(self, mock_redis, mock_open, mock_yaml):
         """測試 DataFrame 序列化"""
         mock_yaml.return_value = self.config
@@ -146,9 +146,9 @@ class TestCacheService(unittest.TestCase):
         self.assertEqual(len(data['data']), 2)
         self.assertEqual(data['columns'], ['A', 'B'])
 
-    @patch('src.Common.CacheService.yaml.safe_load')
+    @patch('pydb_core.cache_service.yaml.safe_load')
     @patch('builtins.open')
-    @patch('src.Common.CacheService.redis.Redis')
+    @patch('pydb_core.cache_service.redis.Redis')
     def test_dataframe_deserialization(self, mock_redis, mock_open, mock_yaml):
         """測試 DataFrame 反序列化"""
         mock_yaml.return_value = self.config
@@ -167,9 +167,9 @@ class TestCacheService(unittest.TestCase):
         self.assertEqual(deserialized_df.columns.tolist(), original_df.columns.tolist())
         self.assertEqual(deserialized_df.values.tolist(), original_df.values.tolist())
 
-    @patch('src.Common.CacheService.yaml.safe_load')
+    @patch('pydb_core.cache_service.yaml.safe_load')
     @patch('builtins.open')
-    @patch('src.Common.CacheService.redis.Redis')
+    @patch('pydb_core.cache_service.redis.Redis')
     def test_get_redis_cache(self, mock_redis, mock_open, mock_yaml):
         """測試 Redis 快取獲取"""
         mock_yaml.return_value = self.config
@@ -178,9 +178,10 @@ class TestCacheService(unittest.TestCase):
 
         cache = create_test_cache_service('config.yml')
 
+        import pickle
         # 測試快取命中
         test_data = {'key': 'value', 'number': 42}
-        cache.redis_client.get.return_value = json.dumps(test_data)
+        cache.redis_client.get.return_value = pickle.dumps(test_data)
 
         result = cache.get_redis_cache("test_key")
         self.assertEqual(result, test_data)
@@ -190,9 +191,9 @@ class TestCacheService(unittest.TestCase):
         result = cache.get_redis_cache("test_key")
         self.assertIsNone(result)
 
-    @patch('src.Common.CacheService.yaml.safe_load')
+    @patch('pydb_core.cache_service.yaml.safe_load')
     @patch('builtins.open')
-    @patch('src.Common.CacheService.redis.Redis')
+    @patch('pydb_core.cache_service.redis.Redis')
     def test_set_redis_cache(self, mock_redis, mock_open, mock_yaml):
         """測試 Redis 快取設定"""
         mock_yaml.return_value = self.config
@@ -207,9 +208,9 @@ class TestCacheService(unittest.TestCase):
         self.assertTrue(result)
         cache.redis_client.set.assert_called_once()
 
-    @patch('src.Common.CacheService.yaml.safe_load')
+    @patch('pydb_core.cache_service.yaml.safe_load')
     @patch('builtins.open')
-    @patch('src.Common.CacheService.redis.Redis')
+    @patch('pydb_core.cache_service.redis.Redis')
     def test_delete_redis_cache(self, mock_redis, mock_open, mock_yaml):
         """測試 Redis 快取刪除"""
         mock_yaml.return_value = self.config
@@ -222,9 +223,9 @@ class TestCacheService(unittest.TestCase):
         result = cache.delete_redis_cache('test_key')
         self.assertTrue(result)
 
-    @patch('src.Common.CacheService.yaml.safe_load')
+    @patch('pydb_core.cache_service.yaml.safe_load')
     @patch('builtins.open')
-    @patch('src.Common.CacheService.redis.Redis')
+    @patch('pydb_core.cache_service.redis.Redis')
     def test_get_cache_stats(self, mock_redis, mock_open, mock_yaml):
         """測試快取統計獲取"""
         mock_yaml.return_value = self.config
@@ -250,9 +251,9 @@ class TestCacheService(unittest.TestCase):
         self.assertEqual(stats['query_stats']['total_queries'], 0)
         self.assertEqual(stats['query_stats']['hot_stocks'], 0)
 
-    @patch('src.Common.CacheService.yaml.safe_load')
+    @patch('pydb_core.cache_service.yaml.safe_load')
     @patch('builtins.open')
-    @patch('src.Common.CacheService.redis.Redis')
+    @patch('pydb_core.cache_service.redis.Redis')
     def test_data_cache_operations(self, mock_redis, mock_open, mock_yaml):
         """測試資料快取操作"""
         mock_yaml.return_value = self.config
@@ -267,7 +268,8 @@ class TestCacheService(unittest.TestCase):
         self.assertTrue(result)
 
         # 測試獲取資料快取
-        cache.redis_client.get.return_value = json.dumps(data)
+        import pickle
+        cache.redis_client.get.return_value = pickle.dumps(data)
         cached_data = cache.get_redis_cache('test_key')
         self.assertEqual(cached_data, data)
 
@@ -276,9 +278,9 @@ class TestCacheService(unittest.TestCase):
         result = cache.delete_redis_cache('test_key')
         self.assertTrue(result)
 
-    @patch('src.Common.CacheService.yaml.safe_load')
+    @patch('pydb_core.cache_service.yaml.safe_load')
     @patch('builtins.open')
-    @patch('src.Common.CacheService.redis.Redis')
+    @patch('pydb_core.cache_service.redis.Redis')
     def test_clear_all_cache(self, mock_redis, mock_open, mock_yaml):
         """測試清除所有快取"""
         mock_yaml.return_value = self.config
@@ -292,9 +294,9 @@ class TestCacheService(unittest.TestCase):
         self.assertTrue(result)
         cache.redis_client.flushdb.assert_called_once()
 
-    @patch('src.Common.CacheService.yaml.safe_load')
+    @patch('pydb_core.cache_service.yaml.safe_load')
     @patch('builtins.open')
-    @patch('src.Common.CacheService.redis.Redis')
+    @patch('pydb_core.cache_service.redis.Redis')
     def test_health_check(self, mock_redis, mock_open, mock_yaml):
         """測試健康檢查"""
         mock_yaml.return_value = self.config
@@ -316,9 +318,9 @@ class TestCacheService(unittest.TestCase):
         self.assertEqual(health['redis']['status'], 'healthy')
         self.assertEqual(health['mongodb']['status'], 'disabled')
 
-    @patch('src.Common.CacheService.yaml.safe_load')
+    @patch('pydb_core.cache_service.yaml.safe_load')
     @patch('builtins.open')
-    @patch('src.Common.CacheService.redis.Redis')
+    @patch('pydb_core.cache_service.redis.Redis')
     def test_get_cache_service_singleton(self, mock_redis, mock_open, mock_yaml):
         """測試單例模式"""
         mock_yaml.return_value = self.config
@@ -348,9 +350,9 @@ class TestCachedSqlService(unittest.TestCase):
             }
         }
 
-    @patch('src.Common.CacheService.yaml.safe_load')
+    @patch('pydb_core.cache_service.yaml.safe_load')
     @patch('builtins.open')
-    @patch('src.Common.CacheService.redis.Redis')
+    @patch('pydb_core.cache_service.redis.Redis')
     def test_cached_sql_service_initialization(self, mock_redis, mock_open, mock_yaml):
         """測試 CachedSqlService 初始化"""
         mock_yaml.return_value = self.config
@@ -365,23 +367,23 @@ class TestCachedSqlService(unittest.TestCase):
         self.assertIsNotNone(cached_service.sql_service)
         self.assertIsInstance(cached_service.cache, HybridCacheService)
 
-    @patch('src.Common.CacheService.yaml.safe_load')
+    @patch('pydb_core.cache_service.yaml.safe_load')
     @patch('builtins.open')
-    @patch('src.Common.CacheService.redis.Redis')
+    @patch('pydb_core.cache_service.redis.Redis')
     def test_read_stock_day_cached_hit(self, mock_redis, mock_open, mock_yaml):
         """測試快取命中的股票資料讀取"""
         mock_yaml.return_value = self.config
         mock_redis_instance = Mock()
         mock_redis.return_value = mock_redis_instance
 
-        cache = create_test_cache_service('config.yml')
         mock_sql_service = Mock()
+        cached_service = create_cached_sql_service(mock_sql_service)
 
         # 模擬快取命中
+        import pickle, json
         df = pd.DataFrame({'Date': ['2024-01-01'], 'Close': [100]})
-        cache.redis_client.get.return_value = cache._serialize_dataframe(df)
+        cached_service.cache.redis_client.get.return_value = pickle.dumps(json.loads(cached_service.cache._serialize_dataframe(df)))
 
-        cached_service = create_cached_sql_service(mock_sql_service)
         result = cached_service.read_stock_day_cached("AAPL")
 
         # 應該從快取返回，不調用 SQL 服務
@@ -389,9 +391,9 @@ class TestCachedSqlService(unittest.TestCase):
         self.assertIsInstance(result, pd.DataFrame)
         self.assertEqual(len(result), 1)
 
-    @patch('src.Common.CacheService.yaml.safe_load')
+    @patch('pydb_core.cache_service.yaml.safe_load')
     @patch('builtins.open')
-    @patch('src.Common.CacheService.redis.Redis')
+    @patch('pydb_core.cache_service.redis.Redis')
     def test_read_stock_day_cached_miss(self, mock_redis, mock_open, mock_yaml):
         """測試快取未命中的股票資料讀取"""
         mock_yaml.return_value = self.config
@@ -416,9 +418,9 @@ class TestCachedSqlService(unittest.TestCase):
         cache.redis_client.set.assert_called_once()
         self.assertEqual(len(result), 1)
 
-    @patch('src.Common.CacheService.yaml.safe_load')
+    @patch('pydb_core.cache_service.yaml.safe_load')
     @patch('builtins.open')
-    @patch('src.Common.CacheService.redis.Redis')
+    @patch('pydb_core.cache_service.redis.Redis')
     def test_invalidate_stock_cache(self, mock_redis, mock_open, mock_yaml):
         """測試股票快取失效"""
         mock_yaml.return_value = self.config

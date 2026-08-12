@@ -47,13 +47,14 @@ class TestQueryOptimizer(unittest.TestCase):
 
         # 模擬資料庫連線和結果
         mock_conn = Mock()
+        mock_conn.__enter__ = Mock(return_value=mock_conn)
+        mock_conn.__exit__ = Mock(return_value=None)
         mock_engine.return_value.connect.return_value = mock_conn
 
         # 模擬慢查詢結果
         mock_result = Mock()
-        mock_result.fetchall.return_value = [
-            ("SELECT * FROM large_table", 100, 5.5, 3.2, 8.1, 550.0, "2024-01-01 10:00:00")
-        ]
+        rows = [("SELECT * FROM large_table", 100, 5.5, 3.2, 8.1, 550.0, "2024-01-01 10:00:00")]
+        mock_result.__iter__ = Mock(return_value=iter(rows))
         mock_conn.execute.return_value = mock_result
 
         optimizer = QueryOptimizer('config.yml')
@@ -100,16 +101,21 @@ class TestQueryOptimizer(unittest.TestCase):
 
         # 模擬資料庫連線和結果
         mock_conn = Mock()
+        mock_conn.__enter__ = Mock(return_value=mock_conn)
+        mock_conn.__exit__ = Mock(return_value=None)
         mock_engine.return_value.connect.return_value = mock_conn
 
         # 模擬索引資訊
-        mock_indexes_result = Mock()
-        mock_indexes_result.fetchall.return_value = [
+        index_rows = [
             ("PRIMARY", "id", 1, 12345, "NO", "BTREE"),
             ("idx_name", "name", 1, 6789, "YES", "BTREE"),
             ("idx_name", "email", 2, 6789, "YES", "BTREE")
         ]
-        mock_conn.execute.side_effect = [mock_indexes_result, Mock(), Mock()]  # 三次調用
+        mock_indexes_result = Mock()
+        mock_indexes_result.__iter__ = Mock(return_value=iter(index_rows))
+        mock_usage_result = Mock()
+        mock_usage_result.__iter__ = Mock(return_value=iter([]))
+        mock_conn.execute.side_effect = [mock_indexes_result, mock_usage_result, Mock()]
 
         optimizer = QueryOptimizer('config.yml')
         analysis = optimizer.analyze_table_indexes("users")
@@ -128,13 +134,15 @@ class TestQueryOptimizer(unittest.TestCase):
 
         # 模擬資料庫連線
         mock_conn = Mock()
+        mock_conn.__enter__ = Mock(return_value=mock_conn)
+        mock_conn.__exit__ = Mock(return_value=None)
         mock_engine.return_value.connect.return_value = mock_conn
 
         # 模擬 EXPLAIN 結果
         mock_explain_result = Mock()
-        mock_explain_result.fetchall.return_value = [
-            {'table': 'users', 'type': 'ALL', 'rows': 10000, 'Extra': 'Using filesort'}
-        ]
+        mock_row = Mock()
+        mock_row._mapping = {'table': 'users', 'type': 'ALL', 'rows': 10000, 'Extra': 'Using filesort'}
+        mock_explain_result.__iter__ = Mock(return_value=iter([mock_row]))
         mock_conn.execute.return_value = mock_explain_result
 
         optimizer = QueryOptimizer('config.yml')
@@ -158,14 +166,18 @@ class TestQueryOptimizer(unittest.TestCase):
 
         # 模擬資料庫連線和結果
         mock_conn = Mock()
+        mock_conn.__enter__ = Mock(return_value=mock_conn)
+        mock_conn.__exit__ = Mock(return_value=None)
         mock_engine.return_value.connect.return_value = mock_conn
 
         # 模擬各種統計查詢結果
-        mock_conn.execute.side_effect = [
-            Mock(fetchall=lambda: [('process1',)]),  # SHOW PROCESSLIST
-            Mock(fetchone=lambda: ('InnoDB status info',)),  # SHOW ENGINE INNODB STATUS
-            Mock(fetchone=lambda: (8, 1000, 200, 800, 50, 25))  # 緩衝池統計
-        ]
+        res1 = Mock()
+        res1.__iter__ = Mock(return_value=iter([('process1',)]))
+        res2 = Mock()
+        res2.fetchone.return_value = ('InnoDB status info', 'extra1', 'extra2')
+        res3 = Mock()
+        res3.fetchone.return_value = (8, 1000, 200, 800, 50, 25)
+        mock_conn.execute.side_effect = [res1, res2, res3]
 
         optimizer = QueryOptimizer('config.yml')
         stats = optimizer.get_database_performance_stats()
@@ -251,14 +263,17 @@ class TestQueryOptimizer(unittest.TestCase):
 
         # 模擬資料庫連線
         mock_conn = Mock()
+        mock_conn.__enter__ = Mock(return_value=mock_conn)
+        mock_conn.__exit__ = Mock(return_value=None)
         mock_engine.return_value.connect.return_value = mock_conn
 
         # 模擬沒有索引的欄位
-        mock_result = Mock()
-        mock_result.fetchall.return_value = [
+        cols = [
             ("email", "varchar(255)", ""),
             ("phone", "varchar(20)", "")
         ]
+        mock_result = Mock()
+        mock_result.__iter__ = Mock(return_value=iter(cols))
         mock_conn.execute.return_value = mock_result
 
         optimizer = QueryOptimizer('config.yml')
